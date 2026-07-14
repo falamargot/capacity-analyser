@@ -353,7 +353,7 @@ describe('GEOConnectivitySection topology render smoke tests', () => {
     ['blocked', buildGeoEngineeringAnalysisViewModel({ linkMode: 'STAR_FORWARD', result: makeStarResult(-1.4), scenarioComplete: true, pathResolved: true })],
   ])('renders the %s boundary without downstream service sections', (_state, engineeringAnalysisViewModel) => {
     const html = renderToStaticMarkup(<GEOConnectivitySection {...baseProps} engineeringAnalysisViewModel={engineeringAnalysisViewModel} />);
-    expect(html).toContain('GEO · Authoritative result');
+    expect(html).toContain('Review · GEO result');
     expect(html).not.toContain('Access Layer');
     expect(html).not.toContain('Estimated Performance');
   });
@@ -425,7 +425,7 @@ describe('GEOConnectivitySection topology render smoke tests', () => {
         />
       );
 
-      expect(html).toContain('GEO · Authoritative result');
+      expect(html).toContain('Review · GEO result');
       expect(html).toContain('A → B throughput');
       expect(html).not.toContain('Scanzano / Palermo');
       expect(html).not.toContain('Traffic Gateway side - Scanzano / Palermo');
@@ -531,11 +531,13 @@ describe('GEOConnectivitySection topology render smoke tests', () => {
   });
 
   describe('authoritative result (above-the-fold summary)', () => {
-    it('renders before Access Layer and surfaces verdict, throughput, cause and confidence', () => {
+    it('renders before proof content and keeps configuration out of the result surface', () => {
       const html = renderGeo('STAR_FORWARD', makeStarResult(4.5));
 
-      expect(html).toContain('GEO · Authoritative result');
-      expect(html.indexOf('GEO · Authoritative result')).toBeLessThan(html.indexOf('Access Layer'));
+      expect(html).toContain('Review · GEO result');
+      expect(html.indexOf('Review · GEO result')).toBeLessThan(html.indexOf('Space Segment'));
+      expect(html).not.toContain('Access Layer');
+      expect(html).not.toContain('STAR · Hub &amp; Spoke');
       expect(html).toContain('Service available — constrained by shared capacity');
       expect(html).toContain('Why this result');
       expect(html).toContain('Downlink');
@@ -544,7 +546,7 @@ describe('GEOConnectivitySection topology render smoke tests', () => {
 
     it('shows a non-zero latency for MESH, derived the same way as the link budget drawer', () => {
       const html = renderGeo('MESH', makeMeshResult(3.2, 2.1));
-      const resultHtml = html.slice(html.indexOf('GEO · Authoritative result'), html.indexOf('Access Layer'));
+      const resultHtml = html.slice(html.indexOf('Review · GEO result'), html.indexOf('Space Segment'));
 
       expect(resultHtml).toContain('latency');
       expect(resultHtml).toMatch(/\d+(\.\d+)? ms/);

@@ -461,15 +461,16 @@ TerminalRFClassControl.displayName = 'TerminalRFClassControl';
 
 // ─── RF Settings Panel ────────────────────────────────────────────────────────
 
-interface TerminalRFSettingsPanelProps {
+export interface TerminalRFSettingsPanelProps {
   rfClassId: TerminalRFClassId;
   customParams: TerminalRFCustomParams | null;
   onCustomParamsChange: (params: TerminalRFCustomParams | null) => void;
   presetDisplayLabel?: string;
+  popover?: boolean;
 }
 
-const TerminalRFSettingsPanel = memo<TerminalRFSettingsPanelProps>(({
-  rfClassId, customParams, onCustomParamsChange, presetDisplayLabel,
+export const TerminalRFSettingsPanel = memo<TerminalRFSettingsPanelProps>(({
+  rfClassId, customParams, onCustomParamsChange, presetDisplayLabel, popover = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -515,21 +516,21 @@ const TerminalRFSettingsPanel = memo<TerminalRFSettingsPanelProps>(({
   const basedOnLabel = presetDisplayLabel ?? presetSpec?.label ?? rfClassId;
 
   return (
-    <div className="mt-1">
+    <div className={popover ? 'relative' : 'mt-1'}>
       <button
         type="button"
         onClick={() => setIsOpen((o) => !o)}
         title={isCustom ? `Custom RF Profile · Based on ${basedOnLabel}` : undefined}
-        className={`flex w-full items-center gap-1 rounded px-1 py-0.5 text-left text-[11px] hover:bg-gray-100 dark:hover:bg-slate-700/60 ${
+        className={`flex items-center gap-1 rounded text-left text-[11px] hover:bg-gray-100 dark:hover:bg-slate-700/60 ${popover ? 'h-6 border border-slate-200 bg-white/65 px-1.5 dark:border-slate-600/70 dark:bg-slate-800/55' : 'w-full px-1 py-0.5'} ${
           isCustom ? 'text-amber-600 dark:text-amber-400' : 'text-gray-500 dark:text-gray-400'
         }`}
       >
         <ChevronDown className={`h-3 w-3 shrink-0 transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`} />
-        <span className="font-medium uppercase tracking-wide">{isCustom ? 'Custom RF' : 'RF Settings'}</span>
+        <span className="font-medium uppercase tracking-wide">{isCustom ? 'Custom RF' : popover ? 'RF' : 'RF Settings'}</span>
       </button>
 
       {isOpen && (
-        <div className="mt-1 rounded-lg border border-gray-200 bg-gray-50/80 px-2.5 py-2 dark:border-slate-700 dark:bg-slate-900/60">
+        <div className={`${popover ? 'absolute right-0 top-full z-50 mt-1 w-64 shadow-xl' : 'mt-1'} rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-2 dark:border-slate-700 dark:bg-slate-900`}>
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1.5 text-[11px]">
             <span className="col-span-2 -mx-0.5 mb-0.5 text-[10px] font-bold uppercase tracking-wide text-gray-400 dark:text-slate-500">Antenna</span>
             <span className="text-gray-600 dark:text-gray-400">Diameter</span>

@@ -233,7 +233,7 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
     ['blocked', buildLeoEngineeringAnalysisViewModel({ debugInfo: makeLeoResult(18, 12), scenarioComplete: true, pathResolved: true, rfStatus: 'blocked', rfReason: 'No active RF beam' })],
   ])('renders the %s boundary without downstream service sections', (_state, engineeringAnalysisViewModel) => {
     const html = renderToStaticMarkup(<LEOConnectivitySection {...baseProps} engineeringAnalysisViewModel={engineeringAnalysisViewModel} />);
-    expect(html).toContain('LEO · Authoritative result');
+    expect(html).toContain('Review · LEO result');
     expect(html).not.toContain('Access Layer');
     expect(html).not.toContain('Estimated Performance');
   });
@@ -331,7 +331,7 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
     );
 
     expect(html).toContain('75 Mbps');
-    const resultHtml = html.slice(html.indexOf('LEO · Authoritative result'), html.indexOf('Access Layer'));
+    const resultHtml = html.slice(html.indexOf('Review · LEO result'), html.indexOf('Access Layer'));
     expect(resultHtml).not.toContain('55 Mbps');
   });
 
@@ -531,7 +531,7 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
   });
 
   describe('authoritative result (above-the-fold summary)', () => {
-    it('SINGLE_SITE: renders before Access Layer with verdict, throughput, cause and confidence', () => {
+    it('SINGLE_SITE: renders before proof content and keeps configuration out of the result surface', () => {
       const html = renderToStaticMarkup(
         <LEOConnectivitySection
           {...baseProps}
@@ -550,13 +550,15 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
         />
       );
 
-      expect(html).toContain('LEO · Authoritative result');
-      expect(html.indexOf('LEO · Authoritative result')).toBeLessThan(html.indexOf('Access Layer'));
+      expect(html).toContain('Review · LEO result');
+      expect(html.indexOf('Review · LEO result')).toBeLessThan(html.indexOf('Space Segment'));
+      expect(html).not.toContain('Access Layer');
+      expect(html).not.toContain('Site ↔ LEO ↔ SNP');
       expect(html).toContain('Service available');
       expect(html).toContain('Why this result');
       expect(html).toMatch(/\d+\/100/);
 
-      const resultHtml = html.slice(html.indexOf('LEO · Authoritative result'), html.indexOf('Access Layer'));
+      const resultHtml = html.slice(html.indexOf('Review · LEO result'), html.indexOf('Space Segment'));
       expect(resultHtml).toContain('18 Mbps');
     });
 
@@ -593,9 +595,36 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
         />
       );
 
-      const resultHtml = html.slice(html.indexOf('LEO · Authoritative result'), html.indexOf('Access Layer'));
+      const resultHtml = html.slice(html.indexOf('Review · LEO result'), html.indexOf('Access Layer'));
       expect(resultHtml).toContain('75 Mbps');
       expect(resultHtml).toContain('60.0 ms');
+    });
+
+    it('presents service evidence as readable labels without exposing implementation status tokens', () => {
+      const html = renderToStaticMarkup(
+        <LEOConnectivitySection
+          {...baseProps}
+          engineeringAnalysisViewModel={buildLeoEngineeringAnalysisViewModel({
+            debugInfo: makeLeoResult(18, 12),
+            topology: 'SINGLE_SITE',
+            scenarioComplete: true,
+            pathResolved: true,
+            rfStatus: 'available',
+            serviceStatus: 'ALLOWED',
+            serviceReason: 'CONNECTED',
+            serviceEvidence: [
+              { label: 'Regulatory · Site A', value: 'ALLOWED_CONFIRMED', state: 'passed' },
+              { label: 'Regulatory · Site B', value: 'ALLOWED_ESTIMATED', state: 'passed' },
+            ],
+          })}
+        />
+      );
+
+      expect(html).toContain('Allowed · confirmed');
+      expect(html).toContain('Allowed · estimated');
+      expect(html).not.toContain('ALLOWED_CONFIRMED');
+      expect(html).not.toContain('ALLOWED_ESTIMATED');
+      expect(html).not.toContain('CONNECTED');
     });
 
     it('Radio Path defaults to collapsed, matching GEO', () => {

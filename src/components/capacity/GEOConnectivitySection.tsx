@@ -342,6 +342,8 @@ export interface ResolvedGEOConnectivity {
 
 interface GEOConnectivitySectionProps {
   engineeringAnalysisViewModel: EngineeringAnalysisViewModel;
+  onConfigure?: () => void;
+  showConfigurationControls?: boolean;
   resolvedGEOConnectivity: ResolvedGEOConnectivity | null;
   geoGeometry: GEOGeometry | null;
   calculateGEOPerformance: (elevationDeg: number) => {
@@ -422,6 +424,8 @@ const SPEED_OF_LIGHT_KM_PER_MS = 299.792458;
 
 const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   engineeringAnalysisViewModel,
+  onConfigure,
+  showConfigurationControls = false,
   resolvedGEOConnectivity,
   geoGeometry,
   calculateGEOPerformance: _calculateGEOPerformance,
@@ -759,8 +763,8 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
       || engineeringAnalysisViewModel.truth.state === 'budget-unavailable';
     return (
       <>
-        {onLinkModeChange && <div className="mb-4"><LinkModeSelector linkMode={linkMode} onChange={onLinkModeChange} /></div>}
-        <EngineeringResultSummary technology="GEO" truth={engineeringAnalysisViewModel.truth} />
+        {showConfigurationControls && onLinkModeChange && <div className="mb-4"><LinkModeSelector linkMode={linkMode} onChange={onLinkModeChange} /></div>}
+        <EngineeringResultSummary technology="GEO" truth={engineeringAnalysisViewModel.truth} onConfigure={onConfigure} />
         {showRfEvidence && (
           <div className="space-y-4">
             <LinkBudgetSummaryCard
@@ -791,7 +795,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   }
   return (
     <>
-      {onLinkModeChange && (
+      {showConfigurationControls && onLinkModeChange && (
         <div className="mb-4">
           <LinkModeSelector
             linkMode={linkMode}
@@ -800,8 +804,9 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
         </div>
       )}
 
-      <EngineeringResultSummary technology="GEO" truth={engineeringAnalysisViewModel.truth} />
+      <EngineeringResultSummary technology="GEO" truth={engineeringAnalysisViewModel.truth} onConfigure={onConfigure} />
 
+      {showConfigurationControls && <>
       <LayerHeading title="Access Layer" detail="RF details, terminal characteristics, weather loss, elevation and visibility." />
 
       <div className="mb-4 mt-2">
@@ -959,10 +964,23 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           </div>
         )}
       </div>
+      </>}
 
       <LayerHeading title="Space Segment" detail="Serving satellite, coverage, beam, footprint and link-budget metrics." />
 
-      {candidateCoverages.length > 0 && (!isMeshOrP2P || candidateCoveragesB.length > 0) && (() => {
+      {!isMeshOrP2P && (
+        <div className="mb-4 mt-2 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5 text-xs dark:border-slate-700 dark:bg-slate-900/60">
+          <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">Resolved traffic path</div>
+          <div className="mt-1 font-semibold text-slate-900 dark:text-slate-100">{gatewaySideLabel}</div>
+          <div className="mt-1 text-[10px] leading-4 text-slate-500 dark:text-slate-400">{gatewayStatusTitle}</div>
+          {starTrafficGateway?.trafficCapability?.capabilityId && (
+            <div className="mt-1 font-mono text-[10px] leading-4 text-slate-500 dark:text-slate-400">{starTrafficGateway.trafficCapability.capabilityId}</div>
+          )}
+          {gatewayTrafficStatusNote && <div className="mt-1 text-[10px] leading-4 text-slate-500 dark:text-slate-400">{gatewayTrafficStatusNote}</div>}
+        </div>
+      )}
+
+      {showConfigurationControls && candidateCoverages.length > 0 && (!isMeshOrP2P || candidateCoveragesB.length > 0) && (() => {
         // In MESH/P2P the uplink and downlink candidates swap with the active direction:
         //   A→B: uplink = A-side (selectable), downlink = B-side (display only)
         //   B→A: uplink = B-side (display only), downlink = A-side (selectable)

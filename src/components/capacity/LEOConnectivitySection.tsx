@@ -982,6 +982,8 @@ const LeoLinkBudgetDrawer = ({
 
 interface LEOConnectivitySectionProps {
   engineeringAnalysisViewModel: EngineeringAnalysisViewModel;
+  onConfigure?: () => void;
+  showConfigurationControls?: boolean;
   resolvedLEOConnectivity: ResolvedLEOConnectivity | null;
   leoGeometry: LEOGeometry | null;
   leoPerformance: LEOPerformance | null;
@@ -1065,6 +1067,8 @@ const formatHopDistance = (distanceKm: number | null | undefined, latencyMs: num
 
 const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   engineeringAnalysisViewModel,
+  onConfigure,
+  showConfigurationControls = false,
   resolvedLEOConnectivity,
   leoGeometry,
   leoPerformance,
@@ -1246,13 +1250,13 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
       || engineeringAnalysisViewModel.truth.state === 'budget-unavailable';
     return (
       <>
-        {leoTopologyMode && onLeoTopologyModeChange && (
+        {showConfigurationControls && leoTopologyMode && onLeoTopologyModeChange && (
           <div className="mb-4 grid grid-cols-2 gap-1">
             <button type="button" onClick={() => onLeoTopologyModeChange('SINGLE_SITE')} className={`rounded px-2 py-2 text-xs font-semibold ${leoTopologyMode === 'SINGLE_SITE' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-gray-300'}`}>Single Site</button>
             <button type="button" onClick={() => onLeoTopologyModeChange('SITE_TO_SITE')} className={`rounded px-2 py-2 text-xs font-semibold ${leoTopologyMode === 'SITE_TO_SITE' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-gray-300'}`}>Site-to-Site</button>
           </div>
         )}
-        <EngineeringResultSummary technology="LEO" truth={engineeringAnalysisViewModel.truth} />
+        <EngineeringResultSummary technology="LEO" truth={engineeringAnalysisViewModel.truth} onConfigure={onConfigure} />
         {showRfEvidence && (
           <div className="space-y-4">
             <LeoLinkBudgetSummaryCard debugInfo={answerDebugInfo} highlighted={isLinkBudgetDrawerOpen} onToggle={() => setIsLinkBudgetDrawerOpen((open) => !open)} />
@@ -1280,7 +1284,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   }
   return (
     <>
-      {leoTopologyMode && onLeoTopologyModeChange && (
+      {showConfigurationControls && leoTopologyMode && onLeoTopologyModeChange && (
         <div className="mb-4">
           <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
             LEO Topology
@@ -1321,8 +1325,9 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
       )}
 
       <div className="space-y-4">
-        <EngineeringResultSummary technology="LEO" truth={engineeringAnalysisViewModel.truth} />
+      <EngineeringResultSummary technology="LEO" truth={engineeringAnalysisViewModel.truth} onConfigure={onConfigure} />
 
+        {showConfigurationControls && <>
         <LayerHeading title="Access Layer" detail="RF details, terminal characteristics, weather loss, elevation and visibility." />
         {/* ── S2S mode: two independent terminal cards ── */}
         {isS2S && terminalTypeB != null && onTerminalTypeBChange != null ? (
@@ -1400,6 +1405,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
             advancedDetailsOnly
           />
         )}
+        </>}
 
         <LayerHeading title="Space Segment" detail="Serving satellites, beam state, RF budget and capacity constraints." />
 

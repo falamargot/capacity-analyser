@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { HeaderRouteStatusPanel, type HeaderRouteStatusItem } from './HeaderScenarioBuilder';
+import type { EngineeringConfigureDraft } from '../../types/engineeringConfigure';
+import HeaderScenarioBuilder, { HeaderRouteStatusPanel, type HeaderRouteStatusItem, type SiteConfig } from './HeaderScenarioBuilder';
 
 const route: HeaderRouteStatusItem = {
   technology: 'GEO',
@@ -37,5 +38,88 @@ describe('HeaderRouteStatusPanel', () => {
     expect(markup).toContain('76 ms');
     expect(markup).toContain('18 Mbps');
     expect(markup).toContain('Beam sharing');
+  });
+});
+
+const site = (roleLabel: string, label: string): SiteConfig => ({
+  endpoint: { label },
+  roleLabel,
+  fallback: label,
+  onSelect: () => undefined,
+  terminals: {
+    geoRFClassId: 'ku_standard_vsat',
+    geoTerminalType: 'fixed',
+    onGeoTerminalTypeChange: () => undefined,
+    onGeoRFClassChange: () => undefined,
+    leoTerminalType: 'fixed',
+    onLeoTerminalTypeChange: () => undefined,
+    leoTerminalModelId: 'ow70l',
+    onLeoTerminalModelIdChange: () => undefined,
+  },
+  weather: {
+    weatherType: 'clear',
+    onWeatherTypeChange: () => undefined,
+  },
+});
+
+const configureBaseline: EngineeringConfigureDraft = {
+  technology: 'GEO',
+  geoLinkMode: 'MESH',
+  leoTopologyMode: 'SITE_TO_SITE',
+  direction: 'forward',
+  selectionPolicy: 'auto',
+  geoUplinkKeyA: null,
+  geoDownlinkKeyA: null,
+  geoUplinkKeyB: null,
+  geoDownlinkKeyB: null,
+  siteA: {
+    location: { label: 'Paris', lat: 48.8566, lng: 2.3522 },
+    geoTerminalType: 'fixed',
+    geoRFClassId: 'ku_standard_vsat',
+    geoRFCustomParams: null,
+    leoTerminalType: 'fixed',
+    leoTerminalModelId: 'ow70l',
+    weatherType: 'clear',
+    autoWeatherEnabled: true,
+  },
+  siteB: {
+    location: { label: 'Dakar', lat: 14.7167, lng: -17.4677 },
+    geoTerminalType: 'fixed',
+    geoRFClassId: 'ku_standard_vsat',
+    geoRFCustomParams: null,
+    leoTerminalType: 'fixed',
+    leoTerminalModelId: 'ow70l',
+    weatherType: 'clear',
+    autoWeatherEnabled: true,
+  },
+};
+
+describe('HeaderScenarioBuilder transactional Configure workflow', () => {
+  it('preserves horizontal endpoint assumptions and owns the Phase 2 transaction actions', () => {
+    const markup = renderToStaticMarkup(
+      <HeaderScenarioBuilder
+        siteA={site('Origin', 'Paris')}
+        siteB={site('Destination', 'Dakar')}
+        onSwap={() => undefined}
+        engineeringConfigure={{
+          baseline: configureBaseline,
+          truths: {},
+          candidates: { siteA: [], siteB: [] },
+          onApply: () => undefined,
+        }}
+      />,
+    );
+
+    expect(markup).toContain('Desktop engineering scenario configuration');
+    expect(markup).toContain('Origin');
+    expect(markup).toContain('Destination');
+    expect(markup).toContain('Paris');
+    expect(markup).toContain('Dakar');
+    expect(markup).toContain('Weather condition');
+    expect(markup).toContain('RF</span>');
+    expect(markup).toContain('No pending changes');
+    expect(markup).toContain('Discard');
+    expect(markup).toContain('Apply and recalculate');
+    expect(markup).toContain('<select');
   });
 });

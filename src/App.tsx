@@ -146,7 +146,16 @@ import {
   scenarioToConnectivityScenarioCard,
 } from './utils/connectivityScenarioCardProjection';
 import { computeEngineeringCameraCompensation } from './utils/engineeringCameraCompensation';
-import type { EngineeringTruth, EngineeringTruthSet } from './utils/engineeringAnalysisViewModel';
+import type { EngineeringCauseStageId, EngineeringTruth, EngineeringTruthSet } from './utils/engineeringAnalysisViewModel';
+import type { EngineeringConfigureDraft } from './types/engineeringConfigure';
+import {
+  engineeringConfigureDraftSignature,
+  getAffectedEngineeringStages,
+  getEngineeringConfigureChanges,
+  sameEngineeringConfigureLocation,
+} from './utils/engineeringConfigureModel';
+import EngineeringConfigurePanel from './components/capacity/EngineeringConfigurePanel';
+import EngineeringRecalculationStatus from './components/capacity/EngineeringRecalculationStatus';
 
 const CapacityDetails = lazy(() => import('./components/CapacityDetails'));
 const CommandPalette = lazy(() => import('./components/CommandPalette'));
@@ -160,6 +169,13 @@ type EndpointSelectionMotion = {
   token: number;
 };
 type MobileAnalysisDetent = 'compact' | 'medium';
+type EngineeringRecalculation = {
+  revision: number;
+  status: 'updating' | 'settled';
+  stages: EngineeringCauseStageId[];
+  changedInputs: string[];
+  sourceSignature: string;
+};
 
 // ─── Module-level constants ───────────────────────────────────────────────────
 const COMPACT_DESKTOP_DIAG_MIN = Math.hypot(1920, 1080);
@@ -499,22 +515,22 @@ const App: React.FC = () => {
     setLeoTerminalTypeB(type);
     setLeoTerminalModelIdB(getLeoTerminalProfile(type).id);
   }, []);
-  const handleGeoTerminalTypeChange = (type: TerminalType) => {
+  const handleGeoTerminalTypeChange = useCallback((type: TerminalType) => {
     setGeoTerminalType(type);
     if (!isRFClassCompatibleWithUseCase(geoRFClassIdA, type)) {
       const band = getRFClassBand(geoRFClassIdA) ?? 'Ku';
       setGeoRFClassIdA(USE_CASE_DEFAULT_RF_CLASS[type]?.[band] ?? USE_CASE_DEFAULT_RF_CLASS[type]?.Ku ?? 'ku_standard_vsat');
       setGeoRFCustomParamsA(null);
     }
-  };
-  const handleGeoTerminalTypeBChange = (type: TerminalType) => {
+  }, [geoRFClassIdA]);
+  const handleGeoTerminalTypeBChange = useCallback((type: TerminalType) => {
     setGeoTerminalTypeB(type);
     if (!isRFClassCompatibleWithUseCase(geoRFClassIdB, type)) {
       const band = getRFClassBand(geoRFClassIdB) ?? 'Ku';
       setGeoRFClassIdB(USE_CASE_DEFAULT_RF_CLASS[type]?.[band] ?? USE_CASE_DEFAULT_RF_CLASS[type]?.Ku ?? 'ku_standard_vsat');
       setGeoRFCustomParamsB(null);
     }
-  };
+  }, [geoRFClassIdB]);
   const engineeringOriginTerminalCapabilities = useMemo(() => buildEngineeringEndpointTerminalCapabilities({
     geoRFClassId: geoRFClassIdA,
     geoTerminalType,
@@ -783,6 +799,9 @@ const App: React.FC = () => {
   const [mobileAnalysisDetent, setMobileAnalysisDetent] = useState<MobileAnalysisDetent>('compact');
   const [isMobileAnalysisSummaryReady, setIsMobileAnalysisSummaryReady] = useState(false);
   const [engineeringTruths, setEngineeringTruths] = useState<EngineeringTruthSet>({});
+  const [isEngineeringConfigureOpen, setIsEngineeringConfigureOpen] = useState(false);
+  const [engineeringHeaderConfigureFocusSignal, setEngineeringHeaderConfigureFocusSignal] = useState(0);
+  const [engineeringRecalculation, setEngineeringRecalculation] = useState<EngineeringRecalculation | null>(null);
   const [isSatelliteModalOpen, setIsSatelliteModalOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isTargetSourcesMenuOpen, setIsTargetSourcesMenuOpen] = useState(false);
@@ -893,6 +912,9 @@ const App: React.FC = () => {
   const [selectedDownlinkKey, setSelectedDownlinkKey] = useState<string | null>(null);
   const [selectedUplinkKeyB, setSelectedUplinkKeyB] = useState<string | null>(null);
   const [selectedDownlinkKeyB, setSelectedDownlinkKeyB] = useState<string | null>(null);
+  const geoSelectionPolicy = selectedUplinkKey || selectedDownlinkKey || selectedUplinkKeyB || selectedDownlinkKeyB
+    ? 'manual' as const
+    : 'auto' as const;
   const preserveCoverageKeysOnNextTargetResetRef = useRef(false);
   const preserveSiteBCoverageKeysOnNextPointBResetRef = useRef(false);
   const [manualGeoCoverageVisibility, setManualGeoCoverageVisibility] = useState<{
@@ -4024,6 +4046,7 @@ const App: React.FC = () => {
   const showPhoneFloatingHeader = isPhone
     && !isFullscreen
     && !isMobileAnalysisPanelOpen
+    && !isEngineeringConfigureOpen
     && !isSatelliteModalOpen;
   const isLeoS2S = leoTopologyMode === 'SITE_TO_SITE';
   const showMobilePointBMapControl = isMobile
@@ -4548,6 +4571,186 @@ const App: React.FC = () => {
     siteB,
   ]);
 
+  const engineeringConfigureBaseline = useMemo<EngineeringConfigureDraft>(() => ({
+    technology: satelliteScope === 'ALL' ? activeConnectivityTab : satelliteScope,
+    geoLinkMode: linkMode,
+    leoTopologyMode,
+    direction: activeMeshTab,
+    selectionPolicy: geoSelectionPolicy,
+    geoUplinkKeyA: selectedUplinkKey,
+    geoDownlinkKeyA: selectedDownlinkKey,
+    geoUplinkKeyB: selectedUplinkKeyB,
+    geoDownlinkKeyB: selectedDownlinkKeyB,
+    siteA: {
+      location: activeAnalysisPoint ? {
+        label: routeSelectorRoute.origin?.label ?? formatCoordinates(activeAnalysisPoint),
+        lat: activeAnalysisPoint.lat,
+        lng: activeAnalysisPoint.lng,
+      } : null,
+      geoTerminalType,
+      geoRFClassId: geoRFClassIdA,
+      geoRFCustomParams: geoRFCustomParamsA,
+      leoTerminalType,
+      leoTerminalModelId,
+      weatherType,
+      autoWeatherEnabled,
+    },
+    siteB: {
+      location: siteB ? {
+        label: routeSelectorRoute.destination?.label ?? formatCoordinates(siteB),
+        lat: siteB.lat,
+        lng: siteB.lng,
+      } : null,
+      geoTerminalType: geoTerminalTypeB,
+      geoRFClassId: geoRFClassIdB,
+      geoRFCustomParams: geoRFCustomParamsB,
+      leoTerminalType: leoTerminalTypeB,
+      leoTerminalModelId: leoTerminalModelIdB,
+      weatherType: weatherTypeB,
+      autoWeatherEnabled: autoWeatherEnabledB,
+    },
+  }), [
+    activeAnalysisPoint,
+    activeConnectivityTab,
+    activeMeshTab,
+    autoWeatherEnabled,
+    autoWeatherEnabledB,
+    geoRFClassIdA,
+    geoRFClassIdB,
+    geoRFCustomParamsA,
+    geoRFCustomParamsB,
+    geoSelectionPolicy,
+    geoTerminalType,
+    geoTerminalTypeB,
+    leoTerminalModelId,
+    leoTerminalModelIdB,
+    leoTerminalType,
+    leoTerminalTypeB,
+    leoTopologyMode,
+    linkMode,
+    routeSelectorRoute.destination?.label,
+    routeSelectorRoute.origin?.label,
+    satelliteScope,
+    selectedDownlinkKey,
+    selectedDownlinkKeyB,
+    selectedUplinkKey,
+    selectedUplinkKeyB,
+    siteB,
+    weatherType,
+    weatherTypeB,
+  ]);
+  const engineeringConfigureBaselineSignature = engineeringConfigureDraftSignature(engineeringConfigureBaseline);
+
+  const handleOpenEngineeringConfigure = useCallback((technology?: 'GEO' | 'LEO') => {
+    if (technology && technology !== activeConnectivityTab) handleTechnologyChange(technology);
+    setIsMobileAnalysisPanelOpen(false);
+    if (isMobile) setIsEngineeringConfigureOpen(true);
+    else setEngineeringHeaderConfigureFocusSignal((signal) => signal + 1);
+  }, [activeConnectivityTab, handleTechnologyChange, isMobile]);
+
+  const handleApplyEngineeringConfigure = useCallback((draft: EngineeringConfigureDraft) => {
+    const changes = getEngineeringConfigureChanges(engineeringConfigureBaseline, draft);
+    if (changes.length === 0) return;
+
+    setEngineeringRecalculation((current) => ({
+      revision: (current?.revision ?? 0) + 1,
+      status: 'updating',
+      stages: getAffectedEngineeringStages(changes),
+      changedInputs: changes.map((change) => change.label),
+      sourceSignature: engineeringConfigureBaselineSignature,
+    }));
+
+    if (draft.siteA.location && !sameEngineeringConfigureLocation(engineeringConfigureBaseline.siteA.location, draft.siteA.location)) {
+      handleLocationSelect(draft.siteA.location.lat, draft.siteA.location.lng);
+    }
+    if (!draft.siteB.location && engineeringConfigureBaseline.siteB.location) {
+      handleClearSiteB();
+    } else if (draft.siteB.location && !sameEngineeringConfigureLocation(engineeringConfigureBaseline.siteB.location, draft.siteB.location)) {
+      handleDestinationLocationSelect(draft.siteB.location.lat, draft.siteB.location.lng);
+    }
+
+    if (draft.technology !== engineeringConfigureBaseline.technology) {
+      handleTechnologyChange(draft.technology);
+      if (satelliteScope !== 'ALL') handleTechnologyScopeChange(draft.technology);
+    }
+    if (draft.technology === 'GEO') {
+      if (draft.geoLinkMode !== engineeringConfigureBaseline.geoLinkMode || !sameEngineeringConfigureLocation(engineeringConfigureBaseline.siteB.location, draft.siteB.location)) {
+        handleLinkModeChange(draft.geoLinkMode);
+      }
+    } else if (draft.leoTopologyMode !== engineeringConfigureBaseline.leoTopologyMode || !sameEngineeringConfigureLocation(engineeringConfigureBaseline.siteB.location, draft.siteB.location)) {
+      handleLeoTopologyModeChange(draft.leoTopologyMode);
+    }
+    if (draft.direction !== engineeringConfigureBaseline.direction) handleActiveMeshTabChange(draft.direction);
+
+    if (draft.technology === 'GEO') {
+      if (draft.siteA.geoTerminalType !== engineeringConfigureBaseline.siteA.geoTerminalType) handleGeoTerminalTypeChange(draft.siteA.geoTerminalType);
+      if (draft.siteA.geoRFClassId !== engineeringConfigureBaseline.siteA.geoRFClassId) setGeoRFClassIdA(draft.siteA.geoRFClassId);
+      if (JSON.stringify(draft.siteA.geoRFCustomParams) !== JSON.stringify(engineeringConfigureBaseline.siteA.geoRFCustomParams)) setGeoRFCustomParamsA(draft.siteA.geoRFCustomParams);
+      if (draft.siteB.geoTerminalType !== engineeringConfigureBaseline.siteB.geoTerminalType) handleGeoTerminalTypeBChange(draft.siteB.geoTerminalType);
+      if (draft.siteB.geoRFClassId !== engineeringConfigureBaseline.siteB.geoRFClassId) setGeoRFClassIdB(draft.siteB.geoRFClassId);
+      if (JSON.stringify(draft.siteB.geoRFCustomParams) !== JSON.stringify(engineeringConfigureBaseline.siteB.geoRFCustomParams)) setGeoRFCustomParamsB(draft.siteB.geoRFCustomParams);
+    } else {
+      if (draft.siteA.leoTerminalType !== engineeringConfigureBaseline.siteA.leoTerminalType) handleLeoTerminalTypeChange(draft.siteA.leoTerminalType);
+      if (draft.siteA.leoTerminalModelId !== engineeringConfigureBaseline.siteA.leoTerminalModelId) setLeoTerminalModelId(draft.siteA.leoTerminalModelId);
+      if (draft.siteB.leoTerminalType !== engineeringConfigureBaseline.siteB.leoTerminalType) handleLeoTerminalTypeBChange(draft.siteB.leoTerminalType);
+      if (draft.siteB.leoTerminalModelId !== engineeringConfigureBaseline.siteB.leoTerminalModelId) setLeoTerminalModelIdB(draft.siteB.leoTerminalModelId);
+    }
+    if (draft.siteA.weatherType !== engineeringConfigureBaseline.siteA.weatherType) {
+      handleWeatherTypeChange(draft.siteA.weatherType);
+    }
+    if (draft.siteA.autoWeatherEnabled !== engineeringConfigureBaseline.siteA.autoWeatherEnabled) setAutoWeatherEnabled(draft.siteA.autoWeatherEnabled);
+    if (draft.siteB.weatherType !== engineeringConfigureBaseline.siteB.weatherType) handleWeatherTypeBChange(draft.siteB.weatherType);
+    if (draft.siteB.autoWeatherEnabled !== engineeringConfigureBaseline.siteB.autoWeatherEnabled) setAutoWeatherEnabledB(draft.siteB.autoWeatherEnabled);
+
+    if (draft.technology === 'GEO' && draft.selectionPolicy === 'auto') {
+      setSelectedUplinkKey(null);
+      setSelectedDownlinkKey(null);
+      setSelectedUplinkKeyB(null);
+      setSelectedDownlinkKeyB(null);
+    } else if (draft.technology === 'GEO') {
+      const uplinkA = eligibleCandidateCoverages.find((candidate) => getCandidateCoverageKey(candidate) === draft.geoUplinkKeyA);
+      const downlinkA = eligibleCandidateCoverages.find((candidate) => getCandidateCoverageKey(candidate) === draft.geoDownlinkKeyA);
+      const uplinkB = candidateCoveragesB.find((candidate) => getCandidateCoverageKey(candidate) === draft.geoUplinkKeyB);
+      const downlinkB = candidateCoveragesB.find((candidate) => getCandidateCoverageKey(candidate) === draft.geoDownlinkKeyB);
+      if (uplinkA) handleSelectUplinkCoverage(uplinkA);
+      if (downlinkA) handleSelectDownlinkCoverage(downlinkA);
+      if (uplinkB) handleSelectUplinkCoverageB(uplinkB);
+      if (downlinkB) handleSelectDownlinkCoverageB(downlinkB);
+    }
+  }, [
+    candidateCoveragesB,
+    eligibleCandidateCoverages,
+    engineeringConfigureBaseline,
+    engineeringConfigureBaselineSignature,
+    handleActiveMeshTabChange,
+    handleClearSiteB,
+    handleDestinationLocationSelect,
+    handleGeoTerminalTypeBChange,
+    handleGeoTerminalTypeChange,
+    handleLeoTopologyModeChange,
+    handleLeoTerminalTypeBChange,
+    handleLeoTerminalTypeChange,
+    handleLinkModeChange,
+    handleLocationSelect,
+    handleSelectDownlinkCoverage,
+    handleSelectDownlinkCoverageB,
+    handleSelectUplinkCoverage,
+    handleSelectUplinkCoverageB,
+    handleTechnologyChange,
+    handleTechnologyScopeChange,
+    handleWeatherTypeBChange,
+    handleWeatherTypeChange,
+    satelliteScope,
+  ]);
+
+  useEffect(() => {
+    if (engineeringRecalculation?.status !== 'updating') return;
+    if (engineeringRecalculation.sourceSignature === engineeringConfigureBaselineSignature) return;
+
+    setEngineeringRecalculation((current) => current ? { ...current, status: 'settled' } : current);
+    setIsEngineeringConfigureOpen(false);
+  }, [engineeringConfigureBaselineSignature, engineeringRecalculation]);
+
   const mapCommercialState = useMemo<CommercialStateProps>(() => ({
     commercialMode: globeCommercialMode,
     commercialViewModel: globeCommercialMode ? commercialScenarioViewModel : null,
@@ -5044,6 +5247,8 @@ const App: React.FC = () => {
       onArmPointBLeo={() => setIsSiteBArmed(true)}
       activeLeoRouteEvidence={activeLeoRouteEvidence}
       onEngineeringTruthChange={setEngineeringTruths}
+      onConfigure={handleOpenEngineeringConfigure}
+      recalculation={engineeringRecalculation}
       selectionMotionKey={endpointSelectionMotion?.token}
     />
   );
@@ -5100,6 +5305,34 @@ const App: React.FC = () => {
     },
   };
 
+  const engineeringConfigureCandidates = {
+    siteA: eligibleCandidateCoverages,
+    siteB: candidateCoveragesB,
+    resolved: {
+      siteA: { uplink: selectedUplinkCoverage, downlink: selectedDownlinkCoverage },
+      siteB: { uplink: uplinkAtBForGlobe, downlink: downlinkAtBForGlobe },
+    },
+  };
+  const engineeringHeaderConfigure = {
+    baseline: engineeringConfigureBaseline,
+    truths: engineeringTruths,
+    candidates: engineeringConfigureCandidates,
+    applying: engineeringRecalculation?.status === 'updating',
+    recalculation: engineeringRecalculation,
+    focusSignal: engineeringHeaderConfigureFocusSignal,
+    onApply: handleApplyEngineeringConfigure,
+  };
+  const engineeringConfigurePanel = (
+    <EngineeringConfigurePanel
+      baseline={engineeringConfigureBaseline}
+      truths={engineeringTruths}
+      candidates={engineeringConfigureCandidates}
+      applying={engineeringRecalculation?.status === 'updating'}
+      onCancel={() => setIsEngineeringConfigureOpen(false)}
+      onApply={handleApplyEngineeringConfigure}
+    />
+  );
+
   return (
     <div
       className={[
@@ -5149,7 +5382,7 @@ const App: React.FC = () => {
                       onSwap={handleSwapRouteEndpoints}
                       analysisSource={activeAnalysisSource}
                       compact
-                      collapsed
+                      engineeringConfigure={engineeringHeaderConfigure}
                     />
                   </div>
                 </div>
@@ -5210,7 +5443,7 @@ const App: React.FC = () => {
                     {renderExploreLauncher(useCompactDesktopHeader)}
                   </div>
 
-                  <div className={useCondensedHeaderSites ? 'min-w-0 w-full max-w-[34rem]' : 'min-w-0 flex-1'}>
+                  <div className={useCondensedHeaderSites ? 'min-w-0 w-full' : 'min-w-0 flex-1'}>
                     <div className={`flex w-full items-stretch gap-2 ${useCondensedHeaderSites ? '' : useCompactDesktopHeader ? 'max-w-[940px]' : 'max-w-[1080px]'}`}>
                   <div
                     className={[
@@ -5272,7 +5505,8 @@ const App: React.FC = () => {
                       onSwap={handleSwapRouteEndpoints}
                       analysisSource={activeAnalysisSource}
                       compact={useCompactDesktopHeader}
-                      collapsed={useCondensedHeaderSites}
+                      collapsed={false}
+                      engineeringConfigure={engineeringHeaderConfigure}
                     />
                   </div>
                   <div className="contents" ref={targetSourcesMenuRef}>
@@ -5773,6 +6007,8 @@ const App: React.FC = () => {
                     onArmPointBLeo={() => setIsSiteBArmed(true)}
                     activeLeoRouteEvidence={activeLeoRouteEvidence}
                     onEngineeringTruthChange={setEngineeringTruths}
+                    onConfigure={handleOpenEngineeringConfigure}
+                    recalculation={engineeringRecalculation}
                   />
                 </Suspense>
               </div>
@@ -5833,6 +6069,7 @@ const App: React.FC = () => {
 
                     <div className="pointer-events-auto w-full overflow-hidden rounded-[30px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(241,245,249,0.94))] shadow-[0_26px_70px_-42px_rgba(15,23,42,0.82)] backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(30,41,59,0.9))]">
                       <div className="p-2">
+                        {engineeringRecalculation && <EngineeringRecalculationStatus {...engineeringRecalculation} />}
                         <MobileAnalysisSummary
                           selectedSatellite={selectedSatellite}
                           selectedMoon={selectedMoon}
@@ -5852,7 +6089,7 @@ const App: React.FC = () => {
                           satellites={satellites}
                           snpConnectedSatellites={snpConnectedSatellites}
                           linkMode={linkMode}
-                          onLinkModeChange={handleLinkModeChange}
+                          onLinkModeChange={undefined}
                           pointB={pointB}
                           pointBLeo={pointBLeo}
                           nearestLocation={nearestLocation}
@@ -5863,14 +6100,22 @@ const App: React.FC = () => {
                           autoWeatherEnabledB={autoWeatherEnabledB}
                           activeConnectivityTab={activeConnectivityTab}
                           activeMeshTab={activeMeshTab}
-                          onActiveMeshTabChange={handleActiveMeshTabChange}
+                          onActiveMeshTabChange={undefined}
                           leoTopologyMode={leoTopologyMode}
                           leoSiteToSiteResult={activeLeoSiteToSiteResult}
                           engineeringTruths={engineeringTruths}
                         />
                       </div>
                       <div className="border-t border-slate-200/80 px-2.5 pb-2 pt-1.5 dark:border-slate-700/80">
-                        <div className="grid grid-cols-[0.85fr_1fr] gap-2">
+                        <div className="grid grid-cols-3 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEngineeringConfigure()}
+                            className="inline-flex h-9 items-center justify-center rounded-[16px] border border-sky-200 bg-sky-50 px-2 text-[12px] font-semibold text-sky-800 shadow-sm transition-colors hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200"
+                            aria-label="Configure engineering scenario"
+                          >
+                            Configure
+                          </button>
                           <button
                             type="button"
                             onClick={() => setMobileAnalysisDetent((current) => current === 'compact' ? 'medium' : 'compact')}
@@ -6035,6 +6280,8 @@ const App: React.FC = () => {
                                 onArmPointBLeo={() => setIsSiteBArmed(true)}
                                 activeLeoRouteEvidence={activeLeoRouteEvidence}
                                 onEngineeringTruthChange={setEngineeringTruths}
+                                onConfigure={handleOpenEngineeringConfigure}
+                                recalculation={engineeringRecalculation}
                                 selectionMotionKey={endpointSelectionMotion?.token}
                               />
                             )}
@@ -6331,6 +6578,8 @@ const App: React.FC = () => {
                           onArmPointBLeo={() => setIsSiteBArmed(true)}
                           activeLeoRouteEvidence={activeLeoRouteEvidence}
                           onEngineeringTruthChange={setEngineeringTruths}
+                          onConfigure={handleOpenEngineeringConfigure}
+                          recalculation={engineeringRecalculation}
                           selectionMotionKey={endpointSelectionMotion?.token}
                         />
                       )}
@@ -6346,6 +6595,18 @@ const App: React.FC = () => {
             )}
           </div>
         </main>
+      )}
+
+      {isMobile && isEngineeringConfigureOpen && (
+        <div
+          className="fixed inset-0 z-[90] bg-white dark:bg-slate-950"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Configure engineering scenario"
+          style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
+        >
+          {engineeringConfigurePanel}
+        </div>
       )}
 
       {isCommandPaletteOpen && (

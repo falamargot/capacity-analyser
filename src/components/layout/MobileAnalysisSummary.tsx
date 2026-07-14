@@ -1054,13 +1054,16 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                 </div>
             ) : shouldShowCanonicalMetrics ? (
                 <div className={compact ? 'mt-2' : 'mt-3'}>
+                    <div className="mb-1.5 flex items-center justify-between gap-3 px-0.5">
+                        <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-emerald-600 dark:text-emerald-300">Delivered service</span>
+                        <span className="text-[9px] text-slate-400 dark:text-slate-500">Final outputs</span>
+                    </div>
                     <div className={`grid gap-2 ${activeEngineeringTruth.primaryMetrics.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
                         {activeEngineeringTruth.primaryMetrics.map((metric) => (
                             <SummaryStatCard
                                 key={metric.label}
                                 label={metric.label}
                                 value={metric.display}
-                                hint="Delivered"
                                 accentClassName={activeEngineeringTruth.technology === 'LEO' ? 'text-fuchsia-700 dark:text-fuchsia-200' : 'text-blue-700 dark:text-blue-200'}
                                 compact={compact}
                             />

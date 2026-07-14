@@ -73,6 +73,7 @@ import {
   type EngineeringEvidenceItem,
   type EngineeringTruthSet,
 } from '../utils/engineeringAnalysisViewModel';
+import EngineeringRecalculationStatus, { type EngineeringRecalculationStatusProps } from './capacity/EngineeringRecalculationStatus';
 
 interface CapacityDetailsProps {
   satellites: SatelliteData[];
@@ -118,6 +119,8 @@ interface CapacityDetailsProps {
   detailedEngineeringCloseSignal?: number;
   onExportStateChange?: (payload: ExportButtonPayload | null) => void;
   onEngineeringTruthChange?: (truth: EngineeringTruthSet) => void;
+  onConfigure?: (technology: 'GEO' | 'LEO') => void;
+  recalculation?: EngineeringRecalculationStatusProps | null;
   regulatoryResultOverride?: RegulatoryResult | null;
   regulatoryResultBOverride?: RegulatoryResult | null;
   beamLoadResultOverride?: BeamLoadResult | null;
@@ -229,6 +232,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   activeLeoRouteEvidence = null,
   selectionMotionKey,
   onEngineeringTruthChange,
+  onConfigure,
+  recalculation,
 }) => {
   const [selectionRevealActive, setSelectionRevealActive] = useState(false);
 
@@ -1904,6 +1909,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
         )}
 
         <div className="flex-1 min-h-0 overflow-y-auto">
+          {recalculation && <EngineeringRecalculationStatus {...recalculation} />}
           {/* Section 2: Constellation-based Connectivity */}
           {(satelliteScope === 'LEO' || satelliteScope === 'GEO' || satelliteScope === 'ALL') && (
             <div className="mb-6">
@@ -1954,6 +1960,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   {leoTopologyMode === 'SITE_TO_SITE' && (
                 <LEOConnectivitySection
                   engineeringAnalysisViewModel={engineeringAnalysisViewModels.LEO}
+                  onConfigure={onConfigure ? () => onConfigure('LEO') : undefined}
                   resolvedLEOConnectivity={resolvedLEOConnectivity}
                   leoGeometry={leoGeometry}
                   leoPerformance={leoPerformance}
@@ -2001,6 +2008,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   {leoTopologyMode === 'SINGLE_SITE' && (
                 <LEOConnectivitySection
                   engineeringAnalysisViewModel={engineeringAnalysisViewModels.LEO}
+                  onConfigure={onConfigure ? () => onConfigure('LEO') : undefined}
                   resolvedLEOConnectivity={resolvedLEOConnectivity}
                   leoGeometry={leoGeometry}
                   leoPerformance={leoPerformance}
@@ -2041,6 +2049,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                 <div className={satelliteScope === 'ALL' ? (activeConnTab === 'GEO' ? 'order-1' : 'order-2') : undefined}>
                   <GEOConnectivitySection
                     engineeringAnalysisViewModel={engineeringAnalysisViewModels.GEO}
+                    onConfigure={onConfigure ? () => onConfigure('GEO') : undefined}
                     resolvedGEOConnectivity={resolvedGEOConnectivity}
                     geoGeometry={geoGeometry}
                     calculateGEOPerformance={calculateGEOPerformance}
