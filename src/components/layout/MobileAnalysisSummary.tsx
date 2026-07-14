@@ -127,6 +127,7 @@ function MobileSiteRouteSummary({
     siteA,
     siteB,
     accent,
+    servingSatelliteName,
     relation,
     detailDirection,
     onToggleDirection,
@@ -142,6 +143,7 @@ function MobileSiteRouteSummary({
         weather: string;
     };
     accent: 'LEO' | 'GEO';
+    servingSatelliteName?: string | null;
     relation: 'forward' | 'reverse' | 'bidirectional';
     detailDirection: 'forward' | 'reverse';
     onToggleDirection?: () => void;
@@ -166,22 +168,34 @@ function MobileSiteRouteSummary({
         : 'border-blue-300/70 bg-blue-600 text-white shadow-[0_10px_24px_-16px_rgba(37,99,235,0.85)]';
     const indicatorBaseClassName = `absolute left-1/2 top-1/2 z-10 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border ${indicatorClassName}`;
 
-    const renderSite = (label: 'SITE A' | 'SITE B', site: typeof siteA) => (
-        <div className="min-w-0 rounded-[18px] border border-slate-200/80 bg-white/82 px-2.5 py-2 shadow-sm dark:border-slate-700 dark:bg-slate-900/72">
-            <div className="text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
-                {label}
+    const renderSite = (label: 'SITE A' | 'SITE B', site: typeof siteA) => {
+        const siteServingSatelliteName = label === 'SITE A' ? servingSatelliteName : null;
+
+        return (
+            <div className="min-w-0 rounded-[18px] border border-slate-200/80 bg-white/82 px-2.5 py-2 shadow-sm dark:border-slate-700 dark:bg-slate-900/72">
+                <div className="text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
+                    {label}
+                </div>
+                <div
+                    className="mt-1 truncate whitespace-nowrap font-mono text-[13px] font-semibold leading-4 text-slate-950 dark:text-slate-50"
+                    title={siteServingSatelliteName ? `Serving satellite ${siteServingSatelliteName} · ${site.coordinates}` : site.coordinates}
+                >
+                    {siteServingSatelliteName ? (
+                        <>
+                            <span className={isLeo ? 'text-fuchsia-700 dark:text-fuchsia-200' : 'text-blue-700 dark:text-blue-200'}>{siteServingSatelliteName}</span>
+                            <span> · {site.coordinates}</span>
+                        </>
+                    ) : site.coordinates}
+                </div>
+                <div className="mt-0.5 truncate text-[10px] leading-3 text-slate-500 dark:text-slate-400" title={site.location}>
+                    {site.location}
+                </div>
+                <div className="mt-1.5 truncate rounded-[10px] bg-slate-100/75 px-2 py-1 text-[10px] font-medium leading-3 text-slate-600 dark:bg-slate-800/70 dark:text-slate-300" title={site.weather}>
+                    {site.weather}
+                </div>
             </div>
-            <div className="mt-1 truncate whitespace-nowrap font-mono text-[13px] font-semibold leading-4 text-slate-950 dark:text-slate-50" title={site.coordinates}>
-                {site.coordinates}
-            </div>
-            <div className="mt-0.5 truncate text-[10px] leading-3 text-slate-500 dark:text-slate-400" title={site.location}>
-                {site.location}
-            </div>
-            <div className="mt-1.5 truncate rounded-[10px] bg-slate-100/75 px-2 py-1 text-[10px] font-medium leading-3 text-slate-600 dark:bg-slate-800/70 dark:text-slate-300" title={site.weather}>
-                {site.weather}
-            </div>
-        </div>
-    );
+        );
+    };
 
     return (
         <div className="relative grid grid-cols-2 gap-2">
@@ -735,6 +749,18 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
     const shouldShowCanonicalMetrics = !!selectedPoint && !!activeEngineeringTruth && activeEngineeringTruth.primaryMetrics.length > 0 && (!compact || showKpisInCompact);
     const shouldShowMetrics = !activeEngineeringTruth && hasMetrics && (!compact || showKpisInCompact);
     const shouldShowEmptyState = !compact || (!selectedPoint && !selectedAircraft);
+    const activeLeoServingSatellite = leoTopologyMode === 'SITE_TO_SITE'
+        ? leoSiteToSiteResult?.servingSatelliteA ?? autoSelectedLEOSatellite
+        : autoSelectedLEOSatellite;
+    const activeServingSatellite = satelliteScope === 'GEO'
+        ? autoSelectedGEOSatellite
+        : satelliteScope === 'LEO'
+            ? activeLeoServingSatellite
+            : activeConnectivityTab === 'GEO'
+                ? autoSelectedGEOSatellite
+                : activeLeoServingSatellite;
+    const shouldShowServingSatellite = Boolean(selectedPoint || selectedAircraft) && !selectedSatellite;
+    const servingSatelliteName = shouldShowServingSatellite ? activeServingSatellite?.name ?? null : null;
     const mobileRouteSummary = useMemo(() => {
         const siteBPoint = pointB ?? pointBLeo;
         if (
@@ -775,6 +801,7 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                 weather: formatWeatherSummary(weatherTypeB, autoWeatherEnabledB),
             },
             accent,
+            servingSatelliteName,
             relation,
             detailDirection: activeMeshTab,
             onToggleDirection: relation === 'bidirectional' && onActiveMeshTabChange
@@ -795,6 +822,7 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
         pointB,
         pointBLeo,
         satelliteScope,
+        servingSatelliteName,
         selectedAircraft,
         selectedGateway,
         selectedMoon,
@@ -983,6 +1011,9 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
             ? 'col-span-2'
             : 'col-span-1';
     const shouldHideCompactRouteHeader = compact && !!mobileRouteSummary;
+    const servingSatelliteAccentClass = activeServingSatellite?.orbitType === 'LEO'
+        ? 'text-fuchsia-700 dark:text-fuchsia-200'
+        : 'text-blue-700 dark:text-blue-200';
 
     return (
         <div className={compact ? 'rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-3 py-2.5 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.55)] dark:border-slate-700 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.94),rgba(15,23,42,0.84))]' : 'rounded-3xl border border-slate-200/80 bg-white px-4 py-4 shadow-sm dark:border-slate-700 dark:bg-slate-900'}>
@@ -992,9 +1023,17 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                         <div className={`text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 ${compact ? 'col-start-1 row-start-1' : ''}`}>
                             {summary.eyebrow}
                         </div>
-                        <div className={`${compact ? `${compactHeaderTextSpanClass} row-start-2 mt-0 ${isCompactSatelliteSummary ? 'text-[16px] leading-[1.05]' : 'text-[18px] leading-[1.05]'}` : 'mt-1 truncate text-[22px] leading-7'} font-semibold text-slate-950 dark:text-slate-50`}>
+                        <div
+                            className={`${compact ? `${compactHeaderTextSpanClass} row-start-2 mt-0 ${isCompactSatelliteSummary ? 'text-[16px] leading-[1.05]' : 'text-[18px] leading-[1.05]'}` : 'mt-1 truncate text-[22px] leading-7'} font-semibold text-slate-950 dark:text-slate-50`}
+                            title={compact && servingSatelliteName ? `Serving satellite ${servingSatelliteName} · ${summary.title}` : undefined}
+                        >
                             <span className={isCompactCoordinateSummary || isCompactSatelliteSummary ? 'block truncate whitespace-nowrap' : compact ? 'block' : undefined}>
-                                {summary.title}
+                                {compact && servingSatelliteName ? (
+                                    <>
+                                        <span className={`font-mono ${servingSatelliteAccentClass}`}>{servingSatelliteName}</span>
+                                        <span> · {summary.title}</span>
+                                    </>
+                                ) : summary.title}
                             </span>
                         </div>
                         {summary.subtitle ? (
@@ -1030,6 +1069,7 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                         siteA={mobileRouteSummary.siteA}
                         siteB={mobileRouteSummary.siteB}
                         accent={mobileRouteSummary.accent}
+                        servingSatelliteName={mobileRouteSummary.servingSatelliteName}
                         relation={mobileRouteSummary.relation}
                         detailDirection={mobileRouteSummary.detailDirection}
                         onToggleDirection={mobileRouteSummary.onToggleDirection}

@@ -168,7 +168,6 @@ const SatelliteScreenLabels: React.FC<SatelliteScreenLabelsProps> = ({
         const effectiveCommercialRole = commercialRole ?? (isRouteParticipant ? 'serving' : 'candidate');
         const isGeo = satellite.type === 'EUTELSAT';
         const isCommercialSecondary = presentation === 'commercial' && effectiveCommercialRole !== 'serving';
-        const compactEngineeringLabel = isGeo ? 'GEO' : 'LEO';
 
         // Commercial role labels — technology-aware.
         // GEO: use satellite name as primary identity (commercially contractual).
@@ -214,7 +213,12 @@ const SatelliteScreenLabels: React.FC<SatelliteScreenLabelsProps> = ({
               }}
             >
               {presentation !== 'commercial' && (
-                <div>{isMobileViewport && !isManuallySelected ? compactEngineeringLabel : satellite.name}</div>
+                <div
+                  className={isMobileViewport && !isManuallySelected ? 'max-w-[calc(100vw-1rem)] truncate whitespace-nowrap' : undefined}
+                  title={satellite.name}
+                >
+                  {satellite.name}
+                </div>
               )}
 
               {presentation === 'commercial' && (
