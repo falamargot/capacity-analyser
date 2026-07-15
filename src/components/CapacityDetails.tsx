@@ -73,7 +73,6 @@ import {
   type EngineeringEvidenceItem,
   type EngineeringTruthSet,
 } from '../utils/engineeringAnalysisViewModel';
-import EngineeringRecalculationStatus, { type EngineeringRecalculationStatusProps } from './capacity/EngineeringRecalculationStatus';
 
 interface CapacityDetailsProps {
   satellites: SatelliteData[];
@@ -120,7 +119,6 @@ interface CapacityDetailsProps {
   onExportStateChange?: (payload: ExportButtonPayload | null) => void;
   onEngineeringTruthChange?: (truth: EngineeringTruthSet) => void;
   onConfigure?: (technology: 'GEO' | 'LEO') => void;
-  recalculation?: EngineeringRecalculationStatusProps | null;
   regulatoryResultOverride?: RegulatoryResult | null;
   regulatoryResultBOverride?: RegulatoryResult | null;
   beamLoadResultOverride?: BeamLoadResult | null;
@@ -233,7 +231,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   selectionMotionKey,
   onEngineeringTruthChange,
   onConfigure,
-  recalculation,
 }) => {
   const [selectionRevealActive, setSelectionRevealActive] = useState(false);
 
@@ -1909,7 +1906,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
         )}
 
         <div className="flex-1 min-h-0 overflow-y-auto">
-          {recalculation && <EngineeringRecalculationStatus {...recalculation} />}
           {/* Section 2: Constellation-based Connectivity */}
           {(satelliteScope === 'LEO' || satelliteScope === 'GEO' || satelliteScope === 'ALL') && (
             <div className="mb-6">

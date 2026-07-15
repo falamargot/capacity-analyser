@@ -213,6 +213,8 @@ export interface EngineeringConfigurePanelProps {
   truths: Partial<Record<'GEO' | 'LEO', EngineeringTruth>>;
   candidates: EngineeringConfigureCandidates;
   applying?: boolean;
+  showPublishedResultSummary?: boolean;
+  returnLabel?: string;
   onCancel: () => void;
   onApply: (draft: EngineeringConfigureDraft) => void;
 }
@@ -222,6 +224,8 @@ export default function EngineeringConfigurePanel({
   truths,
   candidates,
   applying = false,
+  showPublishedResultSummary = true,
+  returnLabel = 'Result',
   onCancel,
   onApply,
 }: EngineeringConfigurePanelProps) {
@@ -253,13 +257,15 @@ export default function EngineeringConfigurePanel({
             className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             <ArrowLeft className="h-4 w-4" />
-            Result
+            {returnLabel}
           </button>
         </div>
-        <div className="mt-2.5 rounded-lg border border-slate-200/80 bg-slate-50/70 px-3 py-2 dark:border-slate-800 dark:bg-slate-900/45">
-          <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">Published baseline · Engineering Truth</div>
-          <div className="mt-1 text-xs font-semibold leading-5 text-slate-800 dark:text-slate-100">{truthMetricSummary(activeTruth)}</div>
-        </div>
+        {showPublishedResultSummary && (
+          <div className="mt-2.5 rounded-lg border border-slate-200/80 bg-slate-50/70 px-3 py-2 dark:border-slate-800 dark:bg-slate-900/45">
+            <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">Published baseline · Engineering Truth</div>
+            <div className="mt-1 text-xs font-semibold leading-5 text-slate-800 dark:text-slate-100">{truthMetricSummary(activeTruth)}</div>
+          </div>
+        )}
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
@@ -441,8 +447,8 @@ export default function EngineeringConfigurePanel({
             </fieldset>
           )}
 
-          <section aria-label="Consequence preview" className="rounded-xl border border-sky-200/80 bg-sky-50/45 p-3 dark:border-sky-900/80 dark:bg-sky-950/12">
-            <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-sky-700 dark:text-sky-300">Consequence preview</div>
+          <section aria-label="Pending scenario changes" className="rounded-xl border border-sky-200/80 bg-sky-50/45 p-3 dark:border-sky-900/80 dark:bg-sky-950/12">
+            <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-sky-700 dark:text-sky-300">Pending scenario changes</div>
             {changes.length === 0 ? (
               <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">No pending changes.</p>
             ) : (

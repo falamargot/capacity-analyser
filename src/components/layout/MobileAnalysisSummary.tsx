@@ -47,7 +47,6 @@ interface MobileAnalysisSummaryProps {
     inspectedSNP?: SNPData | null;
     selectedVessel?: Vessel | null;
     compact?: boolean;
-    showKpisInCompact?: boolean;
     metrics?: MobileAnalysisMetrics;
     leoServiceViewModel?: LeoConnectivityViewModel | null;
     satelliteScope?: SelectedPointScope;
@@ -456,7 +455,6 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
     inspectedSNP = null,
     selectedVessel = null,
     compact = false,
-    showKpisInCompact = true,
     metrics,
     leoServiceViewModel = null,
     satelliteScope = 'ALL',
@@ -591,7 +589,7 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                     ? routeTitle
                     : formatCoordinates({ lat: selectedPoint.lat, lng: selectedPoint.lng }),
                 subtitle: isTwoPointGroundAnalysis
-                    ? (routeAccent === 'GEO' ? LINK_MODE_LABELS[linkMode] : 'LEO site-to-site')
+                    ? `A ${formatCoordinates({ lat: selectedPoint.lat, lng: selectedPoint.lng })} · B ${formatCoordinates(siteBPoint!)}`
                     : selectedPoint.altitude
                     ? `Altitude ${selectedPoint.altitude.toFixed(1)} km`
                     : null,
@@ -651,6 +649,19 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
         selectedSatellite,
         selectedVessel,
     ]);
+    const authoritativeSummary = useMemo<SummaryHeader>(() => ({
+        ...summary,
+        status: activeEngineeringTruth?.headline ?? 'Engineering result pending',
+        statusTone: activeEngineeringTruth
+            ? activeEngineeringTruth.tone === 'good'
+                ? 'success'
+                : activeEngineeringTruth.tone === 'warn'
+                    ? 'warning'
+                    : activeEngineeringTruth.tone === 'danger'
+                        ? 'danger'
+                        : 'neutral'
+            : 'neutral',
+    }), [activeEngineeringTruth, summary]);
 
     const metricCards = useMemo(() => {
         const cards: Array<{
@@ -746,8 +757,8 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
     }, [activeMeshTab, geoPointStatus, leoServiceViewModel?.isThroughputApplicable, leoSiteToSiteResult, leoTopologyMode, linkMode, metrics?.geo, metrics?.leo, metrics?.mesh, onLinkModeChange, pointB, satelliteScope, selectedAircraft, selectedPoint]);
 
     const hasMetrics = metricCards.length > 0;
-    const shouldShowCanonicalMetrics = !!selectedPoint && !!activeEngineeringTruth && activeEngineeringTruth.primaryMetrics.length > 0 && (!compact || showKpisInCompact);
-    const shouldShowMetrics = !activeEngineeringTruth && hasMetrics && (!compact || showKpisInCompact);
+    const shouldShowCanonicalMetrics = !!activeEngineeringTruth && activeEngineeringTruth.primaryMetrics.length > 0;
+    const shouldShowMetrics = !compact && !activeEngineeringTruth && hasMetrics;
     const shouldShowEmptyState = !compact || (!selectedPoint && !selectedAircraft);
     const activeLeoServingSatellite = leoTopologyMode === 'SITE_TO_SITE'
         ? leoSiteToSiteResult?.servingSatelliteA ?? autoSelectedLEOSatellite
@@ -835,7 +846,7 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
     const isCompactCoordinateSummary = compact && !!selectedPoint;
     const isCompactSatelliteSummary = compact && !!selectedSatellite;
     const compactSatellitePosition = useMemo(() => {
-        if (!compact || !selectedSatellite) return null;
+        if (compact || !selectedSatellite) return null;
         return {
             label: 'Live Position',
             value: formatCoordinates({
@@ -1002,15 +1013,15 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
         return 'Selection details will appear here when they are available.';
     }, [satelliteScope, selectedAircraft, selectedPoint]);
 
-    const statusClassName = statusToneClass(summary.statusTone);
-    const hasStatusBadge = Boolean(summary.status) && !compactSatellitePosition;
+    const statusClassName = statusToneClass(authoritativeSummary.statusTone);
+    const hasStatusBadge = Boolean(authoritativeSummary.status) && !compactSatellitePosition;
     const compactHeaderHasAside = compact && (hasStatusBadge || !!compactSatellitePosition);
     const compactHeaderTextSpanClass = compactSatellitePosition
         ? 'col-start-1'
         : compactHeaderHasAside
             ? 'col-span-2'
             : 'col-span-1';
-    const shouldHideCompactRouteHeader = compact && !!mobileRouteSummary;
+    const shouldHideCompactRouteHeader = false;
     const servingSatelliteAccentClass = activeServingSatellite?.orbitType === 'LEO'
         ? 'text-fuchsia-700 dark:text-fuchsia-200'
         : 'text-blue-700 dark:text-blue-200';
@@ -1021,24 +1032,24 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                 <div className={compact ? (compactHeaderHasAside ? 'grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1.5' : 'grid grid-cols-1 gap-y-1') : 'flex items-start justify-between gap-3'}>
                     <div className={`min-w-0 ${compact ? 'contents' : 'flex-1'}`}>
                         <div className={`text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 ${compact ? 'col-start-1 row-start-1' : ''}`}>
-                            {summary.eyebrow}
+                            {compact ? `Summary · ${authoritativeSummary.eyebrow}` : authoritativeSummary.eyebrow}
                         </div>
                         <div
                             className={`${compact ? `${compactHeaderTextSpanClass} row-start-2 mt-0 ${isCompactSatelliteSummary ? 'text-[16px] leading-[1.05]' : 'text-[18px] leading-[1.05]'}` : 'mt-1 truncate text-[22px] leading-7'} font-semibold text-slate-950 dark:text-slate-50`}
-                            title={compact && servingSatelliteName ? `Serving satellite ${servingSatelliteName} · ${summary.title}` : undefined}
+                            title={compact && servingSatelliteName ? `Serving satellite ${servingSatelliteName} · ${authoritativeSummary.title}` : undefined}
                         >
                             <span className={isCompactCoordinateSummary || isCompactSatelliteSummary ? 'block truncate whitespace-nowrap' : compact ? 'block' : undefined}>
                                 {compact && servingSatelliteName ? (
                                     <>
                                         <span className={`font-mono ${servingSatelliteAccentClass}`}>{servingSatelliteName}</span>
-                                        <span> · {summary.title}</span>
+                                        <span> · {authoritativeSummary.title}</span>
                                     </>
-                                ) : summary.title}
+                                ) : authoritativeSummary.title}
                             </span>
                         </div>
-                        {summary.subtitle ? (
-                            <div className={`${compact ? `${compactHeaderTextSpanClass} row-start-3 mt-0 text-[13px] leading-[1.3]` : 'mt-1 text-sm leading-5'} text-slate-500 dark:text-slate-400`}>
-                                {summary.subtitle}
+                        {authoritativeSummary.subtitle ? (
+                            <div className={`${compact ? `${compactHeaderTextSpanClass} row-start-3 mt-0 truncate whitespace-nowrap text-[13px] leading-[1.3]` : 'mt-1 text-sm leading-5'} text-slate-500 dark:text-slate-400`} title={authoritativeSummary.subtitle}>
+                                {authoritativeSummary.subtitle}
                             </div>
                         ) : null}
                     </div>
@@ -1056,14 +1067,14 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                     ) : null}
 
                     {hasStatusBadge ? (
-                        <div className={`w-fit max-w-full shrink-0 rounded-full border ${compact ? 'col-start-2 row-start-1 self-start justify-self-end px-2.5 py-1 text-[10px] leading-4' : 'px-2.5 py-1 text-[11px]'} font-semibold ${statusClassName}`}>
-                            {summary.status}
+                        <div className={`max-w-full shrink-0 rounded-full border ${compact ? 'col-span-2 row-start-4 mt-0.5 w-full px-2.5 py-1 text-left text-[10px] leading-4 min-[480px]:col-span-1 min-[480px]:col-start-2 min-[480px]:row-start-1 min-[480px]:mt-0 min-[480px]:w-fit min-[480px]:justify-self-end' : 'w-fit px-2.5 py-1 text-[11px]'} font-semibold ${statusClassName}`}>
+                            {authoritativeSummary.status}
                         </div>
                     ) : null}
                 </div>
             ) : null}
 
-            {mobileRouteSummary ? (
+            {!compact && mobileRouteSummary ? (
                 <div className={shouldHideCompactRouteHeader ? 'mt-0' : 'mt-2'}>
                     <MobileSiteRouteSummary
                         siteA={mobileRouteSummary.siteA}
@@ -1077,7 +1088,7 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                 </div>
             ) : null}
 
-            {hasEntitySummary ? (
+            {!compact && hasEntitySummary ? (
                 <div className={compact ? 'mt-2' : 'mt-3'}>
                     <div className={`grid gap-2 ${compactEntitySummaryGridClass}`}>
                         {entitySummaryCards.map((card) => (
@@ -1109,6 +1120,14 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                             />
                         ))}
                     </div>
+                </div>
+            ) : activeEngineeringTruth ? (
+                <div className={`${compact ? 'mt-2 rounded-[18px] px-3 py-2 text-[12px] leading-[1.4]' : 'mt-3 rounded-2xl px-3 py-2.5 text-sm'} border border-slate-200/80 bg-white/82 text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900/72 dark:text-slate-300`}>
+                    {activeEngineeringTruth.summary}
+                </div>
+            ) : compact ? (
+                <div className="mt-2 rounded-[18px] border border-slate-200/80 bg-white/82 px-3 py-2 text-[12px] leading-[1.4] text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900/72 dark:text-slate-300">
+                    Engineering Truth has not been published for this scenario yet.
                 </div>
             ) : shouldShowMetrics ? (
                 <div className={compact ? 'mt-2' : 'mt-3'}>

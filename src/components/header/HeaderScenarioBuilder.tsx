@@ -13,7 +13,6 @@ import type { EngineeringConfigureCandidates, EngineeringConfigureDraft, Enginee
 import type { EngineeringTruthSet } from '../../utils/engineeringAnalysisViewModel';
 import { getCandidateCoverageKey } from '../../utils/geoCoverageSelection';
 import { isEngineeringConfigureDraftComplete } from '../../utils/engineeringConfigureModel';
-import type { EngineeringRecalculationStatusProps } from '../capacity/EngineeringRecalculationStatus';
 import InlineLocationSearchInput from '../commercial/InlineLocationSearchInput';
 import InlineSearchResultsPopover from '../commercial/InlineSearchResultsPopover';
 
@@ -66,7 +65,6 @@ export interface HeaderEngineeringConfigure {
   truths: EngineeringTruthSet;
   candidates: EngineeringConfigureCandidates;
   applying?: boolean;
-  recalculation?: EngineeringRecalculationStatusProps | null;
   focusSignal?: number;
   onApply: (draft: EngineeringConfigureDraft) => void;
 }
@@ -733,7 +731,7 @@ function TransactionalHeaderScenarioBuilder({
 }: Pick<HeaderScenarioBuilderProps, 'siteA' | 'siteB' | 'analysisSource' | 'compact'> & {
   engineeringConfigure: HeaderEngineeringConfigure;
 }) {
-  const { baseline, truths, candidates, applying = false, recalculation, onApply } = engineeringConfigure;
+  const { baseline, truths, candidates, applying = false, onApply } = engineeringConfigure;
   const { draft, setDraft, changes, affectedStages, discard } = useEngineeringConfigureDraft(baseline);
   const configureRef = useRef<HTMLFieldSetElement>(null);
   const isGeo = draft.technology === 'GEO';
@@ -921,7 +919,7 @@ function TransactionalHeaderScenarioBuilder({
             title={changes.length > 0 ? 'Impact preview only. No speculative performance is shown before recalculation.' : undefined}
           >
             {changes.length === 0
-              ? recalculation?.status === 'settled' ? `Revision ${recalculation.revision} current` : 'No pending changes'
+              ? 'No pending changes'
               : `Impact · ${changes.length} ${changes.length === 1 ? 'change' : 'changes'} · ${affectedStages.length > 0 ? affectedStages.map((stage) => HEADER_STAGE_LABELS[stage]).join(' → ') : 'View focus only'}`}
           </div>
         </div>

@@ -155,7 +155,6 @@ import {
   sameEngineeringConfigureLocation,
 } from './utils/engineeringConfigureModel';
 import EngineeringConfigurePanel from './components/capacity/EngineeringConfigurePanel';
-import EngineeringRecalculationStatus from './components/capacity/EngineeringRecalculationStatus';
 
 const CapacityDetails = lazy(() => import('./components/CapacityDetails'));
 const CommandPalette = lazy(() => import('./components/CommandPalette'));
@@ -168,7 +167,6 @@ type EndpointSelectionMotion = {
   role: 'origin' | 'destination';
   token: number;
 };
-type MobileAnalysisDetent = 'compact' | 'medium';
 type EngineeringRecalculation = {
   revision: number;
   status: 'updating' | 'settled';
@@ -796,7 +794,6 @@ const App: React.FC = () => {
   const targetSourcesButtonRef = useRef<HTMLButtonElement>(null);
   const targetSourcesMenuRef = useRef<HTMLDivElement>(null);
   const [isMobileAnalysisPanelOpen, setIsMobileAnalysisPanelOpen] = useState(false);
-  const [mobileAnalysisDetent, setMobileAnalysisDetent] = useState<MobileAnalysisDetent>('compact');
   const [isMobileAnalysisSummaryReady, setIsMobileAnalysisSummaryReady] = useState(false);
   const [engineeringTruths, setEngineeringTruths] = useState<EngineeringTruthSet>({});
   const [isEngineeringConfigureOpen, setIsEngineeringConfigureOpen] = useState(false);
@@ -1127,8 +1124,6 @@ const App: React.FC = () => {
   ]);
 
   useEffect(() => {
-    setMobileAnalysisDetent('compact');
-
     if (!isMobile || !hasMobileSelection) {
       setIsMobileAnalysisSummaryReady(false);
       return undefined;
@@ -5248,7 +5243,6 @@ const App: React.FC = () => {
       activeLeoRouteEvidence={activeLeoRouteEvidence}
       onEngineeringTruthChange={setEngineeringTruths}
       onConfigure={handleOpenEngineeringConfigure}
-      recalculation={engineeringRecalculation}
       selectionMotionKey={endpointSelectionMotion?.token}
     />
   );
@@ -5318,7 +5312,6 @@ const App: React.FC = () => {
     truths: engineeringTruths,
     candidates: engineeringConfigureCandidates,
     applying: engineeringRecalculation?.status === 'updating',
-    recalculation: engineeringRecalculation,
     focusSignal: engineeringHeaderConfigureFocusSignal,
     onApply: handleApplyEngineeringConfigure,
   };
@@ -5328,6 +5321,8 @@ const App: React.FC = () => {
       truths={engineeringTruths}
       candidates={engineeringConfigureCandidates}
       applying={engineeringRecalculation?.status === 'updating'}
+      showPublishedResultSummary={false}
+      returnLabel="Summary"
       onCancel={() => setIsEngineeringConfigureOpen(false)}
       onApply={handleApplyEngineeringConfigure}
     />
@@ -6008,7 +6003,6 @@ const App: React.FC = () => {
                     activeLeoRouteEvidence={activeLeoRouteEvidence}
                     onEngineeringTruthChange={setEngineeringTruths}
                     onConfigure={handleOpenEngineeringConfigure}
-                    recalculation={engineeringRecalculation}
                   />
                 </Suspense>
               </div>
@@ -6069,7 +6063,6 @@ const App: React.FC = () => {
 
                     <div className="pointer-events-auto w-full overflow-hidden rounded-[30px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(241,245,249,0.94))] shadow-[0_26px_70px_-42px_rgba(15,23,42,0.82)] backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(30,41,59,0.9))]">
                       <div className="p-2">
-                        {engineeringRecalculation && <EngineeringRecalculationStatus {...engineeringRecalculation} />}
                         <MobileAnalysisSummary
                           selectedSatellite={selectedSatellite}
                           selectedMoon={selectedMoon}
@@ -6081,7 +6074,6 @@ const App: React.FC = () => {
                           inspectedSNP={inspectedSNP}
                           selectedVessel={selectedVessel}
                           compact
-                          showKpisInCompact={mobileAnalysisDetent === 'medium'}
                           metrics={mobileMetrics}
                           leoServiceViewModel={leoServiceViewModel}
                           satelliteScope={satelliteScope}
@@ -6107,7 +6099,7 @@ const App: React.FC = () => {
                         />
                       </div>
                       <div className="border-t border-slate-200/80 px-2.5 pb-2 pt-1.5 dark:border-slate-700/80">
-                        <div className="grid grid-cols-3 gap-2">
+                        <nav className="grid grid-cols-2 gap-2" aria-label="Mobile engineering actions">
                           <button
                             type="button"
                             onClick={() => handleOpenEngineeringConfigure()}
@@ -6118,23 +6110,14 @@ const App: React.FC = () => {
                           </button>
                           <button
                             type="button"
-                            onClick={() => setMobileAnalysisDetent((current) => current === 'compact' ? 'medium' : 'compact')}
-                            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-[16px] border border-slate-200 bg-white/86 px-3 text-[13px] font-semibold text-slate-700 shadow-sm transition-colors hover:bg-white dark:border-slate-700 dark:bg-slate-900/82 dark:text-slate-100 dark:hover:bg-slate-900"
-                            aria-label={mobileAnalysisDetent === 'medium' ? 'Show summary only' : 'Show key performance indicators'}
-                          >
-                            <span>{mobileAnalysisDetent === 'medium' ? 'Summary' : 'KPIs'}</span>
-                            {mobileAnalysisDetent === 'medium' ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
-                          </button>
-                          <button
-                            type="button"
                             onClick={() => setIsMobileAnalysisPanelOpen(true)}
                             className="inline-flex h-9 items-center justify-center gap-2 rounded-[16px] bg-slate-950 px-4 text-[14px] font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
-                            aria-label="Open detailed analysis"
+                            aria-label="Open detailed engineering investigation"
                           >
                             <span>Detailed</span>
                             <ChevronUp className="h-4 w-4" />
                           </button>
-                        </div>
+                        </nav>
                       </div>
                     </div>
                   </div>
@@ -6145,7 +6128,7 @@ const App: React.FC = () => {
                     className="fixed inset-0 z-[70] bg-slate-950/28 backdrop-blur-[2px]"
                     role="dialog"
                     aria-modal="true"
-                    aria-label="Detailed mobile analysis"
+                    aria-label="Detailed engineering investigation"
                   >
                     <div
                       className="absolute inset-0 flex items-end justify-center"
@@ -6161,13 +6144,13 @@ const App: React.FC = () => {
                           </div>
                           <div className="relative flex items-center justify-center">
                             <div className="text-base font-semibold text-slate-950 dark:text-slate-50">
-                              Detailed view
+                              Detailed investigation
                             </div>
                             <button
                               type="button"
                               onClick={() => setIsMobileAnalysisPanelOpen(false)}
                               className="absolute right-0 inline-flex h-10 w-10 items-center justify-center rounded-[18px] border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-                              aria-label="Close detailed analysis"
+                              aria-label="Return to engineering summary"
                             >
                               <X className="h-5 w-5" />
                             </button>
@@ -6281,7 +6264,6 @@ const App: React.FC = () => {
                                 activeLeoRouteEvidence={activeLeoRouteEvidence}
                                 onEngineeringTruthChange={setEngineeringTruths}
                                 onConfigure={handleOpenEngineeringConfigure}
-                                recalculation={engineeringRecalculation}
                                 selectionMotionKey={endpointSelectionMotion?.token}
                               />
                             )}
@@ -6579,7 +6561,6 @@ const App: React.FC = () => {
                           activeLeoRouteEvidence={activeLeoRouteEvidence}
                           onEngineeringTruthChange={setEngineeringTruths}
                           onConfigure={handleOpenEngineeringConfigure}
-                          recalculation={engineeringRecalculation}
                           selectionMotionKey={endpointSelectionMotion?.token}
                         />
                       )}

@@ -63,7 +63,7 @@ describe('EngineeringConfigurePanel', () => {
     expect(markup).toContain('Service available · 42 Mbps');
     expect(markup).toContain('Terminal &amp; weather assumptions');
     expect(markup).toContain('Path selection');
-    expect(markup).toContain('Consequence preview');
+    expect(markup).toContain('Pending scenario changes');
     expect(markup).toContain('No pending changes.');
     expect(markup).toContain('Apply and recalculate');
     expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>[^<]*(?:<[^>]+>)*Apply and recalculate/);
@@ -84,5 +84,28 @@ describe('EngineeringConfigurePanel', () => {
     expect(markup).toContain('LEO topology');
     expect(markup).toContain('Terminal &amp; weather assumptions');
     expect(markup).not.toContain('Path selection');
+  });
+
+  it('keeps the mobile Configure surface input-focused and returns to Summary', () => {
+    const markup = renderToStaticMarkup(
+      <EngineeringConfigurePanel
+        baseline={baseline}
+        truths={{ GEO: truth }}
+        candidates={{ siteA: [], siteB: [] }}
+        showPublishedResultSummary={false}
+        returnLabel="Summary"
+        onCancel={() => undefined}
+        onApply={() => undefined}
+      />,
+    );
+
+    expect(markup).toContain('Engineering scenario');
+    expect(markup).toContain('Technology &amp; path');
+    expect(markup).toContain('Endpoints');
+    expect(markup).toContain('Terminal &amp; weather assumptions');
+    expect(markup).toContain('Pending scenario changes');
+    expect(markup).toContain('Summary');
+    expect(markup).not.toContain('Published baseline · Engineering Truth');
+    expect(markup).not.toContain('Service available · 42 Mbps');
   });
 });
