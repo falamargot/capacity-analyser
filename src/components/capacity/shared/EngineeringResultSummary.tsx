@@ -1,10 +1,18 @@
-import { AlertTriangle, Check, CircleDashed, Minus, Settings2, ShieldX } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { AlertTriangle, Check, ChevronDown, CircleDashed, LocateFixed, Minus, RotateCcw, Settings2, ShieldX } from 'lucide-react';
 import type {
   EngineeringCauseStage,
   EngineeringEvidenceState,
   EngineeringTruth,
   EngineeringTruthMetric,
 } from '../../../utils/engineeringAnalysisViewModel';
+import { useEngineeringFocus } from '../../../contexts/EngineeringFocusContext';
+import {
+  describeEngineeringTruthTransition,
+  ENGINEERING_CAUSE_STAGE_ORDER,
+  getEngineeringPathVisualState,
+  type EngineeringPathVisualState,
+} from '../../../utils/engineeringFocusModel';
 
 interface EngineeringResultSummaryProps {
   technology: 'GEO' | 'LEO';
@@ -131,25 +139,76 @@ const MetricTile = ({ metric, diagnostic = false }: { metric: EngineeringTruthMe
   </div>
 );
 
-const CauseStage = ({ stage, last }: { stage: EngineeringCauseStage; last: boolean }) => {
+const pathStateLabel: Record<EngineeringPathVisualState, string> = {
+  delivered: 'delivered route',
+  selected: 'selected focus',
+  limiting: 'limiting segment',
+  diagnostic: 'resolved diagnostic path',
+  candidate: 'candidate path',
+  unavailable: 'unavailable segment',
+  unresolved: 'unresolved path',
+};
+
+const CauseStage = ({
+  stage,
+  last,
+  compact,
+  selected,
+  locked,
+  buttonRef,
+  onPreview,
+  onPreviewEnd,
+  onLock,
+  onKeyDown,
+}: {
+  stage: EngineeringCauseStage;
+  last: boolean;
+  compact: boolean;
+  selected: boolean;
+  locked: boolean;
+  buttonRef: (node: HTMLButtonElement | null) => void;
+  onPreview: () => void;
+  onPreviewEnd: () => void;
+  onLock: () => void;
+  onKeyDown: (event: React.KeyboardEvent<HTMLButtonElement>) => void;
+}) => {
   const styles = stageStyles[stage.state];
   const Icon = styles.icon;
   const displayedDetail = stage.id === 'service' && stage.detail === 'CONNECTED'
     ? null
     : stage.detail ? displayEvidenceValue(stage.detail) : null;
+  const accessibleEvidence = stage.evidence?.map((item) => (
+    `${item.label}: ${displayEvidenceValue(item.value)}${item.detail ? `. ${item.detail}` : ''}`
+  )).join('. ');
+  const accessibleDescription = [stage.summary, displayedDetail, accessibleEvidence]
+    .filter(Boolean)
+    .join('. ');
   return (
-    <li className="relative grid min-w-0 grid-cols-[1.5rem_minmax(0,1fr)] gap-2.5 pb-2.5 last:pb-0 [@media(max-height:700px)]:pb-2">
+    <li className={`relative min-w-0 ${compact ? '' : 'pb-2.5 last:pb-0 [@media(max-height:700px)]:pb-2'}`}>
       {!last && <span className={`absolute bottom-0 left-[0.73rem] top-6 w-px ${styles.lineClass}`} aria-hidden="true" />}
-      <span className={`relative z-10 inline-flex h-6 w-6 items-center justify-center rounded-full border ${styles.iconClass}`}>
-        <Icon className="h-3 w-3" aria-hidden="true" />
-      </span>
-      <div className="min-w-0">
+      <button
+        ref={buttonRef}
+        type="button"
+        aria-pressed={locked}
+        aria-label={`${stage.label}: ${accessibleDescription}. ${selected ? 'Focused on globe.' : 'Show on globe.'}`}
+        onMouseEnter={onPreview}
+        onMouseLeave={onPreviewEnd}
+        onFocus={onPreview}
+        onBlur={onPreviewEnd}
+        onClick={onLock}
+        onKeyDown={onKeyDown}
+        className={`group grid w-full min-w-0 grid-cols-[1.5rem_minmax(0,1fr)] gap-2.5 rounded-lg text-left outline-none transition-[background-color,box-shadow,transform] duration-150 focus-visible:ring-2 focus-visible:ring-sky-400 ${compact ? 'p-1.5' : 'p-1'} ${selected ? 'bg-sky-50 shadow-[inset_0_0_0_1px_rgba(14,165,233,0.3)] dark:bg-sky-950/30' : 'hover:bg-slate-50 dark:hover:bg-slate-900/75'}`}
+      >
+        <span className={`relative z-10 inline-flex h-6 w-6 items-center justify-center rounded-full border ${styles.iconClass} ${selected ? 'ring-2 ring-sky-400/55 ring-offset-1 dark:ring-offset-slate-950' : ''}`}>
+          <Icon className="h-3 w-3" aria-hidden="true" />
+        </span>
+        <span className="min-w-0">
         <div className="grid min-w-0 grid-cols-[minmax(5rem,0.75fr)_minmax(0,1.25fr)] items-baseline gap-2.5">
           <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">{stage.label}</span>
           <span className={`text-right text-[10px] font-semibold leading-4 ${styles.textClass}`}>{stage.summary}</span>
         </div>
-        {displayedDetail && <p className="mt-0.5 text-[10px] leading-4 text-slate-500 dark:text-slate-400" title={displayedDetail === stage.detail ? stage.detail : undefined}>{displayedDetail}</p>}
-        {stage.evidence && stage.evidence.length > 0 && (
+        {!compact && displayedDetail && <p className="mt-0.5 text-[10px] leading-4 text-slate-500 dark:text-slate-400" title={displayedDetail === stage.detail ? stage.detail : undefined}>{displayedDetail}</p>}
+        {!compact && stage.evidence && stage.evidence.length > 0 && (
           <dl className="mt-1 flex flex-wrap gap-x-2.5 gap-y-0.5 border-l border-slate-200 pl-2 dark:border-slate-700" aria-label={`${stage.label} evidence`}>
             {stage.evidence.map((item) => {
               const displayedValue = displayEvidenceValue(item.value);
@@ -168,23 +227,91 @@ const CauseStage = ({ stage, last }: { stage: EngineeringCauseStage; last: boole
             })}
           </dl>
         )}
-      </div>
+        </span>
+      </button>
     </li>
   );
 };
 
 /** Canonical Phase 1 verdict and reasoning summary shared by GEO and LEO. */
 const EngineeringResultSummary = ({ technology, truth, onConfigure }: EngineeringResultSummaryProps) => {
+  const {
+    focus,
+    lensPosture,
+    preview,
+    lock,
+    clearPreview,
+    clear,
+    returnToRoute,
+    setLensPosture,
+  } = useEngineeringFocus();
+  const previousTruthRef = useRef<EngineeringTruth | null>(null);
+  const stageButtonRefs = useRef<Partial<Record<EngineeringCauseStage['id'], HTMLButtonElement | null>>>({});
+  const [lastTransition, setLastTransition] = useState<ReturnType<typeof describeEngineeringTruthTransition>>(null);
   const tone = toneStyles[truth.tone];
   const confidence = truth.confidence?.display
     ?? [truth.confidence?.label, truth.confidence?.score != null ? `${truth.confidence.score}/100` : null].filter(Boolean).join(' · ');
+  const focusedStageId = focus.technology === technology ? focus.stageId : null;
+  const reasoningOpen = lensPosture === 'reasoning' || (focus.kind === 'locked' && focus.technology === technology);
+  const spatialState = useMemo(() => {
+    const states = (['access', 'backhaul', 'destination'] as const).map((segment) => (
+      getEngineeringPathVisualState({ truth, segment, focus })
+    ));
+    return states.includes('selected') ? 'selected'
+      : states.includes('unavailable') ? 'unavailable'
+        : states.includes('unresolved') ? 'unresolved'
+          : states.includes('limiting') ? 'limiting'
+            : states.includes('diagnostic') ? 'diagnostic'
+              : 'delivered';
+  }, [focus, truth]);
+
+  useEffect(() => {
+    const transition = describeEngineeringTruthTransition(previousTruthRef.current, truth);
+    if (transition) setLastTransition(transition);
+    previousTruthRef.current = truth;
+  }, [truth]);
+
+  useEffect(() => {
+    if (focus.kind !== 'locked' || focus.technology !== technology || focus.origin !== 'globe' || !focus.stageId) return;
+    const button = stageButtonRefs.current[focus.stageId];
+    button?.scrollIntoView({
+      block: 'nearest',
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+    });
+    button?.focus({ preventScroll: true });
+  }, [focus, technology]);
+
+  const handleStageKeyDown = (stageId: EngineeringCauseStage['id']) => (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      clear();
+      return;
+    }
+    if (!['ArrowDown', 'ArrowRight', 'ArrowUp', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const index = ENGINEERING_CAUSE_STAGE_ORDER.indexOf(stageId);
+    const nextIndex = event.key === 'Home' ? 0
+      : event.key === 'End' ? ENGINEERING_CAUSE_STAGE_ORDER.length - 1
+        : event.key === 'ArrowDown' || event.key === 'ArrowRight'
+          ? (index + 1) % ENGINEERING_CAUSE_STAGE_ORDER.length
+          : (index - 1 + ENGINEERING_CAUSE_STAGE_ORDER.length) % ENGINEERING_CAUSE_STAGE_ORDER.length;
+    stageButtonRefs.current[ENGINEERING_CAUSE_STAGE_ORDER[nextIndex]]?.focus();
+  };
 
   return (
     <section
-      className={`mb-4 overflow-hidden rounded-xl border bg-white shadow-sm dark:bg-slate-950 [@media(max-height:700px)]:mb-2 ${tone.border}`}
+      className={`engineering-lens relative mb-4 rounded-xl border bg-white shadow-sm dark:bg-slate-950 [@media(max-height:700px)]:mb-2 ${tone.border}`}
       aria-label={`${technology} engineering result`}
+      data-engineering-lens-posture={reasoningOpen ? 'reasoning' : 'summary'}
+      data-engineering-transition={lastTransition?.kind ?? 'stable'}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape' && focusedStageId) {
+          event.stopPropagation();
+          clear();
+        }
+      }}
     >
-      <div className={`border-b border-slate-200/80 px-3.5 py-3 dark:border-slate-800 [@media(max-height:700px)]:py-2.5 ${tone.wash}`}>
+      <div className={`sticky top-0 z-20 rounded-t-xl border-b border-slate-200/80 px-3.5 py-3 shadow-[0_8px_18px_-18px_rgba(15,23,42,0.8)] backdrop-blur-md dark:border-slate-800 [@media(max-height:700px)]:py-2.5 ${tone.wash}`}>
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
             <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${tone.marker}`} aria-hidden="true" />
@@ -213,7 +340,43 @@ const EngineeringResultSummary = ({ technology, truth, onConfigure }: Engineerin
             {confidence && <span><strong className="font-semibold text-slate-700 dark:text-slate-200">Confidence:</strong> {confidence}</span>}
           </div>
         )}
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          <button
+            type="button"
+            aria-expanded={reasoningOpen}
+            onClick={() => setLensPosture(reasoningOpen ? 'summary' : 'reasoning')}
+            className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-200 bg-white/70 px-2 text-[9px] font-semibold text-slate-700 transition-colors hover:bg-white dark:border-slate-700 dark:bg-slate-900/55 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${reasoningOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+            {reasoningOpen ? 'Summary' : 'Why'}
+          </button>
+          {focusedStageId && (
+            <button
+              type="button"
+              onClick={clear}
+              className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[9px] font-semibold text-sky-700 hover:bg-sky-100 dark:text-sky-300 dark:hover:bg-sky-950/45"
+            >
+              <LocateFixed className="h-3 w-3" aria-hidden="true" />
+              Clear focus
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={returnToRoute}
+            className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[9px] font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+          >
+            <RotateCcw className="h-3 w-3" aria-hidden="true" />
+            Route view
+          </button>
+        </div>
       </div>
+
+      {lastTransition && (
+        <div className="engineering-result-delta border-b border-sky-200/80 bg-sky-50/70 px-3 py-2 text-[10px] text-sky-800 dark:border-sky-900/70 dark:bg-sky-950/25 dark:text-sky-200" role="status" aria-live="polite">
+          <strong className="font-semibold">Result revision:</strong> {lastTransition.message}
+          {lastTransition.changedStages.length > 0 && <span> Affected: {lastTransition.changedStages.join(', ')}.</span>}
+        </div>
+      )}
 
       {truth.primaryMetrics.length > 0 && (
         <div className="border-b border-slate-200/80 p-3 dark:border-slate-800 [@media(max-height:700px)]:p-2.5">
@@ -243,12 +406,28 @@ const EngineeringResultSummary = ({ technology, truth, onConfigure }: Engineerin
           <h4 className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-600 dark:text-slate-300">Why this result</h4>
           <span className="text-[9px] text-slate-400 dark:text-slate-500">evaluated in order</span>
         </div>
-        <ol aria-label="Engineering cause chain">
+        <div className="mb-2 flex items-center gap-1.5 rounded-md bg-slate-50 px-2 py-1.5 text-[9px] text-slate-500 dark:bg-slate-900/70 dark:text-slate-400" aria-live="polite">
+          <LocateFixed className="h-3 w-3 shrink-0" aria-hidden="true" />
+          Globe path: {pathStateLabel[spatialState]}. Select a stage to locate its evidence.
+        </div>
+        <ol aria-label="Engineering cause chain" aria-orientation="vertical">
           {truth.causeChain.map((stage, index) => (
-            <CauseStage key={stage.id} stage={stage} last={index === truth.causeChain.length - 1} />
+            <CauseStage
+              key={stage.id}
+              stage={stage}
+              last={index === truth.causeChain.length - 1}
+              compact={!reasoningOpen}
+              selected={focusedStageId === stage.id}
+              locked={focus.kind === 'locked' && focusedStageId === stage.id}
+              buttonRef={(node) => { stageButtonRefs.current[stage.id] = node; }}
+              onPreview={() => preview(technology, stage.id, 'lens')}
+              onPreviewEnd={clearPreview}
+              onLock={() => lock(technology, stage.id, 'lens')}
+              onKeyDown={handleStageKeyDown(stage.id)}
+            />
           ))}
         </ol>
-        {truth.nextAction && (
+        {reasoningOpen && truth.nextAction && (
           <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] leading-4 text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
             <strong className="font-semibold text-slate-800 dark:text-slate-100">Next investigation:</strong> {truth.nextAction}
           </div>

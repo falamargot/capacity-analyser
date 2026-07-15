@@ -22,6 +22,7 @@ import { getPosition } from './utils';
 import { GROUND_POINT_ALTITUDE_KM, GROUND_POINT_LAYER_HEIGHT_M, LABEL_EYE_OFFSET } from './layerHeights';
 
 interface SelectionPulseMarkerProps {
+  entityId?: string;
   position: Cartesian3 | CallbackPositionProperty;
   anchorType?: 'ground' | 'orbital';
   baseColor?: Color;
@@ -53,6 +54,7 @@ const statusColor = (tone: ReturnType<typeof deriveSelectedPointStatusPresentati
 const SITE_B_MARKER_COLOR = Color.fromCssColorString('#ec4899');
 
 export const SelectionPulseMarker: React.FC<SelectionPulseMarkerProps> = ({
+  entityId,
   position,
   anchorType = 'ground',
   baseColor = Color.RED,
@@ -129,6 +131,7 @@ export const SelectionPulseMarker: React.FC<SelectionPulseMarkerProps> = ({
       />
       {showPoint && pointPixelSize && (
         <Entity
+          id={entityId}
           position={position}
           point={{
             pixelSize: pointPixelSize,
@@ -195,6 +198,7 @@ const SelectedPointStatusMarker: React.FC<SelectedPointStatusMarkerProps> = ({
 
   return (
     <SelectionPulseMarker
+      entityId={markerVariant === 'site-b' ? 'engineering-node-site-b' : 'engineering-node-site-a'}
       baseColor={baseColor}
       pulseSpeed={pulseSpeed}
       ringBaseRadius={ringBaseRadius}

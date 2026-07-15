@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
-import { Entity, PointGraphics } from 'resium';
-import { CallbackProperty, Cartesian3, Color, JulianDate } from 'cesium';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Entity, LabelGraphics, PointGraphics } from 'resium';
+import { CallbackProperty, Cartesian2, Cartesian3, Color, HorizontalOrigin, JulianDate, LabelStyle, VerticalOrigin } from 'cesium';
 import type { CameraMetricsSnapshot } from './utils';
 
 export type PathSegmentType = 'USER_LINK' | 'FEEDER_LINK' | 'BACKBONE' | 'GEO_RF';
@@ -49,11 +49,23 @@ const PathFlowAnimation: React.FC<PathFlowAnimationProps> = ({
     enabled = true,
     cameraMetricsRef,
 }) => {
+    const [reducedMotion, setReducedMotion] = useState(() => (
+        typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ));
+
+    useEffect(() => {
+        const query = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const handleChange = () => setReducedMotion(query.matches);
+        query.addEventListener('change', handleChange);
+        return () => query.removeEventListener('change', handleChange);
+    }, []);
+
     const particles = useMemo(() => {
         if (!enabled || segments.length === 0) return [];
+        const phases = reducedMotion ? [0] as const : FLOW_PHASES;
 
         return segments.flatMap((segment, segmentIndex) => (
-            FLOW_PHASES.map((phase, phaseIndex) => {
+            phases.map((phase, phaseIndex) => {
                 const scratch = new Cartesian3();
                 const durationSeconds = segment.durationSeconds ?? segmentSpeedByType[segment.type];
                 const phaseOffset = segment.phaseOffset ?? segmentIndex * 0.17;
@@ -64,7 +76,9 @@ const PathFlowAnimation: React.FC<PathFlowAnimationProps> = ({
                     const start = positions[0];
                     const end = positions[positions.length - 1];
                     const seconds = JulianDate.secondsDifference(time!, FLOW_EPOCH);
-                    const t = ((seconds / durationSeconds + phase + phaseOffset) % 1 + 1) % 1;
+                    const t = reducedMotion
+                        ? 0.58
+                        : ((seconds / durationSeconds + phase + phaseOffset) % 1 + 1) % 1;
                     return Cartesian3.lerp(start, end, t, scratch);
                 }, false);
                 const show = new CallbackProperty(() => (
@@ -78,10 +92,11 @@ const PathFlowAnimation: React.FC<PathFlowAnimationProps> = ({
                     show,
                     pixelSize: pixelSizeByType[segment.type],
                     color: segment.color,
+                    reducedMotion,
                 };
             })
         ));
-    }, [cameraMetricsRef, enabled, segments]);
+    }, [cameraMetricsRef, enabled, reducedMotion, segments]);
 
     if (!enabled || particles.length === 0) return null;
 
@@ -107,13 +122,28 @@ const PathFlowAnimation: React.FC<PathFlowAnimationProps> = ({
                         position={particle.position}
                         show={particle.show}
                     >
-                        <PointGraphics
-                            pixelSize={particle.pixelSize}
-                            color={Color.WHITE.withAlpha(0.96)}
-                            outlineColor={particle.color.withAlpha(0.98)}
-                            outlineWidth={2}
-                            disableDepthTestDistance={Number.POSITIVE_INFINITY}
-                        />
+                        {particle.reducedMotion ? (
+                            <LabelGraphics
+                                text="→"
+                                font="700 18px sans-serif"
+                                fillColor={Color.WHITE.withAlpha(0.98)}
+                                outlineColor={particle.color.withAlpha(0.98)}
+                                outlineWidth={3}
+                                style={LabelStyle.FILL_AND_OUTLINE}
+                                horizontalOrigin={HorizontalOrigin.CENTER}
+                                verticalOrigin={VerticalOrigin.CENTER}
+                                pixelOffset={new Cartesian2(0, 0)}
+                                disableDepthTestDistance={Number.POSITIVE_INFINITY}
+                            />
+                        ) : (
+                            <PointGraphics
+                                pixelSize={particle.pixelSize}
+                                color={Color.WHITE.withAlpha(0.96)}
+                                outlineColor={particle.color.withAlpha(0.98)}
+                                outlineWidth={2}
+                                disableDepthTestDistance={Number.POSITIVE_INFINITY}
+                            />
+                        )}
                     </Entity>
                 </React.Fragment>
             ))}

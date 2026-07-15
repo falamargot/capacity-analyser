@@ -67,6 +67,7 @@ import {
   HeadingPitchRange,
   JulianDate,
   Math as CesiumMath,
+  SceneTransforms,
   Viewer as CesiumViewerType,
 } from 'cesium';
 import { useAirTraffic, useAirTrafficInterpolation } from './modules/airTraffic';
@@ -145,7 +146,7 @@ import {
   connectivityScenarioTypeFromDestinationType,
   scenarioToConnectivityScenarioCard,
 } from './utils/connectivityScenarioCardProjection';
-import { computeEngineeringCameraCompensation } from './utils/engineeringCameraCompensation';
+import { computeEngineeringCameraCompensation, shouldApplyEngineeringCameraFocus } from './utils/engineeringCameraCompensation';
 import type { EngineeringCauseStageId, EngineeringTruth, EngineeringTruthSet } from './utils/engineeringAnalysisViewModel';
 import type { EngineeringConfigureDraft } from './types/engineeringConfigure';
 import {
@@ -155,6 +156,8 @@ import {
   sameEngineeringConfigureLocation,
 } from './utils/engineeringConfigureModel';
 import EngineeringConfigurePanel from './components/capacity/EngineeringConfigurePanel';
+import { EngineeringFocusProvider, useEngineeringFocusController } from './contexts/EngineeringFocusContext';
+import EngineeringResultSummary from './components/capacity/shared/EngineeringResultSummary';
 
 const CapacityDetails = lazy(() => import('./components/CapacityDetails'));
 const CommandPalette = lazy(() => import('./components/CommandPalette'));
@@ -471,6 +474,7 @@ const getInitialDisplayDefaults = (): InitialDisplayDefaults => {
 };
 
 const App: React.FC = () => {
+  const engineeringFocusController = useEngineeringFocusController();
   const [connectivityScenario, dispatchConnectivityScenario] = useReducer(
     connectivityScenarioReducer,
     initialConnectivityScenario,
@@ -741,6 +745,14 @@ const App: React.FC = () => {
   const [isGlobeModePeekPressed, setIsGlobeModePeekPressed] = useState(false);
   const globeCommercialMode = isGlobeModePeekPressed ? !commercialMode : commercialMode;
 
+  useEffect(() => {
+    if (isDetailedEngineeringWorkspaceOpen) {
+      engineeringFocusController.setSurfaceMode('investigation');
+    } else if (engineeringFocusController.surfaceMode === 'investigation') {
+      engineeringFocusController.setSurfaceMode('result');
+    }
+  }, [engineeringFocusController, isDetailedEngineeringWorkspaceOpen]);
+
   const handleGlobeModePeekChange = useCallback((pressed: boolean) => {
     setIsGlobeModePeekPressed(pressed);
   }, []);
@@ -794,6 +806,9 @@ const App: React.FC = () => {
   const targetSourcesButtonRef = useRef<HTMLButtonElement>(null);
   const targetSourcesMenuRef = useRef<HTMLDivElement>(null);
   const [isMobileAnalysisPanelOpen, setIsMobileAnalysisPanelOpen] = useState(false);
+  const [mobileEngineeringPanelMode, setMobileEngineeringPanelMode] = useState<'story' | 'investigation'>('story');
+  const mobileResultStoryScrollRef = useRef(0);
+  const mobileAnalysisScrollElementRef = useRef<HTMLDivElement | null>(null);
   const [isMobileAnalysisSummaryReady, setIsMobileAnalysisSummaryReady] = useState(false);
   const [engineeringTruths, setEngineeringTruths] = useState<EngineeringTruthSet>({});
   const [isEngineeringConfigureOpen, setIsEngineeringConfigureOpen] = useState(false);
@@ -837,6 +852,9 @@ const App: React.FC = () => {
   const unobstructedGlobeHeightRef = useRef<number | null>(null);
   const engineeringCameraSnapshotRef = useRef<EngineeringCameraSnapshot | null>(null);
   const engineeringModeSnapshotRef = useRef<EngineeringModeSnapshot | null>(null);
+  const engineeringFocusCameraKeyRef = useRef<string | null>(null);
+  const lastManualCameraInputRef = useRef(0);
+  const detachManualCameraListenersRef = useRef<(() => void) | null>(null);
   // Stable ref — populated by useAirTrafficInterpolation (phase 2: map ref, no setState).
   // The selectedAircraft position interval reads from this without being in its deps.
   const panelFallback = <div className="p-4 text-sm text-slate-500 dark:text-slate-400">Loading analysis...</div>;
@@ -881,7 +899,21 @@ const App: React.FC = () => {
   const handleCameraReady = useCallback((viewer: CesiumViewerType) => {
     viewerRef.current = viewer;
     setMemoryMonitorViewerGetter(() => viewerRef.current);
+    detachManualCameraListenersRef.current?.();
+    const markManualCameraInput = () => {
+      lastManualCameraInputRef.current = performance.now();
+      viewer.camera.cancelFlight();
+    };
+    const canvas = viewer.canvas;
+    canvas.addEventListener('pointerdown', markManualCameraInput, { passive: true });
+    canvas.addEventListener('wheel', markManualCameraInput, { passive: true });
+    detachManualCameraListenersRef.current = () => {
+      canvas.removeEventListener('pointerdown', markManualCameraInput);
+      canvas.removeEventListener('wheel', markManualCameraInput);
+    };
   }, []);
+
+  useEffect(() => () => detachManualCameraListenersRef.current?.(), []);
 
   // Store globe container reference when ready
   const handleGlobeContainerReady = useCallback((ref: React.RefObject<HTMLDivElement | null>) => {
@@ -3606,6 +3638,8 @@ const App: React.FC = () => {
     selectedCoverage,
     selectedUplinkCoverage: globeUplinkCoverage,
     selectedDownlinkCoverage: globeDownlinkCoverage,
+    activeScenarioUplinkCoverage: globeUplinkCoverage ?? selectedUplinkCoverage,
+    activeScenarioDownlinkCoverage: globeDownlinkCoverage ?? selectedDownlinkCoverage,
     selectedSNP,
     selectedGateway,
     inspectedSNP,
@@ -3637,8 +3671,10 @@ const App: React.FC = () => {
     selectedMoon,
     selectedSNP,
     selectedSatellite,
+    selectedDownlinkCoverage,
     selectedSelection,
     selectedPosition,
+    selectedUplinkCoverage,
     endpointSelectionMotion,
     visibleManualGeoCoverageKeys,
   ]);
@@ -4129,6 +4165,139 @@ const App: React.FC = () => {
   useEffect(() => {
     engineeringContextRoutePositionsRef.current = engineeringContextRoutePositions;
   }, [engineeringContextRoutePositions]);
+
+  const engineeringFocusedRoutePositions = useMemo(() => {
+    const focus = engineeringFocusController.focus;
+    if (focus.kind === 'none' || focus.technology !== activeConnectivityTab || !focus.stageId) return [];
+    if (focus.stageId === 'path') return engineeringContextRoutePositions;
+
+    const positions: Cartesian3[] = [];
+    const add = (position: Cartesian3 | null) => {
+      if (position) positions.push(position);
+    };
+
+    if (focus.stageId === 'scenario') {
+      add(groundPointToCartesian(activeAnalysisPoint));
+      if (activeConnectivityTab === 'LEO' && leoTopologyMode === 'SITE_TO_SITE') add(groundPointToCartesian(pointBLeo ?? siteB));
+      if (activeConnectivityTab === 'GEO' && (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT')) add(groundPointToCartesian(siteB));
+      return positions;
+    }
+
+    if (focus.stageId === 'rf') {
+      add(groundPointToCartesian(activeAnalysisPoint));
+      if (activeConnectivityTab === 'LEO') {
+        add(satelliteToCartesian(activeLeoSiteToSiteResult?.servingSatelliteA ?? resolvedAutoLEO));
+        if (leoTopologyMode === 'SITE_TO_SITE') {
+          add(satelliteToCartesian(activeLeoSiteToSiteResult?.servingSatelliteB ?? resolvedAutoLEOB));
+          add(groundPointToCartesian(pointBLeo ?? siteB));
+        }
+      } else {
+        add(satelliteToCartesian(activeGeoSatellite));
+        if (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT') add(groundPointToCartesian(siteB));
+      }
+      return positions;
+    }
+
+    if (focus.stageId === 'service') {
+      if (activeConnectivityTab === 'LEO') {
+        add(satelliteToCartesian(activeLeoSiteToSiteResult?.servingSatelliteA ?? resolvedAutoLEO));
+        add(snpToCartesian(activeLeoSiteToSiteResult?.selectedSnpA ?? selectedSNP));
+        if (leoTopologyMode === 'SITE_TO_SITE') add(snpToCartesian(activeLeoSiteToSiteResult?.selectedSnpB ?? selectedSNPB));
+      } else {
+        add(satelliteToCartesian(activeGeoSatellite));
+        add(geoGatewayToCartesian(activeCommercialTrafficGeoGateway));
+      }
+      return positions;
+    }
+
+    // Delivery is grounded in the serving spacecraft/beam and delivered endpoint(s).
+    add(satelliteToCartesian(activeConnectivityTab === 'LEO'
+      ? activeLeoSiteToSiteResult?.servingSatelliteA ?? resolvedAutoLEO
+      : activeGeoSatellite));
+    add(groundPointToCartesian(activeAnalysisPoint));
+    if (activeConnectivityTab === 'LEO' && leoTopologyMode === 'SITE_TO_SITE') {
+      add(satelliteToCartesian(activeLeoSiteToSiteResult?.servingSatelliteB ?? resolvedAutoLEOB));
+      add(groundPointToCartesian(pointBLeo ?? siteB));
+    } else if (activeConnectivityTab === 'GEO' && (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT')) {
+      add(groundPointToCartesian(siteB));
+    }
+    return positions;
+  }, [activeAnalysisPoint, activeCommercialTrafficGeoGateway, activeConnectivityTab, activeGeoSatellite, activeLeoSiteToSiteResult, engineeringContextRoutePositions, engineeringFocusController.focus, leoTopologyMode, linkMode, pointBLeo, resolvedAutoLEO, resolvedAutoLEOB, selectedSNP, selectedSNPB, siteB]);
+
+  const routeViewHandledRequestRef = useRef(0);
+  useEffect(() => {
+    const focus = engineeringFocusController.focus;
+    const routeRequest = engineeringFocusController.routeViewRequest;
+    const isRouteViewRequest = routeRequest > routeViewHandledRequestRef.current;
+    if (isRouteViewRequest) routeViewHandledRequestRef.current = routeRequest;
+    if (!isRouteViewRequest && (focus.kind !== 'locked' || !focus.stageId || focus.technology !== activeConnectivityTab)) return;
+
+    const focusKey = isRouteViewRequest
+      ? `route:${routeRequest}:${activeConnectivityTab}`
+      : `${focus.technology}:${focus.stageId}:${focus.origin}`;
+    if (!isRouteViewRequest && engineeringFocusCameraKeyRef.current === focusKey) return;
+    engineeringFocusCameraKeyRef.current = focusKey;
+
+    const positions = isRouteViewRequest ? engineeringContextRoutePositions : engineeringFocusedRoutePositions;
+    if (positions.length === 0) return;
+
+    let timeoutId: number | null = null;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const contractMobileStory = isMobile && isMobileAnalysisPanelOpen;
+    if (contractMobileStory) setIsMobileAnalysisPanelOpen(false);
+
+    const focusCamera = () => {
+      const viewer = viewerRef.current;
+      if (!viewer || viewer.isDestroyed?.()) return;
+      const canvas = viewer.scene.canvas;
+      const marginX = Math.min(120, canvas.clientWidth * 0.12);
+      const marginY = Math.min(100, canvas.clientHeight * 0.14);
+      const allVisible = !isRouteViewRequest && positions.every((position) => {
+        const screen = SceneTransforms.worldToWindowCoordinates(viewer.scene, position);
+        return !!screen
+          && screen.x >= marginX
+          && screen.x <= canvas.clientWidth - marginX
+          && screen.y >= marginY
+          && screen.y <= canvas.clientHeight - marginY;
+      });
+      if (!shouldApplyEngineeringCameraFocus({
+        nowMs: performance.now(),
+        lastManualInputMs: lastManualCameraInputRef.current,
+        allTargetsVisible: allVisible,
+        forceRouteView: isRouteViewRequest,
+      })) return;
+
+      const sphere = BoundingSphere.fromPoints(positions);
+      const isLeo = activeConnectivityTab === 'LEO';
+      const radius = Math.max(sphere.radius * 1.12, isLeo ? 480_000 : 900_000);
+      const range = radius * (isLeo ? 2.8 : 2.55);
+      const heading = Number.isFinite(viewer.camera.heading) ? viewer.camera.heading : 0;
+      const pitch = Number.isFinite(viewer.camera.pitch)
+        ? Math.min(CesiumMath.toRadians(-22), Math.max(CesiumMath.toRadians(-78), viewer.camera.pitch))
+        : CesiumMath.toRadians(isLeo ? -46 : -40);
+      viewer.camera.cancelFlight();
+      viewer.camera.flyToBoundingSphere(new BoundingSphere(sphere.center, radius), {
+        duration: prefersReducedMotion ? 0 : ENGINEERING_CAMERA_ANIMATION_SECONDS,
+        offset: new HeadingPitchRange(heading, pitch, range),
+      });
+    };
+
+    const delay = contractMobileStory && !prefersReducedMotion ? 280 : 0;
+    timeoutId = window.setTimeout(focusCamera, delay);
+    return () => {
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+    };
+  }, [activeConnectivityTab, engineeringContextRoutePositions, engineeringFocusController.focus, engineeringFocusController.routeViewRequest, engineeringFocusedRoutePositions, isMobile, isMobileAnalysisPanelOpen]);
+
+  useEffect(() => {
+    const focus = engineeringFocusController.focus;
+    if (focus.kind === 'none' || focus.technology === activeConnectivityTab) return;
+    if (focus.kind === 'locked' && focus.origin === 'globe' && focus.technology) {
+      handleTechnologyChange(focus.technology);
+      return;
+    }
+    engineeringFocusController.clear();
+  }, [activeConnectivityTab, engineeringFocusController, handleTechnologyChange]);
 
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -4639,9 +4808,10 @@ const App: React.FC = () => {
   const handleOpenEngineeringConfigure = useCallback((technology?: 'GEO' | 'LEO') => {
     if (technology && technology !== activeConnectivityTab) handleTechnologyChange(technology);
     setIsMobileAnalysisPanelOpen(false);
+    engineeringFocusController.setSurfaceMode('configuration');
     if (isMobile) setIsEngineeringConfigureOpen(true);
     else setEngineeringHeaderConfigureFocusSignal((signal) => signal + 1);
-  }, [activeConnectivityTab, handleTechnologyChange, isMobile]);
+  }, [activeConnectivityTab, engineeringFocusController, handleTechnologyChange, isMobile]);
 
   const handleApplyEngineeringConfigure = useCallback((draft: EngineeringConfigureDraft) => {
     const changes = getEngineeringConfigureChanges(engineeringConfigureBaseline, draft);
@@ -4744,7 +4914,8 @@ const App: React.FC = () => {
 
     setEngineeringRecalculation((current) => current ? { ...current, status: 'settled' } : current);
     setIsEngineeringConfigureOpen(false);
-  }, [engineeringConfigureBaselineSignature, engineeringRecalculation]);
+    engineeringFocusController.setSurfaceMode('result');
+  }, [engineeringConfigureBaselineSignature, engineeringFocusController, engineeringRecalculation]);
 
   const mapCommercialState = useMemo<CommercialStateProps>(() => ({
     commercialMode: globeCommercialMode,
@@ -5325,12 +5496,16 @@ const App: React.FC = () => {
       applying={engineeringRecalculation?.status === 'updating'}
       showPublishedResultSummary={false}
       returnLabel="Summary"
-      onCancel={() => setIsEngineeringConfigureOpen(false)}
+      onCancel={() => {
+        setIsEngineeringConfigureOpen(false);
+        engineeringFocusController.setSurfaceMode('result');
+      }}
       onApply={handleApplyEngineeringConfigure}
     />
   );
 
   return (
+    <EngineeringFocusProvider controller={engineeringFocusController} truths={engineeringTruths}>
     <div
       className={[
         'bg-white transition-colors duration-300 dark:bg-slate-950',
@@ -6101,7 +6276,7 @@ const App: React.FC = () => {
                         />
                       </div>
                       <div className="border-t border-slate-200/80 px-2.5 pb-2 pt-1.5 dark:border-slate-700/80">
-                        <nav className="grid grid-cols-2 gap-2" aria-label="Mobile engineering actions">
+                        <nav className="grid grid-cols-3 gap-2" aria-label="Mobile engineering actions">
                           <button
                             type="button"
                             onClick={() => handleOpenEngineeringConfigure()}
@@ -6112,12 +6287,29 @@ const App: React.FC = () => {
                           </button>
                           <button
                             type="button"
-                            onClick={() => setIsMobileAnalysisPanelOpen(true)}
-                            className="inline-flex h-9 items-center justify-center gap-2 rounded-[16px] bg-slate-950 px-4 text-[14px] font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
-                            aria-label="Open detailed engineering investigation"
+                            onClick={() => {
+                              setMobileEngineeringPanelMode('story');
+                              engineeringFocusController.setLensPosture('reasoning');
+                              engineeringFocusController.setSurfaceMode('result');
+                              setIsMobileAnalysisPanelOpen(true);
+                            }}
+                            className="inline-flex h-9 items-center justify-center gap-1 rounded-[16px] bg-slate-950 px-2 text-[12px] font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
+                            aria-label="Open engineering result story"
                           >
-                            <span>Detailed</span>
+                            <span>Why</span>
                             <ChevronUp className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMobileEngineeringPanelMode('investigation');
+                              engineeringFocusController.setSurfaceMode('investigation');
+                              setIsMobileAnalysisPanelOpen(true);
+                            }}
+                            className="inline-flex h-9 items-center justify-center rounded-[16px] border border-slate-300 bg-white px-2 text-[12px] font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                            aria-label="Open existing detailed engineering workspace"
+                          >
+                            Investigate
                           </button>
                         </nav>
                       </div>
@@ -6130,7 +6322,7 @@ const App: React.FC = () => {
                     className="fixed inset-0 z-[70] bg-slate-950/28 backdrop-blur-[2px]"
                     role="dialog"
                     aria-modal="true"
-                    aria-label="Detailed engineering investigation"
+                    aria-label={mobileEngineeringPanelMode === 'story' ? 'Engineering result story' : 'Detailed engineering investigation'}
                   >
                     <div
                       className="absolute inset-0 flex items-end justify-center"
@@ -6146,11 +6338,14 @@ const App: React.FC = () => {
                           </div>
                           <div className="relative flex items-center justify-center">
                             <div className="text-base font-semibold text-slate-950 dark:text-slate-50">
-                              Detailed investigation
+                              {mobileEngineeringPanelMode === 'story' ? 'Result story' : 'Detailed investigation'}
                             </div>
                             <button
                               type="button"
-                              onClick={() => setIsMobileAnalysisPanelOpen(false)}
+                              onClick={() => {
+                                setIsMobileAnalysisPanelOpen(false);
+                                engineeringFocusController.setSurfaceMode('result');
+                              }}
                               className="absolute right-0 inline-flex h-10 w-10 items-center justify-center rounded-[18px] border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
                               aria-label="Return to engineering summary"
                             >
@@ -6160,11 +6355,32 @@ const App: React.FC = () => {
                         </div>
 
                         <div
+                          ref={(node) => {
+                            mobileAnalysisScrollElementRef.current = node;
+                            if (node && mobileEngineeringPanelMode === 'story') {
+                              requestAnimationFrame(() => { node.scrollTop = mobileResultStoryScrollRef.current; });
+                            }
+                          }}
+                          onScroll={(event) => {
+                            if (mobileEngineeringPanelMode === 'story') mobileResultStoryScrollRef.current = event.currentTarget.scrollTop;
+                          }}
                           className="flex-1 overflow-y-auto overscroll-contain px-4 pb-5 pt-3"
                           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 1.25rem)' }}
                         >
                           <Suspense fallback={panelFallback}>
-                            {selectedIss ? (
+                            {mobileEngineeringPanelMode === 'story' ? (
+                              engineeringTruths[activeConnectivityTab] ? (
+                                <EngineeringResultSummary
+                                  technology={activeConnectivityTab}
+                                  truth={engineeringTruths[activeConnectivityTab]!}
+                                  onConfigure={() => handleOpenEngineeringConfigure(activeConnectivityTab)}
+                                />
+                              ) : (
+                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+                                  Engineering result is still being published for this scenario.
+                                </div>
+                              )
+                            ) : selectedIss ? (
                               <IssDetails
                                 position={iss.position}
                                 orbitPath={iss.orbitPath}
@@ -6655,6 +6871,7 @@ const App: React.FC = () => {
       )}
       <MemoryMonitorHud />
     </div>
+    </EngineeringFocusProvider>
   );
 };
 

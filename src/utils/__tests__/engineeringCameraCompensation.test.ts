@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeEngineeringCameraCompensation } from '../engineeringCameraCompensation';
+import { computeEngineeringCameraCompensation, shouldApplyEngineeringCameraFocus } from '../engineeringCameraCompensation';
 
 describe('computeEngineeringCameraCompensation', () => {
   it('does not compensate when the viewport height is effectively unchanged', () => {
@@ -35,5 +35,17 @@ describe('computeEngineeringCameraCompensation', () => {
       rangeFactor: 3.6,
       extraRangeMeters: 2_600_000,
     });
+  });
+});
+
+describe('shouldApplyEngineeringCameraFocus', () => {
+  it('keeps visible evidence stationary and gives recent manual camera input priority', () => {
+    expect(shouldApplyEngineeringCameraFocus({ nowMs: 2_000, lastManualInputMs: 0, allTargetsVisible: true })).toBe(false);
+    expect(shouldApplyEngineeringCameraFocus({ nowMs: 2_000, lastManualInputMs: 1_500, allTargetsVisible: false })).toBe(false);
+  });
+
+  it('reframes obscured locked evidence and permits an explicit route-view reset', () => {
+    expect(shouldApplyEngineeringCameraFocus({ nowMs: 2_000, lastManualInputMs: 0, allTargetsVisible: false })).toBe(true);
+    expect(shouldApplyEngineeringCameraFocus({ nowMs: 2_000, lastManualInputMs: 0, allTargetsVisible: true, forceRouteView: true })).toBe(true);
   });
 });

@@ -251,24 +251,26 @@ const PassBeamTimeline: React.FC<PassBeamTimelineProps> = ({
   return (
     <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg border border-gray-100 dark:border-slate-700">
       {/* Header / Toggle */}
-      <button
-        type="button"
-        onClick={() => setIsOpen(o => !o)}
-        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
-        aria-expanded={isOpen}
-      >
-        <div className="min-w-0">
+      <div className="relative flex w-full items-center justify-between gap-3 px-4 py-3 text-left">
+        <button
+          type="button"
+          onClick={() => setIsOpen(o => !o)}
+          className="absolute inset-0 z-0 w-full rounded-t-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pink-400"
+          aria-expanded={isOpen}
+          aria-label={`${isOpen ? 'Collapse' : 'Expand'} Pass Beam Timeline`}
+        />
+        <div className="pointer-events-none relative z-10 min-w-0">
           <h4 className="text-sm font-semibold flex items-center" style={{ color: '#db2777' }}>Pass Beam Timeline<SectionTooltip content="A ±10-minute window around the satellite overpass showing beam handovers every 30 seconds. Each row shows which of the 16 beams covers the user, satellite elevation, SNP reachability, and estimated throughput — helping identify whether a connection drops between beam transitions." /></h4>
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{summaryText}</p>
         </div>
         <svg
-          className={`h-4 w-4 shrink-0 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+          className={`pointer-events-none relative z-10 h-4 w-4 shrink-0 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
           xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
         >
           <polyline points="6 9 12 15 18 9" />
         </svg>
-      </button>
+      </div>
 
       {isOpen && (
         <div className="border-t border-gray-200 dark:border-slate-700 px-4 py-4 space-y-4">

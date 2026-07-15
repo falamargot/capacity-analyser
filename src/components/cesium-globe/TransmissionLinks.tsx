@@ -6,6 +6,7 @@ import { Entity, PolylineGraphics, PointGraphics, LabelGraphics } from 'resium';
 import {
     Color,
     CallbackProperty,
+    CallbackPositionProperty,
     JulianDate,
     Cartesian3,
     PolylineDashMaterialProperty,
@@ -38,6 +39,8 @@ import PathFlowAnimation, { type PathSegment } from './PathFlowAnimation';
 import type { CameraMetricsSnapshot } from './utils';
 import type { CommercialRouteSegmentType } from '../commercial/commercialViewModel';
 import { GROUND_POINT_ALTITUDE_KM } from './layerHeights';
+import { useEngineeringFocus } from '../../contexts/EngineeringFocusContext';
+import { getEngineeringPathVisualState, type EngineeringPathVisualState } from '../../utils/engineeringFocusModel';
 
 interface TransmissionLinksProps {
     satellites: SatelliteData[];
@@ -275,7 +278,59 @@ interface HighlightedRouteSegmentProps {
      *  for data that flips availability routinely) but are hidden via Cesium's
      *  native `show`, not removed from the JSX tree. Defaults to true. */
     show?: boolean;
+    visualState?: EngineeringPathVisualState;
 }
+
+const engineeringSelectedMaterial = new PolylineGlowMaterialProperty({
+    color: Color.fromCssColorString('#38bdf8').withAlpha(0.98),
+    glowPower: 0.24,
+    taperPower: 0.42,
+});
+const engineeringLimitingMaterial = new PolylineGlowMaterialProperty({
+    color: Color.fromCssColorString('#f59e0b').withAlpha(0.96),
+    glowPower: 0.2,
+    taperPower: 0.46,
+});
+const engineeringDiagnosticMaterial = new PolylineGlowMaterialProperty({
+    color: Color.fromCssColorString('#94a3b8').withAlpha(0.58),
+    glowPower: 0.08,
+    taperPower: 0.5,
+});
+const engineeringUnavailableMaterial = new PolylineDashMaterialProperty({
+    color: Color.fromCssColorString('#fb7185').withAlpha(0.95),
+    gapColor: Color.fromCssColorString('#7f1d1d').withAlpha(0.12),
+    dashPattern: 0x3f3f,
+});
+const engineeringUnresolvedMaterial = new PolylineDashMaterialProperty({
+    color: Color.fromCssColorString('#94a3b8').withAlpha(0.76),
+    gapColor: Color.TRANSPARENT,
+    dashPattern: 0x1111,
+});
+const engineeringCandidateMaterial = new PolylineDashMaterialProperty({
+    color: Color.fromCssColorString('#cbd5e1').withAlpha(0.75),
+    gapColor: Color.TRANSPARENT,
+    dashPattern: 0x00ff,
+});
+
+const materialForEngineeringState = (
+    state: EngineeringPathVisualState | undefined,
+    fallback: RouteLineMaterial,
+): RouteLineMaterial => {
+    if (state === 'selected') return engineeringSelectedMaterial;
+    if (state === 'limiting') return engineeringLimitingMaterial;
+    if (state === 'diagnostic') return engineeringDiagnosticMaterial;
+    if (state === 'unavailable') return engineeringUnavailableMaterial;
+    if (state === 'unresolved') return engineeringUnresolvedMaterial;
+    if (state === 'candidate') return engineeringCandidateMaterial;
+    return fallback;
+};
+
+const widthForEngineeringState = (state: EngineeringPathVisualState | undefined, width: number) => (
+    state === 'selected' ? width + 2.2
+        : state === 'limiting' || state === 'unavailable' ? width + 1.2
+            : state === 'diagnostic' || state === 'unresolved' ? Math.max(1.5, width - 0.45)
+                : width
+);
 
 const getRouteHaloWidth = (width: number) => Math.max(width + 4.8, width * 2.25);
 
@@ -289,15 +344,23 @@ const HighlightedRouteSegment = React.memo<HighlightedRouteSegmentProps>(({
     arcType = ArcType.NONE,
     subdued = false,
     show = true,
+    visualState,
 }) => {
     const haloMaterial = subdued ? leoRouteHaloSecondaryMaterial : leoRouteHaloMaterial;
+    const displayedWidth = widthForEngineeringState(visualState, width);
+    const displayedMaterial = materialForEngineeringState(visualState, material);
+    const failureEndPosition = useMemo(() => new CallbackPositionProperty((time, result) => {
+        const values = positions.getValue(time);
+        if (!Array.isArray(values) || values.length === 0) return undefined;
+        return Cartesian3.clone(values[values.length - 1], result);
+    }, false), [positions]);
 
     return (
         <>
             <Entity key={`${entityIdBase}-halo`} id={`${entityIdBase}-halo`} name={`${name} halo`} show={show}>
                 <PolylineGraphics
                     positions={positions}
-                    width={getRouteHaloWidth(width)}
+                    width={getRouteHaloWidth(displayedWidth)}
                     material={haloMaterial}
                     depthFailMaterial={haloMaterial}
                     clampToGround={clampToGround}
@@ -307,13 +370,41 @@ const HighlightedRouteSegment = React.memo<HighlightedRouteSegmentProps>(({
             <Entity key={`${entityIdBase}-main`} id={`${entityIdBase}-main`} name={name} show={show}>
                 <PolylineGraphics
                     positions={positions}
-                    width={width}
-                    material={material}
-                    depthFailMaterial={material}
+                    width={displayedWidth}
+                    material={displayedMaterial}
+                    depthFailMaterial={displayedMaterial}
                     clampToGround={clampToGround}
                     arcType={arcType}
                 />
             </Entity>
+            {visualState === 'unavailable' && (
+                <Entity
+                    key={`${entityIdBase}-failure`}
+                    id={`${entityIdBase}-failure`}
+                    name={`${name} failure boundary`}
+                    position={failureEndPosition}
+                    show={show}
+                >
+                    <PointGraphics
+                        pixelSize={11}
+                        color={Color.fromCssColorString('#fb7185')}
+                        outlineColor={Color.WHITE}
+                        outlineWidth={2}
+                        disableDepthTestDistance={Number.POSITIVE_INFINITY}
+                    />
+                    <LabelGraphics
+                        text="×"
+                        font="700 16px sans-serif"
+                        fillColor={Color.WHITE}
+                        outlineColor={Color.fromCssColorString('#881337')}
+                        outlineWidth={3}
+                        style={LabelStyle.FILL_AND_OUTLINE}
+                        verticalOrigin={VerticalOrigin.CENTER}
+                        horizontalOrigin={HorizontalOrigin.CENTER}
+                        disableDepthTestDistance={Number.POSITIVE_INFINITY}
+                    />
+                </Entity>
+            )}
         </>
     );
 });
@@ -327,6 +418,7 @@ interface S2SBackboneSegmentProps {
     subdued?: boolean;
     /** See HighlightedRouteSegmentProps.show. */
     show?: boolean;
+    visualState?: EngineeringPathVisualState;
 }
 
 const S2SBackboneSegment = React.memo<S2SBackboneSegmentProps>(({
@@ -336,13 +428,21 @@ const S2SBackboneSegment = React.memo<S2SBackboneSegmentProps>(({
     entityIdBase,
     subdued = false,
     show = true,
+    visualState,
 }) => {
+    const mainMaterial = materialForEngineeringState(
+        visualState,
+        subdued ? s2sBackboneSecondaryMaterial : s2sBackboneMaterial,
+    );
+    const widthBoostForState = visualState === 'selected' ? 2.2
+        : visualState === 'limiting' || visualState === 'unavailable' ? 1.2
+            : 0;
     return (
         <>
             <Entity key={`${entityIdBase}-halo`} id={`${entityIdBase}-halo`} name={`${name} halo`} show={show}>
                 <PolylineGraphics
                     positions={positions}
-                    width={S2S_BACKBONE_HALO_WIDTH + widthBoost}
+                    width={S2S_BACKBONE_HALO_WIDTH + widthBoost + widthBoostForState}
                     material={subdued ? s2sBackboneHaloSecondaryMaterial : s2sBackboneHaloMaterial}
                     depthFailMaterial={subdued ? s2sBackboneHaloSecondaryMaterial : s2sBackboneHaloMaterial}
                     clampToGround={false}
@@ -352,7 +452,7 @@ const S2SBackboneSegment = React.memo<S2SBackboneSegmentProps>(({
             <Entity key={`${entityIdBase}-glow`} id={`${entityIdBase}-glow`} name={`${name} glow`} show={show}>
                 <PolylineGraphics
                     positions={positions}
-                    width={S2S_BACKBONE_GLOW_WIDTH + widthBoost}
+                    width={S2S_BACKBONE_GLOW_WIDTH + widthBoost + widthBoostForState}
                     material={subdued ? s2sBackboneGlowSecondaryMaterial : s2sBackboneGlowMaterial}
                     depthFailMaterial={subdued ? s2sBackboneGlowSecondaryMaterial : s2sBackboneGlowMaterial}
                     clampToGround={false}
@@ -362,9 +462,9 @@ const S2SBackboneSegment = React.memo<S2SBackboneSegmentProps>(({
             <Entity key={`${entityIdBase}-main`} id={`${entityIdBase}-main`} name={name} show={show}>
                 <PolylineGraphics
                     positions={positions}
-                    width={S2S_BACKBONE_MAIN_WIDTH + widthBoost}
-                    material={subdued ? s2sBackboneSecondaryMaterial : s2sBackboneMaterial}
-                    depthFailMaterial={subdued ? s2sBackboneSecondaryMaterial : s2sBackboneMaterial}
+                    width={S2S_BACKBONE_MAIN_WIDTH + widthBoost + widthBoostForState}
+                    material={mainMaterial}
+                    depthFailMaterial={mainMaterial}
                     clampToGround={false}
                     arcType={ArcType.GEODESIC}
                 />
@@ -424,6 +524,15 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     narrativeLayerActive = false,
 }) => {
     const { coveragePolicy, weatherCondition, beamHealthFactors, hsBeamsSet } = useSimulation();
+    const { focus: engineeringFocus, truths: engineeringTruths } = useEngineeringFocus();
+    const engineeringVisualState = React.useCallback((
+        segment: 'access' | 'backhaul' | 'destination',
+        technology: 'GEO' | 'LEO',
+    ) => commercialMode ? undefined : getEngineeringPathVisualState({
+        truth: engineeringTruths[technology],
+        segment,
+        focus: engineeringFocus,
+    }), [commercialMode, engineeringFocus, engineeringTruths]);
 
     // Live refs let stable callbacks read the latest selected satellites while still
     // propagating LEO links against Cesium time so they stay visually aligned with beams.
@@ -987,6 +1096,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                     material={commercialLeoUserMaterial}
                     entityIdBase={routeEntityIds.leoUplink}
                     subdued={s2sIsSecondary}
+                    visualState={engineeringVisualState('access', 'LEO')}
                 />
             )}
 
@@ -1000,6 +1110,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                     entityIdBase={routeEntityIds.leoBackhaul}
                     clampToGround={false}
                     subdued={s2sIsSecondary}
+                    visualState={engineeringVisualState('backhaul', 'LEO')}
                 />
             )}
 
@@ -1008,9 +1119,9 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 <Entity key={routeEntityIds.geoUser} id={routeEntityIds.geoUser} name="GEO User Link">
                     <PolylineGraphics
                         positions={geoUserLinkCallback}
-                        width={commercialWidth('access', 2.5, 'GEO')}
-                        material={commercialGeoUserMaterial}
-                        depthFailMaterial={commercialGeoUserMaterial}
+                        width={widthForEngineeringState(engineeringVisualState('access', 'GEO'), commercialWidth('access', 2.5, 'GEO'))}
+                        material={materialForEngineeringState(engineeringVisualState('access', 'GEO'), commercialGeoUserMaterial)}
+                        depthFailMaterial={materialForEngineeringState(engineeringVisualState('access', 'GEO'), commercialGeoUserMaterial)}
                         arcType={ArcType.NONE}
                     />
                 </Entity>
@@ -1021,9 +1132,9 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 <Entity key={routeEntityIds.geoFeeder} id={routeEntityIds.geoFeeder} name="GEO Feeder Link">
                     <PolylineGraphics
                         positions={geoFeederLinkCallback}
-                        width={commercialWidth('backhaul', 2.5, 'GEO')}
-                        material={commercialGeoFeederMaterial}
-                        depthFailMaterial={commercialGeoFeederMaterial}
+                        width={widthForEngineeringState(engineeringVisualState('backhaul', 'GEO'), commercialWidth('backhaul', 2.5, 'GEO'))}
+                        material={materialForEngineeringState(engineeringVisualState('backhaul', 'GEO'), commercialGeoFeederMaterial)}
+                        depthFailMaterial={materialForEngineeringState(engineeringVisualState('backhaul', 'GEO'), commercialGeoFeederMaterial)}
                         arcType={ArcType.NONE}
                     />
                 </Entity>
@@ -1034,9 +1145,9 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 <Entity key={routeEntityIds.geoBackhaul} id={routeEntityIds.geoBackhaul} name="GEO Backhaul Link">
                     <PolylineGraphics
                         positions={geoBackhaulCallback}
-                        width={commercialWidth('backhaul', 2.5, 'GEO')}
-                        material={commercialGeoBackhaulMaterial}
-                        depthFailMaterial={commercialGeoBackhaulMaterial}
+                        width={widthForEngineeringState(engineeringVisualState('backhaul', 'GEO'), commercialWidth('backhaul', 2.5, 'GEO'))}
+                        material={materialForEngineeringState(engineeringVisualState('backhaul', 'GEO'), commercialGeoBackhaulMaterial)}
+                        depthFailMaterial={materialForEngineeringState(engineeringVisualState('backhaul', 'GEO'), commercialGeoBackhaulMaterial)}
                         arcType={ArcType.NONE}
                     />
                 </Entity>
@@ -1050,12 +1161,12 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 <>
                     {geoUserLinkCallback && (
                         <Entity key={routeEntityIds.geoMeshASat} id={routeEntityIds.geoMeshASat} name="A → Satellite (transmit)">
-                            <PolylineGraphics positions={geoUserLinkCallback} width={commercialWidth('access', 5, 'GEO')} material={commercialMeshTransmitMaterial} depthFailMaterial={commercialMeshTransmitMaterial} arcType={ArcType.NONE} />
+                            <PolylineGraphics positions={geoUserLinkCallback} width={widthForEngineeringState(engineeringVisualState('access', 'GEO'), commercialWidth('access', 5, 'GEO'))} material={materialForEngineeringState(engineeringVisualState('access', 'GEO'), commercialMeshTransmitMaterial)} depthFailMaterial={materialForEngineeringState(engineeringVisualState('access', 'GEO'), commercialMeshTransmitMaterial)} arcType={ArcType.NONE} />
                         </Entity>
                     )}
                     {meshSatToBCallback && (
                         <Entity key={routeEntityIds.geoMeshSatB} id={routeEntityIds.geoMeshSatB} name="Satellite → B (receive)">
-                            <PolylineGraphics positions={meshSatToBCallback} width={commercialWidth('destination', 5, 'GEO')} material={commercialMeshReceiveMaterial} depthFailMaterial={commercialMeshReceiveMaterial} clampToGround={false} arcType={ArcType.NONE} />
+                            <PolylineGraphics positions={meshSatToBCallback} width={widthForEngineeringState(engineeringVisualState('destination', 'GEO'), commercialWidth('destination', 5, 'GEO'))} material={materialForEngineeringState(engineeringVisualState('destination', 'GEO'), commercialMeshReceiveMaterial)} depthFailMaterial={materialForEngineeringState(engineeringVisualState('destination', 'GEO'), commercialMeshReceiveMaterial)} clampToGround={false} arcType={ArcType.NONE} />
                         </Entity>
                     )}
                 </>
@@ -1064,12 +1175,12 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 <>
                     {meshBtoSatCallback && (
                         <Entity key={routeEntityIds.geoMeshBSat} id={routeEntityIds.geoMeshBSat} name="B → Satellite (transmit)">
-                            <PolylineGraphics positions={meshBtoSatCallback} width={commercialWidth('destination', 5, 'GEO')} material={commercialMeshTransmitMaterial} depthFailMaterial={commercialMeshTransmitMaterial} clampToGround={false} arcType={ArcType.NONE} />
+                            <PolylineGraphics positions={meshBtoSatCallback} width={widthForEngineeringState(engineeringVisualState('destination', 'GEO'), commercialWidth('destination', 5, 'GEO'))} material={materialForEngineeringState(engineeringVisualState('destination', 'GEO'), commercialMeshTransmitMaterial)} depthFailMaterial={materialForEngineeringState(engineeringVisualState('destination', 'GEO'), commercialMeshTransmitMaterial)} clampToGround={false} arcType={ArcType.NONE} />
                         </Entity>
                     )}
                     {meshSatToACallback && (
                         <Entity key={routeEntityIds.geoMeshSatA} id={routeEntityIds.geoMeshSatA} name="Satellite → A (receive)">
-                            <PolylineGraphics positions={meshSatToACallback} width={commercialWidth('access', 5, 'GEO')} material={commercialMeshReceiveMaterial} depthFailMaterial={commercialMeshReceiveMaterial} arcType={ArcType.NONE} />
+                            <PolylineGraphics positions={meshSatToACallback} width={widthForEngineeringState(engineeringVisualState('access', 'GEO'), commercialWidth('access', 5, 'GEO'))} material={materialForEngineeringState(engineeringVisualState('access', 'GEO'), commercialMeshReceiveMaterial)} depthFailMaterial={materialForEngineeringState(engineeringVisualState('access', 'GEO'), commercialMeshReceiveMaterial)} arcType={ArcType.NONE} />
                         </Entity>
                     )}
                 </>
@@ -1156,6 +1267,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                         entityIdBase={routeEntityIds.leoS2SASat}
                         subdued={s2sIsSecondary}
                         show={!!leoS2SLinks}
+                        visualState={engineeringVisualState('access', 'LEO')}
                     />
 
                     {/* Satellite A → SNP A (feeder) */}
@@ -1168,6 +1280,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                         clampToGround={false}
                         subdued={s2sIsSecondary}
                         show={!!leoS2SLinks?.satAToSnpACallback}
+                        visualState={engineeringVisualState('backhaul', 'LEO')}
                     />
 
                     {/* SNP A → PoP (backbone) */}
@@ -1178,6 +1291,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                         entityIdBase={routeEntityIds.leoS2SSnpAPop}
                         subdued={s2sIsSecondary}
                         show={!!leoS2SLinks && !leoS2SLinks.sameSNP && !!leoS2SLinks.snpAToPopCallback}
+                        visualState={engineeringVisualState('backhaul', 'LEO')}
                     />
 
                     {/* PoP → SNP B (backbone) */}
@@ -1188,6 +1302,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                         entityIdBase={routeEntityIds.leoS2SPopSnpB}
                         subdued={s2sIsSecondary}
                         show={!!leoS2SLinks && !leoS2SLinks.sameSNP && !!leoS2SLinks.popToSnpBCallback}
+                        visualState={engineeringVisualState('backhaul', 'LEO')}
                     />
 
                     {/* SNP A → SNP B direct (when same SNP or no PoP) */}
@@ -1198,6 +1313,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                         entityIdBase={routeEntityIds.leoS2SBackboneSame}
                         subdued={s2sIsSecondary}
                         show={!!leoS2SLinks?.sameSNP && !!leoS2SLinks.sameSnpCallback}
+                        visualState={engineeringVisualState('backhaul', 'LEO')}
                     />
 
                     {/* SNP B → Satellite B (feeder) */}
@@ -1210,6 +1326,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                         clampToGround={false}
                         subdued={s2sIsSecondary}
                         show={!!leoS2SLinks?.satBToSnpBCallback}
+                        visualState={engineeringVisualState('backhaul', 'LEO')}
                     />
 
                     {/* Satellite B → UT B (user link) */}
@@ -1221,6 +1338,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                         entityIdBase={routeEntityIds.leoS2SSatBB}
                         subdued={s2sIsSecondary}
                         show={!!leoS2SLinks}
+                        visualState={engineeringVisualState('destination', 'LEO')}
                     />
 
                     {/* ── Ground-node markers ─────────────────────────────────────── */}
@@ -1333,6 +1451,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                         entityIdBase={routeEntityIds.leoS2SSnpAPopFallback}
                         subdued
                         show={!!leoS2SBackbone && !leoS2SBackbone.sameSNP && !!leoS2SBackbone.snpAToPopCallback}
+                        visualState={engineeringVisualState('backhaul', 'LEO')}
                     />
                     <S2SBackboneSegment
                         name="S2S: PoP → SNP B (backbone, service unavailable)"
@@ -1340,6 +1459,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                         entityIdBase={routeEntityIds.leoS2SPopSnpBFallback}
                         subdued
                         show={!!leoS2SBackbone && !leoS2SBackbone.sameSNP && !!leoS2SBackbone.popToSnpBCallback}
+                        visualState={engineeringVisualState('backhaul', 'LEO')}
                     />
                     <S2SBackboneSegment
                         name="S2S: Same SNP (backbone collapsed, service unavailable)"
@@ -1347,6 +1467,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                         entityIdBase={routeEntityIds.leoS2SBackboneSameFallback}
                         subdued
                         show={!!leoS2SBackbone?.sameSNP && !!leoS2SBackbone.sameSnpCallback}
+                        visualState={engineeringVisualState('backhaul', 'LEO')}
                     />
                     <Entity
                         key={routeEntityIds.leoS2SSnpAMarkerFallback}

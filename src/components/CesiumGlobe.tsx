@@ -58,7 +58,7 @@ import AircraftLayer from './cesium-globe/AircraftLayer';
 import VesselLayer from './cesium-globe/VesselLayer';
 import IssLayer from './cesium-globe/IssLayer';
 import SnpLayer from './cesium-globe/SnpLayer';
-import CoverageLayer, { GEO_COVERAGE_ENTITY_PREFIX, type GeoCoverageLegendItem } from './cesium-globe/CoverageLayer';
+import CoverageLayer, { GEO_COVERAGE_ENTITY_PREFIX } from './cesium-globe/CoverageLayer';
 import OneWebCombLayer from './cesium-globe/OneWebCombLayer';
 import AggregatedCoverageVolumeLayer, { type ProjectionCoverageGroup } from './cesium-globe/AggregatedCoverageVolumeLayer';
 import TransmissionLinks from './cesium-globe/TransmissionLinks';
@@ -75,9 +75,11 @@ import { usePositionCallbacks } from './cesium-globe/hooks';
 
 // UI components
 import GlobeIntelligenceRail from './cesium-globe/GlobeIntelligenceRail';
-import GeoCoverageLegendPanel from './cesium-globe/GeoCoverageLegendPanel';
-import PositionDisplay from './cesium-globe/PositionDisplay';
-import SatelliteIndicator from './cesium-globe/SatelliteIndicator';
+import ActiveScenarioContext from './cesium-globe/ActiveScenarioContext';
+import {
+    deriveGeoActiveScenarioContext,
+    deriveLeoActiveScenarioContext,
+} from '../utils/activeScenarioContextModel';
 import InspectionCard, { type HoveredEntity } from './cesium-globe/InspectionCard';
 import CountryOverlayLegend from './cesium-globe/CountryOverlayLegend';
 import SiteScreenLabel from './cesium-globe/SiteScreenLabel';
@@ -108,6 +110,8 @@ import type { LeoSiteToSiteResult } from '../utils/leoSiteToSiteModel';
 import type { CommercialScenarioViewModel } from './commercial/commercialViewModel';
 import type { CommercialRouteModel, CommercialRouteNodeType, CommercialRouteFocusTarget, CommercialRouteSegmentId, RouteCoordinate } from '../types/commercialRouteModel';
 import CommercialSymbolicConnectivityLayer from './cesium-globe/CommercialSymbolicConnectivityLayer';
+import { useEngineeringFocus } from '../contexts/EngineeringFocusContext';
+import { causeStageForRouteSegment, parseEngineeringRouteEntityFocus } from '../utils/engineeringFocusModel';
 import FlightCoverageRibbon from './cesium-globe/FlightCoverageRibbon';
 import { getGeoGatewaysForRendering, getTrafficTeleportGatewayNameAllowlist } from './cesium-globe/geoGatewayMarkerModel';
 
@@ -901,6 +905,8 @@ export interface SelectionAnalysisProps {
     selectedCoverage: CandidateCoverage | null;
     selectedUplinkCoverage: CandidateCoverage | null;
     selectedDownlinkCoverage: CandidateCoverage | null;
+    activeScenarioUplinkCoverage: CandidateCoverage | null;
+    activeScenarioDownlinkCoverage: CandidateCoverage | null;
     selectedSNP: { lat: number; lng: number; name: string } | null;
     selectedGateway: GeoGatewayData | null;
     inspectedSNP: SNPData | null;
@@ -1024,6 +1030,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     selectionAnalysisProps,
     callbackProps,
     autoSelectedLEOSatellite,
+    autoSelectedLEOSatelliteB,
     displayLayerProps,
     trafficProps,
     cameraProps,
@@ -1039,6 +1046,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     resolvedAutoGeoGateway = null,
     resolvedSelectedGeoGateway = null,
 }) => {
+    const engineeringFocus = useEngineeringFocus();
     const {
         onPointClick,
         onEmptyClick,
@@ -1078,6 +1086,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         selectedCoverage,
         selectedUplinkCoverage,
         selectedDownlinkCoverage,
+        activeScenarioUplinkCoverage,
+        activeScenarioDownlinkCoverage,
         selectedSNP,
         selectedGateway,
         inspectedSNP,
@@ -1146,6 +1156,40 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         commercialRouteModel = null,
         suppressCommercialCameraFocus = false,
     } = commercialState;
+    const handleEngineeringSatelliteClick = useCallback((satellite: SatelliteData | null) => {
+        if (!commercialMode || !satellite) {
+            const activeRouteSatelliteIds = new Set([
+                autoSelectedLEOSatellite?.id,
+                autoSelectedLEOSatelliteB?.id,
+                autoSelectedGEOSatellite?.id,
+                leoSiteToSiteResult?.servingSatelliteA?.id,
+                leoSiteToSiteResult?.servingSatelliteB?.id,
+            ].filter(Boolean));
+            if (!commercialMode && satellite && activeRouteSatelliteIds.has(satellite.id)) {
+                engineeringFocus.lock(activeConnectivityTab, 'path', 'globe');
+                return;
+            }
+        }
+        onSatelliteClick(satellite);
+    }, [activeConnectivityTab, autoSelectedGEOSatellite?.id, autoSelectedLEOSatellite?.id, autoSelectedLEOSatelliteB?.id, commercialMode, engineeringFocus, leoSiteToSiteResult?.servingSatelliteA?.id, leoSiteToSiteResult?.servingSatelliteB?.id, onSatelliteClick]);
+
+    const handleEngineeringSnpClick = useCallback((snpName: string | null) => {
+        const activeSnpName = typeof selectedSNP === 'string' ? selectedSNP : selectedSNP?.name;
+        if (!commercialMode && snpName && snpName === activeSnpName) {
+            engineeringFocus.lock('LEO', 'service', 'globe');
+            return;
+        }
+        onSnpClick(snpName);
+    }, [commercialMode, engineeringFocus, onSnpClick, selectedSNP]);
+
+    const handleEngineeringGatewayClick = useCallback((gatewayName: string | null) => {
+        const activeGatewayName = resolvedAutoGeoGateway?.gatewayName ?? resolvedSelectedGeoGateway?.gatewayName;
+        if (!commercialMode && gatewayName && gatewayName === activeGatewayName) {
+            engineeringFocus.lock('GEO', 'service', 'globe');
+            return;
+        }
+        onGatewayClick?.(gatewayName);
+    }, [commercialMode, engineeringFocus, onGatewayClick, resolvedAutoGeoGateway?.gatewayName, resolvedSelectedGeoGateway?.gatewayName]);
 
     const {
         airTrafficEnabled = false,
@@ -1170,8 +1214,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
     const [imageryThemeRevision, setImageryThemeRevision] = useState(0);
     const [hoveredEntity, setHoveredEntity] = useState<HoveredEntity>(null);
-    const [geoCoverageLegendItems, setGeoCoverageLegendItems] = useState<GeoCoverageLegendItem[]>([]);
-    const [focusedGeoCoverageLegendKey, setFocusedGeoCoverageLegendKey] = useState<string | null>(null);
     const hoveredEntityKeyRef = useRef<string | null>(null);
     const inspectionCursorPositionRef = useRef<{ x: number; y: number } | null>(null);
     const cameraMetricsRef = useRef<CameraMetricsSnapshot>({
@@ -1731,6 +1773,41 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 }
             }
 
+            if (!commercialMode) {
+                const routeFocus = parseEngineeringRouteEntityFocus(pickedId);
+                if (routeFocus) {
+                    engineeringFocus.lock(routeFocus.technology, causeStageForRouteSegment(routeFocus.segment), 'globe');
+                    return;
+                }
+
+                const activeTechnology = activeConnectivityTab;
+                const activeSatelliteIds = new Set([
+                    autoSelectedLEOSatellite?.id,
+                    autoSelectedLEOSatelliteB?.id,
+                    autoSelectedGEOSatellite?.id,
+                    leoSiteToSiteResult?.servingSatelliteA?.id,
+                    leoSiteToSiteResult?.servingSatelliteB?.id,
+                ].filter(Boolean));
+                if (pickedId.startsWith('satellite-') && activeSatelliteIds.has(pickedId.slice('satellite-'.length))) {
+                    engineeringFocus.lock(activeTechnology, 'path', 'globe');
+                    return;
+                }
+                if (pickedId === 'engineering-node-site-a' || pickedId === 'engineering-node-site-b') {
+                    engineeringFocus.lock(activeTechnology, 'scenario', 'globe');
+                    return;
+                }
+                const selectedSnpName = typeof selectedSNP === 'string' ? selectedSNP : selectedSNP?.name;
+                if (selectedSnpName && pickedId === `snp-${selectedSnpName}`) {
+                    engineeringFocus.lock('LEO', 'service', 'globe');
+                    return;
+                }
+                const activeGatewayName = resolvedAutoGeoGateway?.gatewayName ?? resolvedSelectedGeoGateway?.gatewayName;
+                if (activeGatewayName && pickedId === `gateway-${activeGatewayName}`) {
+                    engineeringFocus.lock('GEO', 'service', 'globe');
+                    return;
+                }
+            }
+
             if (typeof pickedObject.id === 'string' && pickedObject.id.startsWith(GEO_COVERAGE_ENTITY_PREFIX)) {
                 if (selection.type === 'satellite') {
                     onCoverageClick?.(pickedObject.id.slice(GEO_COVERAGE_ENTITY_PREFIX.length));
@@ -1790,6 +1867,11 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             }
         }
 
+        if (!commercialMode && engineeringFocus.focus.kind === 'locked') {
+            engineeringFocus.clear();
+            return;
+        }
+
         const viewer = viewerRef.current;
         const scene = viewer.scene;
 
@@ -1817,7 +1899,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         const lat = CesiumMath.toDegrees(cartographic.latitude);
         const lng = CesiumMath.toDegrees(cartographic.longitude);
         onPointClick(lat, lng, pointerShiftPressedRef.current || shiftPressedRef.current);
-    }, [commercialMode, onAircraftClick, onCommercialSelectedSegmentChange, onCoverageClick, onEmptyClick, onIssClick, onMoonSelectionChange, onPointClick, onSatelliteClick, onSnpClick, onVesselClick, selection.type]);
+    }, [activeConnectivityTab, autoSelectedGEOSatellite?.id, autoSelectedLEOSatellite?.id, autoSelectedLEOSatelliteB?.id, commercialMode, engineeringFocus, leoSiteToSiteResult?.servingSatelliteA?.id, leoSiteToSiteResult?.servingSatelliteB?.id, onAircraftClick, onCommercialSelectedSegmentChange, onCoverageClick, onEmptyClick, onIssClick, onMoonSelectionChange, onPointClick, onSatelliteClick, onSnpClick, onVesselClick, resolvedAutoGeoGateway?.gatewayName, resolvedSelectedGeoGateway?.gatewayName, selectedSNP, selection.type]);
 
     const leoS2SVisualResult = leoSiteToSiteFullResult ?? leoSiteToSiteResult;
 
@@ -2266,14 +2348,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         );
     }, [gatewayByName, onSnpHover, setHoveredEntityIfChanged]);
 
-    const handleGeoCoverageLegendItemsChange = useCallback((items: GeoCoverageLegendItem[]) => {
-        setGeoCoverageLegendItems(items);
-    }, []);
-
-    const handleGeoCoverageLegendHoverChange = useCallback((itemKey: string | null) => {
-        setFocusedGeoCoverageLegendKey(itemKey);
-    }, []);
-
     const handleMapHover = useCallback((movement: { position: Cartesian2 } | { startPosition: Cartesian2; endPosition: Cartesian2 }) => {
         const screenPosition = 'endPosition' in movement ? movement.endPosition : movement.position;
         inspectionCursorPositionRef.current = { x: screenPosition.x, y: screenPosition.y };
@@ -2285,6 +2359,19 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 setHoveredEntityIfChanged(null, null);
             }
             return;
+        }
+
+        if (!commercialMode) {
+            const pickedObject = viewer.scene.pick(screenPosition);
+            const pickedId = typeof pickedObject?.id === 'string'
+                ? pickedObject.id
+                : (pickedObject?.id && typeof pickedObject.id.id === 'string' ? pickedObject.id.id : '');
+            const routeFocus = parseEngineeringRouteEntityFocus(pickedId);
+            if (routeFocus) {
+                engineeringFocus.preview(routeFocus.technology, causeStageForRouteSegment(routeFocus.segment), 'globe');
+            } else if (engineeringFocus.focus.kind === 'preview' && engineeringFocus.focus.origin === 'globe') {
+                engineeringFocus.clearPreview();
+            }
         }
 
         if (countryOverlayMode !== '5g-spectrum') {
@@ -2306,7 +2393,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         if (pickedHoverKey !== currentHoveredKey) {
             clearInspectionHover();
         }
-    }, [clearInspectionHover, countryOverlayMode, setHoveredEntityIfChanged]);
+    }, [clearInspectionHover, commercialMode, countryOverlayMode, engineeringFocus, setHoveredEntityIfChanged]);
 
     useEffect(() => {
         const container = globeContainerRef.current;
@@ -2328,11 +2415,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             setHoveredEntityIfChanged(null, null);
         }
     }, [countryOverlayMode, setHoveredEntityIfChanged]);
-
-    useEffect(() => {
-        if (geoCoverageLegendItems.length > 0) return;
-        setFocusedGeoCoverageLegendKey(null);
-    }, [geoCoverageLegendItems.length]);
 
     // This effect keeps the hoveredEntity card in sync when the underlying data
     // objects change (e.g. satellite position update, aircraft data refresh).
@@ -2490,13 +2572,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         && !!selectedRegulatoryResult
         && !selectedRegulatoryResult.isOcean
         && !!selectedRegulatoryResult.countryName;
-    const hasSatelliteIndicator =
-        !!(selectedSatellite || autoSelectedLEOSatellite || autoSelectedGEOSatellite);
-    const hasCoverageSwitcher =
-        selection.type === 'target'
-        && selection.targetType === 'point'
-        && coverageSwitcherCoverages.length >= 2
-        && !!onCoverageSwitcherSelect;
+    const hasActiveScenario = !!(selectedPosition || selectedAircraft || selectedVessel);
+    // Reuse the existing left-rail spacing contract: the active context takes the
+    // same compact slot previously occupied by the satellite indicator.
+    const hasSatelliteIndicator = hasActiveScenario;
     const commercialGeoCoverageVisible =
         commercialMode
         && satelliteScope !== 'LEO'
@@ -2529,25 +2608,30 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         countryOverlayMode: effectiveCountryOverlayMode,
         commercialMode,
     });
+    const geoActiveScenarioContext = deriveGeoActiveScenarioContext({
+        included: satelliteScope !== 'LEO',
+        hasScenario: hasActiveScenario,
+        status: geoPointStatus,
+        satellite: autoSelectedGEOSatellite,
+        uplinkCoverage: activeScenarioUplinkCoverage,
+        downlinkCoverage: activeScenarioDownlinkCoverage,
+    });
+    const leoActiveScenarioContext = deriveLeoActiveScenarioContext({
+        included: satelliteScope !== 'GEO',
+        hasScenario: hasActiveScenario,
+        siteToSite: !!pointBLeo,
+        result: leoSiteToSiteResult,
+        viewModel: leoServiceViewModel,
+        satelliteA: autoSelectedLEOSatellite ?? null,
+    });
 
     return (
         <div className="relative w-full h-full">
             {/* UI Overlays */}
             {!commercialMode && (
-                <PositionDisplay
-                    selectedPosition={selectedPosition}
-                    selectedAircraft={selectedAircraft}
-                    isPhone={isPhone}
-                />
-            )}
-
-            {!commercialMode && (!isMobileViewport || !!selectedSatellite) && (
-                <SatelliteIndicator
-                    selectedSatellite={selectedSatellite}
-                    autoSelectedLEOSatellite={autoSelectedLEOSatellite}
-                    autoSelectedGEOSatellite={autoSelectedGEOSatellite}
-                    onSatelliteClick={onSatelliteClick}
-                    viewerRef={viewerRef}
+                <ActiveScenarioContext
+                    geo={geoActiveScenarioContext}
+                    leo={leoActiveScenarioContext}
                     isPhone={isPhone}
                     isFullscreen={isFullscreen}
                 />
@@ -2615,19 +2699,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     isPhone={!!isPhone}
                     isFullscreen={isFullscreen}
                     hasSatelliteIndicator={hasSatelliteIndicator}
-                />
-            )}
-
-            {!commercialMode && !displayPrefs.isCompactMap && !isPhone && !isMobileViewport && (
-                <GeoCoverageLegendPanel
-                    items={geoCoverageLegendItems}
-                    hoveredItemKey={focusedGeoCoverageLegendKey}
-                    onHoverItemChange={handleGeoCoverageLegendHoverChange}
-                    isPhone={false}
-                    isFullscreen={isFullscreen}
-                    hasSatelliteIndicator={hasSatelliteIndicator}
-                    hasCoverageSwitcher={hasCoverageSwitcher}
-                    hideHeader={selection.type === 'satellite'}
                 />
             )}
 
@@ -2723,8 +2794,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                             selectedUplinkCoverage={selectedUplinkCoverage}
                             selectedDownlinkCoverage={selectedDownlinkCoverage}
                             visibleCoverageKeys={commercialMode ? null : visibleGeoCoverageKeys}
-                            onLegendItemsChange={commercialMode ? undefined : handleGeoCoverageLegendItemsChange}
-                            highlightedLegendItemKey={commercialMode ? null : focusedGeoCoverageLegendKey}
                             presentation={commercialMode ? 'commercial' : 'engineering'}
                             commercialLabel={commercialGeoCoverageLabel}
                             commercialTone={commercialMode && (!commercialSatelliteFocused || commercialDominantTechnology !== 'GEO') ? 'secondary' : 'primary'}
@@ -2904,7 +2973,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         <SatelliteLayer
                             satellites={satellitesForLayer}
                             selectedSatellite={selectedSatellite}
-                            onSatelliteClick={onSatelliteClick}
+                            onSatelliteClick={handleEngineeringSatelliteClick}
                             onSatelliteHover={handleSatelliteHover}
                             viewerRef={viewerRef}
                             cameraMetricsRef={cameraMetricsRef}
@@ -2937,7 +3006,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     {(!commercialMode || commercialBackhaulFocused) && (
                         <SnpLayer
                             satelliteScope={satelliteScope}
-                            onSnpClick={onSnpClick}
+                            onSnpClick={handleEngineeringSnpClick}
                             onSnpHover={handleSnpHover}
                             viewerRef={viewerRef}
                             cameraMetricsRef={cameraMetricsRef}
@@ -2953,7 +3022,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     {/* GEO Gateway Layer */}
                     <GeoGatewayLayer
                         satelliteScope={satelliteScope}
-                        onGatewayClick={onGatewayClick ?? (() => {})}
+                        onGatewayClick={handleEngineeringGatewayClick}
                         onGatewayHover={handleGatewayHover}
                         viewerRef={viewerRef}
                         cameraMetricsRef={cameraMetricsRef}

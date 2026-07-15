@@ -78,8 +78,6 @@ interface CoverageLayerProps {
   selectedUplinkCoverage?: CandidateCoverage | null;
   selectedDownlinkCoverage?: CandidateCoverage | null;
   visibleCoverageKeys?: string[] | null;
-  onLegendItemsChange?: (items: GeoCoverageLegendItem[]) => void;
-  highlightedLegendItemKey?: string | null;
   presentation?: 'engineering' | 'commercial';
   commercialLabel?: string;
   commercialTone?: 'primary' | 'secondary';
@@ -98,8 +96,6 @@ interface RenderContour {
   coverageLabel: string;
   contourKey: string;
   contourLabel: string;
-  levelValue: number | null;
-  levelUnit: string;
   geometryPartKey: string;
   geometry: SanitizedPolygonGeometry;
   prebuiltMesh: PrebuiltCoverageMesh | null;
@@ -119,19 +115,6 @@ interface RenderContourLabel {
   coverageLabel: string;
   contourLabel: string;
   mode: RenderContour['mode'];
-}
-
-export interface GeoCoverageLegendItem {
-  key: string;
-  satelliteName: string;
-  coverageKey: string;
-  coverageLabel: string;
-  contourKey: string;
-  contourLabel: string;
-  levelValue: number | null;
-  levelUnit: string;
-  mode: RenderContour['mode'];
-  normalizedLevel: number;
 }
 
 const _sanitizedGeometryCache = new WeakMap<object, SanitizedPolygonGeometry | null>();
@@ -424,15 +407,9 @@ const smoothstep = (value: number): number => {
   return clamped * clamped * (3 - (2 * clamped));
 };
 
-const getCoverageLevelUnit = (coverage: Coverage): string => {
-  const properties = (coverage.feature?.properties as Record<string, unknown> | undefined) ?? {};
-  return properties.isUplink === true ? 'dB/K' : 'dBW';
-};
-
 const getCoverageBandStyle = (
   normalizedBand: number,
   mode: RenderContour['mode'],
-  isHighlighted: boolean,
   direction?: RenderContour['direction'],
   commercialTone: CoverageLayerProps['commercialTone'] = 'primary',
   commercialHero = false,
@@ -450,19 +427,19 @@ const getCoverageBandStyle = (
     return {
       fillColor: fillBase.withAlpha(
         subdued
-          ? (isHighlighted ? 0.14 : 0.08)
+          ? 0.08
           : commercialHero
-            ? (isHighlighted ? 0.42 : 0.34)
-            : (isHighlighted ? 0.28 : 0.20)
+            ? 0.34
+            : 0.20
       ),
       contourColor: contourBase.withAlpha(
         subdued
-          ? (isHighlighted ? 0.5 : 0.28)
+          ? 0.28
           : commercialHero
-            ? (isHighlighted ? 1.0 : 0.92)
-            : (isHighlighted ? 0.95 : 0.68)
+            ? 0.92
+            : 0.68
       ),
-      contourWidth: subdued ? (isHighlighted ? 1.6 : 0.8) : commercialHero ? (isHighlighted ? 4.4 : 3.4) : (isHighlighted ? 2.4 : 1.2),
+      contourWidth: subdued ? 0.8 : commercialHero ? 3.4 : 1.2,
     };
   }
 
@@ -471,8 +448,8 @@ const getCoverageBandStyle = (
   if (mode === 'dimmed') {
     return {
       fillColor: Color.fromCssColorString('#bfdbfe').withAlpha(subdued ? 0.018 + (easedBand * 0.025) : 0.038 + (easedBand * 0.06)),
-      contourColor: DIMMED_CONTOUR_COLOR.withAlpha(subdued ? (isHighlighted ? 0.42 : 0.12 + (easedBand * 0.08)) : (isHighlighted ? 0.88 : 0.2 + (easedBand * 0.14))),
-      contourWidth: subdued ? (isHighlighted ? 1.4 : 0.7) : (isHighlighted ? 2.2 : 0.95),
+      contourColor: DIMMED_CONTOUR_COLOR.withAlpha(subdued ? 0.12 + (easedBand * 0.08) : 0.2 + (easedBand * 0.14)),
+      contourWidth: subdued ? 0.7 : 0.95,
     };
   }
 
@@ -496,12 +473,12 @@ const getCoverageBandStyle = (
     fillColor,
     contourColor: contourBase.withAlpha(
       subdued
-        ? (isHighlighted ? 0.5 : 0.3)
+        ? 0.3
         : commercialHero
-          ? (isHighlighted ? 1.0 : 0.94)
-          : (isHighlighted ? 0.98 : 0.72)
+          ? 0.94
+          : 0.72
     ),
-    contourWidth: subdued ? (isHighlighted ? 1.6 : 0.75) : commercialHero ? (isHighlighted ? 5.0 : 3.8) : (isHighlighted ? 2.8 : 1.2),
+    contourWidth: subdued ? 0.75 : commercialHero ? 3.8 : 1.2,
   };
 };
 
@@ -696,8 +673,6 @@ const toRenderContour = (
     coverageLabel: getCoverageDisplayName(coverage),
     contourKey: getCoverageBeamId(coverage),
     contourLabel: getCoverageBeamName(coverage),
-    levelValue: typeof feature.properties?.level === 'number' ? feature.properties.level : null,
-    levelUnit: getCoverageLevelUnit(coverage),
     geometryPartKey,
     geometry,
     prebuiltMesh,
@@ -885,12 +860,6 @@ const getRenderModeOrder = (mode: RenderContour['mode']): number => {
   return 2;
 };
 
-const getLegendModeOrder = (mode: RenderContour['mode']): number => {
-  if (mode === 'full') return 0;
-  if (mode === 'dimmed') return 1;
-  return 2;
-};
-
 const sortRenderContoursForDisplay = (contours: RenderContour[]): RenderContour[] => (
   [...contours].sort((a, b) => {
     const modeDelta = getRenderModeOrder(a.mode) - getRenderModeOrder(b.mode);
@@ -983,52 +952,6 @@ const buildRenderContourLabels = (
     .filter((label): label is RenderContourLabel => label !== null);
 };
 
-const buildGeoCoverageLegendItems = (contours: RenderContour[]): GeoCoverageLegendItem[] => {
-  const itemByKey = new Map<string, GeoCoverageLegendItem>();
-
-  for (const contour of contours) {
-    const key = `${contour.coverageKey}::${contour.contourKey}`;
-    const existing = itemByKey.get(key);
-    if (existing) {
-      if (getLegendModeOrder(contour.mode) < getLegendModeOrder(existing.mode)) {
-        itemByKey.set(key, {
-          ...existing,
-          mode: contour.mode,
-          normalizedLevel: contour.normalizedLevel,
-        });
-      }
-      continue;
-    }
-
-    itemByKey.set(key, {
-      key,
-      satelliteName: contour.satelliteName,
-      coverageKey: contour.coverageKey,
-      coverageLabel: contour.coverageLabel,
-      contourKey: contour.contourKey,
-      contourLabel: contour.contourLabel,
-      levelValue: contour.levelValue,
-      levelUnit: contour.levelUnit,
-      mode: contour.mode,
-      normalizedLevel: contour.normalizedLevel,
-    });
-  }
-
-  return Array.from(itemByKey.values()).sort((left, right) => {
-    const modeDelta = getLegendModeOrder(left.mode) - getLegendModeOrder(right.mode);
-    if (modeDelta !== 0) return modeDelta;
-
-    if (left.normalizedLevel !== right.normalizedLevel) {
-      return right.normalizedLevel - left.normalizedLevel;
-    }
-
-    const coverageDelta = left.coverageLabel.localeCompare(right.coverageLabel);
-    if (coverageDelta !== 0) return coverageDelta;
-
-    return left.contourLabel.localeCompare(right.contourLabel);
-  });
-};
-
 const CoverageLayer: React.FC<CoverageLayerProps> = ({
   satellites,
   selection,
@@ -1036,8 +959,6 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
   selectedUplinkCoverage = null,
   selectedDownlinkCoverage = null,
   visibleCoverageKeys = null,
-  onLegendItemsChange,
-  highlightedLegendItemKey = null,
   presentation = 'engineering',
   commercialLabel = 'GEO service area',
   commercialTone = 'primary',
@@ -1102,10 +1023,6 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
     () => buildRenderContourLabels(renderContours, presentation, commercialLabel),
     [commercialLabel, presentation, renderContours]
   );
-  const legendItems = useMemo(
-    () => buildGeoCoverageLegendItems(renderContours),
-    [renderContours]
-  );
   const renderContentSignature = useMemo(() => (
     renderContours
       .map((contour) => [
@@ -1121,8 +1038,8 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
       .join('|')
   ), [renderContours]);
   const renderSignature = useMemo(
-    () => `${selectionRenderSignature}::${renderContentSignature}::${highlightedLegendItemKey ?? 'none'}::${presentation}::${commercialLabel}::${commercialTone}::${commercialHero ? 'hero' : 'standard'}`,
-    [commercialHero, commercialLabel, commercialTone, highlightedLegendItemKey, presentation, renderContentSignature, selectionRenderSignature]
+    () => `${selectionRenderSignature}::${renderContentSignature}::${presentation}::${commercialLabel}::${commercialTone}::${commercialHero ? 'hero' : 'standard'}`,
+    [commercialHero, commercialLabel, commercialTone, presentation, renderContentSignature, selectionRenderSignature]
   );
   useEffect(() => {
     if (!relevantSatellite || relevantSatellite.type !== 'EUTELSAT' || !relevantSatellite.coverageFileId) {
@@ -1147,16 +1064,6 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
       cancelled = true;
     };
   }, [activeMeshState?.coverageFileId, relevantSatellite]);
-
-  useEffect(() => {
-    onLegendItemsChange?.(legendItems);
-  }, [legendItems, onLegendItemsChange]);
-
-  useEffect(() => {
-    return () => {
-      onLegendItemsChange?.([]);
-    };
-  }, [onLegendItemsChange]);
 
   useEffect(() => {
     if (!viewer) return;
@@ -1237,11 +1144,9 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
       // the same source beam (shared coverageKey) don't produce duplicate IDs.
       const dirTag = contour.direction ?? 'none';
       const coverageEntityId = `${GEO_COVERAGE_ENTITY_PREFIX}${contour.satelliteName}::${dirTag}::${contour.coverageKey}`;
-      const contourLegendKey = `${contour.coverageKey}::${contour.contourKey}`;
       const style = getCoverageBandStyle(
         contour.normalizedLevel,
         contour.mode,
-        highlightedLegendItemKey === contourLegendKey,
         contour.direction,
         commercialTone,
         commercialHero,
@@ -1359,7 +1264,7 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
     });
 
     viewer?.scene.requestRender();
-  }, [commercialHero, commercialTone, geometryLod, highlightedLegendItemKey, presentation, renderContours, renderLabels, renderSignature, selectedCoverage, selectedUplinkCoverage, selectedDownlinkCoverage, selection, viewer]);
+  }, [commercialHero, commercialTone, geometryLod, presentation, renderContours, renderLabels, renderSignature, selectedCoverage, selectedUplinkCoverage, selectedDownlinkCoverage, selection, viewer]);
 
   return null;
 };

@@ -1,5 +1,6 @@
 const MIN_COMPENSATION_RATIO = 1.05;
 const MAX_COMPENSATION_RATIO = 3.6;
+export const ENGINEERING_MANUAL_CAMERA_PRIORITY_MS = 900;
 
 export interface EngineeringCameraCompensationInput {
   previousViewportHeight: number | null | undefined;
@@ -40,4 +41,20 @@ export function computeEngineeringCameraCompensation({
     rangeFactor,
     extraRangeMeters: currentRangeMeters * (rangeFactor - 1),
   };
+}
+
+export function shouldApplyEngineeringCameraFocus({
+  nowMs,
+  lastManualInputMs,
+  allTargetsVisible,
+  forceRouteView = false,
+}: {
+  nowMs: number;
+  lastManualInputMs: number;
+  allTargetsVisible: boolean;
+  forceRouteView?: boolean;
+}): boolean {
+  if (nowMs - lastManualInputMs < ENGINEERING_MANUAL_CAMERA_PRIORITY_MS) return false;
+  if (allTargetsVisible && !forceRouteView) return false;
+  return true;
 }
