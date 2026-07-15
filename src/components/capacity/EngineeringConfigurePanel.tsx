@@ -9,7 +9,7 @@ import type {
 } from '../../types/engineeringConfigure';
 import type { EngineeringTruth } from '../../utils/engineeringAnalysisViewModel';
 import { useEngineeringConfigureDraft } from '../../hooks/useEngineeringConfigureDraft';
-import { isEngineeringConfigureDraftComplete } from '../../utils/engineeringConfigureModel';
+import { getPublishedEngineeringGeoPath, isEngineeringConfigureDraftComplete } from '../../utils/engineeringConfigureModel';
 import { getCandidateCoverageKey } from '../../utils/geoCoverageSelection';
 import { getLeoTerminalProfile } from '../../config/leoTerminals';
 import { useLocationSearch, type LocationResult } from '../../hooks/useLocationSearch';
@@ -17,6 +17,7 @@ import InlineLocationSearchInput from '../commercial/InlineLocationSearchInput';
 import InlineSearchResultsPopover from '../commercial/InlineSearchResultsPopover';
 import LinkModeSelector from './LinkModeSelector';
 import TerminalConfig, { getDefaultRFClassForUseCase, type TerminalType } from './TerminalConfig';
+import { handleRadioGroupKeyDown } from './shared/radioGroupKeyboard';
 
 const STAGE_LABELS = {
   scenario: 'Scenario',
@@ -129,15 +130,17 @@ function DraftLocationField({
 function CandidateSelect({
   label,
   candidates,
+  uplink,
   selectedKey,
   onChange,
 }: {
   label: string;
   candidates: CandidateCoverage[];
+  uplink: boolean;
   selectedKey: string | null;
   onChange: (key: string | null) => void;
 }) {
-  const options = candidates.filter((candidate) => !candidate.isSynthesized);
+  const options = candidates.filter((candidate) => candidate.isUplink === uplink && !candidate.isSynthesized);
   return (
     <label className="block min-w-0">
       <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">{label}</span>
@@ -172,17 +175,10 @@ function ResolvedAutoPath({
   baseline: EngineeringConfigureDraft;
   candidates: EngineeringConfigureCandidates;
 }) {
-  const resolved = candidates.resolved;
-  if (!resolved) return null;
-
-  const path = baseline.geoLinkMode === 'STAR_FORWARD'
-    ? [resolved.siteA.downlink]
-    : baseline.geoLinkMode === 'STAR_RETURN'
-      ? [resolved.siteA.uplink]
-      : baseline.direction === 'forward'
-        ? [resolved.siteA.uplink, resolved.siteB.downlink]
-        : [resolved.siteB.uplink, resolved.siteA.downlink];
-  const publishedPath = path.filter((candidate): candidate is CandidateCoverage => candidate != null);
+  const publishedPath = getPublishedEngineeringGeoPath(
+    { ...baseline, selectionPolicy: 'auto' },
+    candidates,
+  );
   if (publishedPath.length === 0) return null;
 
   return (
@@ -237,9 +233,42 @@ export default function EngineeringConfigurePanel({
   const canApply = changes.length > 0
     && isEngineeringConfigureDraftComplete(draft);
   const activeTruth = truths[draft.technology];
+  const activeManualSelectors = isGeo && draft.selectionPolicy === 'manual'
+    ? draft.geoLinkMode === 'STAR_FORWARD'
+      ? [{ label: 'Site A downlink', site: 'siteA' as const, uplink: false, key: 'geoDownlinkKeyA' as const }]
+      : draft.geoLinkMode === 'STAR_RETURN'
+        ? [{ label: 'Site A uplink', site: 'siteA' as const, uplink: true, key: 'geoUplinkKeyA' as const }]
+        : draft.direction === 'forward'
+          ? [
+              { label: 'Site A uplink', site: 'siteA' as const, uplink: true, key: 'geoUplinkKeyA' as const },
+              { label: 'Site B downlink', site: 'siteB' as const, uplink: false, key: 'geoDownlinkKeyB' as const },
+            ]
+          : [
+              { label: 'Site B uplink', site: 'siteB' as const, uplink: true, key: 'geoUplinkKeyB' as const },
+              { label: 'Site A downlink', site: 'siteA' as const, uplink: false, key: 'geoDownlinkKeyA' as const },
+            ]
+    : [];
 
   const updateSite = (key: 'siteA' | 'siteB', update: Partial<EngineeringConfigureSite>) => {
     setDraft((current) => ({ ...current, [key]: { ...current[key], ...update } }));
+  };
+
+  const setSelectionPolicy = (selectionPolicy: EngineeringConfigureDraft['selectionPolicy']) => {
+    setDraft((current) => ({
+      ...current,
+      selectionPolicy,
+      ...(selectionPolicy === 'auto' ? {
+        geoUplinkKeyA: null,
+        geoDownlinkKeyA: null,
+        geoUplinkKeyB: null,
+        geoDownlinkKeyB: null,
+      } : {
+        geoUplinkKeyA: current.geoUplinkKeyA ?? firstCandidateKey(candidates.siteA, true),
+        geoDownlinkKeyA: current.geoDownlinkKeyA ?? firstCandidateKey(candidates.siteA, false),
+        geoUplinkKeyB: current.geoUplinkKeyB ?? firstCandidateKey(candidates.siteB, true),
+        geoDownlinkKeyB: current.geoDownlinkKeyB ?? firstCandidateKey(candidates.siteB, false),
+      }),
+    }));
   };
 
   return (
@@ -272,13 +301,15 @@ export default function EngineeringConfigurePanel({
         <div className="space-y-4">
           <fieldset>
             <legend className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">Technology & path</legend>
-            <div className="grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-900">
+            <div className="grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-900" role="radiogroup" aria-label="Engineering technology focus" onKeyDown={handleRadioGroupKeyDown}>
               {(['GEO', 'LEO'] as const).map((technology) => (
                 <button
                   key={technology}
                   type="button"
                   onClick={() => setDraft((current) => ({ ...current, technology }))}
-                  aria-pressed={draft.technology === technology}
+                  role="radio"
+                  aria-checked={draft.technology === technology}
+                  tabIndex={draft.technology === technology ? 0 : -1}
                   className={`h-10 rounded-lg text-sm font-bold transition-colors ${draft.technology === technology ? 'bg-slate-950 text-white shadow-sm dark:bg-white dark:text-slate-950' : 'text-slate-600 hover:bg-white/70 dark:text-slate-300 dark:hover:bg-slate-800'}`}
                 >
                   {technology}
@@ -295,13 +326,15 @@ export default function EngineeringConfigurePanel({
               ) : (
                 <div>
                   <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">LEO topology</div>
-                  <div className="grid grid-cols-2 gap-1">
+                  <div className="grid grid-cols-2 gap-1" role="radiogroup" aria-label="LEO topology" onKeyDown={handleRadioGroupKeyDown}>
                     {(['SINGLE_SITE', 'SITE_TO_SITE'] as const).map((mode) => (
                       <button
                         key={mode}
                         type="button"
                         onClick={() => setDraft((current) => ({ ...current, leoTopologyMode: mode }))}
-                        aria-pressed={draft.leoTopologyMode === mode}
+                        role="radio"
+                        aria-checked={draft.leoTopologyMode === mode}
+                        tabIndex={draft.leoTopologyMode === mode ? 0 : -1}
                         className={`min-h-10 rounded-lg px-2 text-xs font-semibold ${draft.leoTopologyMode === mode ? 'bg-pink-500 text-white' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}
                       >
                         {mode === 'SINGLE_SITE' ? 'Single Site' : 'Site-to-Site'}
@@ -314,13 +347,15 @@ export default function EngineeringConfigurePanel({
               {isSiteToSite && (
                 <div className="mt-3">
                   <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Active direction</div>
-                  <div className="grid grid-cols-2 gap-1" role="group" aria-label="Active engineering direction">
+                  <div className="grid grid-cols-2 gap-1" role="radiogroup" aria-label="Active engineering direction" onKeyDown={handleRadioGroupKeyDown}>
                     {(['forward', 'reverse'] as const).map((direction) => (
                       <button
                         key={direction}
                         type="button"
                         onClick={() => setDraft((current) => ({ ...current, direction }))}
-                        aria-pressed={draft.direction === direction}
+                        role="radio"
+                        aria-checked={draft.direction === direction}
+                        tabIndex={draft.direction === direction ? 0 : -1}
                         className={`h-9 rounded-lg text-xs font-semibold ${draft.direction === direction ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}
                       >
                         {direction === 'forward' ? 'Site A → Site B' : 'Site B → Site A'}
@@ -396,27 +431,15 @@ export default function EngineeringConfigurePanel({
             <fieldset>
               <legend className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">Path selection</legend>
               <div className="rounded-xl border border-slate-200 bg-white/70 p-3 dark:border-slate-800 dark:bg-slate-900/25">
-                <div className="grid grid-cols-2 gap-1 rounded-lg bg-slate-100 p-1 dark:bg-slate-900" role="group" aria-label="GEO path selection policy">
+                <div className="grid grid-cols-2 gap-1 rounded-lg bg-slate-100 p-1 dark:bg-slate-900" role="radiogroup" aria-label="GEO path selection policy" onKeyDown={handleRadioGroupKeyDown}>
                   {(['auto', 'manual'] as const).map((selectionPolicy) => (
                     <button
                       key={selectionPolicy}
                       type="button"
-                      onClick={() => setDraft((current) => ({
-                        ...current,
-                        selectionPolicy,
-                        ...(selectionPolicy === 'auto' ? {
-                          geoUplinkKeyA: null,
-                          geoDownlinkKeyA: null,
-                          geoUplinkKeyB: null,
-                          geoDownlinkKeyB: null,
-                        } : {
-                          geoUplinkKeyA: current.geoUplinkKeyA ?? firstCandidateKey(candidates.siteA, true),
-                          geoDownlinkKeyA: current.geoDownlinkKeyA ?? firstCandidateKey(candidates.siteA, false),
-                          geoUplinkKeyB: current.geoUplinkKeyB ?? firstCandidateKey(candidates.siteB, true),
-                          geoDownlinkKeyB: current.geoDownlinkKeyB ?? firstCandidateKey(candidates.siteB, false),
-                        }),
-                      }))}
-                      aria-pressed={draft.selectionPolicy === selectionPolicy}
+                      onClick={() => setSelectionPolicy(selectionPolicy)}
+                      role="radio"
+                      aria-checked={draft.selectionPolicy === selectionPolicy}
+                      tabIndex={draft.selectionPolicy === selectionPolicy ? 0 : -1}
                       className={`h-9 rounded-md text-xs font-semibold ${draft.selectionPolicy === selectionPolicy ? 'bg-violet-600 text-white' : 'text-slate-600 dark:text-slate-300'}`}
                     >
                       {selectionPolicy === 'auto' ? 'Automatic' : 'Manual'}
@@ -433,14 +456,26 @@ export default function EngineeringConfigurePanel({
                   </>
                 ) : (
                   <div className="mt-3 grid gap-3">
-                    <CandidateSelect label="Site A uplink" candidates={candidates.siteA.filter((candidate) => candidate.isUplink)} selectedKey={draft.geoUplinkKeyA} onChange={(geoUplinkKeyA) => setDraft((current) => ({ ...current, geoUplinkKeyA }))} />
-                    <CandidateSelect label="Site A downlink" candidates={candidates.siteA.filter((candidate) => !candidate.isUplink)} selectedKey={draft.geoDownlinkKeyA} onChange={(geoDownlinkKeyA) => setDraft((current) => ({ ...current, geoDownlinkKeyA }))} />
-                    {isSiteToSite && (
-                      <>
-                        <CandidateSelect label="Site B uplink" candidates={candidates.siteB.filter((candidate) => candidate.isUplink)} selectedKey={draft.geoUplinkKeyB} onChange={(geoUplinkKeyB) => setDraft((current) => ({ ...current, geoUplinkKeyB }))} />
-                        <CandidateSelect label="Site B downlink" candidates={candidates.siteB.filter((candidate) => !candidate.isUplink)} selectedKey={draft.geoDownlinkKeyB} onChange={(geoDownlinkKeyB) => setDraft((current) => ({ ...current, geoDownlinkKeyB }))} />
-                      </>
-                    )}
+                    {activeManualSelectors.map((selector) => (
+                      <CandidateSelect
+                        key={selector.key}
+                        label={selector.label}
+                        candidates={candidates[selector.site]}
+                        uplink={selector.uplink}
+                        selectedKey={draft[selector.key]}
+                        onChange={(key) => setDraft((current) => ({ ...current, [selector.key]: key }))}
+                      />
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setSelectionPolicy('auto')}
+                      className="h-9 rounded-lg border border-violet-200 bg-violet-50 px-3 text-xs font-semibold text-violet-800 transition-colors hover:bg-violet-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/60 dark:border-violet-800 dark:bg-violet-950/25 dark:text-violet-200 dark:hover:bg-violet-900/40"
+                    >
+                      Return to Automatic selection
+                    </button>
+                    <p className="text-[10px] leading-4 text-slate-500 dark:text-slate-400">
+                      Returning to Automatic clears the staged satellite and beam overrides. The existing route engine selects the path after Apply.
+                    </p>
                   </div>
                 )}
               </div>

@@ -1,9 +1,12 @@
 import type { EngineeringCauseStageId } from './engineeringAnalysisViewModel';
 import type {
+  EngineeringConfigureCandidates,
   EngineeringConfigureDraft,
   EngineeringConfigureLocation,
   EngineeringConfigureSite,
 } from '../types/engineeringConfigure';
+import type { CandidateCoverage } from '../types/analysis';
+import { getCandidateCoverageKey } from './geoCoverageSelection';
 
 export type EngineeringConfigureChangeKind =
   | 'technology'
@@ -163,4 +166,46 @@ export function isEngineeringConfigureDraftComplete(draft: EngineeringConfigureD
   return draft.direction === 'forward'
     ? Boolean(draft.geoUplinkKeyA && draft.geoDownlinkKeyB)
     : Boolean(draft.geoUplinkKeyB && draft.geoDownlinkKeyA);
+}
+
+const findCandidateByKey = (
+  candidates: CandidateCoverage[],
+  key: string | null,
+): CandidateCoverage | null => (
+  key ? candidates.find((candidate) => getCandidateCoverageKey(candidate) === key) ?? null : null
+);
+
+/**
+ * Resolves the GEO path already published by the current Configure state.
+ *
+ * This is a presentation helper only: it reads the selected candidates or the
+ * route engine's published automatic candidates and never ranks or selects a
+ * replacement path.
+ */
+export function getPublishedEngineeringGeoPath(
+  draft: EngineeringConfigureDraft,
+  candidates: EngineeringConfigureCandidates,
+): CandidateCoverage[] {
+  const siteA = draft.selectionPolicy === 'auto'
+    ? candidates.resolved?.siteA ?? { uplink: null, downlink: null }
+    : {
+        uplink: findCandidateByKey(candidates.siteA, draft.geoUplinkKeyA),
+        downlink: findCandidateByKey(candidates.siteA, draft.geoDownlinkKeyA),
+      };
+  const siteB = draft.selectionPolicy === 'auto'
+    ? candidates.resolved?.siteB ?? { uplink: null, downlink: null }
+    : {
+        uplink: findCandidateByKey(candidates.siteB, draft.geoUplinkKeyB),
+        downlink: findCandidateByKey(candidates.siteB, draft.geoDownlinkKeyB),
+      };
+
+  const path = draft.geoLinkMode === 'STAR_FORWARD'
+    ? [siteA.downlink]
+    : draft.geoLinkMode === 'STAR_RETURN'
+      ? [siteA.uplink]
+      : draft.direction === 'forward'
+        ? [siteA.uplink, siteB.downlink]
+        : [siteB.uplink, siteA.downlink];
+
+  return path.filter((candidate): candidate is CandidateCoverage => candidate != null);
 }

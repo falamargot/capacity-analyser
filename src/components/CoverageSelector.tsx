@@ -9,7 +9,7 @@
  * Gateway-side directions (hidden in STAR topologies) show a single
  * informational row instead of a picker.
  */
-import { memo, useMemo, useState, useRef, useEffect } from 'react';
+import { memo, useMemo, useState, useRef, useEffect, useId, type KeyboardEvent } from 'react';
 import type { CandidateCoverage } from '../types/analysis';
 import type { LinkMode } from '../types/linkMode';
 import { getCandidateCoverageKey } from '../utils/geoCoverageSelection';
@@ -92,6 +92,7 @@ const Chevron = ({ open }: { open: boolean }) => (
 // ─── Generic combobox ─────────────────────────────────────────────────────────
 
 interface ComboboxProps {
+  label: string;
   /** Trigger row — always visible */
   trigger: React.ReactNode;
   /** Dropdown content */
@@ -101,10 +102,15 @@ interface ComboboxProps {
   accentColor: string;
   tone?: 'uplink' | 'downlink' | 'neutral';
   disabled?: boolean;
+  disabledReason?: string;
 }
 
-const Combobox = ({ trigger, children, open, onToggle, accentColor, tone = 'neutral', disabled }: ComboboxProps) => {
+const Combobox = ({ label, trigger, children, open, onToggle, accentColor, tone = 'neutral', disabled, disabledReason }: ComboboxProps) => {
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const pendingFocusRef = useRef<'selected' | 'first' | 'last'>('selected');
+  const restoreTriggerFocusRef = useRef(false);
+  const listboxId = useId();
   const closedToneClass = tone === 'uplink'
     ? 'border-emerald-200 dark:border-emerald-700/80 bg-emerald-50/70 dark:bg-slate-950/95 hover:border-emerald-300 dark:hover:border-emerald-500'
     : tone === 'downlink'
@@ -113,7 +119,11 @@ const Combobox = ({ trigger, children, open, onToggle, accentColor, tone = 'neut
 
   // Close on outside click
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      if (restoreTriggerFocusRef.current) triggerRef.current?.focus();
+      restoreTriggerFocusRef.current = false;
+      return;
+    }
     const handler = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) onToggle();
     };
@@ -121,12 +131,61 @@ const Combobox = ({ trigger, children, open, onToggle, accentColor, tone = 'neut
     return () => document.removeEventListener('mousedown', handler);
   }, [open, onToggle]);
 
+  useEffect(() => {
+    if (!open) return;
+    const options = Array.from(ref.current?.querySelectorAll<HTMLButtonElement>('[role="option"]') ?? []);
+    if (options.length === 0) return;
+    const target = pendingFocusRef.current === 'last'
+      ? options.at(-1)
+      : pendingFocusRef.current === 'first'
+        ? options[0]
+        : options.find((option) => option.getAttribute('aria-selected') === 'true') ?? options[0];
+    target?.focus();
+    pendingFocusRef.current = 'selected';
+  }, [open]);
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape' && open) {
+      event.preventDefault();
+      event.stopPropagation();
+      onToggle();
+      triggerRef.current?.focus();
+      return;
+    }
+
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp' && event.key !== 'Home' && event.key !== 'End') return;
+    event.preventDefault();
+    const options = Array.from(ref.current?.querySelectorAll<HTMLButtonElement>('[role="option"]') ?? []);
+    if (!open) {
+      pendingFocusRef.current = event.key === 'ArrowUp' || event.key === 'End' ? 'last' : 'first';
+      onToggle();
+      return;
+    }
+    if (options.length === 0) return;
+    const currentIndex = options.indexOf(document.activeElement as HTMLButtonElement);
+    const nextIndex = event.key === 'Home'
+      ? 0
+      : event.key === 'End'
+        ? options.length - 1
+        : event.key === 'ArrowDown'
+          ? (currentIndex + 1 + options.length) % options.length
+          : (currentIndex - 1 + options.length) % options.length;
+    options[nextIndex]?.focus();
+  };
+
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative" onKeyDown={handleKeyDown}>
       <button
+        ref={triggerRef}
         type="button"
         onClick={disabled ? undefined : onToggle}
         disabled={disabled}
+        role="combobox"
+        aria-label={disabled && disabledReason ? `${label}. ${disabledReason}` : label}
+        aria-expanded={disabled ? false : open}
+        aria-controls={listboxId}
+        aria-haspopup="listbox"
+        title={disabled ? disabledReason : undefined}
         className={[
           'w-full flex items-center gap-2 rounded-lg border px-3 py-2 text-left transition-colors',
           open
@@ -141,7 +200,13 @@ const Combobox = ({ trigger, children, open, onToggle, accentColor, tone = 'neut
       </button>
 
       {open && (
-        <div className="absolute z-20 left-0 right-0 top-full mt-1 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 shadow-xl overflow-hidden">
+        <div
+          id={listboxId}
+          role="listbox"
+          aria-label={`${label} options`}
+          onClickCapture={() => { restoreTriggerFocusRef.current = true; }}
+          className="absolute z-20 left-0 right-0 top-full mt-1 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 shadow-xl overflow-hidden"
+        >
           {children}
         </div>
       )}
@@ -192,12 +257,14 @@ const SatCombobox = ({ satellites, activeSatId, onSelect }: SatComboboxProps) =>
         {active?.band && (
           <span className="text-[10px] text-gray-400 dark:text-gray-500">{active.band}</span>
         )}
+        <span className="ml-auto text-[9px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Only eligible</span>
       </div>
     );
   }
 
   return (
     <Combobox
+      label="Serving satellite selection"
       trigger={trigger}
       open={open}
       onToggle={() => setOpen(v => !v)}
@@ -209,6 +276,9 @@ const SatCombobox = ({ satellites, activeSatId, onSelect }: SatComboboxProps) =>
             key={sat.id}
             type="button"
             onClick={() => { onSelect(sat.id); setOpen(false); }}
+            role="option"
+            aria-selected={sat.id === activeSatId}
+            tabIndex={-1}
             className={[
               'w-full flex items-center gap-2 px-3 py-2 text-left text-xs transition-colors',
               sat.id === activeSatId
@@ -350,12 +420,14 @@ const BeamCombobox = ({
 
   return (
     <Combobox
+      label={`${label} beam selection`}
       trigger={trigger}
       open={open}
       onToggle={() => setOpen(v => !v)}
       accentColor={accentColor}
       tone={direction}
       disabled={availableCoverages.length <= 1}
+      disabledReason={availableCoverages.length <= 1 ? 'Only one eligible beam is available.' : undefined}
     >
       <div className="max-h-64 overflow-y-auto divide-y divide-gray-100 dark:divide-slate-800">
         {availableCoverages.map(c => {
@@ -367,6 +439,9 @@ const BeamCombobox = ({
               key={key}
               type="button"
               onClick={() => { onSelect?.(c); setOpen(false); }}
+              role="option"
+              aria-selected={isActive}
+              tabIndex={-1}
               className={[
                 'w-full flex items-start gap-3 px-3 py-2.5 text-left transition-colors',
                 isActive

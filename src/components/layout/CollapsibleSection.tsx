@@ -1,4 +1,4 @@
-import { memo, useCallback, useState, type ReactNode } from 'react';
+import { memo, useCallback, useId, useState, type ReactNode } from 'react';
 import { ChevronDown } from 'lucide-react';
 
 // ─── localStorage-backed persistence ──────────────────────────────────────────
@@ -55,6 +55,10 @@ const CollapsibleSection = memo<CollapsibleSectionProps>(({
 }) => {
   const [isOpen, setIsOpen] = useState(() => readPersistedState(storageKey, defaultOpen));
   const isExpanded = collapsible ? isOpen : true;
+  const contentId = useId();
+  const accessibleName = typeof title === 'string'
+    ? title
+    : storageKey.replaceAll('-', ' ');
 
   const toggle = useCallback(() => {
     if (!collapsible) return;
@@ -68,9 +72,19 @@ const CollapsibleSection = memo<CollapsibleSectionProps>(({
   return (
     <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
       <div
-        className={`flex w-full items-center justify-between gap-3 px-4 py-3 text-left ${collapsible ? 'hover:bg-gray-100/50 dark:hover:bg-slate-700/30 transition-colors' : ''}`}
+        className={`relative flex w-full items-center justify-between gap-3 px-4 py-3 text-left ${collapsible ? 'hover:bg-gray-100/50 dark:hover:bg-slate-700/30 transition-colors' : ''}`}
       >
-        <div className="min-w-0 flex-1">
+        {collapsible && (
+          <button
+            type="button"
+            onClick={toggle}
+            className="absolute inset-0 z-0 w-full rounded-t-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-400/70"
+            aria-expanded={isExpanded}
+            aria-controls={contentId}
+            aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${accessibleName}`}
+          />
+        )}
+        <div className="pointer-events-none relative z-10 min-w-0 flex-1">
           <div className="text-sm font-semibold flex items-center" style={accentColor ? { color: accentColor } : undefined}>
             {title}
           </div>
@@ -79,20 +93,15 @@ const CollapsibleSection = memo<CollapsibleSectionProps>(({
           )}
         </div>
         {collapsible && (
-          <button
-            type="button"
-            onClick={toggle}
-            className="flex shrink-0 items-center justify-center rounded-md p-1 text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-            aria-expanded={isExpanded}
-          >
+          <span className="pointer-events-none relative z-10 flex shrink-0 items-center justify-center rounded-md p-1 text-gray-500 dark:text-gray-400" aria-hidden="true">
             <ChevronDown
               className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
             />
-          </button>
+          </span>
         )}
       </div>
       {isExpanded && (
-        <div className="border-t border-gray-200 dark:border-slate-700 px-4 py-4">
+        <div id={contentId} className="border-t border-gray-200 dark:border-slate-700 px-4 py-4">
           {children}
         </div>
       )}

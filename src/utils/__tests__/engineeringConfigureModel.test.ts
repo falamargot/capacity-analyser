@@ -3,6 +3,7 @@ import type { EngineeringConfigureDraft } from '../../types/engineeringConfigure
 import {
   getAffectedEngineeringStages,
   getEngineeringConfigureChanges,
+  getPublishedEngineeringGeoPath,
   isEngineeringConfigureDraftComplete,
   isEngineeringConfigureDirty,
 } from '../engineeringConfigureModel';
@@ -97,5 +98,32 @@ describe('engineeringConfigureModel', () => {
 
     expect(changes).toHaveLength(1);
     expect(getAffectedEngineeringStages(changes)).toEqual([]);
+  });
+
+  it('reads the published GEO path without selecting or ranking replacements', () => {
+    const uplinkA = { satelliteId: 'sat-a', satelliteName: 'Satellite A', coverageKey: 'ul-a', isUplink: true } as import('../../types/analysis').CandidateCoverage;
+    const downlinkA = { satelliteId: 'sat-a', satelliteName: 'Satellite A', coverageKey: 'dl-a', isUplink: false } as import('../../types/analysis').CandidateCoverage;
+    const uplinkB = { satelliteId: 'sat-b', satelliteName: 'Satellite B', coverageKey: 'ul-b', isUplink: true } as import('../../types/analysis').CandidateCoverage;
+    const downlinkB = { satelliteId: 'sat-b', satelliteName: 'Satellite B', coverageKey: 'dl-b', isUplink: false } as import('../../types/analysis').CandidateCoverage;
+    const candidates = {
+      siteA: [uplinkA, downlinkA],
+      siteB: [uplinkB, downlinkB],
+      resolved: {
+        siteA: { uplink: uplinkA, downlink: downlinkA },
+        siteB: { uplink: uplinkB, downlink: downlinkB },
+      },
+    };
+
+    expect(getPublishedEngineeringGeoPath({ ...baseline, geoLinkMode: 'STAR_FORWARD' }, candidates)).toEqual([downlinkA]);
+    expect(getPublishedEngineeringGeoPath({ ...baseline, geoLinkMode: 'MESH', direction: 'forward' }, candidates)).toEqual([uplinkA, downlinkB]);
+    expect(getPublishedEngineeringGeoPath({ ...baseline, geoLinkMode: 'MESH', direction: 'reverse' }, candidates)).toEqual([uplinkB, downlinkA]);
+    expect(getPublishedEngineeringGeoPath({
+      ...baseline,
+      geoLinkMode: 'MESH',
+      direction: 'reverse',
+      selectionPolicy: 'manual',
+      geoUplinkKeyB: 'Satellite B::ul-b',
+      geoDownlinkKeyA: 'Satellite A::dl-a',
+    }, candidates)).toEqual([uplinkB, downlinkA]);
   });
 });

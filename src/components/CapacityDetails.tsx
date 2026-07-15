@@ -52,6 +52,8 @@ import { getLeoTerminalProfile } from '../config/leoTerminals';
 import { buildGeoConfidence, buildLeoSingleSiteConfidence } from '../utils/predictionConfidence';
 import { estimateGeoSatelliteCapacity } from '../utils/geoCapacityModel';
 import { buildLinkAvailabilityContext, formatLinkAvailabilityContext } from '../utils/linkAvailabilityContext';
+import type { EngineeringConfigureCandidates, EngineeringConfigureDraft } from '../types/engineeringConfigure';
+import EngineeringContextConfigureShell from './capacity/shared/EngineeringContextConfigureShell';
 
 // ─── Extracted sub-components ─────────────────────────────────────────────────
 import {
@@ -119,6 +121,8 @@ interface CapacityDetailsProps {
   onExportStateChange?: (payload: ExportButtonPayload | null) => void;
   onEngineeringTruthChange?: (truth: EngineeringTruthSet) => void;
   onConfigure?: (technology: 'GEO' | 'LEO') => void;
+  engineeringConfigureBaseline?: EngineeringConfigureDraft;
+  engineeringConfigureCandidates?: EngineeringConfigureCandidates;
   regulatoryResultOverride?: RegulatoryResult | null;
   regulatoryResultBOverride?: RegulatoryResult | null;
   beamLoadResultOverride?: BeamLoadResult | null;
@@ -231,6 +235,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   selectionMotionKey,
   onEngineeringTruthChange,
   onConfigure,
+  engineeringConfigureBaseline,
+  engineeringConfigureCandidates,
 }) => {
   const [selectionRevealActive, setSelectionRevealActive] = useState(false);
 
@@ -1952,11 +1958,19 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
               {/* LEO Connectivity */}
               {showLeoConnectivity && (
                 <div className={satelliteScope === 'ALL' ? (activeConnTab === 'LEO' ? 'order-1' : 'order-2') : undefined}>
+                  {presentationMode === 'sidebar' && engineeringConfigureBaseline && engineeringConfigureCandidates && onConfigure && (
+                    <EngineeringContextConfigureShell
+                      technology="LEO"
+                      baseline={engineeringConfigureBaseline}
+                      candidates={engineeringConfigureCandidates}
+                      onConfigure={() => onConfigure('LEO')}
+                    />
+                  )}
                   {/* ── Site-to-Site mode ──────────────────────────────────── */}
                   {leoTopologyMode === 'SITE_TO_SITE' && (
                 <LEOConnectivitySection
                   engineeringAnalysisViewModel={engineeringAnalysisViewModels.LEO}
-                  onConfigure={onConfigure ? () => onConfigure('LEO') : undefined}
+                  onConfigure={!engineeringConfigureBaseline && onConfigure ? () => onConfigure('LEO') : undefined}
                   resolvedLEOConnectivity={resolvedLEOConnectivity}
                   leoGeometry={leoGeometry}
                   leoPerformance={leoPerformance}
@@ -2004,7 +2018,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   {leoTopologyMode === 'SINGLE_SITE' && (
                 <LEOConnectivitySection
                   engineeringAnalysisViewModel={engineeringAnalysisViewModels.LEO}
-                  onConfigure={onConfigure ? () => onConfigure('LEO') : undefined}
+                  onConfigure={!engineeringConfigureBaseline && onConfigure ? () => onConfigure('LEO') : undefined}
                   resolvedLEOConnectivity={resolvedLEOConnectivity}
                   leoGeometry={leoGeometry}
                   leoPerformance={leoPerformance}
@@ -2043,9 +2057,17 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
               {/* GEO Connectivity */}
               {showGeoConnectivity && (
                 <div className={satelliteScope === 'ALL' ? (activeConnTab === 'GEO' ? 'order-1' : 'order-2') : undefined}>
+                  {presentationMode === 'sidebar' && engineeringConfigureBaseline && engineeringConfigureCandidates && onConfigure && (
+                    <EngineeringContextConfigureShell
+                      technology="GEO"
+                      baseline={engineeringConfigureBaseline}
+                      candidates={engineeringConfigureCandidates}
+                      onConfigure={() => onConfigure('GEO')}
+                    />
+                  )}
                   <GEOConnectivitySection
                     engineeringAnalysisViewModel={engineeringAnalysisViewModels.GEO}
-                    onConfigure={onConfigure ? () => onConfigure('GEO') : undefined}
+                    onConfigure={!engineeringConfigureBaseline && onConfigure ? () => onConfigure('GEO') : undefined}
                     resolvedGEOConnectivity={resolvedGEOConnectivity}
                     geoGeometry={geoGeometry}
                     calculateGEOPerformance={calculateGEOPerformance}

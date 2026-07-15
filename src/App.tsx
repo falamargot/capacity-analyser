@@ -5243,6 +5243,8 @@ const App: React.FC = () => {
       activeLeoRouteEvidence={activeLeoRouteEvidence}
       onEngineeringTruthChange={setEngineeringTruths}
       onConfigure={handleOpenEngineeringConfigure}
+      engineeringConfigureBaseline={engineeringConfigureBaseline}
+      engineeringConfigureCandidates={engineeringConfigureCandidates}
       selectionMotionKey={endpointSelectionMotion?.token}
     />
   );

@@ -13,6 +13,7 @@ import type { EngineeringConfigureCandidates, EngineeringConfigureDraft, Enginee
 import type { EngineeringTruthSet } from '../../utils/engineeringAnalysisViewModel';
 import { getCandidateCoverageKey } from '../../utils/geoCoverageSelection';
 import { isEngineeringConfigureDraftComplete } from '../../utils/engineeringConfigureModel';
+import { handleRadioGroupKeyDown } from '../capacity/shared/radioGroupKeyboard';
 import InlineLocationSearchInput from '../commercial/InlineLocationSearchInput';
 import InlineSearchResultsPopover from '../commercial/InlineSearchResultsPopover';
 
@@ -906,8 +907,20 @@ function TransactionalHeaderScenarioBuilder({
             </select>
           )}
           {isGeo && (
-            <div className="flex shrink-0 rounded-md bg-slate-200/45 p-0.5 dark:bg-white/[0.055]" aria-label="GEO selection policy">
-              {(['auto', 'manual'] as const).map((policy) => <button key={policy} type="button" onClick={() => setSelectionPolicy(policy)} aria-pressed={draft.selectionPolicy === policy} className={`h-6 rounded px-1.5 text-[8px] font-bold uppercase transition-colors ${draft.selectionPolicy === policy ? 'bg-white text-violet-700 shadow-sm dark:bg-violet-400/15 dark:text-violet-200 dark:shadow-none' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'}`}>{policy}</button>)}
+            <div className="flex shrink-0 rounded-md bg-slate-200/45 p-0.5 dark:bg-white/[0.055]" role="radiogroup" aria-label="GEO selection policy" onKeyDown={handleRadioGroupKeyDown}>
+              {(['auto', 'manual'] as const).map((policy) => (
+                <button
+                  key={policy}
+                  type="button"
+                  role="radio"
+                  aria-checked={draft.selectionPolicy === policy}
+                  tabIndex={draft.selectionPolicy === policy ? 0 : -1}
+                  onClick={() => setSelectionPolicy(policy)}
+                  className={`h-6 rounded px-1.5 text-[8px] font-bold uppercase transition-colors ${draft.selectionPolicy === policy ? 'bg-white text-violet-700 shadow-sm dark:bg-violet-400/15 dark:text-violet-200 dark:shadow-none' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'}`}
+                >
+                  {policy}
+                </button>
+              ))}
             </div>
           )}
         </div>

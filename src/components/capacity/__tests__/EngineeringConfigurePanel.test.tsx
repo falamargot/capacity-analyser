@@ -66,7 +66,25 @@ describe('EngineeringConfigurePanel', () => {
     expect(markup).toContain('Pending scenario changes');
     expect(markup).toContain('No pending changes.');
     expect(markup).toContain('Apply and recalculate');
+    expect(markup).toContain('role="radiogroup"');
+    expect(markup).toContain('role="radio"');
     expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>[^<]*(?:<[^>]+>)*Apply and recalculate/);
+  });
+
+  it('makes the manual GEO override and return-to-Automatic behavior explicit', () => {
+    const markup = renderToStaticMarkup(
+      <EngineeringConfigurePanel
+        baseline={{ ...baseline, selectionPolicy: 'manual' }}
+        truths={{ GEO: truth }}
+        candidates={{ siteA: [], siteB: [] }}
+        onCancel={() => undefined}
+        onApply={() => undefined}
+      />,
+    );
+
+    expect(markup).toContain('Return to Automatic selection');
+    expect(markup).toContain('clears the staged satellite and beam overrides');
+    expect(markup).toContain('The existing route engine selects the path after Apply.');
   });
 
   it('keeps the same full editor anatomy for the LEO mobile/desktop sibling surface', () => {

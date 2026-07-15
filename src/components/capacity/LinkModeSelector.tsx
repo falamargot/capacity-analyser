@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import type { LinkMode } from '../../types/linkMode';
 import { LINK_MODE_LABELS } from '../../types/linkMode';
+import { handleRadioGroupKeyDown } from './shared/radioGroupKeyboard';
 
 interface LinkModeSelectorProps {
   linkMode: LinkMode;
@@ -31,6 +32,9 @@ interface ModeButtonProps {
 const ModeButton = ({ mode, isActive, disabled, onClick }: ModeButtonProps) => (
   <button
     type="button"
+    role="radio"
+    aria-checked={isActive}
+    tabIndex={isActive ? 0 : -1}
     disabled={disabled}
     onClick={onClick}
     className={[
@@ -64,7 +68,7 @@ const LinkModeSelector = memo<LinkModeSelectorProps>(({
   disabled = false,
 }) => {
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-2.5" role="radiogroup" aria-label="GEO topology" onKeyDown={handleRadioGroupKeyDown}>
 
       {/* STAR group */}
       <div>
