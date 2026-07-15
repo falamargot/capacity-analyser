@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
+import type { CandidateCoverage } from '../../types/analysis';
 import type { EngineeringConfigureDraft } from '../../types/engineeringConfigure';
 import HeaderScenarioBuilder, { HeaderRouteStatusPanel, type HeaderRouteStatusItem, type SiteConfig } from './HeaderScenarioBuilder';
 
@@ -121,5 +122,34 @@ describe('HeaderScenarioBuilder transactional Configure workflow', () => {
     expect(markup).toContain('Discard');
     expect(markup).toContain('Apply and recalculate');
     expect(markup).toContain('<select');
+  });
+
+  it('uses canonical engineering coverage names for manual GEO options', () => {
+    const downlink = {
+      satelliteName: 'EUTELSAT 21B',
+      satelliteId: 'sat-21b',
+      coverageKey: 'coverage-4',
+      coverageName: 'E21B Europe A West Transmit',
+      beamName: '4',
+      beamId: '4',
+      isUplink: false,
+      isSynthesized: false,
+    } as CandidateCoverage;
+    const markup = renderToStaticMarkup(
+      <HeaderScenarioBuilder
+        siteA={site('Origin', 'Paris')}
+        siteB={site('Destination', 'Dakar')}
+        onSwap={() => undefined}
+        engineeringConfigure={{
+          baseline: { ...configureBaseline, geoLinkMode: 'STAR_FORWARD', selectionPolicy: 'manual' },
+          truths: {},
+          candidates: { siteA: [downlink], siteB: [] },
+          onApply: () => undefined,
+        }}
+      />,
+    );
+
+    expect(markup).toContain('E21B Europe A West Transmit');
+    expect(markup).not.toContain('EUTELSAT 21B · 4');
   });
 });

@@ -8,6 +8,11 @@ import type {
 import type { CandidateCoverage } from '../types/analysis';
 import { getCandidateCoverageKey } from './geoCoverageSelection';
 
+export type EngineeringGeoCoverageKeys = Pick<
+  EngineeringConfigureDraft,
+  'geoUplinkKeyA' | 'geoDownlinkKeyA' | 'geoUplinkKeyB' | 'geoDownlinkKeyB'
+>;
+
 export type EngineeringConfigureChangeKind =
   | 'technology'
   | 'topology'
@@ -174,6 +179,62 @@ const findCandidateByKey = (
 ): CandidateCoverage | null => (
   key ? candidates.find((candidate) => getCandidateCoverageKey(candidate) === key) ?? null : null
 );
+
+const resolvedCandidateKey = (candidate: CandidateCoverage | null | undefined): string | null => (
+  candidate ? getCandidateCoverageKey(candidate) : null
+);
+
+/**
+ * Projects the route engine's already-resolved GEO candidates into Configure keys.
+ * This does not select, rank, or replace a coverage.
+ */
+export function getResolvedEngineeringGeoCoverageKeys(
+  resolved: EngineeringConfigureCandidates['resolved'],
+): EngineeringGeoCoverageKeys {
+  return {
+    geoUplinkKeyA: resolvedCandidateKey(resolved?.siteA.uplink),
+    geoDownlinkKeyA: resolvedCandidateKey(resolved?.siteA.downlink),
+    geoUplinkKeyB: resolvedCandidateKey(resolved?.siteB.uplink),
+    geoDownlinkKeyB: resolvedCandidateKey(resolved?.siteB.downlink),
+  };
+}
+
+const selectableCandidateKey = (
+  candidates: CandidateCoverage[],
+  key: string | null,
+  uplink: boolean,
+): string | null => {
+  const candidate = key
+    ? candidates.find((item) => getCandidateCoverageKey(item) === key)
+    : null;
+  return candidate && candidate.isUplink === uplink && !candidate.isSynthesized ? key : null;
+};
+
+/**
+ * Seeds a Manual Configure draft from the path currently published on the Globe.
+ * A still-valid staged value is retained only when no resolved selectable
+ * coverage exists for that field; candidate ordering is never used as state.
+ */
+export function getEngineeringGeoManualSelectionKeys(
+  current: EngineeringGeoCoverageKeys,
+  candidates: EngineeringConfigureCandidates,
+): EngineeringGeoCoverageKeys {
+  const resolved = getResolvedEngineeringGeoCoverageKeys(candidates.resolved);
+  const select = (
+    pool: CandidateCoverage[],
+    resolvedKey: string | null,
+    currentKey: string | null,
+    uplink: boolean,
+  ) => selectableCandidateKey(pool, resolvedKey, uplink)
+    ?? selectableCandidateKey(pool, currentKey, uplink);
+
+  return {
+    geoUplinkKeyA: select(candidates.siteA, resolved.geoUplinkKeyA, current.geoUplinkKeyA, true),
+    geoDownlinkKeyA: select(candidates.siteA, resolved.geoDownlinkKeyA, current.geoDownlinkKeyA, false),
+    geoUplinkKeyB: select(candidates.siteB, resolved.geoUplinkKeyB, current.geoUplinkKeyB, true),
+    geoDownlinkKeyB: select(candidates.siteB, resolved.geoDownlinkKeyB, current.geoDownlinkKeyB, false),
+  };
+}
 
 /**
  * Resolves the GEO path already published by the current Configure state.

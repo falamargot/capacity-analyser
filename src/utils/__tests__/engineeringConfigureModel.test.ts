@@ -2,11 +2,14 @@ import { describe, expect, it } from 'vitest';
 import type { EngineeringConfigureDraft } from '../../types/engineeringConfigure';
 import {
   getAffectedEngineeringStages,
+  getEngineeringGeoManualSelectionKeys,
   getEngineeringConfigureChanges,
   getPublishedEngineeringGeoPath,
+  getResolvedEngineeringGeoCoverageKeys,
   isEngineeringConfigureDraftComplete,
   isEngineeringConfigureDirty,
 } from '../engineeringConfigureModel';
+import { getCandidateCoverageKey } from '../geoCoverageSelection';
 
 const site = {
   location: { label: 'Paris', lat: 48.8566, lng: 2.3522 },
@@ -125,5 +128,57 @@ describe('engineeringConfigureModel', () => {
       geoUplinkKeyB: 'Satellite B::ul-b',
       geoDownlinkKeyA: 'Satellite A::dl-a',
     }, candidates)).toEqual([uplinkB, downlinkA]);
+  });
+
+  it('initializes Manual coverage fields from the published Globe path, not candidate ordering', () => {
+    const unrelatedUplinkA = { satelliteId: 'sat-9b', satelliteName: 'EUTELSAT 9B', coverageKey: 'ul-first', isUplink: true, isSynthesized: false } as import('../../types/analysis').CandidateCoverage;
+    const resolvedUplinkA = { satelliteId: 'sat-5wb', satelliteName: 'EUTELSAT 5 WEST B', coverageKey: 'ul-resolved', isUplink: true, isSynthesized: false } as import('../../types/analysis').CandidateCoverage;
+    const unrelatedDownlinkA = { satelliteId: 'sat-10b', satelliteName: 'EUTELSAT 10B', coverageKey: 'dl-first', isUplink: false, isSynthesized: false } as import('../../types/analysis').CandidateCoverage;
+    const resolvedDownlinkA = { satelliteId: 'sat-5wb', satelliteName: 'EUTELSAT 5 WEST B', coverageKey: 'dl-resolved-a', isUplink: false, isSynthesized: false } as import('../../types/analysis').CandidateCoverage;
+    const unrelatedUplinkB = { satelliteId: 'sat-21b', satelliteName: 'EUTELSAT 21B', coverageKey: 'ul-first-b', isUplink: true, isSynthesized: false } as import('../../types/analysis').CandidateCoverage;
+    const resolvedUplinkB = { satelliteId: 'sat-5wb', satelliteName: 'EUTELSAT 5 WEST B', coverageKey: 'ul-resolved-b', isUplink: true, isSynthesized: false } as import('../../types/analysis').CandidateCoverage;
+    const unrelatedDownlinkB = { satelliteId: 'sat-10b', satelliteName: 'EUTELSAT 10B', coverageKey: 'dl-first-b', isUplink: false, isSynthesized: false } as import('../../types/analysis').CandidateCoverage;
+    const resolvedDownlinkB = { satelliteId: 'sat-5wb', satelliteName: 'EUTELSAT 5 WEST B', coverageKey: 'dl-resolved-b', isUplink: false, isSynthesized: false } as import('../../types/analysis').CandidateCoverage;
+    const candidates = {
+      siteA: [unrelatedUplinkA, unrelatedDownlinkA, resolvedUplinkA, resolvedDownlinkA],
+      siteB: [unrelatedUplinkB, unrelatedDownlinkB, resolvedUplinkB, resolvedDownlinkB],
+      resolved: {
+        siteA: { uplink: resolvedUplinkA, downlink: resolvedDownlinkA },
+        siteB: { uplink: resolvedUplinkB, downlink: resolvedDownlinkB },
+      },
+    };
+
+    const expected = {
+      geoUplinkKeyA: getCandidateCoverageKey(resolvedUplinkA),
+      geoDownlinkKeyA: getCandidateCoverageKey(resolvedDownlinkA),
+      geoUplinkKeyB: getCandidateCoverageKey(resolvedUplinkB),
+      geoDownlinkKeyB: getCandidateCoverageKey(resolvedDownlinkB),
+    };
+
+    expect(getResolvedEngineeringGeoCoverageKeys(candidates.resolved)).toEqual(expected);
+    expect(getEngineeringGeoManualSelectionKeys({
+      geoUplinkKeyA: null,
+      geoDownlinkKeyA: null,
+      geoUplinkKeyB: null,
+      geoDownlinkKeyB: null,
+    }, candidates)).toEqual(expected);
+
+    expect(getEngineeringGeoManualSelectionKeys({
+      geoUplinkKeyA: null,
+      geoDownlinkKeyA: null,
+      geoUplinkKeyB: null,
+      geoDownlinkKeyB: null,
+    }, {
+      ...candidates,
+      resolved: {
+        siteA: { uplink: null, downlink: null },
+        siteB: { uplink: null, downlink: null },
+      },
+    })).toEqual({
+      geoUplinkKeyA: null,
+      geoDownlinkKeyA: null,
+      geoUplinkKeyB: null,
+      geoDownlinkKeyB: null,
+    });
   });
 });

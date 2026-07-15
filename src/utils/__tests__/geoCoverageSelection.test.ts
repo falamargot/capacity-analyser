@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { Feature, Polygon } from 'geojson';
 import type { SatelliteData } from '../../types/satellites';
-import { computeGeoConnectivity, findCandidateCoverages, resolveCoverageSelection } from '../geoCoverageSelection';
+import {
+  computeGeoConnectivity,
+  findCandidateCoverages,
+  getCandidateCoverageDisplayName,
+  resolveCoverageSelection,
+} from '../geoCoverageSelection';
 import { GEO_GATEWAYS } from '../../components/globe/GlobeConfig';
 
 const createCoverage = (
@@ -51,6 +56,26 @@ const createSatellite = (
     bandwidth: { ku: 500, ka: 300, c: 200 },
     availability: 0.99,
   },
+});
+
+describe('getCandidateCoverageDisplayName', () => {
+  it('prefers the canonical engineering coverage name over the internal index', () => {
+    expect(getCandidateCoverageDisplayName({
+      satelliteName: 'EUTELSAT 21B',
+      coverageName: 'E21B Europe A West Transmit',
+      beamName: '4',
+      beamId: '4',
+    })).toBe('E21B Europe A West Transmit');
+  });
+
+  it('falls back to the existing satellite and internal index label', () => {
+    expect(getCandidateCoverageDisplayName({
+      satelliteName: 'EUTELSAT 10B',
+      coverageName: '   ',
+      beamName: '68',
+      beamId: '68',
+    })).toBe('EUTELSAT 10B · 68');
+  });
 });
 
 describe('findCandidateCoverages', () => {

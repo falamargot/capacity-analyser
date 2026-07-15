@@ -6,6 +6,7 @@ import type {
 } from '../../../types/engineeringConfigure';
 import { LINK_MODE_LABELS } from '../../../types/linkMode';
 import { getPublishedEngineeringGeoPath } from '../../../utils/engineeringConfigureModel';
+import { getCandidateCoverageDisplayName } from '../../../utils/geoCoverageSelection';
 
 interface EngineeringContextConfigureShellProps {
   technology: EngineeringConfigureTechnology;
@@ -26,7 +27,7 @@ const terminalLabel = (
   : `${site.leoTerminalType} · ${site.leoTerminalModelId}`;
 
 const candidateLabel = (candidate: ReturnType<typeof getPublishedEngineeringGeoPath>[number]) => (
-  `${candidate.satelliteName} · ${candidate.beamName || candidate.beamId || candidate.coverageName}`
+  getCandidateCoverageDisplayName(candidate)
 );
 
 const topologyLabel = (

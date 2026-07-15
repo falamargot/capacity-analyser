@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
+import type { CandidateCoverage } from '../../../types/analysis';
 import type { EngineeringConfigureDraft } from '../../../types/engineeringConfigure';
 import type { EngineeringTruth } from '../../../utils/engineeringAnalysisViewModel';
 import EngineeringConfigurePanel from '../EngineeringConfigurePanel';
@@ -46,6 +47,17 @@ const truth: EngineeringTruth = {
   causeChain: [],
 };
 
+const manualDownlink = {
+  satelliteName: 'EUTELSAT 10B',
+  satelliteId: 'sat-10b',
+  coverageKey: 'coverage-68',
+  coverageName: 'E10B Euro-MENA FSS Receive',
+  beamName: '68',
+  beamId: '68',
+  isUplink: false,
+  isSynthesized: false,
+} as CandidateCoverage;
+
 describe('EngineeringConfigurePanel', () => {
   it('renders the shared transactional editor around the published Engineering Truth', () => {
     const markup = renderToStaticMarkup(
@@ -76,7 +88,7 @@ describe('EngineeringConfigurePanel', () => {
       <EngineeringConfigurePanel
         baseline={{ ...baseline, selectionPolicy: 'manual' }}
         truths={{ GEO: truth }}
-        candidates={{ siteA: [], siteB: [] }}
+        candidates={{ siteA: [manualDownlink], siteB: [] }}
         onCancel={() => undefined}
         onApply={() => undefined}
       />,
@@ -85,6 +97,8 @@ describe('EngineeringConfigurePanel', () => {
     expect(markup).toContain('Return to Automatic selection');
     expect(markup).toContain('clears the staged satellite and beam overrides');
     expect(markup).toContain('The existing route engine selects the path after Apply.');
+    expect(markup).toContain('E10B Euro-MENA FSS Receive');
+    expect(markup).not.toContain('EUTELSAT 10B · 68');
   });
 
   it('keeps the same full editor anatomy for the LEO mobile/desktop sibling surface', () => {

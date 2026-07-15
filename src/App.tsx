@@ -153,6 +153,7 @@ import {
   engineeringConfigureDraftSignature,
   getAffectedEngineeringStages,
   getEngineeringConfigureChanges,
+  getResolvedEngineeringGeoCoverageKeys,
   sameEngineeringConfigureLocation,
 } from './utils/engineeringConfigureModel';
 import EngineeringConfigurePanel from './components/capacity/EngineeringConfigurePanel';
@@ -4735,16 +4736,26 @@ const App: React.FC = () => {
     siteB,
   ]);
 
+  const resolvedEngineeringGeoCoverageKeys = useMemo(() => getResolvedEngineeringGeoCoverageKeys({
+    siteA: { uplink: selectedUplinkCoverage, downlink: selectedDownlinkCoverage },
+    siteB: { uplink: uplinkAtBForGlobe, downlink: downlinkAtBForGlobe },
+  }), [
+    downlinkAtBForGlobe,
+    selectedDownlinkCoverage,
+    selectedUplinkCoverage,
+    uplinkAtBForGlobe,
+  ]);
+
   const engineeringConfigureBaseline = useMemo<EngineeringConfigureDraft>(() => ({
     technology: satelliteScope === 'ALL' ? activeConnectivityTab : satelliteScope,
     geoLinkMode: linkMode,
     leoTopologyMode,
     direction: activeMeshTab,
     selectionPolicy: geoSelectionPolicy,
-    geoUplinkKeyA: selectedUplinkKey,
-    geoDownlinkKeyA: selectedDownlinkKey,
-    geoUplinkKeyB: selectedUplinkKeyB,
-    geoDownlinkKeyB: selectedDownlinkKeyB,
+    geoUplinkKeyA: geoSelectionPolicy === 'manual' ? resolvedEngineeringGeoCoverageKeys.geoUplinkKeyA : null,
+    geoDownlinkKeyA: geoSelectionPolicy === 'manual' ? resolvedEngineeringGeoCoverageKeys.geoDownlinkKeyA : null,
+    geoUplinkKeyB: geoSelectionPolicy === 'manual' ? resolvedEngineeringGeoCoverageKeys.geoUplinkKeyB : null,
+    geoDownlinkKeyB: geoSelectionPolicy === 'manual' ? resolvedEngineeringGeoCoverageKeys.geoDownlinkKeyB : null,
     siteA: {
       location: activeAnalysisPoint ? {
         label: routeSelectorRoute.origin?.label ?? formatCoordinates(activeAnalysisPoint),
@@ -4794,11 +4805,8 @@ const App: React.FC = () => {
     linkMode,
     routeSelectorRoute.destination?.label,
     routeSelectorRoute.origin?.label,
+    resolvedEngineeringGeoCoverageKeys,
     satelliteScope,
-    selectedDownlinkKey,
-    selectedDownlinkKeyB,
-    selectedUplinkKey,
-    selectedUplinkKeyB,
     siteB,
     weatherType,
     weatherTypeB,

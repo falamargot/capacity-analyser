@@ -11,8 +11,8 @@ import { getEnabledLeoTerminalCatalogEntries, getLeoTerminalProfile } from '../.
 import type { CandidateCoverage } from '../../types/analysis';
 import type { EngineeringConfigureCandidates, EngineeringConfigureDraft, EngineeringConfigureSite } from '../../types/engineeringConfigure';
 import type { EngineeringTruthSet } from '../../utils/engineeringAnalysisViewModel';
-import { getCandidateCoverageKey } from '../../utils/geoCoverageSelection';
-import { isEngineeringConfigureDraftComplete } from '../../utils/engineeringConfigureModel';
+import { getCandidateCoverageDisplayName, getCandidateCoverageKey } from '../../utils/geoCoverageSelection';
+import { getEngineeringGeoManualSelectionKeys, isEngineeringConfigureDraftComplete } from '../../utils/engineeringConfigureModel';
 import { handleRadioGroupKeyDown } from '../capacity/shared/radioGroupKeyboard';
 import InlineLocationSearchInput from '../commercial/InlineLocationSearchInput';
 import InlineSearchResultsPopover from '../commercial/InlineSearchResultsPopover';
@@ -685,11 +685,6 @@ const HEADER_STAGE_LABELS = {
   delivery: 'Delivery',
 } as const;
 
-const firstHeaderCandidateKey = (candidates: CandidateCoverage[], uplink: boolean) => {
-  const candidate = candidates.find((item) => item.isUplink === uplink && !item.isSynthesized);
-  return candidate ? getCandidateCoverageKey(candidate) : null;
-};
-
 function HeaderCandidateSelect({
   label,
   candidates,
@@ -716,7 +711,7 @@ function HeaderCandidateSelect({
         <option value="">Best eligible</option>
         {options.map((candidate) => {
           const key = getCandidateCoverageKey(candidate);
-          return <option key={key} value={key}>{candidate.satelliteName} · {candidate.beamName || candidate.coverageName}</option>;
+          return <option key={key} value={key}>{getCandidateCoverageDisplayName(candidate)}</option>;
         })}
       </select>
     </label>
@@ -820,10 +815,7 @@ function TransactionalHeaderScenarioBuilder({
         geoUplinkKeyB: null,
         geoDownlinkKeyB: null,
       } : {
-        geoUplinkKeyA: current.geoUplinkKeyA ?? firstHeaderCandidateKey(candidates.siteA, true),
-        geoDownlinkKeyA: current.geoDownlinkKeyA ?? firstHeaderCandidateKey(candidates.siteA, false),
-        geoUplinkKeyB: current.geoUplinkKeyB ?? firstHeaderCandidateKey(candidates.siteB, true),
-        geoDownlinkKeyB: current.geoDownlinkKeyB ?? firstHeaderCandidateKey(candidates.siteB, false),
+        ...getEngineeringGeoManualSelectionKeys(current, candidates),
       }),
     }));
   };

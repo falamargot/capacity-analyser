@@ -351,6 +351,22 @@ export const getCandidateCoverageKey = (
   candidate: Pick<CandidateCoverage, 'satelliteName' | 'coverageKey'>
 ): string => `${candidate.satelliteName}::${candidate.coverageKey}`;
 
+/**
+ * Canonical presentation name for a resolved engineering coverage.
+ * `coverageName` is populated from the same coverage metadata used by the
+ * coverage selector and engineering panels; the beam/index form is retained
+ * only as a graceful fallback for incomplete legacy data.
+ */
+export const getCandidateCoverageDisplayName = (
+  candidate: Pick<CandidateCoverage, 'coverageName' | 'satelliteName' | 'beamName' | 'beamId'>
+): string => {
+  const coverageName = candidate.coverageName.trim();
+  if (coverageName) return coverageName;
+
+  const internalBeam = candidate.beamName.trim() || candidate.beamId.trim();
+  return internalBeam ? `${candidate.satelliteName} · ${internalBeam}` : candidate.satelliteName;
+};
+
 export const getCandidateBeamKey = (
   candidate: Pick<CandidateCoverage, 'satelliteName' | 'beamId'>
 ): string => `${candidate.satelliteName}::${candidate.beamId}`;

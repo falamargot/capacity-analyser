@@ -61,7 +61,8 @@ describe('EngineeringContextConfigureShell', () => {
     expect(markup).toContain('Forward');
     expect(markup).toContain('Path Selection');
     expect(markup).toContain('Automatic');
-    expect(markup).toContain('EUTELSAT TEST · Europe');
+    expect(markup).toContain('Europe downlink');
+    expect(markup).not.toContain('EUTELSAT TEST · Europe');
     expect(markup).toContain('Configure GEO engineering scenario');
   });
 

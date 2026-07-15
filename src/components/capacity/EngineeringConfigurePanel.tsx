@@ -9,8 +9,12 @@ import type {
 } from '../../types/engineeringConfigure';
 import type { EngineeringTruth } from '../../utils/engineeringAnalysisViewModel';
 import { useEngineeringConfigureDraft } from '../../hooks/useEngineeringConfigureDraft';
-import { getPublishedEngineeringGeoPath, isEngineeringConfigureDraftComplete } from '../../utils/engineeringConfigureModel';
-import { getCandidateCoverageKey } from '../../utils/geoCoverageSelection';
+import {
+  getEngineeringGeoManualSelectionKeys,
+  getPublishedEngineeringGeoPath,
+  isEngineeringConfigureDraftComplete,
+} from '../../utils/engineeringConfigureModel';
+import { getCandidateCoverageDisplayName, getCandidateCoverageKey } from '../../utils/geoCoverageSelection';
 import { getLeoTerminalProfile } from '../../config/leoTerminals';
 import { useLocationSearch, type LocationResult } from '../../hooks/useLocationSearch';
 import InlineLocationSearchInput from '../commercial/InlineLocationSearchInput';
@@ -32,11 +36,6 @@ function truthMetricSummary(truth: EngineeringTruth | undefined): string {
   const metrics = truth.primaryMetrics.map((metric) => metric.display).join(' · ');
   return [truth.headline, metrics].filter(Boolean).join(' · ');
 }
-
-const firstCandidateKey = (candidates: CandidateCoverage[], uplink: boolean): string | null => {
-  const candidate = candidates.find((item) => item.isUplink === uplink && !item.isSynthesized);
-  return candidate ? getCandidateCoverageKey(candidate) : null;
-};
 
 function DraftLocationField({
   label,
@@ -154,7 +153,7 @@ function CandidateSelect({
           const key = getCandidateCoverageKey(candidate);
           return (
             <option key={key} value={key}>
-              {candidate.satelliteName} · {candidate.coverageName} · {candidate.linkMarginDb?.toFixed(1) ?? '—'} dB
+              {getCandidateCoverageDisplayName(candidate)} · {candidate.linkMarginDb?.toFixed(1) ?? '—'} dB
             </option>
           );
         })}
@@ -164,8 +163,7 @@ function CandidateSelect({
 }
 
 function candidatePathLabel(candidate: CandidateCoverage): string {
-  const beam = candidate.beamName || candidate.beamId || candidate.coverageName;
-  return `${candidate.satelliteName} · ${beam}`;
+  return getCandidateCoverageDisplayName(candidate);
 }
 
 function ResolvedAutoPath({
@@ -263,10 +261,7 @@ export default function EngineeringConfigurePanel({
         geoUplinkKeyB: null,
         geoDownlinkKeyB: null,
       } : {
-        geoUplinkKeyA: current.geoUplinkKeyA ?? firstCandidateKey(candidates.siteA, true),
-        geoDownlinkKeyA: current.geoDownlinkKeyA ?? firstCandidateKey(candidates.siteA, false),
-        geoUplinkKeyB: current.geoUplinkKeyB ?? firstCandidateKey(candidates.siteB, true),
-        geoDownlinkKeyB: current.geoDownlinkKeyB ?? firstCandidateKey(candidates.siteB, false),
+        ...getEngineeringGeoManualSelectionKeys(current, candidates),
       }),
     }));
   };
