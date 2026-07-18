@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   buildGeoEngineeringAnalysisViewModel,
   buildLeoEngineeringAnalysisViewModel,
+  displayEvidenceValue,
+  engineeringVerdictLabel,
+  engineeringVerdictTone,
   type EngineeringAnalysisViewModel,
+  type EngineeringServiceState,
 } from '../engineeringAnalysisViewModel';
 import type { LeoSiteToSiteResult } from '../leoSiteToSiteModel';
 import { makeGeoResult, makeLeoResult } from './fixtures/engineeringViewModelFixtures';
@@ -335,6 +339,43 @@ describe('engineering analysis view model', () => {
     const serviceStage = viewModel.truth.causeChain.find((stage) => stage.id === 'service');
     expect(serviceStage?.state).toBe('warning');
     expect(serviceStage?.evidence).toHaveLength(3);
+  });
+
+  it('publishes one verdict label and tone per state (M4 header contract)', () => {
+    const truthFor = (state: EngineeringServiceState) => ({
+      ...buildGeoEngineeringAnalysisViewModel({ linkMode: 'STAR_FORWARD', result: makeGeoResult(4.5) }).truth,
+      state,
+    });
+    const table = (['available', 'constrained', 'degraded', 'blocked', 'incomplete', 'path-unavailable', 'budget-unavailable', 'uncertain'] as const)
+      .map((state) => [state, engineeringVerdictLabel(truthFor(state)), engineeringVerdictTone(truthFor(state))]);
+    expect(table).toEqual([
+      ['available', 'Available', 'ok'],
+      ['constrained', 'Constrained', 'degraded'],
+      ['degraded', 'Degraded', 'degraded'],
+      ['blocked', 'Blocked', 'blocked'],
+      ['incomplete', 'Incomplete', 'unknown'],
+      ['path-unavailable', 'No path', 'unknown'],
+      ['budget-unavailable', 'No budget', 'unknown'],
+      ['uncertain', 'Uncertain', 'unknown'],
+    ]);
+    expect(engineeringVerdictLabel(undefined)).toBe('Pending');
+    expect(engineeringVerdictTone(undefined)).toBe('unknown');
+  });
+
+  it('normalizes machine evidence values inside the published truth', () => {
+    expect(displayEvidenceValue('CAPACITY_SATURATED_A')).toBe('Site A capacity saturated');
+    expect(displayEvidenceValue('already prose')).toBe('already prose');
+    const viewModel = buildLeoEngineeringAnalysisViewModel({
+      debugInfo: makeLeoResult(18, 12),
+      pathResolved: true,
+      rfStatus: 'available',
+      serviceStatus: 'ALLOWED',
+      serviceReason: 'CONNECTED',
+      serviceEvidence: [{ label: 'Regulatory', value: 'ALLOWED_CONFIRMED', state: 'passed' }],
+    });
+    const serviceStage = viewModel.truth.causeChain.find((stage) => stage.id === 'service');
+    expect(serviceStage?.evidence?.[0].value).toBe('Allowed · confirmed');
+    expect(serviceStage?.detail).toBeUndefined();
   });
 
   it('keeps header, mobile, workspace, sidebar and export reads byte-for-byte aligned', () => {

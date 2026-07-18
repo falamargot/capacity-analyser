@@ -144,7 +144,7 @@ import {
   scenarioToConnectivityScenarioCard,
 } from './utils/connectivityScenarioCardProjection';
 import { shouldApplyEngineeringCameraFocus } from './utils/engineeringCameraCompensation';
-import type { EngineeringTruth } from './utils/engineeringAnalysisViewModel';
+import { engineeringVerdictLabel, engineeringVerdictTone } from './utils/engineeringAnalysisViewModel';
 import type { EngineeringConfigureDraft } from './types/engineeringConfigure';
 import {
   getEngineeringConfigureChanges,
@@ -4415,26 +4415,14 @@ const App: React.FC = () => {
 
     const showGeo = satelliteScope === 'GEO' || satelliteScope === 'ALL';
     const showLeo = satelliteScope === 'LEO' || satelliteScope === 'ALL';
-    const statusLabel = (truth: EngineeringTruth | undefined) => {
-      if (!truth) return 'Pending';
-      if (truth.state === 'path-unavailable') return 'No path';
-      if (truth.state === 'budget-unavailable') return 'No budget';
-      return truth.state.charAt(0).toUpperCase() + truth.state.slice(1);
-    };
-    const statusTone = (truth: EngineeringTruth | undefined): HeaderRouteStatusTone => {
-      if (!truth || truth.state === 'incomplete' || truth.state === 'path-unavailable' || truth.state === 'budget-unavailable' || truth.state === 'uncertain') return 'unknown';
-      if (truth.state === 'blocked') return 'blocked';
-      if (truth.state === 'constrained' || truth.state === 'degraded') return 'degraded';
-      return 'ok';
-    };
     const headerItem = (technology: 'GEO' | 'LEO') => {
       const truth = engineeringTruths[technology];
       const throughputMetrics = truth?.primaryMetrics.filter((metric) => /throughput/i.test(metric.label)) ?? [];
       const latency = truth?.primaryMetrics.find((metric) => /latency|rtt/i.test(metric.label));
       return {
         technology,
-        statusLabel: statusLabel(truth),
-        statusTone: statusTone(truth),
+        statusLabel: engineeringVerdictLabel(truth),
+        statusTone: engineeringVerdictTone(truth),
         throughput: throughputMetrics[0]?.display ?? '--',
         upload: throughputMetrics[1]?.display ?? '--',
         latency: latency?.display ?? '--',
@@ -4762,7 +4750,8 @@ const App: React.FC = () => {
       if (uplinkB) handleSelectUplinkCoverageB(uplinkB);
       if (downlinkB) handleSelectDownlinkCoverageB(downlinkB);
     }
-    setIsEngineeringConfigureOpen(false);
+    // M4: applying no longer closes the Configure surface — edits are
+    // instant, so the panel stays open while the user iterates.
   }, [
     candidateCoveragesB,
     eligibleCandidateCoverages,
@@ -5900,7 +5889,6 @@ const App: React.FC = () => {
                                 pointBLeo={pointBLeo}
                                 isPointBLeoArmed={isSiteBArmed}
                                 onArmPointBLeo={() => setIsSiteBArmed(true)}
-                                onConfigure={handleOpenEngineeringConfigure}
                                 selectionMotionKey={endpointSelectionMotion?.token}
                               />
                             )}
@@ -6168,7 +6156,6 @@ const App: React.FC = () => {
                           pointBLeo={pointBLeo}
                           isPointBLeoArmed={isSiteBArmed}
                           onArmPointBLeo={() => setIsSiteBArmed(true)}
-                          onConfigure={handleOpenEngineeringConfigure}
                           selectionMotionKey={endpointSelectionMotion?.token}
                         />
                       )}

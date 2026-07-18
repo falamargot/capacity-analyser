@@ -64,6 +64,8 @@ export interface EngineeringTruth {
   primaryMetrics: EngineeringTruthMetric[];
   diagnosticMetrics: EngineeringTruthMetric[];
   confidence?: PredictionConfidenceSummary;
+  /** Factor/cap scoring behind `confidence`, when the caller published it. */
+  confidenceBreakdown?: PredictionConfidence;
   causeChain: EngineeringCauseStage[];
   nextAction?: string;
 }
@@ -189,6 +191,56 @@ export interface BuildLeoEngineeringAnalysisInput {
   deliveryConstraint?: string | null;
 }
 
+/**
+ * M4: canonical prose for machine-ish evidence values. Owned by the truth
+ * builders so every surface (sidebar, header, mobile, PDF) publishes the same
+ * wording; presentation components must not re-translate.
+ */
+const EVIDENCE_VALUE_LABELS: Record<string, string> = {
+  ALLOWED_CONFIRMED: 'Allowed · confirmed',
+  ALLOWED_ESTIMATED: 'Allowed · estimated',
+  ALLOWED: 'Allowed',
+  RESTRICTED: 'Restricted',
+  BLOCKED: 'Blocked',
+  NOT_EVALUATED: 'Not evaluated',
+  UNKNOWN: 'Unknown',
+  CAPACITY_DEGRADED_A: 'Site A capacity degraded',
+  CAPACITY_DEGRADED_B: 'Site B capacity degraded',
+  CAPACITY_SATURATED_A: 'Site A capacity saturated',
+  CAPACITY_SATURATED_B: 'Site B capacity saturated',
+  'CAPACITY DEGRADED A': 'Site A capacity degraded',
+  'CAPACITY DEGRADED B': 'Site B capacity degraded',
+  'CAPACITY SATURATED A': 'Site A capacity saturated',
+  'CAPACITY SATURATED B': 'Site B capacity saturated',
+  'REGULATORY RESTRICTION': 'Regulatory restriction',
+  'SIMULATED LOAD LIMIT': 'Simulated load limit',
+  'SNP PATH UNAVAILABLE': 'SNP path unavailable',
+  'RF COVERAGE UNAVAILABLE': 'RF coverage unavailable',
+};
+
+export const displayEvidenceValue = (value: string): string => EVIDENCE_VALUE_LABELS[value] ?? value;
+
+/**
+ * M4: single source for the header/compare-strip verdict chip. 'marginal' from
+ * the header tone vocabulary is intentionally never produced — it had no
+ * producer before either.
+ */
+export type EngineeringVerdictTone = 'ok' | 'degraded' | 'blocked' | 'unknown';
+
+export const engineeringVerdictLabel = (truth: EngineeringTruth | undefined): string => {
+  if (!truth) return 'Pending';
+  if (truth.state === 'path-unavailable') return 'No path';
+  if (truth.state === 'budget-unavailable') return 'No budget';
+  return truth.state.charAt(0).toUpperCase() + truth.state.slice(1);
+};
+
+export const engineeringVerdictTone = (truth: EngineeringTruth | undefined): EngineeringVerdictTone => {
+  if (!truth || truth.state === 'incomplete' || truth.state === 'path-unavailable' || truth.state === 'budget-unavailable' || truth.state === 'uncertain') return 'unknown';
+  if (truth.state === 'blocked') return 'blocked';
+  if (truth.state === 'constrained' || truth.state === 'degraded') return 'degraded';
+  return 'ok';
+};
+
 const networkLimitLabel = (factor?: string | null) =>
   factor ? factor.replace(/_/g, ' ') : null;
 
@@ -207,7 +259,18 @@ const causeStage = (
   summary: string,
   detail?: string,
   evidence?: EngineeringEvidenceItem[],
-): EngineeringCauseStage => ({ id, label, state, summary, detail, evidence });
+): EngineeringCauseStage => ({
+  id,
+  label,
+  state,
+  summary,
+  // 'CONNECTED' as a service driver is the nominal case — publishing it as a
+  // detail line added noise, so the former lens-side suppression lives here now.
+  detail: detail == null || (id === 'service' && detail === 'CONNECTED')
+    ? undefined
+    : displayEvidenceValue(detail),
+  evidence: evidence?.map((item) => ({ ...item, value: displayEvidenceValue(item.value) })),
+});
 
 export const isEngineeringDeliveryState = (state: EngineeringServiceState): boolean => (
   state === 'available' || state === 'constrained' || state === 'degraded'
@@ -376,6 +439,7 @@ export function buildGeoEngineeringAnalysisViewModel(input: BuildGeoEngineeringA
     primaryMetrics,
     diagnosticMetrics,
     confidence,
+    confidenceBreakdown: input.confidence,
     causeChain: [
       causeStage('scenario', 'Scenario', scenarioComplete ? 'passed' : 'blocked', scenarioComplete ? 'Inputs ready' : 'Incomplete', input.scenarioIncompleteReason),
       causeStage('path', 'Path', !scenarioComplete ? 'not-evaluated' : pathResolved ? 'passed' : 'blocked', !scenarioComplete ? 'Not evaluated' : pathResolved ? 'GEO route resolved' : 'Unavailable', input.pathReason),
@@ -765,6 +829,7 @@ export function buildLeoEngineeringAnalysisViewModel(input: BuildLeoEngineeringA
     primaryMetrics,
     diagnosticMetrics,
     confidence,
+    confidenceBreakdown: input.confidence,
     causeChain: [
       causeStage('scenario', 'Scenario', scenarioComplete ? 'passed' : 'blocked', scenarioComplete ? 'Inputs ready' : 'Incomplete', input.scenarioIncompleteReason),
       causeStage('path', 'Path', !scenarioComplete ? 'not-evaluated' : pathResolved ? 'passed' : 'blocked', !scenarioComplete ? 'Not evaluated' : pathResolved ? 'Satellite and ground path resolved' : 'Unavailable', input.pathReason),

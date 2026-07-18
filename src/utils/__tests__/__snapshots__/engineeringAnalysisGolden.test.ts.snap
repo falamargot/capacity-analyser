@@ -121,6 +121,7 @@ exports[`M0 golden scenario matrix > GEO > 'geo-budget-unavailable' 1`] = `
       },
     ],
     "confidence": undefined,
+    "confidenceBreakdown": undefined,
     "decisiveFactor": "Complete uplink and downlink RF evidence unavailable",
     "diagnosticMetrics": [],
     "headline": "RF budget unavailable — complete segment evidence missing",
@@ -261,6 +262,7 @@ exports[`M0 golden scenario matrix > GEO > 'geo-incomplete-site-b-required' 1`] 
       },
     ],
     "confidence": undefined,
+    "confidenceBreakdown": undefined,
     "decisiveFactor": "Site B is required",
     "diagnosticMetrics": [],
     "headline": "Scenario incomplete — Site B is required",
@@ -451,7 +453,7 @@ exports[`M0 golden scenario matrix > GEO > 'geo-mesh-forward' 1`] = `
         "summary": "3.2 dB · closes",
       },
       {
-        "detail": undefined,
+        "detail": "Site-to-site GEO uses no shared service gate",
         "evidence": undefined,
         "id": "service",
         "label": "Service gates",
@@ -473,6 +475,7 @@ exports[`M0 golden scenario matrix > GEO > 'geo-mesh-forward' 1`] = `
       "label": "High",
       "score": 84,
     },
+    "confidenceBreakdown": undefined,
     "decisiveFactor": "Shared capacity",
     "diagnosticMetrics": [],
     "headline": "Service available — constrained by shared capacity",
@@ -678,7 +681,7 @@ exports[`M0 golden scenario matrix > GEO > 'geo-mesh-reverse' 1`] = `
         "summary": "2.6 dB · closes",
       },
       {
-        "detail": undefined,
+        "detail": "Site-to-site GEO uses no shared service gate",
         "evidence": undefined,
         "id": "service",
         "label": "Service gates",
@@ -700,6 +703,7 @@ exports[`M0 golden scenario matrix > GEO > 'geo-mesh-reverse' 1`] = `
       "label": "High",
       "score": 84,
     },
+    "confidenceBreakdown": undefined,
     "decisiveFactor": "Shared capacity",
     "diagnosticMetrics": [],
     "headline": "Service available — constrained by shared capacity",
@@ -855,6 +859,7 @@ exports[`M0 golden scenario matrix > GEO > 'geo-path-unavailable-no-gateway' 1`]
       },
     ],
     "confidence": undefined,
+    "confidenceBreakdown": undefined,
     "decisiveFactor": "No eligible traffic gateway path",
     "diagnosticMetrics": [],
     "headline": "No service path — No eligible traffic gateway path",
@@ -1057,6 +1062,7 @@ exports[`M0 golden scenario matrix > GEO > 'geo-point-to-point' 1`] = `
       },
     ],
     "confidence": undefined,
+    "confidenceBreakdown": undefined,
     "decisiveFactor": "Shared capacity",
     "diagnosticMetrics": [],
     "headline": "Service available — constrained by shared capacity",
@@ -1284,6 +1290,7 @@ exports[`M0 golden scenario matrix > GEO > 'geo-star-forward-blocked-negative-ma
       "label": "Medium",
       "score": 74,
     },
+    "confidenceBreakdown": undefined,
     "decisiveFactor": "Uplink RF margin below threshold",
     "diagnosticMetrics": [
       {
@@ -1489,12 +1496,23 @@ exports[`M0 golden scenario matrix > GEO > 'geo-star-forward-constrained' 1`] = 
         "summary": "4.5 dB · closes",
       },
       {
-        "detail": "No independent GEO service gate is modeled",
-        "evidence": undefined,
+        "detail": "Traffic gateway Rambouillet serves this beam",
+        "evidence": [
+          {
+            "label": "Traffic gateway",
+            "state": "passed",
+            "value": "Rambouillet",
+          },
+          {
+            "label": "Capability",
+            "state": "passed",
+            "value": "RBT-KU-01",
+          },
+        ],
         "id": "service",
         "label": "Service gates",
-        "state": "not-evaluated",
-        "summary": "Not evaluated",
+        "state": "passed",
+        "summary": "Allowed",
       },
       {
         "detail": undefined,
@@ -1511,6 +1529,7 @@ exports[`M0 golden scenario matrix > GEO > 'geo-star-forward-constrained' 1`] = 
       "label": "High",
       "score": 89,
     },
+    "confidenceBreakdown": undefined,
     "decisiveFactor": "Shared capacity",
     "diagnosticMetrics": [],
     "headline": "Service available — constrained by shared capacity",
@@ -1723,12 +1742,23 @@ exports[`M0 golden scenario matrix > GEO > 'geo-star-return-degraded-low-margin'
         "summary": "0.8 dB · low margin",
       },
       {
-        "detail": "No independent GEO service gate is modeled",
-        "evidence": undefined,
+        "detail": "Traffic gateway Rambouillet serves this beam",
+        "evidence": [
+          {
+            "label": "Traffic gateway",
+            "state": "passed",
+            "value": "Rambouillet",
+          },
+          {
+            "label": "Capability",
+            "state": "passed",
+            "value": "RBT-KU-01",
+          },
+        ],
         "id": "service",
         "label": "Service gates",
-        "state": "not-evaluated",
-        "summary": "Not evaluated",
+        "state": "passed",
+        "summary": "Allowed",
       },
       {
         "detail": undefined,
@@ -1745,6 +1775,7 @@ exports[`M0 golden scenario matrix > GEO > 'geo-star-return-degraded-low-margin'
       "label": "Medium",
       "score": 71,
     },
+    "confidenceBreakdown": undefined,
     "decisiveFactor": "Downlink RF margin is low",
     "diagnosticMetrics": [],
     "headline": "Service degraded — low downlink margin",
@@ -1928,6 +1959,7 @@ exports[`M0 golden scenario matrix > LEO > 'leo-incomplete-site-b-required' 1`] 
       },
     ],
     "confidence": undefined,
+    "confidenceBreakdown": undefined,
     "decisiveFactor": "Site B is required",
     "diagnosticMetrics": [
       {
@@ -2091,6 +2123,7 @@ exports[`M0 golden scenario matrix > LEO > 'leo-path-unavailable' 1`] = `
       "label": "Low",
       "score": 52,
     },
+    "confidenceBreakdown": undefined,
     "decisiveFactor": "No complete LEO/SNP path",
     "diagnosticMetrics": [],
     "headline": "No service path — no complete LEO/SNP route",
@@ -2281,7 +2314,7 @@ exports[`M0 golden scenario matrix > LEO > 'leo-single-available' 1`] = `
           {
             "label": "Regulatory",
             "state": "passed",
-            "value": "ALLOWED",
+            "value": "Allowed",
           },
           {
             "label": "Capacity",
@@ -2309,6 +2342,7 @@ exports[`M0 golden scenario matrix > LEO > 'leo-single-available' 1`] = `
       "label": "High",
       "score": 91,
     },
+    "confidenceBreakdown": undefined,
     "decisiveFactor": undefined,
     "diagnosticMetrics": [],
     "headline": "Service available",
@@ -2525,6 +2559,7 @@ exports[`M0 golden scenario matrix > LEO > 'leo-single-constrained-beam-sharing'
       },
     ],
     "confidence": undefined,
+    "confidenceBreakdown": undefined,
     "decisiveFactor": "Beam sharing",
     "diagnosticMetrics": [],
     "headline": "Service available — constrained by beam sharing",
@@ -2734,6 +2769,7 @@ exports[`M0 golden scenario matrix > LEO > 'leo-single-rf-blocked' 1`] = `
       },
     ],
     "confidence": undefined,
+    "confidenceBreakdown": undefined,
     "decisiveFactor": "No active RF beam at Site A",
     "diagnosticMetrics": [
       {
@@ -2929,7 +2965,7 @@ exports[`M0 golden scenario matrix > LEO > 'leo-single-service-blocked-regulator
           {
             "label": "Regulatory",
             "state": "blocked",
-            "value": "BLOCKED",
+            "value": "Blocked",
           },
         ],
         "id": "service",
@@ -2947,6 +2983,7 @@ exports[`M0 golden scenario matrix > LEO > 'leo-single-service-blocked-regulator
       },
     ],
     "confidence": undefined,
+    "confidenceBreakdown": undefined,
     "decisiveFactor": "Regulatory restriction",
     "diagnosticMetrics": [
       {
@@ -3140,6 +3177,7 @@ exports[`M0 golden scenario matrix > LEO > 'leo-site-to-site-a-to-b' 1`] = `
       "label": "High",
       "score": 88,
     },
+    "confidenceBreakdown": undefined,
     "decisiveFactor": undefined,
     "diagnosticMetrics": [],
     "headline": "Service available",
@@ -3333,6 +3371,7 @@ exports[`M0 golden scenario matrix > LEO > 'leo-site-to-site-b-to-a' 1`] = `
       "label": "High",
       "score": 88,
     },
+    "confidenceBreakdown": undefined,
     "decisiveFactor": undefined,
     "diagnosticMetrics": [],
     "headline": "Service available",

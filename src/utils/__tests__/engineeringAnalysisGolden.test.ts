@@ -36,8 +36,12 @@ const geoScenarios: Array<{ name: string; viewModel: () => EngineeringAnalysisVi
       confidenceLabel: 'High 89/100',
       scenarioComplete: true,
       pathResolved: true,
-      serviceStatus: 'NOT_EVALUATED',
-      serviceReason: 'No independent GEO service gate is modeled',
+      serviceStatus: 'ALLOWED',
+      serviceReason: 'Traffic gateway Rambouillet serves this beam',
+      serviceEvidence: [
+        { label: 'Traffic gateway', value: 'Rambouillet', state: 'passed' },
+        { label: 'Capability', value: 'RBT-KU-01', state: 'passed' },
+      ],
     }),
   },
   {
@@ -51,8 +55,12 @@ const geoScenarios: Array<{ name: string; viewModel: () => EngineeringAnalysisVi
       confidenceLabel: 'Medium 71/100',
       scenarioComplete: true,
       pathResolved: true,
-      serviceStatus: 'NOT_EVALUATED',
-      serviceReason: 'No independent GEO service gate is modeled',
+      serviceStatus: 'ALLOWED',
+      serviceReason: 'Traffic gateway Rambouillet serves this beam',
+      serviceEvidence: [
+        { label: 'Traffic gateway', value: 'Rambouillet', state: 'passed' },
+        { label: 'Capability', value: 'RBT-KU-01', state: 'passed' },
+      ],
     }),
   },
   {
@@ -66,6 +74,8 @@ const geoScenarios: Array<{ name: string; viewModel: () => EngineeringAnalysisVi
       confidenceLabel: 'High 84/100',
       scenarioComplete: true,
       pathResolved: true,
+      serviceStatus: 'NOT_EVALUATED',
+      serviceReason: 'Site-to-site GEO uses no shared service gate',
     }),
   },
   {
@@ -79,6 +89,8 @@ const geoScenarios: Array<{ name: string; viewModel: () => EngineeringAnalysisVi
       confidenceLabel: 'High 84/100',
       scenarioComplete: true,
       pathResolved: true,
+      serviceStatus: 'NOT_EVALUATED',
+      serviceReason: 'Site-to-site GEO uses no shared service gate',
     }),
   },
   {

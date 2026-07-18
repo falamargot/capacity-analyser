@@ -1013,6 +1013,11 @@ export function useEngineeringAnalysis({
     const geoLatencyMs = isGeoSiteToSite
       ? (activeMeshTab === 'reverse' ? meshMetrics?.reverseLatencyMs : meshMetrics?.forwardLatencyMs)
       : geoGeometry?.oneWayRadioMs != null ? geoGeometry.oneWayRadioMs + geoGeometry.overheadMs.total : null;
+    // M4: the resolved traffic gateway IS the GEO service gate for STAR modes —
+    // publish it instead of the former permanent "no gate is modeled" apology.
+    const geoServedGateway = !isGeoSiteToSite && isServedStarGatewaySelection(trafficGatewaySelection)
+      ? trafficGatewaySelection
+      : null;
     const geoViewModel = buildGeoEngineeringAnalysisViewModel({
       linkMode,
       result: dualSegmentResult,
@@ -1030,8 +1035,20 @@ export function useEngineeringAnalysis({
       pathReason: geoScenarioComplete && !geoPathResolved
         ? isGeoSiteToSite ? 'No complete directional GEO path' : !resolvedGEOConnectivity ? 'No eligible GEO coverage candidate' : 'No eligible traffic gateway path'
         : undefined,
-      serviceStatus: 'NOT_EVALUATED',
-      serviceReason: 'No independent GEO service gate is modeled',
+      serviceStatus: geoServedGateway ? 'ALLOWED' : 'NOT_EVALUATED',
+      serviceReason: geoServedGateway
+        ? `Traffic gateway ${geoServedGateway.gateway.name} serves this beam`
+        : isGeoSiteToSite
+          ? 'Site-to-site GEO uses no shared service gate'
+          : 'No serving traffic gateway resolved',
+      serviceEvidence: geoServedGateway
+        ? [
+            { label: 'Traffic gateway', value: geoServedGateway.gateway.name, state: 'passed' as const },
+            ...(geoServedGateway.trafficCapability?.capabilityId
+              ? [{ label: 'Capability', value: geoServedGateway.trafficCapability.capabilityId, state: 'passed' as const }]
+              : []),
+          ]
+        : undefined,
     });
 
     const isLeoSiteToSite = leoTopologyMode === 'SITE_TO_SITE';

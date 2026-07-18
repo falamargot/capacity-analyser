@@ -1209,7 +1209,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   ) : null;
   const scenarioAccessEvidence = showConfigurationControls ? (
     <>
-        <LayerHeading title="Access Layer" detail="RF details, terminal characteristics, weather loss, elevation and visibility." />
+        <LayerHeading title="Terminal Configuration" detail="Terminal model, RF characteristics and weather assumptions for each site." />
         {/* ── S2S mode: two independent terminal cards ── */}
         {isS2S && terminalTypeB != null && onTerminalTypeBChange != null ? (
           <div className="space-y-1.5">
@@ -1288,11 +1288,6 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
         )}
     </>
   ) : null;
-  const rfSpaceEvidence = (
-    <>
-        <LayerHeading title="Space Segment" detail="Serving satellites, beam state, RF budget and capacity constraints." />
-    </>
-  );
   const pathDetailEvidence = (
     <>
         <div className="space-y-3">
@@ -1694,7 +1689,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
         stageSummaries={{ path: pathSummaryEvidence }}
         stageEvidence={{
           scenario: <>{scenarioEvidence}{scenarioTopologyEvidence}{scenarioAccessEvidence}</>,
-          rf: (<>
+          rf: (
             <LeoLinkBudgetEvidence
               debugInfo={leoPerformance?.debugInfo ?? null}
               siteToSiteResult={isS2S ? siteToSiteResult : undefined}
@@ -1712,7 +1707,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
               confidence={predictionConfidence}
               viewModel={engineeringAnalysisViewModel}
             />
-          {rfSpaceEvidence}</>),
+          ),
           path: pathDetailEvidence,
           delivery: <><EngineeringDeliveryEvidence viewModel={engineeringAnalysisViewModel} />{deliveryDetailEvidence}</>,
         }}

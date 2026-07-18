@@ -9,8 +9,6 @@ import type { RegulatoryResult } from '../services/regulatoryService';
 import type { BeamLoadResult } from '../utils/capacityLayer';
 import type { LinkMode } from '../types/linkMode';
 import type { TerminalRFClassId } from '../utils/geoTerminalRFModel';
-import type { EngineeringConfigureCandidates, EngineeringConfigureDraft } from '../types/engineeringConfigure';
-import EngineeringContextConfigureShell from './capacity/shared/EngineeringContextConfigureShell';
 import { useEngineeringAnalysisContext } from '../contexts/EngineeringAnalysisContext';
 
 // ─── Extracted sub-components ─────────────────────────────────────────────────
@@ -53,9 +51,6 @@ interface CapacityDetailsProps {
   onSnpClick?: (snpName: string) => void;
   compactDesktop?: boolean;
   externalHeader?: boolean;
-  onConfigure?: (technology: 'GEO' | 'LEO') => void;
-  engineeringConfigureBaseline?: EngineeringConfigureDraft;
-  engineeringConfigureCandidates?: EngineeringConfigureCandidates;
   leoTerminalType: TerminalType;
   onLeoTerminalTypeChange: (type: TerminalType) => void;
   onLeoTerminalModelIdChange?: (id: string) => void;
@@ -117,9 +112,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   onArmPointBLeo,
   onLeoTopologyModeChange,
   selectionMotionKey,
-  onConfigure,
-  engineeringConfigureBaseline,
-  engineeringConfigureCandidates,
 }) => {
   const [selectionRevealActive, setSelectionRevealActive] = useState(false);
 
@@ -352,14 +344,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
               {/* LEO Connectivity */}
               {showLeoConnectivity && (
                 <div className={satelliteScope === 'ALL' ? (activeConnTab === 'LEO' ? 'order-1' : 'order-2') : undefined}>
-                  {engineeringConfigureBaseline && engineeringConfigureCandidates && onConfigure && (
-                    <EngineeringContextConfigureShell
-                      technology="LEO"
-                      baseline={engineeringConfigureBaseline}
-                      candidates={engineeringConfigureCandidates}
-                      onConfigure={() => onConfigure('LEO')}
-                    />
-                  )}
                   {/* ── Site-to-Site mode ──────────────────────────────────── */}
                   {leoTopologyMode === 'SITE_TO_SITE' && (
                 <LEOConnectivitySection
@@ -441,14 +425,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
               {/* GEO Connectivity */}
               {showGeoConnectivity && (
                 <div className={satelliteScope === 'ALL' ? (activeConnTab === 'GEO' ? 'order-1' : 'order-2') : undefined}>
-                  {engineeringConfigureBaseline && engineeringConfigureCandidates && onConfigure && (
-                    <EngineeringContextConfigureShell
-                      technology="GEO"
-                      baseline={engineeringConfigureBaseline}
-                      candidates={engineeringConfigureCandidates}
-                      onConfigure={() => onConfigure('GEO')}
-                    />
-                  )}
                   <GEOConnectivitySection
                     engineeringAnalysisViewModel={engineeringAnalysisViewModels.GEO}
                     resolvedGEOConnectivity={resolvedGEOConnectivity}

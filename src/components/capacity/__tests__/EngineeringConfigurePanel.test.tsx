@@ -59,7 +59,7 @@ const manualDownlink = {
 } as CandidateCoverage;
 
 describe('EngineeringConfigurePanel', () => {
-  it('renders the shared transactional editor around the published Engineering Truth', () => {
+  it('renders the shared instant-apply editor around the published Engineering Truth', () => {
     const markup = renderToStaticMarkup(
       <EngineeringConfigurePanel
         baseline={baseline}
@@ -75,12 +75,12 @@ describe('EngineeringConfigurePanel', () => {
     expect(markup).toContain('Service available · 42 Mbps');
     expect(markup).toContain('Terminal &amp; weather assumptions');
     expect(markup).toContain('Path selection');
-    expect(markup).toContain('Pending scenario changes');
-    expect(markup).toContain('No pending changes.');
-    expect(markup).toContain('Apply changes');
     expect(markup).toContain('role="radiogroup"');
     expect(markup).toContain('role="radio"');
-    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>[^<]*(?:<[^>]+>)*Apply changes/);
+    // M4: instant apply — no staged-changes machinery remains.
+    expect(markup).not.toContain('Pending scenario changes');
+    expect(markup).not.toContain('Apply changes');
+    expect(markup).not.toContain('Discard');
   });
 
   it('makes the manual GEO override and return-to-Automatic behavior explicit', () => {
@@ -95,8 +95,7 @@ describe('EngineeringConfigurePanel', () => {
     );
 
     expect(markup).toContain('Return to Automatic selection');
-    expect(markup).toContain('clears the staged satellite and beam overrides');
-    expect(markup).toContain('The existing route engine selects the path after Apply.');
+    expect(markup).toContain('clears the satellite and beam overrides immediately');
     expect(markup).toContain('E10B Euro-MENA FSS Receive');
     expect(markup).not.toContain('EUTELSAT 10B · 68');
   });
@@ -135,7 +134,7 @@ describe('EngineeringConfigurePanel', () => {
     expect(markup).toContain('Technology &amp; path');
     expect(markup).toContain('Endpoints');
     expect(markup).toContain('Terminal &amp; weather assumptions');
-    expect(markup).toContain('Pending scenario changes');
+    expect(markup).not.toContain('Pending scenario changes');
     expect(markup).toContain('Summary');
     expect(markup).not.toContain('Published baseline · Engineering Truth');
     expect(markup).not.toContain('Service available · 42 Mbps');

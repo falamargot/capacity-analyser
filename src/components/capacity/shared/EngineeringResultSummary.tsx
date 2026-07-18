@@ -8,6 +8,7 @@ import type {
   EngineeringTruthMetric,
 } from '../../../utils/engineeringAnalysisViewModel';
 import { useEngineeringFocus } from '../../../contexts/EngineeringFocusContext';
+import ConfidenceBreakdown from '../ConfidenceBreakdown';
 import {
   ENGINEERING_CAUSE_STAGE_ORDER,
   getEngineeringPathVisualState,
@@ -95,29 +96,6 @@ const provenanceLabel: Record<EngineeringTruthMetric['provenance'], string> = {
   unavailable: 'Unavailable',
 };
 
-const evidenceValueLabels: Record<string, string> = {
-  ALLOWED_CONFIRMED: 'Allowed · confirmed',
-  ALLOWED_ESTIMATED: 'Allowed · estimated',
-  ALLOWED: 'Allowed',
-  RESTRICTED: 'Restricted',
-  BLOCKED: 'Blocked',
-  NOT_EVALUATED: 'Not evaluated',
-  UNKNOWN: 'Unknown',
-  CAPACITY_DEGRADED_A: 'Site A capacity degraded',
-  CAPACITY_DEGRADED_B: 'Site B capacity degraded',
-  CAPACITY_SATURATED_A: 'Site A capacity saturated',
-  CAPACITY_SATURATED_B: 'Site B capacity saturated',
-  'CAPACITY DEGRADED A': 'Site A capacity degraded',
-  'CAPACITY DEGRADED B': 'Site B capacity degraded',
-  'CAPACITY SATURATED A': 'Site A capacity saturated',
-  'CAPACITY SATURATED B': 'Site B capacity saturated',
-  'REGULATORY RESTRICTION': 'Regulatory restriction',
-  'SIMULATED LOAD LIMIT': 'Simulated load limit',
-  'SNP PATH UNAVAILABLE': 'SNP path unavailable',
-  'RF COVERAGE UNAVAILABLE': 'RF coverage unavailable',
-};
-
-const displayEvidenceValue = (value: string): string => evidenceValueLabels[value] ?? value;
 
 const MetricTile = ({ metric, diagnostic = false }: { metric: EngineeringTruthMetric; diagnostic?: boolean }) => (
   <div className={`min-w-0 rounded-lg border px-3 py-2.5 [@media(max-height:700px)]:py-2 ${
@@ -180,11 +158,9 @@ const CauseStage = ({
   const Icon = styles.icon;
   const contentId = useId();
   const buttonId = useId();
-  const displayedDetail = stage.id === 'service' && stage.detail === 'CONNECTED'
-    ? null
-    : stage.detail ? displayEvidenceValue(stage.detail) : null;
+  const displayedDetail = stage.detail ?? null;
   const accessibleEvidence = stage.evidence?.map((item) => (
-    `${item.label}: ${displayEvidenceValue(item.value)}${item.detail ? `. ${item.detail}` : ''}`
+    `${item.label}: ${item.value}${item.detail ? `. ${item.detail}` : ''}`
   )).join('. ');
   const accessibleDescription = [stage.summary, displayedDetail, accessibleEvidence]
     .filter(Boolean)
@@ -192,7 +168,7 @@ const CauseStage = ({
   const primaryEvidence = stage.evidence?.slice(0, 3) ?? [];
   const secondaryEvidence = stage.evidence?.slice(3) ?? [];
   const renderEvidence = (items: EngineeringCauseStage['evidence'], compactEvidence = false) => items?.map((item) => {
-    const displayedValue = displayEvidenceValue(item.value);
+    const displayedValue = item.value;
     return (
       <div
         key={`${item.label}:${item.value}`}
@@ -240,7 +216,7 @@ const CauseStage = ({
             <ChevronDown className={`h-3 w-3 shrink-0 text-slate-400 transition-transform ${expanded ? 'rotate-180' : ''}`} aria-hidden="true" />
           </span>
         </div>
-        {!compact && displayedDetail && <p className="mt-0.5 text-[10px] leading-4 text-slate-500 dark:text-slate-400" title={displayedDetail === stage.detail ? stage.detail : undefined}>{displayedDetail}</p>}
+        {!compact && displayedDetail && <p className="mt-0.5 text-[10px] leading-4 text-slate-500 dark:text-slate-400" title={displayedDetail}>{displayedDetail}</p>}
         </span>
       </button>
       {expanded && (
@@ -290,6 +266,7 @@ const EngineeringResultSummary = ({ technology, truth, stageEvidence, stageSumma
   const stageButtonRefs = useRef<Partial<Record<EngineeringCauseStage['id'], HTMLButtonElement | null>>>({});
   const previousTruthStateRef = useRef(truth.state);
   const [verdictPulse, setVerdictPulse] = useState(false);
+  const [confidenceOpen, setConfidenceOpen] = useState(false);
   const tone = toneStyles[truth.tone];
   const confidence = truth.confidence?.display
     ?? [truth.confidence?.label, truth.confidence?.score != null ? `${truth.confidence.score}/100` : null].filter(Boolean).join(' · ');
@@ -371,8 +348,23 @@ const EngineeringResultSummary = ({ technology, truth, stageEvidence, stageSumma
         {(truth.decisiveFactor || confidence) && (
           <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-500 dark:text-slate-400">
             {truth.decisiveFactor && <span><strong className="font-semibold text-slate-700 dark:text-slate-200">Decisive factor:</strong> {truth.decisiveFactor}</span>}
-            {confidence && <span><strong className="font-semibold text-slate-700 dark:text-slate-200">Confidence:</strong> {confidence}</span>}
+            {confidence && (truth.confidenceBreakdown ? (
+              <button
+                type="button"
+                aria-expanded={confidenceOpen}
+                onClick={() => setConfidenceOpen((open) => !open)}
+                className="inline-flex items-center gap-1 rounded text-left outline-none transition-colors hover:text-slate-800 focus-visible:ring-2 focus-visible:ring-sky-400 dark:hover:text-slate-100"
+              >
+                <strong className="font-semibold text-slate-700 dark:text-slate-200">Confidence:</strong> {confidence}
+                <ChevronDown className={`h-3 w-3 shrink-0 transition-transform ${confidenceOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+              </button>
+            ) : (
+              <span><strong className="font-semibold text-slate-700 dark:text-slate-200">Confidence:</strong> {confidence}</span>
+            ))}
           </div>
+        )}
+        {confidenceOpen && truth.confidenceBreakdown && (
+          <ConfidenceBreakdown confidence={truth.confidenceBreakdown} />
         )}
       </div>
 

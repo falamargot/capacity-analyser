@@ -1,4 +1,4 @@
-import { ArrowLeft, Check, CircleDashed, Search, X } from 'lucide-react';
+import { ArrowLeft, Search, X } from 'lucide-react';
 import { useRef, useState, type KeyboardEvent } from 'react';
 import type { CandidateCoverage } from '../../types/analysis';
 import type {
@@ -8,11 +8,9 @@ import type {
   EngineeringConfigureSite,
 } from '../../types/engineeringConfigure';
 import type { EngineeringTruth } from '../../utils/engineeringAnalysisViewModel';
-import { useEngineeringConfigureDraft } from '../../hooks/useEngineeringConfigureDraft';
 import {
   getEngineeringGeoManualSelectionKeys,
   getPublishedEngineeringGeoPath,
-  isEngineeringConfigureDraftComplete,
 } from '../../utils/engineeringConfigureModel';
 import { getCandidateCoverageDisplayName, getCandidateCoverageKey } from '../../utils/geoCoverageSelection';
 import { getLeoTerminalProfile } from '../../config/leoTerminals';
@@ -22,14 +20,6 @@ import InlineSearchResultsPopover from '../commercial/InlineSearchResultsPopover
 import LinkModeSelector from './LinkModeSelector';
 import TerminalConfig, { getDefaultRFClassForUseCase, type TerminalType } from './TerminalConfig';
 import { handleRadioGroupKeyDown } from './shared/radioGroupKeyboard';
-
-const STAGE_LABELS = {
-  scenario: 'Scenario',
-  path: 'Path',
-  rf: 'RF closure',
-  service: 'Service gates',
-  delivery: 'Delivery',
-} as const;
 
 function truthMetricSummary(truth: EngineeringTruth | undefined): string {
   if (!truth) return 'No result published';
@@ -221,13 +211,17 @@ export default function EngineeringConfigurePanel({
   onCancel,
   onApply,
 }: EngineeringConfigurePanelProps) {
-  const { draft, setDraft, changes, affectedStages, discard } = useEngineeringConfigureDraft(baseline);
+  // M4: instant apply — the published scenario is the single source; every
+  // edit publishes immediately through onApply and flows back as the next
+  // baseline. No draft, no staged changes, no Apply gate.
+  const draft = baseline;
+  const apply = (mutate: (current: EngineeringConfigureDraft) => EngineeringConfigureDraft) => {
+    onApply(mutate(baseline));
+  };
   const isGeo = draft.technology === 'GEO';
   const isSiteToSite = isGeo
     ? draft.geoLinkMode === 'MESH' || draft.geoLinkMode === 'POINT_TO_POINT'
     : draft.leoTopologyMode === 'SITE_TO_SITE';
-  const canApply = changes.length > 0
-    && isEngineeringConfigureDraftComplete(draft);
   const activeTruth = truths[draft.technology];
   const activeManualSelectors = isGeo && draft.selectionPolicy === 'manual'
     ? draft.geoLinkMode === 'STAR_FORWARD'
@@ -246,11 +240,11 @@ export default function EngineeringConfigurePanel({
     : [];
 
   const updateSite = (key: 'siteA' | 'siteB', update: Partial<EngineeringConfigureSite>) => {
-    setDraft((current) => ({ ...current, [key]: { ...current[key], ...update } }));
+    apply((current) => ({ ...current, [key]: { ...current[key], ...update } }));
   };
 
   const setSelectionPolicy = (selectionPolicy: EngineeringConfigureDraft['selectionPolicy']) => {
-    setDraft((current) => ({
+    apply((current) => ({
       ...current,
       selectionPolicy,
       ...(selectionPolicy === 'auto' ? {
@@ -274,7 +268,7 @@ export default function EngineeringConfigurePanel({
           </div>
           <button
             type="button"
-            onClick={() => { discard(); onCancel(); }}
+            onClick={onCancel}
             className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -298,7 +292,7 @@ export default function EngineeringConfigurePanel({
                 <button
                   key={technology}
                   type="button"
-                  onClick={() => setDraft((current) => ({ ...current, technology }))}
+                  onClick={() => apply((current) => ({ ...current, technology }))}
                   role="radio"
                   aria-checked={draft.technology === technology}
                   tabIndex={draft.technology === technology ? 0 : -1}
@@ -313,7 +307,7 @@ export default function EngineeringConfigurePanel({
               {isGeo ? (
                 <LinkModeSelector
                   linkMode={draft.geoLinkMode}
-                  onChange={(geoLinkMode) => setDraft((current) => ({ ...current, geoLinkMode }))}
+                  onChange={(geoLinkMode) => apply((current) => ({ ...current, geoLinkMode }))}
                 />
               ) : (
                 <div>
@@ -323,7 +317,7 @@ export default function EngineeringConfigurePanel({
                       <button
                         key={mode}
                         type="button"
-                        onClick={() => setDraft((current) => ({ ...current, leoTopologyMode: mode }))}
+                        onClick={() => apply((current) => ({ ...current, leoTopologyMode: mode }))}
                         role="radio"
                         aria-checked={draft.leoTopologyMode === mode}
                         tabIndex={draft.leoTopologyMode === mode ? 0 : -1}
@@ -344,7 +338,7 @@ export default function EngineeringConfigurePanel({
                       <button
                         key={direction}
                         type="button"
-                        onClick={() => setDraft((current) => ({ ...current, direction }))}
+                        onClick={() => apply((current) => ({ ...current, direction }))}
                         role="radio"
                         aria-checked={draft.direction === direction}
                         tabIndex={draft.direction === direction ? 0 : -1}
@@ -388,7 +382,7 @@ export default function EngineeringConfigurePanel({
                     terminalType={isGeo ? site.geoTerminalType : site.leoTerminalType}
                     onTerminalTypeChange={(terminalType) => {
                       if (isGeo) {
-                        setDraft((current) => ({ ...current, [key]: updateSiteTerminalType(current[key], terminalType) }));
+                        apply((current) => ({ ...current, [key]: updateSiteTerminalType(current[key], terminalType) }));
                       } else {
                         updateSite(key, {
                           leoTerminalType: terminalType,
@@ -442,7 +436,7 @@ export default function EngineeringConfigurePanel({
                 {draft.selectionPolicy === 'auto' ? (
                   <>
                     <p className="mt-3 text-xs leading-5 text-slate-500 dark:text-slate-400">
-                      The existing route engine will continue to select the highest-valid eligible end-to-end path.
+                      The existing route engine selects the highest-valid eligible end-to-end path.
                     </p>
                     <ResolvedAutoPath baseline={baseline} candidates={candidates} />
                   </>
@@ -455,7 +449,7 @@ export default function EngineeringConfigurePanel({
                         candidates={candidates[selector.site]}
                         uplink={selector.uplink}
                         selectedKey={draft[selector.key]}
-                        onChange={(key) => setDraft((current) => ({ ...current, [selector.key]: key }))}
+                        onChange={(key) => apply((current) => ({ ...current, [selector.key]: key }))}
                       />
                     ))}
                     <button
@@ -466,7 +460,7 @@ export default function EngineeringConfigurePanel({
                       Return to Automatic selection
                     </button>
                     <p className="text-[10px] leading-4 text-slate-500 dark:text-slate-400">
-                      Returning to Automatic clears the staged satellite and beam overrides. The existing route engine selects the path after Apply.
+                      Returning to Automatic clears the satellite and beam overrides immediately; the route engine takes over path selection.
                     </p>
                   </div>
                 )}
@@ -474,57 +468,9 @@ export default function EngineeringConfigurePanel({
             </fieldset>
           )}
 
-          <section aria-label="Pending scenario changes" className="rounded-xl border border-sky-200/80 bg-sky-50/45 p-3 dark:border-sky-900/80 dark:bg-sky-950/12">
-            <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-sky-700 dark:text-sky-300">Pending scenario changes</div>
-            {changes.length === 0 ? (
-              <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">No pending changes.</p>
-            ) : (
-              <>
-                <ul className="mt-2 space-y-1.5">
-                  {changes.map((change) => (
-                    <li key={`${change.label}:${change.after}`} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 text-xs">
-                      <span className="font-semibold text-slate-700 dark:text-slate-200">{change.label}</span>
-                      <span className="max-w-[12rem] truncate text-right text-slate-500 dark:text-slate-400" title={`${change.before} → ${change.after}`}>{change.before} → {change.after}</span>
-                    </li>
-                  ))}
-                </ul>
-                {affectedStages.length > 0 && (
-                  <div className="mt-3 flex flex-wrap items-center gap-1.5" aria-label="Expected affected engineering stages">
-                    {affectedStages.map((stage) => (
-                      <span key={stage} className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-white px-2 py-1 text-[10px] font-semibold text-sky-800 dark:border-sky-700 dark:bg-slate-900 dark:text-sky-200">
-                        <CircleDashed className="h-3 w-3" />
-                        {STAGE_LABELS[stage]}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                <p className="mt-3 text-[10px] leading-4 text-slate-500 dark:text-slate-400">The current result remains visible until these changes are applied.</p>
-              </>
-            )}
-          </section>
         </div>
       </div>
 
-      <footer className="shrink-0 border-t border-slate-200/80 bg-white/95 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/95">
-        <div className="grid grid-cols-[0.8fr_1.2fr] gap-2">
-          <button
-            type="button"
-            onClick={() => { discard(); onCancel(); }}
-            className="h-11 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
-          >
-            Discard
-          </button>
-          <button
-            type="button"
-            onClick={() => onApply(draft)}
-            disabled={!canApply}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-bold text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
-          >
-            <Check className="h-4 w-4" />
-            Apply changes
-          </button>
-        </div>
-      </footer>
     </section>
   );
 }

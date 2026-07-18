@@ -654,7 +654,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   }
   const scenarioAccessEvidence = showConfigurationControls ? (
     <>
-      <LayerHeading title="Access Layer" detail="RF details, terminal characteristics, weather loss, elevation and visibility." />
+      <LayerHeading title="Terminal Configuration" detail="Terminal RF class, custom parameters and weather assumptions for each site." />
 
       <div className="mb-4 mt-2">
         {isMeshOrP2P && terminalTypeB != null && onTerminalTypeBChange ? (
@@ -815,7 +815,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   ) : null;
   const scenarioSpaceEvidence = (
       <div className="space-y-3">
-      <LayerHeading title="Space Segment" detail="Serving satellite, coverage, beam, footprint and link-budget metrics." />
+      <LayerHeading title="Coverage & Path Selection" detail="Resolved traffic path plus manual uplink/downlink coverage overrides." />
 
       {!isMeshOrP2P && (
         <div className="mb-4 mt-2 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5 text-xs dark:border-slate-700 dark:bg-slate-900/60">
