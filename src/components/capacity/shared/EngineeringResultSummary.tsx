@@ -155,7 +155,6 @@ const pathStateLabel: Record<EngineeringPathVisualState, string> = {
 
 const CauseStage = ({
   stage,
-  technology,
   last,
   compact,
   selected,
@@ -167,7 +166,6 @@ const CauseStage = ({
   onKeyDown,
 }: {
   stage: EngineeringCauseStage;
-  technology: 'GEO' | 'LEO';
   last: boolean;
   compact: boolean;
   selected: boolean;
@@ -263,7 +261,6 @@ const CauseStage = ({
             <>
               {secondaryEvidence.length > 0 && <dl className="mt-2">{renderEvidence(secondaryEvidence, true)}</dl>}
               {evidence && <div className={hasPrimaryEvidence || secondaryEvidence.length > 0 ? 'mt-3' : ''}>{evidence}</div>}
-              <div className={hasPrimaryEvidence || secondaryEvidence.length > 0 || evidence ? 'mt-3' : ''} data-engineering-stage-evidence-host={`${technology}:${stage.id}`} />
             </>
           ) : (
             <details className={`group rounded-lg border border-slate-200 bg-white/80 open:bg-white dark:border-slate-700 dark:bg-slate-950/45 dark:open:bg-slate-950/70 ${hasPrimaryEvidence ? 'mt-3' : ''}`}>
@@ -274,7 +271,6 @@ const CauseStage = ({
               <div className="border-t border-slate-200 p-3 dark:border-slate-700">
                 {secondaryEvidence.length > 0 && <dl className="mb-3">{renderEvidence(secondaryEvidence, true)}</dl>}
                 {evidence}
-                <div className={evidence || secondaryEvidence.length ? 'mt-3' : ''} data-engineering-stage-evidence-host={`${technology}:${stage.id}`} />
               </div>
             </details>
           )}
@@ -417,7 +413,6 @@ const EngineeringResultSummary = ({ technology, truth, stageEvidence, stageSumma
             <CauseStage
               key={stage.id}
               stage={stage}
-              technology={technology}
               last={index === truth.causeChain.length - 1}
               compact={expandedStageId !== stage.id}
               selected={focusedStageId === stage.id}

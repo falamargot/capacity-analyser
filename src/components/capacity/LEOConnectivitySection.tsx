@@ -23,7 +23,6 @@ import { fmtMbps, fmtMs } from '../../utils/engineeringFormat';
 import LatencyBreakdownCard from './shared/LatencyBreakdownCard';
 import LayerHeading from './shared/LayerHeading';
 import EngineeringResultSummary from './shared/EngineeringResultSummary';
-import EngineeringStageEvidencePortal from './shared/EngineeringStageEvidencePortal';
 import { EngineeringDeliveryEvidence, EngineeringEvidenceSummary, EngineeringScenarioEvidence } from './shared/EngineeringStageEvidence';
 import DetailsTogglePill from './shared/DetailsTogglePill';
 
@@ -1164,50 +1163,16 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
       ]}
     />
   );
-  if (!isEngineeringDeliveryState(engineeringAnalysisViewModel.truth.state)) {
-    const showRfEvidence = engineeringAnalysisViewModel.truth.state === 'blocked'
-      || engineeringAnalysisViewModel.truth.state === 'budget-unavailable';
-    return (
-      <>
-        {showConfigurationControls && leoTopologyMode && onLeoTopologyModeChange && (
-          <EngineeringStageEvidencePortal technology="LEO" stage="scenario">
+  const scenarioTopologyCompactEvidence = showConfigurationControls && leoTopologyMode && onLeoTopologyModeChange ? (
+    <>
           <div className="mb-4 grid grid-cols-2 gap-1">
             <button type="button" onClick={() => onLeoTopologyModeChange('SINGLE_SITE')} className={`rounded px-2 py-2 text-xs font-semibold ${leoTopologyMode === 'SINGLE_SITE' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-gray-300'}`}>Single Site</button>
             <button type="button" onClick={() => onLeoTopologyModeChange('SITE_TO_SITE')} className={`rounded px-2 py-2 text-xs font-semibold ${leoTopologyMode === 'SITE_TO_SITE' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-gray-300'}`}>Site-to-Site</button>
           </div>
-          </EngineeringStageEvidencePortal>
-        )}
-        <EngineeringResultSummary
-          technology="LEO"
-          truth={engineeringAnalysisViewModel.truth}
-          stageSummaries={{ path: pathSummaryEvidence }}
-          stageEvidence={showRfEvidence ? {
-            scenario: scenarioEvidence,
-            rf: (
-            <LeoLinkBudgetEvidence
-              debugInfo={leoPerformance?.debugInfo ?? null}
-              siteToSiteResult={siteToSiteResult}
-              siteToSiteDirection={s2sDirection}
-              debugInfoSiteA={s2sView?.debugSiteA}
-              debugInfoSiteB={s2sView?.debugSiteB}
-              snpAName={s2sSnpAName !== '—' ? s2sSnpAName : undefined}
-              snpBName={s2sSnpBName !== '—' ? s2sSnpBName : undefined}
-              popName={s2sPopName}
-              latencyMs={answerLatencyMs}
-              latencyLabel={answerLatencyLabel}
-              viewModel={engineeringAnalysisViewModel}
-            />
-            ),
-            delivery: <EngineeringDeliveryEvidence viewModel={engineeringAnalysisViewModel} />,
-          } : undefined}
-        />
-      </>
-    );
-  }
-  return (
+    </>
+  ) : null;
+  const scenarioTopologyEvidence = showConfigurationControls && leoTopologyMode && onLeoTopologyModeChange ? (
     <>
-      {showConfigurationControls && leoTopologyMode && onLeoTopologyModeChange && (
-        <EngineeringStageEvidencePortal technology="LEO" stage="scenario">
         <div className="mb-4">
           <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
             LEO Topology
@@ -1245,41 +1210,10 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
             </button>
           </div>
         </div>
-        </EngineeringStageEvidencePortal>
-      )}
-
-      <div className="space-y-4">
-      <EngineeringResultSummary
-        technology="LEO"
-        truth={engineeringAnalysisViewModel.truth}
-        stageSummaries={{ path: pathSummaryEvidence }}
-        stageEvidence={{
-          scenario: scenarioEvidence,
-          rf: (
-            <LeoLinkBudgetEvidence
-              debugInfo={leoPerformance?.debugInfo ?? null}
-              siteToSiteResult={isS2S ? siteToSiteResult : undefined}
-              siteToSiteDirection={s2sDirection}
-              debugInfoSiteA={s2sView?.debugSiteA}
-              debugInfoSiteB={s2sView?.debugSiteB}
-              snpAName={s2sSnpAName !== '—' ? s2sSnpAName : undefined}
-              snpBName={s2sSnpBName !== '—' ? s2sSnpBName : undefined}
-              popName={s2sPopName}
-              latencyMs={answerLatencyMs}
-              latencyLabel={answerLatencyLabel}
-              availabilityLabel={`${availabilityContext.indicativeAvailabilityPct.toFixed(1)}% indicative`}
-              confidenceLabel={`${predictionConfidence.level} ${predictionConfidence.score}/100`}
-              confidenceDetail={[predictionConfidence.summary, predictionConfidence.reasons[0] ?? predictionConfidence.limitation].filter(Boolean).join('. ')}
-              confidence={predictionConfidence}
-              viewModel={engineeringAnalysisViewModel}
-            />
-          ),
-          delivery: <EngineeringDeliveryEvidence viewModel={engineeringAnalysisViewModel} />,
-        }}
-      />
-
-        {showConfigurationControls && (
-        <EngineeringStageEvidencePortal technology="LEO" stage="scenario"><>
+    </>
+  ) : null;
+  const scenarioAccessEvidence = showConfigurationControls ? (
+    <>
         <LayerHeading title="Access Layer" detail="RF details, terminal characteristics, weather loss, elevation and visibility." />
         {/* ── S2S mode: two independent terminal cards ── */}
         {isS2S && terminalTypeB != null && onTerminalTypeBChange != null ? (
@@ -1357,14 +1291,15 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
             advancedDetailsOnly
           />
         )}
-        </></EngineeringStageEvidencePortal>
-        )}
-
-        <EngineeringStageEvidencePortal technology="LEO" stage="rf">
+    </>
+  ) : null;
+  const rfSpaceEvidence = (
+    <>
         <LayerHeading title="Space Segment" detail="Serving satellites, beam state, RF budget and capacity constraints." />
-        </EngineeringStageEvidencePortal>
-
-        <EngineeringStageEvidencePortal technology="LEO" stage="path">
+    </>
+  );
+  const pathDetailEvidence = (
+    <>
         <div className="space-y-3">
         <LayerHeading title="Ground Segment" detail="SNP, PoP/backbone and feeder path details." />
         {/* Radio Path */}
@@ -1611,9 +1546,10 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
           )}
         </CollapsibleSection>
         </div>
-        </EngineeringStageEvidencePortal>
-
-        <EngineeringStageEvidencePortal technology="LEO" stage="delivery">
+    </>
+  );
+  const deliveryDetailEvidence = (
+    <>
         <div className="space-y-3">
         <LayerHeading title="End-to-End Analysis" detail="Final latency, throughput, availability and bottleneck reasoning." />
         {/* Latency Breakdown */}
@@ -1719,7 +1655,77 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
           </div>
         )}
         </div>
-        </EngineeringStageEvidencePortal>
+    </>
+  );
+  if (!isEngineeringDeliveryState(engineeringAnalysisViewModel.truth.state)) {
+    const showRfEvidence = engineeringAnalysisViewModel.truth.state === 'blocked'
+      || engineeringAnalysisViewModel.truth.state === 'budget-unavailable';
+    return (
+      <>
+        <EngineeringResultSummary
+          technology="LEO"
+          truth={engineeringAnalysisViewModel.truth}
+          stageSummaries={{ path: pathSummaryEvidence }}
+          stageEvidence={showRfEvidence ? {
+            scenario: <>{scenarioEvidence}{scenarioTopologyCompactEvidence}</>,
+            rf: (
+            <LeoLinkBudgetEvidence
+              debugInfo={leoPerformance?.debugInfo ?? null}
+              siteToSiteResult={siteToSiteResult}
+              siteToSiteDirection={s2sDirection}
+              debugInfoSiteA={s2sView?.debugSiteA}
+              debugInfoSiteB={s2sView?.debugSiteB}
+              snpAName={s2sSnpAName !== '—' ? s2sSnpAName : undefined}
+              snpBName={s2sSnpBName !== '—' ? s2sSnpBName : undefined}
+              popName={s2sPopName}
+              latencyMs={answerLatencyMs}
+              latencyLabel={answerLatencyLabel}
+              viewModel={engineeringAnalysisViewModel}
+            />
+            ),
+            delivery: <EngineeringDeliveryEvidence viewModel={engineeringAnalysisViewModel} />,
+          } : scenarioTopologyCompactEvidence ? { scenario: scenarioTopologyCompactEvidence } : undefined}
+        />
+      </>
+    );
+  }
+  return (
+    <>
+
+      <div className="space-y-4">
+      <EngineeringResultSummary
+        technology="LEO"
+        truth={engineeringAnalysisViewModel.truth}
+        stageSummaries={{ path: pathSummaryEvidence }}
+        stageEvidence={{
+          scenario: <>{scenarioEvidence}{scenarioTopologyEvidence}{scenarioAccessEvidence}</>,
+          rf: (<>
+            <LeoLinkBudgetEvidence
+              debugInfo={leoPerformance?.debugInfo ?? null}
+              siteToSiteResult={isS2S ? siteToSiteResult : undefined}
+              siteToSiteDirection={s2sDirection}
+              debugInfoSiteA={s2sView?.debugSiteA}
+              debugInfoSiteB={s2sView?.debugSiteB}
+              snpAName={s2sSnpAName !== '—' ? s2sSnpAName : undefined}
+              snpBName={s2sSnpBName !== '—' ? s2sSnpBName : undefined}
+              popName={s2sPopName}
+              latencyMs={answerLatencyMs}
+              latencyLabel={answerLatencyLabel}
+              availabilityLabel={`${availabilityContext.indicativeAvailabilityPct.toFixed(1)}% indicative`}
+              confidenceLabel={`${predictionConfidence.level} ${predictionConfidence.score}/100`}
+              confidenceDetail={[predictionConfidence.summary, predictionConfidence.reasons[0] ?? predictionConfidence.limitation].filter(Boolean).join('. ')}
+              confidence={predictionConfidence}
+              viewModel={engineeringAnalysisViewModel}
+            />
+          {rfSpaceEvidence}</>),
+          path: pathDetailEvidence,
+          delivery: <><EngineeringDeliveryEvidence viewModel={engineeringAnalysisViewModel} />{deliveryDetailEvidence}</>,
+        }}
+      />
+
+
+
+
       </div>
     </>
   );

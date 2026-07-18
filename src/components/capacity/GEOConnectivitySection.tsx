@@ -23,7 +23,6 @@ import { ENGINEERING_TERMS } from '../../constants/engineeringTerminology';
 import LatencyBreakdownCard from './shared/LatencyBreakdownCard';
 import LayerHeading from './shared/LayerHeading';
 import EngineeringResultSummary from './shared/EngineeringResultSummary';
-import EngineeringStageEvidencePortal from './shared/EngineeringStageEvidencePortal';
 import { EngineeringDeliveryEvidence, EngineeringEvidenceSummary, EngineeringScenarioEvidence } from './shared/EngineeringStageEvidence';
 
 // ─── Sub-component: Link budget cockpit + detail drawer ──────────────────────
@@ -619,22 +618,22 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
       ]}
     />
   );
+  const scenarioConfigureEvidence = showConfigurationControls && onLinkModeChange ? (
+    <div className="mb-4">
+      <LinkModeSelector linkMode={linkMode} onChange={onLinkModeChange} />
+    </div>
+  ) : null;
   if (!isEngineeringDeliveryState(engineeringAnalysisViewModel.truth.state)) {
     const showRfEvidence = engineeringAnalysisViewModel.truth.state === 'blocked'
       || engineeringAnalysisViewModel.truth.state === 'budget-unavailable';
     return (
       <>
-        {showConfigurationControls && onLinkModeChange && (
-          <EngineeringStageEvidencePortal technology="GEO" stage="scenario">
-            <div className="mb-4"><LinkModeSelector linkMode={linkMode} onChange={onLinkModeChange} /></div>
-          </EngineeringStageEvidencePortal>
-        )}
         <EngineeringResultSummary
           technology="GEO"
           truth={engineeringAnalysisViewModel.truth}
           stageSummaries={{ path: pathSummaryEvidence }}
           stageEvidence={showRfEvidence ? {
-            scenario: scenarioEvidence,
+            scenario: <>{scenarioEvidence}{scenarioConfigureEvidence}</>,
             rf: (
             <GeoLinkBudgetEvidence
               linkMode={linkMode}
@@ -648,51 +647,13 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
             />
             ),
             delivery: <EngineeringDeliveryEvidence viewModel={engineeringAnalysisViewModel} />,
-          } : undefined}
+          } : scenarioConfigureEvidence ? { scenario: scenarioConfigureEvidence } : undefined}
         />
       </>
     );
   }
-  return (
+  const scenarioAccessEvidence = showConfigurationControls ? (
     <>
-      {showConfigurationControls && onLinkModeChange && (
-        <EngineeringStageEvidencePortal technology="GEO" stage="scenario">
-          <div className="mb-4">
-            <LinkModeSelector linkMode={linkMode} onChange={onLinkModeChange} />
-          </div>
-        </EngineeringStageEvidencePortal>
-      )}
-
-      <EngineeringResultSummary
-        technology="GEO"
-        truth={engineeringAnalysisViewModel.truth}
-        stageSummaries={{ path: pathSummaryEvidence }}
-        stageEvidence={{
-          scenario: scenarioEvidence,
-          rf: (
-            <GeoLinkBudgetEvidence
-              linkMode={linkMode}
-              result={dualSegmentResult}
-              activeMeshTab={isMeshOrP2P ? activeMeshTab : undefined}
-              onMeshTabChange={isMeshOrP2P ? setActiveMeshTab : undefined}
-              satelliteName={drawerSatelliteName}
-              satellite={resolvedGEOConnectivity?.satellite ?? null}
-              viewModel={engineeringAnalysisViewModel}
-              latencyMs={headlineLatencyMs}
-              latencyLabel={headlineLatencyLabel}
-              availabilityLabel={`${availabilityContext.indicativeAvailabilityPct.toFixed(1)}% indicative`}
-              confidenceLabel={`${geoPredictionConfidence.level} ${geoPredictionConfidence.score}/100`}
-              confidenceDetail={[geoPredictionConfidence.summary, geoPredictionConfidence.reasons[0] ?? geoPredictionConfidence.limitation].filter(Boolean).join('. ')}
-              confidence={geoPredictionConfidence}
-              coverageLabels={linkBudgetCoverageLabels}
-            />
-          ),
-          delivery: <EngineeringDeliveryEvidence viewModel={engineeringAnalysisViewModel} />,
-        }}
-      />
-
-      {showConfigurationControls && (
-      <EngineeringStageEvidencePortal technology="GEO" stage="scenario"><>
       <LayerHeading title="Access Layer" detail="RF details, terminal characteristics, weather loss, elevation and visibility." />
 
       <div className="mb-4 mt-2">
@@ -850,10 +811,9 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           </div>
         )}
       </div>
-      </></EngineeringStageEvidencePortal>
-      )}
-
-      <EngineeringStageEvidencePortal technology="GEO" stage="scenario">
+    </>
+  ) : null;
+  const scenarioSpaceEvidence = (
       <div className="space-y-3">
       <LayerHeading title="Space Segment" detail="Serving satellite, coverage, beam, footprint and link-budget metrics." />
 
@@ -896,10 +856,9 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
         );
       })()}
       </div>
-      </EngineeringStageEvidencePortal>
-
-      <div className="mt-4 space-y-4">
-        <EngineeringStageEvidencePortal technology="GEO" stage="path">
+  );
+  const pathDetailEvidence = (
+    <>
         {/* Radio Path */}
         <CollapsibleSection
           storageKey="geo-radio-path"
@@ -1037,9 +996,9 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
             )
           )}
         </CollapsibleSection>
-        </EngineeringStageEvidencePortal>
-
-        <EngineeringStageEvidencePortal technology="GEO" stage="delivery">
+    </>
+  );
+  const deliveryDetailEvidence = (
         <div className="space-y-3">
         <LayerHeading title="End-to-End Analysis" detail="Final throughput, latency, availability, bottleneck and limiting factor." />
         {/* Latency Breakdown */}
@@ -1154,8 +1113,39 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           </LatencyBreakdownCard>
         )}
         </div>
-        </EngineeringStageEvidencePortal>
-      </div>
+  );
+  return (
+    <>
+
+      <EngineeringResultSummary
+        technology="GEO"
+        truth={engineeringAnalysisViewModel.truth}
+        stageSummaries={{ path: pathSummaryEvidence }}
+        stageEvidence={{
+          scenario: <>{scenarioEvidence}{scenarioConfigureEvidence}{scenarioAccessEvidence}{scenarioSpaceEvidence}</>,
+          rf: (
+            <GeoLinkBudgetEvidence
+              linkMode={linkMode}
+              result={dualSegmentResult}
+              activeMeshTab={isMeshOrP2P ? activeMeshTab : undefined}
+              onMeshTabChange={isMeshOrP2P ? setActiveMeshTab : undefined}
+              satelliteName={drawerSatelliteName}
+              satellite={resolvedGEOConnectivity?.satellite ?? null}
+              viewModel={engineeringAnalysisViewModel}
+              latencyMs={headlineLatencyMs}
+              latencyLabel={headlineLatencyLabel}
+              availabilityLabel={`${availabilityContext.indicativeAvailabilityPct.toFixed(1)}% indicative`}
+              confidenceLabel={`${geoPredictionConfidence.level} ${geoPredictionConfidence.score}/100`}
+              confidenceDetail={[geoPredictionConfidence.summary, geoPredictionConfidence.reasons[0] ?? geoPredictionConfidence.limitation].filter(Boolean).join('. ')}
+              confidence={geoPredictionConfidence}
+              coverageLabels={linkBudgetCoverageLabels}
+            />
+          ),
+          path: pathDetailEvidence,
+          delivery: <><EngineeringDeliveryEvidence viewModel={engineeringAnalysisViewModel} />{deliveryDetailEvidence}</>,
+        }}
+      />
+
     </>
   );
 });
