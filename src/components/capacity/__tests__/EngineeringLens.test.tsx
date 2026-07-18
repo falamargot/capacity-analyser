@@ -30,19 +30,17 @@ const controller = (overrides: Partial<EngineeringFocusController> = {}): Engine
   focus: createEngineeringFocus('locked', 'LEO', 'delivery', 'globe'),
   lensPosture: 'reasoning',
   surfaceMode: 'result',
-  routeViewRequest: 0,
   preview: () => undefined,
   lock: () => undefined,
   clearPreview: () => undefined,
   clear: () => undefined,
-  returnToRoute: () => undefined,
   setLensPosture: () => undefined,
   setSurfaceMode: () => undefined,
   ...overrides,
 });
 
-describe('Phase 3 Engineering Lens', () => {
-  it('renders the canonical Cause Chain as keyboard-operable globe focus controls', () => {
+describe('Engineering Cause Chain investigation', () => {
+  it('renders the globe-selected stage as the only expanded accordion item', () => {
     const markup = renderToStaticMarkup(
       <EngineeringFocusProvider controller={controller()} truths={{ LEO: truth }}>
         <EngineeringResultSummary technology="LEO" truth={truth} />
@@ -51,11 +49,15 @@ describe('Phase 3 Engineering Lens', () => {
 
     expect(markup).toContain('data-engineering-lens-posture="reasoning"');
     expect(markup).toContain('Engineering cause chain');
-    expect(markup).toContain('Delivery: Beam sharing. 188 Mbps → 8 Mbps. Focused on globe.');
-    expect(markup).toContain('aria-pressed="true"');
+    expect(markup).toContain('Delivery: Beam sharing. 188 Mbps → 8 Mbps. Collapse evidence.');
+    expect(markup).toContain('aria-expanded="true"');
+    expect(markup.match(/aria-expanded="true"/g)).toHaveLength(1);
+    expect(markup).toContain('data-engineering-stage-evidence="delivery"');
     expect(markup).toContain('Globe path: selected focus');
-    expect(markup).toContain('Route view');
     expect(markup).toContain('188 Mbps → 8 Mbps');
+    expect(markup).not.toContain('Route view');
+    expect(markup).not.toContain('Clear focus');
+    expect(markup).not.toContain('>Summary<');
   });
 
   it('keeps the Summary posture compact while retaining the five-stage textual equivalent', () => {
@@ -71,7 +73,50 @@ describe('Phase 3 Engineering Lens', () => {
     expect(markup).toContain('data-engineering-lens-posture="summary"');
     expect(markup).toContain('Scenario: Ready');
     expect(markup).toContain('Delivery: Beam sharing');
+    expect(markup.match(/aria-expanded="false"/g)).toHaveLength(5);
     expect(markup).not.toContain('>188 Mbps → 8 Mbps<');
     expect(markup).not.toContain('Next investigation:');
+  });
+
+  it('embeds the existing proof component directly beneath its stage', () => {
+    const markup = renderToStaticMarkup(
+      <EngineeringFocusProvider
+        controller={controller({ focus: createEngineeringFocus('locked', 'LEO', 'rf', 'lens') })}
+        truths={{ LEO: truth }}
+      >
+        <EngineeringResultSummary
+          technology="LEO"
+          truth={truth}
+          stageEvidence={{ rf: <section aria-label="Existing RF proof">Exact RF evidence</section> }}
+        />
+      </EngineeringFocusProvider>,
+    );
+
+    expect(markup).toContain('data-engineering-stage-evidence="rf"');
+    expect(markup).toContain('Existing RF proof');
+    expect(markup).toContain('Exact RF evidence');
+    expect(markup).toContain('Link budget &amp; RF evidence');
+    expect(markup).toContain('<details');
+    expect(markup.match(/aria-expanded="true"/g)).toHaveLength(1);
+  });
+
+  it('places the route answer before progressively disclosed hop evidence', () => {
+    const markup = renderToStaticMarkup(
+      <EngineeringFocusProvider
+        controller={controller({ focus: createEngineeringFocus('locked', 'LEO', 'path', 'lens') })}
+        truths={{ LEO: truth }}
+      >
+        <EngineeringResultSummary
+          technology="LEO"
+          truth={truth}
+          stageSummaries={{ path: <dl aria-label="LEO route summary"><dt>Route</dt><dd>Site A → Satellite → SNP</dd></dl> }}
+          stageEvidence={{ path: <section aria-label="Existing path proof">Hop evidence</section> }}
+        />
+      </EngineeringFocusProvider>,
+    );
+
+    expect(markup.indexOf('LEO route summary')).toBeLessThan(markup.indexOf('Major hops &amp; technical evidence'));
+    expect(markup).toContain('Site A → Satellite → SNP');
+    expect(markup).toContain('Existing path proof');
   });
 });

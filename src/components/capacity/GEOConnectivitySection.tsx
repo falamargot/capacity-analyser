@@ -1,5 +1,5 @@
 import { memo, useState, useMemo, useEffect, type ReactNode } from 'react';
-import { Maximize2, Minimize2, Route } from 'lucide-react';
+import { Route } from 'lucide-react';
 import { SectionTooltip } from '../SectionTooltip';
 import CoverageSelector from '../CoverageSelector';
 import CollapsibleSection from '../layout/CollapsibleSection';
@@ -23,8 +23,9 @@ import { fmtDb, fmtMbps, fmtMs } from '../../utils/engineeringFormat';
 import { ENGINEERING_TERMS } from '../../constants/engineeringTerminology';
 import LatencyBreakdownCard from './shared/LatencyBreakdownCard';
 import LayerHeading from './shared/LayerHeading';
-import { geoMarginToTone } from './shared/linkBudgetTone';
 import EngineeringResultSummary from './shared/EngineeringResultSummary';
+import EngineeringStageEvidencePortal from './shared/EngineeringStageEvidencePortal';
+import { EngineeringDeliveryEvidence, EngineeringEvidenceSummary, EngineeringScenarioEvidence } from './shared/EngineeringStageEvidence';
 
 // ─── Sub-component: Link budget cockpit + detail drawer ──────────────────────
 
@@ -47,142 +48,7 @@ const DirectionPill = ({ dir, aggregate = false }: { dir: string; aggregate?: bo
   }`}>{dir}</span>
 );
 
-interface LinkBudgetSummaryCardProps {
-  linkMode: LinkMode;
-  result: DualSegmentResult | null;
-  activeMeshTab?: 'forward' | 'reverse';
-  highlighted?: boolean;
-  onToggle: () => void;
-}
-
-const LinkBudgetSummaryCard = ({
-  linkMode,
-  result,
-  activeMeshTab = 'forward',
-  highlighted = false,
-  onToggle,
-}: LinkBudgetSummaryCardProps) => {
-  const direction = result
-    ? (activeMeshTab === 'reverse' && result.reverse ? result.reverse : result.forward)
-    : null;
-  const e2e = direction?.endToEnd ?? null;
-  const uplink = direction?.uplink ?? null;
-  const downlink = direction?.downlink ?? null;
-  const displaySegment = linkMode === 'STAR_FORWARD'
-    ? (downlink ?? uplink)
-    : linkMode === 'STAR_RETURN'
-      ? (uplink ?? downlink)
-      : (uplink ?? downlink);
-  const margin = e2e?.endToEndLinkMarginDb;
-  const tone = geoMarginToTone(margin);
-  const satelliteName = displaySegment?.candidate.satelliteName ?? 'No GEO path';
-  const band = displaySegment?.candidate.band ?? 'Band --';
-  const beamName = displayableBeamOrCoverageName(
-    displaySegment?.candidate.beamName,
-    displaySegment?.candidate.coverageName,
-    '--',
-  );
-  const linkBudgetDirectionLabel = linkMode === 'STAR_FORWARD'
-    ? 'Forward'
-    : linkMode === 'STAR_RETURN'
-      ? 'Return'
-      : activeMeshTab === 'reverse'
-        ? 'B→A'
-        : 'A→B';
-
-  const isMeshOrP2P = linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
-
-  return (
-    <section
-      className={[
-        'relative overflow-hidden rounded-xl border bg-white shadow-sm transition-all duration-200 dark:bg-slate-900',
-        highlighted
-          ? 'border-blue-300 ring-2 ring-blue-500/30 dark:border-blue-500/70 dark:ring-blue-400/30'
-          : 'border-slate-200 dark:border-slate-700',
-      ].join(' ')}
-    >
-      {highlighted && <div className="absolute inset-y-0 left-0 w-1 bg-blue-500" aria-hidden="true" />}
-      <div
-        className={[
-          'border-b px-3.5 py-3',
-          highlighted
-            ? 'border-blue-100 bg-blue-50/75 dark:border-blue-900/70 dark:bg-blue-950/30'
-            : 'border-slate-100 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-900/70',
-        ].join(' ')}
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center text-sm font-semibold" style={{ color: '#2563eb' }}>
-                Link Budget
-                <DirectionPill dir={linkBudgetDirectionLabel} />
-                <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${tone.className}`}>
-                  RF evidence · {tone.label}
-                </span>
-                <SectionTooltip content="RF link budget analysis showing end-to-end link margin and throughput. Status: Healthy (margin ≥ 2 dB), Marginal (0-2 dB), Blocked (negative margin), or No budget (insufficient data)." />
-              </span>
-            </div>
-            {/* Topology badges for Mesh / P2P */}
-            {isMeshOrP2P && (
-              <div className="mt-1.5 flex flex-wrap gap-1.5">
-                {linkMode === 'POINT_TO_POINT' ? (
-                  <>
-                    <span className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-violet-700 dark:border-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
-                      Dedicated SCPC
-                    </span>
-                    <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
-                      Protocol Efficiency 100%
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <span className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-sky-700 dark:border-sky-700 dark:bg-sky-900/30 dark:text-sky-300">
-                      Shared Service
-                    </span>
-                    <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
-                      Protocol Efficiency 85%
-                    </span>
-                  </>
-                )}
-              </div>
-            )}
-            <h4 className="mt-1.5 truncate text-sm font-semibold text-slate-950 dark:text-slate-50">
-              {satelliteName}
-            </h4>
-            <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
-              {band} · {beamName}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onToggle}
-            className={[
-              'inline-flex h-9 shrink-0 items-center justify-center rounded-lg border px-2.5 shadow-sm transition-colors',
-              highlighted
-                ? 'border-blue-300 bg-blue-600 text-white hover:bg-blue-700 dark:border-blue-400 dark:bg-blue-500 dark:hover:bg-blue-400'
-                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700',
-            ].join(' ')}
-            aria-label={highlighted ? 'Close detailed link budget' : 'Open detailed link budget'}
-            title={highlighted ? 'Close detailed link budget' : 'Open detailed link budget'}
-            aria-pressed={highlighted}
-          >
-            {highlighted ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-          </button>
-        </div>
-      </div>
-
-      <div className="border-t border-slate-100 bg-slate-50/60 px-3.5 py-2 text-[10px] leading-4 text-slate-500 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-400">
-        Open to inspect segment C/N, margin, MODCOD, RF potential, and network shaping evidence.
-      </div>
-    </section>
-  );
-};
-
-interface LinkBudgetDrawerProps {
-  open: boolean;
-  onClose: () => void;
-  expanded?: boolean;
-  onExpandedChange?: (expanded: boolean) => void;
+interface GeoLinkBudgetEvidenceProps {
   linkMode: LinkMode;
   result: DualSegmentResult | null;
   activeMeshTab?: 'forward' | 'reverse';
@@ -208,11 +74,7 @@ interface LinkBudgetDrawerProps {
   };
 }
 
-const LinkBudgetDrawer = ({
-  open,
-  onClose,
-  expanded,
-  onExpandedChange,
+const GeoLinkBudgetEvidence = ({
   linkMode,
   result,
   activeMeshTab,
@@ -227,9 +89,7 @@ const LinkBudgetDrawer = ({
   coverageLabels,
   satellite,
   viewModel: providedViewModel,
-}: LinkBudgetDrawerProps) => {
-  if (!open) return null;
-
+}: GeoLinkBudgetEvidenceProps) => {
   const viewModel = providedViewModel ?? buildGeoEngineeringAnalysisViewModel({
     linkMode,
     result,
@@ -245,10 +105,6 @@ const LinkBudgetDrawer = ({
 
   return (
     <EngineeringAnalysisWorkspace
-      open={open}
-      onClose={onClose}
-      expanded={expanded}
-      onExpandedChange={onExpandedChange}
       viewModel={viewModel}
     >
       <DualSegmentPanel
@@ -342,7 +198,6 @@ export interface ResolvedGEOConnectivity {
 
 interface GEOConnectivitySectionProps {
   engineeringAnalysisViewModel: EngineeringAnalysisViewModel;
-  onConfigure?: () => void;
   showConfigurationControls?: boolean;
   resolvedGEOConnectivity: ResolvedGEOConnectivity | null;
   geoGeometry: GEOGeometry | null;
@@ -411,12 +266,6 @@ interface GEOConnectivitySectionProps {
   onSelectDownlinkCoverageB?: (coverage: CandidateCoverage) => void;
   /** When provided, only satellites whose ID is in this set appear in the satellite dropdown. */
   validSatelliteIds?: ReadonlySet<string>;
-  /** Controlled drawer open state — lift to parent so GEO/LEO share the same open/closed status. */
-  isLinkBudgetDrawerOpen?: boolean;
-  onLinkBudgetDrawerOpenChange?: (open: boolean) => void;
-  /** Shared workspace expansion state so GEO/LEO tab switches preserve full-height presentation. */
-  isLinkBudgetDetailExpanded?: boolean;
-  onLinkBudgetDetailExpandedChange?: (expanded: boolean) => void;
 }
 
 // Speed of light used for propagation delay (km/ms)
@@ -424,7 +273,6 @@ const SPEED_OF_LIGHT_KM_PER_MS = 299.792458;
 
 const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   engineeringAnalysisViewModel,
-  onConfigure,
   showConfigurationControls = false,
   resolvedGEOConnectivity,
   geoGeometry,
@@ -474,10 +322,6 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   activeMeshTab: controlledMeshTab,
   onActiveMeshTabChange,
   validSatelliteIds,
-  isLinkBudgetDrawerOpen: controlledDrawerOpen = false,
-  onLinkBudgetDrawerOpenChange,
-  isLinkBudgetDetailExpanded,
-  onLinkBudgetDetailExpandedChange,
 }) => {
   const geoCapacityEstimate = resolvedGEOConnectivity?.satellite
     ? estimateGeoSatelliteCapacity(resolvedGEOConnectivity.satellite)
@@ -508,11 +352,6 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   // Active MESH direction tab. Uses local state for immediate UI feedback;
   // syncs to the controlled prop from App so the globe stays in sync.
   const [internalMeshTab, setInternalMeshTab] = useState<'forward' | 'reverse'>(controlledMeshTab ?? 'forward');
-  const isLinkBudgetDrawerOpen = controlledDrawerOpen;
-  const setIsLinkBudgetDrawerOpen = (value: boolean | ((prev: boolean) => boolean)) => {
-    const next = typeof value === 'function' ? value(controlledDrawerOpen) : value;
-    onLinkBudgetDrawerOpenChange?.(next);
-  };
   useEffect(() => { setInternalMeshTab('forward'); }, [linkMode]);
   // Keep local state in sync when App propagates an external change (e.g. globe click).
   useEffect(() => {
@@ -758,27 +597,49 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
     ? (meshGeometry ? (activeMeshTab === 'reverse' ? meshGeometry.rvTotalMs : meshGeometry.fwTotalMs) : null)
     : geoStarOneWayTotalMs;
   const headlineLatencyLabel = isMeshOrP2P ? `${meshDirectionLabel} latency` : `${starDirectionLabel} latency`;
+  const scenarioEvidence = (
+    <EngineeringScenarioEvidence facts={[
+      { label: 'Topology', value: linkMode.replaceAll('_', ' ') },
+      { label: 'Selected satellite', value: drawerSatelliteName ?? '--' },
+      { label: 'Site A terminal', value: rfPresetDisplayLabelA ?? terminalType },
+      ...(isMeshOrP2P ? [{ label: 'Site B terminal', value: rfPresetDisplayLabelB ?? terminalTypeB ?? '--' }] : []),
+      { label: 'Weather', value: `${weatherType}${autoWeatherEnabled ? ' · automatic' : ' · manual'}` },
+      { label: 'Uplink coverage', value: formatCoverageName(selectedUplinkCoverage) ?? '--' },
+      { label: 'Downlink coverage', value: formatCoverageName(selectedDownlinkCoverage) ?? '--' },
+      ...(!isMeshOrP2P ? [{ label: ENGINEERING_TERMS.GEO.gateway, value: gatewayName }] : []),
+    ]} />
+  );
+  const geoPathRouteLabel = isMeshOrP2P
+    ? `${meshGeometry?.pointALabel ?? 'Site A'} → ${drawerSatelliteName ?? 'GEO satellite'} → ${meshGeometry?.pointBLabel ?? 'Site B'}`
+    : `${isStarReturn ? userLabel : gatewayDisplayName} → ${drawerSatelliteName ?? 'GEO satellite'} → ${isStarReturn ? gatewayDisplayName : userLabel}`;
+  const pathSummaryEvidence = (
+    <EngineeringEvidenceSummary
+      ariaLabel="GEO route summary"
+      facts={[
+        { label: 'Route', value: geoPathRouteLabel },
+        { label: 'Propagation', value: radioPathSummary },
+        { label: 'Direction', value: isMeshOrP2P ? meshDirectionLabel : starDirectionLabel },
+      ]}
+    />
+  );
   if (!isEngineeringDeliveryState(engineeringAnalysisViewModel.truth.state)) {
     const showRfEvidence = engineeringAnalysisViewModel.truth.state === 'blocked'
       || engineeringAnalysisViewModel.truth.state === 'budget-unavailable';
     return (
       <>
-        {showConfigurationControls && onLinkModeChange && <div className="mb-4"><LinkModeSelector linkMode={linkMode} onChange={onLinkModeChange} /></div>}
-        <EngineeringResultSummary technology="GEO" truth={engineeringAnalysisViewModel.truth} onConfigure={onConfigure} />
-        {showRfEvidence && (
-          <div className="space-y-4">
-            <LinkBudgetSummaryCard
-              linkMode={linkMode}
-              result={dualSegmentResult}
-              activeMeshTab={isMeshOrP2P ? activeMeshTab : undefined}
-              highlighted={isLinkBudgetDrawerOpen}
-              onToggle={() => setIsLinkBudgetDrawerOpen((open) => !open)}
-            />
-            <LinkBudgetDrawer
-              open={isLinkBudgetDrawerOpen}
-              onClose={() => setIsLinkBudgetDrawerOpen(false)}
-              expanded={isLinkBudgetDetailExpanded}
-              onExpandedChange={onLinkBudgetDetailExpandedChange}
+        {showConfigurationControls && onLinkModeChange && (
+          <EngineeringStageEvidencePortal technology="GEO" stage="scenario">
+            <div className="mb-4"><LinkModeSelector linkMode={linkMode} onChange={onLinkModeChange} /></div>
+          </EngineeringStageEvidencePortal>
+        )}
+        <EngineeringResultSummary
+          technology="GEO"
+          truth={engineeringAnalysisViewModel.truth}
+          stageSummaries={{ path: pathSummaryEvidence }}
+          stageEvidence={showRfEvidence ? {
+            scenario: scenarioEvidence,
+            rf: (
+            <GeoLinkBudgetEvidence
               linkMode={linkMode}
               result={dualSegmentResult}
               activeMeshTab={isMeshOrP2P ? activeMeshTab : undefined}
@@ -788,25 +649,53 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
               viewModel={engineeringAnalysisViewModel}
               coverageLabels={linkBudgetCoverageLabels}
             />
-          </div>
-        )}
+            ),
+            delivery: <EngineeringDeliveryEvidence viewModel={engineeringAnalysisViewModel} />,
+          } : undefined}
+        />
       </>
     );
   }
   return (
     <>
       {showConfigurationControls && onLinkModeChange && (
-        <div className="mb-4">
-          <LinkModeSelector
-            linkMode={linkMode}
-            onChange={onLinkModeChange}
-          />
-        </div>
+        <EngineeringStageEvidencePortal technology="GEO" stage="scenario">
+          <div className="mb-4">
+            <LinkModeSelector linkMode={linkMode} onChange={onLinkModeChange} />
+          </div>
+        </EngineeringStageEvidencePortal>
       )}
 
-      <EngineeringResultSummary technology="GEO" truth={engineeringAnalysisViewModel.truth} onConfigure={onConfigure} />
+      <EngineeringResultSummary
+        technology="GEO"
+        truth={engineeringAnalysisViewModel.truth}
+        stageSummaries={{ path: pathSummaryEvidence }}
+        stageEvidence={{
+          scenario: scenarioEvidence,
+          rf: (
+            <GeoLinkBudgetEvidence
+              linkMode={linkMode}
+              result={dualSegmentResult}
+              activeMeshTab={isMeshOrP2P ? activeMeshTab : undefined}
+              onMeshTabChange={isMeshOrP2P ? setActiveMeshTab : undefined}
+              satelliteName={drawerSatelliteName}
+              satellite={resolvedGEOConnectivity?.satellite ?? null}
+              viewModel={engineeringAnalysisViewModel}
+              latencyMs={headlineLatencyMs}
+              latencyLabel={headlineLatencyLabel}
+              availabilityLabel={`${availabilityContext.indicativeAvailabilityPct.toFixed(1)}% indicative`}
+              confidenceLabel={`${geoPredictionConfidence.level} ${geoPredictionConfidence.score}/100`}
+              confidenceDetail={[geoPredictionConfidence.summary, geoPredictionConfidence.reasons[0] ?? geoPredictionConfidence.limitation].filter(Boolean).join('. ')}
+              confidence={geoPredictionConfidence}
+              coverageLabels={linkBudgetCoverageLabels}
+            />
+          ),
+          delivery: <EngineeringDeliveryEvidence viewModel={engineeringAnalysisViewModel} />,
+        }}
+      />
 
-      {showConfigurationControls && <>
+      {showConfigurationControls && (
+      <EngineeringStageEvidencePortal technology="GEO" stage="scenario"><>
       <LayerHeading title="Access Layer" detail="RF details, terminal characteristics, weather loss, elevation and visibility." />
 
       <div className="mb-4 mt-2">
@@ -964,8 +853,11 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           </div>
         )}
       </div>
-      </>}
+      </></EngineeringStageEvidencePortal>
+      )}
 
+      <EngineeringStageEvidencePortal technology="GEO" stage="scenario">
+      <div className="space-y-3">
       <LayerHeading title="Space Segment" detail="Serving satellite, coverage, beam, footprint and link-budget metrics." />
 
       {!isMeshOrP2P && (
@@ -1006,39 +898,11 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           </div>
         );
       })()}
-
-      <LayerHeading title="End-to-End Analysis" detail="Final throughput, latency, availability, bottleneck and limiting factor." />
+      </div>
+      </EngineeringStageEvidencePortal>
 
       <div className="mt-4 space-y-4">
-        <LinkBudgetSummaryCard
-          linkMode={linkMode}
-          result={dualSegmentResult}
-          activeMeshTab={isMeshOrP2P ? activeMeshTab : undefined}
-          highlighted={isLinkBudgetDrawerOpen}
-          onToggle={() => setIsLinkBudgetDrawerOpen((open) => !open)}
-        />
-
-        <LinkBudgetDrawer
-          open={isLinkBudgetDrawerOpen}
-          onClose={() => setIsLinkBudgetDrawerOpen(false)}
-          expanded={isLinkBudgetDetailExpanded}
-          onExpandedChange={onLinkBudgetDetailExpandedChange}
-          linkMode={linkMode}
-          result={dualSegmentResult}
-          activeMeshTab={isMeshOrP2P ? activeMeshTab : undefined}
-          onMeshTabChange={isMeshOrP2P ? setActiveMeshTab : undefined}
-          satelliteName={drawerSatelliteName}
-          satellite={resolvedGEOConnectivity?.satellite ?? null}
-          viewModel={engineeringAnalysisViewModel}
-          latencyMs={headlineLatencyMs}
-          latencyLabel={headlineLatencyLabel}
-          availabilityLabel={`${availabilityContext.indicativeAvailabilityPct.toFixed(1)}% indicative`}
-          confidenceLabel={`${geoPredictionConfidence.level} ${geoPredictionConfidence.score}/100`}
-          confidenceDetail={[geoPredictionConfidence.summary, geoPredictionConfidence.reasons[0] ?? geoPredictionConfidence.limitation].filter(Boolean).join('. ')}
-          confidence={geoPredictionConfidence}
-          coverageLabels={linkBudgetCoverageLabels}
-        />
-
+        <EngineeringStageEvidencePortal technology="GEO" stage="path">
         {/* Radio Path */}
         <CollapsibleSection
           storageKey="geo-radio-path"
@@ -1049,7 +913,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           }
           subtitle={radioPathSummary}
           accentColor="#2563eb"
-          defaultOpen={false}
+          collapsible={false}
         >
           {isMeshOrP2P ? (
             // ── MESH/P2P: A → Sat → B (no traffic gateway) ─────────────────
@@ -1176,13 +1040,18 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
             )
           )}
         </CollapsibleSection>
+        </EngineeringStageEvidencePortal>
 
+        <EngineeringStageEvidencePortal technology="GEO" stage="delivery">
+        <div className="space-y-3">
+        <LayerHeading title="End-to-End Analysis" detail="Final throughput, latency, availability, bottleneck and limiting factor." />
         {/* Latency Breakdown */}
         {isMeshOrP2P ? (
           // ── MESH/P2P: selected one-way terminal path, no traffic gateway overhead ─
           <LatencyBreakdownCard
             storageKey="geo-latency-breakdown"
             accentColor="#2563eb"
+            collapsible={false}
             title={<>Latency breakdown<DirectionPill dir={meshDirectionLabel} /></>}
             tooltip="One-way propagation for the selected MESH/P2P direction: source terminal → satellite → destination terminal. No traffic gateway is in the RF path; overhead is source + destination modem processing."
             summary={meshGeometry ? `Estimated ${meshDirectionLabel} latency: ${(activeMeshTab === 'reverse' ? meshGeometry.rvTotalMs : meshGeometry.fwTotalMs).toFixed(1)} ms` : meshUnavailableMessage}
@@ -1222,6 +1091,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           <LatencyBreakdownCard
             storageKey="geo-latency-breakdown"
             accentColor="#2563eb"
+            collapsible={false}
             title={`Latency breakdown (${isStarReturn ? 'RETURN' : 'FORWARD'})`}
             tooltip="Breakdown of the active one-way STAR delay. Forward mode sends Traffic Gateway → Satellite → User; Return mode sends User → Satellite → Traffic Gateway. Network overhead is added after RF propagation."
             summary={geoGeometry ? `Estimated one-way total: ${geoStarOneWayTotalMs != null ? geoStarOneWayTotalMs.toFixed(1) : '--'} ms` : 'No GEO latency breakdown available'}
@@ -1286,6 +1156,8 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
             )}
           </LatencyBreakdownCard>
         )}
+        </div>
+        </EngineeringStageEvidencePortal>
       </div>
     </>
   );

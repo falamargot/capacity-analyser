@@ -1047,6 +1047,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     resolvedSelectedGeoGateway = null,
 }) => {
     const engineeringFocus = useEngineeringFocus();
+    const engineeringAnalyticalStage = !commercialState?.commercialMode
+        && engineeringFocus.focus.kind === 'locked'
+        ? engineeringFocus.focus.stageId
+        : null;
     const {
         onPointClick,
         onEmptyClick,
@@ -2102,10 +2106,16 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     const satellitesForLayer = useMemo(() => {
         if (commercialMode) return [];
         if (displayPrefs.simplifySatellitesForEngineeringAnalysis && pulsedSatellites.length > 0) {
-            return pulsedSatellites;
+            const focusedTechnology = engineeringFocus.focus.kind === 'locked'
+                ? engineeringFocus.focus.technology
+                : null;
+            const focusedSatellites = focusedTechnology
+                ? pulsedSatellites.filter((satellite) => satellite.orbitType === focusedTechnology)
+                : pulsedSatellites;
+            return focusedSatellites.length > 0 ? focusedSatellites : pulsedSatellites;
         }
         return satellites;
-    }, [commercialMode, satellites, displayPrefs.simplifySatellitesForEngineeringAnalysis, pulsedSatellites]);
+    }, [commercialMode, displayPrefs.simplifySatellitesForEngineeringAnalysis, engineeringFocus.focus, pulsedSatellites, satellites]);
 
     // Per-technology route availability used both for satellite label role assignment and
     // for transmission link visibility. Computed here so both consumers share the same value.
@@ -2787,6 +2797,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         previously and caused a silent no-remount bug when candidates
                         arrived after clearing. */}
                     {(!commercialMode || commercialGeoCoverageVisible) && (
+                        (commercialMode || !engineeringAnalyticalStage || engineeringAnalyticalStage === 'rf') &&
                         <CoverageLayer
                             satellites={satellites}
                             selection={selection}
@@ -2801,7 +2812,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         />
                     )}
 
-                    {!commercialMode && <MoonLayer enableLighting={enableLighting} selected={selectedMoon} />}
+                    {!commercialMode && !engineeringAnalyticalStage && <MoonLayer enableLighting={enableLighting} selected={selectedMoon} />}
 
                     {/* OneWeb Comb Layer - Engineering shows operational beam context.
                         Commercial keeps the LEO service footprint visible across
@@ -2825,7 +2836,11 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                             leoServiceViewModel={leoServiceViewModel}
                             commercialTone={commercialMode && (!commercialSatelliteFocused || commercialDominantTechnology !== 'LEO') ? 'secondary' : 'primary'}
                             commercialEnvelopeOnly={commercialMode}
-                            commercialOpacityScale={commercialMode && commercialSatelliteFocused && commercialDominantTechnology === 'LEO' ? 0.32 : 1}
+                            commercialOpacityScale={commercialMode && commercialSatelliteFocused && commercialDominantTechnology === 'LEO'
+                                ? 0.32
+                                : engineeringAnalyticalStage && engineeringAnalyticalStage !== 'rf'
+                                    ? engineeringAnalyticalStage === 'path' ? 0.06 : 0.1
+                                    : 1}
                             showCommercialProjectionPanels={!commercialMode || (commercialSatelliteFocused && commercialDominantTechnology === 'LEO')}
                         />
                     ))}

@@ -14,6 +14,7 @@ export type EngineeringRouteSegment = 'access' | 'backhaul' | 'destination';
 export type EngineeringPathVisualState =
   | 'delivered'
   | 'selected'
+  | 'secondary'
   | 'limiting'
   | 'diagnostic'
   | 'candidate'
@@ -128,64 +129,20 @@ export const getEngineeringPathVisualState = ({
   focus: EngineeringAnalyticalFocus;
   candidate?: boolean;
 }): EngineeringPathVisualState => {
-  if (candidate) return 'candidate';
   if (!truth) return 'unresolved';
+
+  const analyticalFocusActive = focus.kind === 'preview' || focus.kind === 'locked';
+  if (candidate) return analyticalFocusActive ? 'secondary' : 'candidate';
 
   const stageId = causeStageForRouteSegment(segment);
   const focusSelectsSegment = focus.technology === truth.technology
     && (focus.stageId === 'path' || focus.stageId === stageId)
     && (focus.kind === 'preview' || focus.kind === 'locked');
   if (focusSelectsSegment) return 'selected';
+  if (analyticalFocusActive) return 'secondary';
 
   return visualStateFromEvidence(
     truth.causeChain.find((stage) => stage.id === stageId)?.state,
     truth.state,
   );
-};
-
-export interface EngineeringTruthTransition {
-  kind: 'available-to-constrained' | 'constrained-to-available' | 'blocked' | 'recovered' | 'path' | 'budget' | 'updated';
-  message: string;
-  changedStages: EngineeringCauseStageId[];
-}
-
-export const describeEngineeringTruthTransition = (
-  previous: EngineeringTruth | null | undefined,
-  current: EngineeringTruth,
-): EngineeringTruthTransition | null => {
-  if (!previous || previous.technology !== current.technology) return null;
-
-  const changedStages = ENGINEERING_CAUSE_STAGE_ORDER.filter((stageId) => {
-    const before = previous.causeChain.find((stage) => stage.id === stageId);
-    const after = current.causeChain.find((stage) => stage.id === stageId);
-    return before?.state !== after?.state || before?.summary !== after?.summary || before?.detail !== after?.detail;
-  });
-  const metricChanged = previous.primaryMetrics.some((metric, index) => (
-    metric.display !== current.primaryMetrics[index]?.display
-    || metric.label !== current.primaryMetrics[index]?.label
-  )) || previous.primaryMetrics.length !== current.primaryMetrics.length;
-
-  if (previous.state === current.state && previous.headline === current.headline && changedStages.length === 0 && !metricChanged) {
-    return null;
-  }
-
-  if (previous.state === 'available' && current.state === 'constrained') {
-    return { kind: 'available-to-constrained', message: `Result constrained: ${current.decisiveFactor ?? current.summary}`, changedStages };
-  }
-  if ((previous.state === 'constrained' || previous.state === 'degraded') && current.state === 'available') {
-    return { kind: 'constrained-to-available', message: 'Constraint cleared; delivered service is now available.', changedStages };
-  }
-  if (current.state === 'blocked' && previous.state !== 'blocked') {
-    return { kind: 'blocked', message: `Service blocked: ${current.decisiveFactor ?? current.summary}`, changedStages };
-  }
-  if (previous.state === 'blocked' && current.state !== 'blocked') {
-    return { kind: 'recovered', message: `Service recovered: ${current.headline}`, changedStages };
-  }
-  if (current.state === 'path-unavailable' || previous.state === 'path-unavailable') {
-    return { kind: 'path', message: current.headline, changedStages };
-  }
-  if (current.state === 'budget-unavailable' || previous.state === 'budget-unavailable') {
-    return { kind: 'budget', message: current.headline, changedStages };
-  }
-  return { kind: 'updated', message: `Result updated: ${current.headline}`, changedStages };
 };

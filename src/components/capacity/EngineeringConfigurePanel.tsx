@@ -206,7 +206,6 @@ export interface EngineeringConfigurePanelProps {
   baseline: EngineeringConfigureDraft;
   truths: Partial<Record<'GEO' | 'LEO', EngineeringTruth>>;
   candidates: EngineeringConfigureCandidates;
-  applying?: boolean;
   showPublishedResultSummary?: boolean;
   returnLabel?: string;
   onCancel: () => void;
@@ -217,7 +216,6 @@ export default function EngineeringConfigurePanel({
   baseline,
   truths,
   candidates,
-  applying = false,
   showPublishedResultSummary = true,
   returnLabel = 'Result',
   onCancel,
@@ -277,7 +275,6 @@ export default function EngineeringConfigurePanel({
           <button
             type="button"
             onClick={() => { discard(); onCancel(); }}
-            disabled={applying}
             className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -501,7 +498,7 @@ export default function EngineeringConfigurePanel({
                     ))}
                   </div>
                 )}
-                <p className="mt-3 text-[10px] leading-4 text-slate-500 dark:text-slate-400">No speculative performance is shown. Apply publishes only the recalculated Engineering Truth.</p>
+                <p className="mt-3 text-[10px] leading-4 text-slate-500 dark:text-slate-400">The current result remains visible until these changes are applied.</p>
               </>
             )}
           </section>
@@ -513,7 +510,6 @@ export default function EngineeringConfigurePanel({
           <button
             type="button"
             onClick={() => { discard(); onCancel(); }}
-            disabled={applying}
             className="h-11 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
           >
             Discard
@@ -521,11 +517,11 @@ export default function EngineeringConfigurePanel({
           <button
             type="button"
             onClick={() => onApply(draft)}
-            disabled={!canApply || applying}
+            disabled={!canApply}
             className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-bold text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
           >
-            {applying ? <CircleDashed className="h-4 w-4" /> : <Check className="h-4 w-4" />}
-            {applying ? 'Recalculating…' : 'Apply and recalculate'}
+            <Check className="h-4 w-4" />
+            Apply changes
           </button>
         </div>
       </footer>

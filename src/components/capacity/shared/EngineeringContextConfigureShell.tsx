@@ -68,7 +68,7 @@ export default function EngineeringContextConfigureShell({
           <div className="text-[9px] font-bold uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400">Context &amp; Configure</div>
           <h3 className="mt-1 text-sm font-bold text-slate-950 dark:text-white">{technology} engineering scenario</h3>
           <p className="mt-1 text-[10px] leading-4 text-slate-500 dark:text-slate-400">
-            Published inputs and path policy. Configure stages changes before recalculation.
+            Published inputs and path policy. Review staged changes before applying them.
           </p>
         </div>
         <button

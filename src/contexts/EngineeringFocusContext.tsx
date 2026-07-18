@@ -15,12 +15,10 @@ export interface EngineeringFocusController {
   focus: EngineeringAnalyticalFocus;
   lensPosture: EngineeringLensPosture;
   surfaceMode: EngineeringSurfaceMode;
-  routeViewRequest: number;
   preview: (technology: 'GEO' | 'LEO', stageId: EngineeringCauseStageId, origin: EngineeringFocusOrigin) => void;
   lock: (technology: 'GEO' | 'LEO', stageId: EngineeringCauseStageId, origin: EngineeringFocusOrigin) => void;
   clearPreview: () => void;
   clear: () => void;
-  returnToRoute: () => void;
   setLensPosture: (posture: EngineeringLensPosture) => void;
   setSurfaceMode: (mode: EngineeringSurfaceMode) => void;
 }
@@ -31,12 +29,10 @@ const defaultController: EngineeringFocusController = {
   focus: EMPTY_ENGINEERING_FOCUS,
   lensPosture: 'summary',
   surfaceMode: 'result',
-  routeViewRequest: 0,
   preview: noop,
   lock: noop,
   clearPreview: noop,
   clear: noop,
-  returnToRoute: noop,
   setLensPosture: noop,
   setSurfaceMode: noop,
 };
@@ -50,7 +46,6 @@ export const useEngineeringFocusController = (): EngineeringFocusController => {
   const [focus, setFocus] = useState<EngineeringAnalyticalFocus>(EMPTY_ENGINEERING_FOCUS);
   const [lensPosture, setLensPosture] = useState<EngineeringLensPosture>('summary');
   const [surfaceMode, setSurfaceMode] = useState<EngineeringSurfaceMode>('result');
-  const [routeViewRequest, setRouteViewRequest] = useState(0);
 
   const preview = useCallback((technology: 'GEO' | 'LEO', stageId: EngineeringCauseStageId, origin: EngineeringFocusOrigin) => {
     setFocus((current) => {
@@ -70,25 +65,18 @@ export const useEngineeringFocusController = (): EngineeringFocusController => {
   }, []);
 
   const clear = useCallback(() => setFocus((current) => applyEngineeringFocusIntent(current, { type: 'clear' })), []);
-  const returnToRoute = useCallback(() => {
-    setFocus(EMPTY_ENGINEERING_FOCUS);
-    setRouteViewRequest((request) => request + 1);
-  }, []);
-
   return useMemo(() => ({
     truths: {},
     focus,
     lensPosture,
     surfaceMode,
-    routeViewRequest,
     preview,
     lock,
     clearPreview,
     clear,
-    returnToRoute,
     setLensPosture,
     setSurfaceMode,
-  }), [clear, clearPreview, focus, lensPosture, lock, preview, returnToRoute, routeViewRequest, surfaceMode]);
+  }), [clear, clearPreview, focus, lensPosture, lock, preview, surfaceMode]);
 };
 
 export const EngineeringFocusProvider = ({

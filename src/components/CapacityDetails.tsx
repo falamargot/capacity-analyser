@@ -116,8 +116,6 @@ interface CapacityDetailsProps {
   presentationMode?: 'sidebar' | 'workspace';
   globeRef?: RefObject<HTMLDivElement | null>;
   cesiumViewerRef?: RefObject<any>;
-  onDetailedEngineeringOpenChange?: (open: boolean) => void;
-  detailedEngineeringCloseSignal?: number;
   onExportStateChange?: (payload: ExportButtonPayload | null) => void;
   onEngineeringTruthChange?: (truth: EngineeringTruthSet) => void;
   onConfigure?: (technology: 'GEO' | 'LEO') => void;
@@ -223,7 +221,7 @@ const getGeoCompanionCoverage = (
 };
 
 // Performance optimization: Memoize component to prevent unnecessary re-renders
-const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, activeConnectionTab, onActiveConnectionTabChange, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedUplinkCoverage = null, selectedDownlinkCoverage = null, onSelectUplinkCoverage, onSelectDownlinkCoverage, selectedUplinkCoverageB = null, selectedDownlinkCoverageB = null, onSelectUplinkCoverageB, onSelectDownlinkCoverageB, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, visibleGeoCoverageKeys, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onVisibleGeoCoverageKeysChange, onSnpClick, compactDesktop = false, externalHeader = false, presentationMode = 'sidebar', globeRef, cesiumViewerRef, onDetailedEngineeringOpenChange, detailedEngineeringCloseSignal = 0, onExportStateChange, regulatoryResultOverride = null, regulatoryResultBOverride = null, beamLoadResultOverride = null, serviceLayerResultOverride = null, leoServiceViewModelOverride = null, leoTerminalType, onLeoTerminalTypeChange, leoTerminalModelId, onLeoTerminalModelIdChange, leoTerminalTypeB, onLeoTerminalTypeBChange, leoTerminalModelIdB, onLeoTerminalModelIdBChange, geoTerminalType, onGeoTerminalTypeChange, geoTerminalTypeB, onGeoTerminalTypeBChange, geoRFClassIdA, onGeoRFClassIdAChange, geoRFPresetDisplayLabelA, geoRFClassIdB, onGeoRFClassIdBChange, geoRFPresetDisplayLabelB, geoRFCustomParamsA, onGeoRFCustomParamsAChange, geoRFCustomParamsB, onGeoRFCustomParamsBChange, weatherType, onWeatherTypeChange, weatherTypeB, onWeatherTypeBChange, autoWeatherEnabled, onAutoWeatherChange, linkMode = 'STAR_FORWARD', onLinkModeChange, pointB = null, candidateCoveragesB = [], pointAIsUserDefined = false, pointBIsUserDefined = false, activeMeshTab, onActiveMeshTabChange,
+const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, activeConnectionTab, onActiveConnectionTabChange, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedUplinkCoverage = null, selectedDownlinkCoverage = null, onSelectUplinkCoverage, onSelectDownlinkCoverage, selectedUplinkCoverageB = null, selectedDownlinkCoverageB = null, onSelectUplinkCoverageB, onSelectDownlinkCoverageB, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, visibleGeoCoverageKeys, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onVisibleGeoCoverageKeysChange, onSnpClick, compactDesktop = false, externalHeader = false, presentationMode = 'sidebar', globeRef, cesiumViewerRef, onExportStateChange, regulatoryResultOverride = null, regulatoryResultBOverride = null, beamLoadResultOverride = null, serviceLayerResultOverride = null, leoServiceViewModelOverride = null, leoTerminalType, onLeoTerminalTypeChange, leoTerminalModelId, onLeoTerminalModelIdChange, leoTerminalTypeB, onLeoTerminalTypeBChange, leoTerminalModelIdB, onLeoTerminalModelIdBChange, geoTerminalType, onGeoTerminalTypeChange, geoTerminalTypeB, onGeoTerminalTypeBChange, geoRFClassIdA, onGeoRFClassIdAChange, geoRFPresetDisplayLabelA, geoRFClassIdB, onGeoRFClassIdBChange, geoRFPresetDisplayLabelB, geoRFCustomParamsA, onGeoRFCustomParamsAChange, geoRFCustomParamsB, onGeoRFCustomParamsBChange, weatherType, onWeatherTypeChange, weatherTypeB, onWeatherTypeBChange, autoWeatherEnabled, onAutoWeatherChange, linkMode = 'STAR_FORWARD', onLinkModeChange, pointB = null, candidateCoveragesB = [], pointAIsUserDefined = false, pointBIsUserDefined = false, activeMeshTab, onActiveMeshTabChange,
   leoTopologyMode = 'SINGLE_SITE',
   pointBLeo = null,
   autoSelectedLEOSatelliteB = null,
@@ -302,72 +300,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       setActiveConnTab('GEO');
     }
   }, [activeConnTab, setActiveConnTab]);
-  type ActiveEngineeringAnalysisMode = 'LEO' | 'GEO';
-  const automaticEngineeringAnalysisMode: ActiveEngineeringAnalysisMode | null = presentationMode === 'workspace' && selectedPoint
-    ? showGeoConnectivity
-      ? 'GEO'
-      : showLeoConnectivity
-        ? 'LEO'
-        : null
-    : null;
-  const automaticEngineeringAnalysisSignature = `${presentationMode}:${activeConnTab}:${satelliteScope}`;
-  const [manualEngineeringAnalysisMode, setManualEngineeringAnalysisMode] = useState<ActiveEngineeringAnalysisMode | null>(null);
-  const [dismissedAutomaticEngineeringAnalysisSignature, setDismissedAutomaticEngineeringAnalysisSignature] = useState<string | null>(null);
-  const activeEngineeringAnalysisMode = selectedPoint == null
-    ? null
-    : automaticEngineeringAnalysisMode && dismissedAutomaticEngineeringAnalysisSignature !== automaticEngineeringAnalysisSignature
-      ? automaticEngineeringAnalysisMode
-      : manualEngineeringAnalysisMode;
-  const isLeoLinkBudgetDrawerOpen = activeEngineeringAnalysisMode === 'LEO';
-  const isGeoLinkBudgetDrawerOpen = activeEngineeringAnalysisMode === 'GEO';
-  const isDetailedEngineeringOpen = activeEngineeringAnalysisMode != null;
-  const [isLinkBudgetDetailExpanded, setIsLinkBudgetDetailExpanded] = useState(false);
-
-  const setLeoLinkBudgetDrawerOpen = useCallback((value: boolean | ((prev: boolean) => boolean)) => {
-    const next = typeof value === 'function' ? value(isLeoLinkBudgetDrawerOpen) : value;
-    if (automaticEngineeringAnalysisMode) {
-      setDismissedAutomaticEngineeringAnalysisSignature(next ? null : automaticEngineeringAnalysisSignature);
-      return;
-    }
-    setManualEngineeringAnalysisMode(next ? 'LEO' : null);
-  }, [automaticEngineeringAnalysisMode, automaticEngineeringAnalysisSignature, isLeoLinkBudgetDrawerOpen]);
-
-  const setGeoLinkBudgetDrawerOpen = useCallback((value: boolean | ((prev: boolean) => boolean)) => {
-    const next = typeof value === 'function' ? value(isGeoLinkBudgetDrawerOpen) : value;
-    if (automaticEngineeringAnalysisMode) {
-      setDismissedAutomaticEngineeringAnalysisSignature(next ? null : automaticEngineeringAnalysisSignature);
-      return;
-    }
-    setManualEngineeringAnalysisMode(next ? 'GEO' : null);
-  }, [automaticEngineeringAnalysisMode, automaticEngineeringAnalysisSignature, isGeoLinkBudgetDrawerOpen]);
-
-  useEffect(() => {
-    if (automaticEngineeringAnalysisMode || !manualEngineeringAnalysisMode) return;
-    const visibleMode = satelliteScope === 'ALL' ? activeConnTab : satelliteScope;
-    if (visibleMode !== 'LEO' && visibleMode !== 'GEO') return;
-    if (manualEngineeringAnalysisMode !== visibleMode) {
-      setManualEngineeringAnalysisMode(visibleMode);
-    }
-  }, [activeConnTab, automaticEngineeringAnalysisMode, manualEngineeringAnalysisMode, satelliteScope]);
-
-  useEffect(() => {
-    if (selectedPoint) return;
-    setManualEngineeringAnalysisMode(null);
-  }, [selectedPoint]);
-
-  useEffect(() => {
-    onDetailedEngineeringOpenChange?.(isDetailedEngineeringOpen);
-    return () => onDetailedEngineeringOpenChange?.(false);
-  }, [isDetailedEngineeringOpen, onDetailedEngineeringOpenChange]);
-
-  useEffect(() => {
-    if (detailedEngineeringCloseSignal <= 0) return;
-    setManualEngineeringAnalysisMode(null);
-    if (automaticEngineeringAnalysisMode) {
-      setDismissedAutomaticEngineeringAnalysisSignature(automaticEngineeringAnalysisSignature);
-    }
-  }, [automaticEngineeringAnalysisMode, automaticEngineeringAnalysisSignature, detailedEngineeringCloseSignal]);
-
   const selectedLeoTerminalProfile = useMemo(
     () => getLeoTerminalProfile(leoTerminalType, leoTerminalModelId),
     [leoTerminalType, leoTerminalModelId],
@@ -1970,7 +1902,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   {leoTopologyMode === 'SITE_TO_SITE' && (
                 <LEOConnectivitySection
                   engineeringAnalysisViewModel={engineeringAnalysisViewModels.LEO}
-                  onConfigure={!engineeringConfigureBaseline && onConfigure ? () => onConfigure('LEO') : undefined}
                   resolvedLEOConnectivity={resolvedLEOConnectivity}
                   leoGeometry={leoGeometry}
                   leoPerformance={leoPerformance}
@@ -2003,10 +1934,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   isPointBLeoArmed={isPointBLeoArmed}
                   activeMeshTab={activeMeshTab}
                   onActiveMeshTabChange={onActiveMeshTabChange}
-                  isLinkBudgetDrawerOpen={isLeoLinkBudgetDrawerOpen}
-                  onLinkBudgetDrawerOpenChange={setLeoLinkBudgetDrawerOpen}
-                  isLinkBudgetDetailExpanded={isLinkBudgetDetailExpanded}
-                  onLinkBudgetDetailExpandedChange={setIsLinkBudgetDetailExpanded}
                   terminalTypeB={leoTerminalTypeB ?? leoTerminalType}
                   onTerminalTypeBChange={onLeoTerminalTypeBChange}
                   terminalModelIdB={selectedLeoTerminalProfileB.id}
@@ -2018,7 +1945,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   {leoTopologyMode === 'SINGLE_SITE' && (
                 <LEOConnectivitySection
                   engineeringAnalysisViewModel={engineeringAnalysisViewModels.LEO}
-                  onConfigure={!engineeringConfigureBaseline && onConfigure ? () => onConfigure('LEO') : undefined}
                   resolvedLEOConnectivity={resolvedLEOConnectivity}
                   leoGeometry={leoGeometry}
                   leoPerformance={leoPerformance}
@@ -2045,10 +1971,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   leoServiceViewModel={leoServiceViewModel}
                   leoTopologyMode={leoTopologyMode}
                   onLeoTopologyModeChange={onLeoTopologyModeChange}
-                  isLinkBudgetDrawerOpen={isLeoLinkBudgetDrawerOpen}
-                  onLinkBudgetDrawerOpenChange={setLeoLinkBudgetDrawerOpen}
-                  isLinkBudgetDetailExpanded={isLinkBudgetDetailExpanded}
-                  onLinkBudgetDetailExpandedChange={setIsLinkBudgetDetailExpanded}
                 />
                   )}
                 </div>
@@ -2067,7 +1989,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   )}
                   <GEOConnectivitySection
                     engineeringAnalysisViewModel={engineeringAnalysisViewModels.GEO}
-                    onConfigure={!engineeringConfigureBaseline && onConfigure ? () => onConfigure('GEO') : undefined}
                     resolvedGEOConnectivity={resolvedGEOConnectivity}
                     geoGeometry={geoGeometry}
                     calculateGEOPerformance={calculateGEOPerformance}
@@ -2116,10 +2037,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                     activeMeshTab={activeMeshTab}
                     onActiveMeshTabChange={onActiveMeshTabChange}
                     validSatelliteIds={validSatelliteIds}
-                    isLinkBudgetDrawerOpen={isGeoLinkBudgetDrawerOpen}
-                    onLinkBudgetDrawerOpenChange={setGeoLinkBudgetDrawerOpen}
-                    isLinkBudgetDetailExpanded={isLinkBudgetDetailExpanded}
-                    onLinkBudgetDetailExpandedChange={setIsLinkBudgetDetailExpanded}
                   />
                 </div>
               )}

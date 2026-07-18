@@ -4,7 +4,6 @@ import {
   applyEngineeringFocusIntent,
   causeStageForRouteSegment,
   createEngineeringFocus,
-  describeEngineeringTruthTransition,
   EMPTY_ENGINEERING_FOCUS,
   getEngineeringPathVisualState,
   parseEngineeringRouteEntityFocus,
@@ -45,12 +44,12 @@ describe('engineering analytical focus mapping', () => {
     expect(parseEngineeringRouteEntityFocus('commercial-r0-route-access-leo-uplink-main')).toBeNull();
   });
 
-  it('makes a focused stage selected while leaving unrelated delivered segments unchanged', () => {
+  it('makes a focused stage selected while attenuating unrelated segments', () => {
     const truth = makeTruth();
     const focus = createEngineeringFocus('locked', 'GEO', 'rf', 'lens');
     expect(getEngineeringPathVisualState({ truth, segment: 'access', focus })).toBe('selected');
-    expect(getEngineeringPathVisualState({ truth, segment: 'backhaul', focus })).toBe('delivered');
-    expect(getEngineeringPathVisualState({ truth, segment: 'destination', focus })).toBe('delivered');
+    expect(getEngineeringPathVisualState({ truth, segment: 'backhaul', focus })).toBe('secondary');
+    expect(getEngineeringPathVisualState({ truth, segment: 'destination', focus })).toBe('secondary');
   });
 
   it('keeps hover subordinate to a lock while the newest explicit selection wins', () => {
@@ -83,35 +82,5 @@ describe('engineering analytical focus mapping', () => {
     expect(getEngineeringPathVisualState({ truth: constrained, segment: 'destination', focus: EMPTY_ENGINEERING_FOCUS })).toBe('limiting');
     expect(getEngineeringPathVisualState({ truth: blocked, segment: 'access', focus: EMPTY_ENGINEERING_FOCUS })).toBe('diagnostic');
     expect(getEngineeringPathVisualState({ truth: constrained, segment: 'access', focus: EMPTY_ENGINEERING_FOCUS, candidate: true })).toBe('candidate');
-  });
-});
-
-describe('EngineeringTruth state-transition narration', () => {
-  it('describes constrained and blocked commits as atomic result revisions', () => {
-    const available = makeTruth();
-    const constrained = makeTruth({
-      state: 'constrained',
-      tone: 'warn',
-      headline: 'Service available — constrained',
-      decisiveFactor: 'Beam sharing',
-      causeChain: available.causeChain.map((stage) => stage.id === 'delivery' ? { ...stage, state: 'warning', summary: 'Beam sharing limits delivery' } : stage),
-    });
-    const blocked = makeTruth({
-      state: 'blocked',
-      tone: 'danger',
-      headline: 'Service blocked',
-      decisiveFactor: 'Regulatory gate',
-      primaryMetrics: [],
-      causeChain: available.causeChain.map((stage) => stage.id === 'service' ? { ...stage, state: 'blocked', summary: 'Regulatory gate blocks service' } : stage),
-    });
-
-    expect(describeEngineeringTruthTransition(available, constrained)).toMatchObject({
-      kind: 'available-to-constrained',
-      changedStages: ['delivery'],
-    });
-    expect(describeEngineeringTruthTransition(available, blocked)).toMatchObject({
-      kind: 'blocked',
-      changedStages: ['service'],
-    });
   });
 });

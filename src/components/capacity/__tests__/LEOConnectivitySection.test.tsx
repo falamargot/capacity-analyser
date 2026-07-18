@@ -1,4 +1,4 @@
-import React from 'react';
+import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import LEOConnectivitySection from '../LEOConnectivitySection';
@@ -7,6 +7,8 @@ import type { LeoSiteToSiteResult } from '../../../utils/leoSiteToSiteModel';
 import type { SatelliteData } from '../../../types/satellites';
 import { buildPredictionConfidence, positiveFactor, missingFactor } from '../../../utils/predictionConfidence';
 import { buildLeoEngineeringAnalysisViewModel } from '../../../utils/engineeringAnalysisViewModel';
+import { EngineeringFocusProvider, type EngineeringFocusController } from '../../../contexts/EngineeringFocusContext';
+import { createEngineeringFocus } from '../../../utils/engineeringFocusModel';
 
 // Regression tripwire for the 2 LEO topology branches (SINGLE_SITE,
 // SITE_TO_SITE). Smoke-tests only: assert the component renders without
@@ -189,6 +191,25 @@ const makeSiteToSiteResult = (overrides: Partial<LeoSiteToSiteResult> = {}): Leo
 
 const noop = () => undefined;
 
+const rfFocusController: EngineeringFocusController = {
+  truths: {},
+  focus: createEngineeringFocus('locked', 'LEO', 'rf', 'lens'),
+  lensPosture: 'reasoning',
+  surfaceMode: 'result',
+  preview: noop,
+  lock: noop,
+  clearPreview: noop,
+  clear: noop,
+  setLensPosture: noop,
+  setSurfaceMode: noop,
+};
+
+const renderLeoRfEvidence = (content: ReactNode) => renderToStaticMarkup(
+  <EngineeringFocusProvider controller={rfFocusController} truths={{}}>
+    {content}
+  </EngineeringFocusProvider>,
+);
+
 const baseProps = {
   engineeringAnalysisViewModel: buildLeoEngineeringAnalysisViewModel({
     debugInfo: makeLeoResult(18, 12),
@@ -288,7 +309,7 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
       />
     );
 
-    expect(html).toContain('Blocked');
+    expect(html).toContain('Service blocked');
   });
 
   it('renders SINGLE_SITE without throwing when no satellite/beam is resolved yet', () => {
@@ -331,7 +352,7 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
     );
 
     expect(html).toContain('75 Mbps');
-    const resultHtml = html.slice(html.indexOf('Review · LEO result'), html.indexOf('Access Layer'));
+    const resultHtml = html.slice(html.indexOf('Review · LEO result'));
     expect(resultHtml).not.toContain('55 Mbps');
   });
 
@@ -359,12 +380,10 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
 
   describe('Level 4 detailed investigation drawer', () => {
     it('SINGLE_SITE: shows Site A and Terminal investigation sections collapsed by default', () => {
-      const html = renderToStaticMarkup(
+      const html = renderLeoRfEvidence(
         <LEOConnectivitySection
           {...baseProps}
           leoTopologyMode="SINGLE_SITE"
-          isLinkBudgetDrawerOpen
-          onLinkBudgetDrawerOpenChange={noop}
           leoPerformance={{
             rtt: 72,
             downlinkGbps: 0.018,
@@ -392,7 +411,7 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
     });
 
     it('SITE_TO_SITE: shows Site A, Site B, Backbone and Terminal investigation sections collapsed by default', () => {
-      const html = renderToStaticMarkup(
+      const html = renderLeoRfEvidence(
         <LEOConnectivitySection
           {...baseProps}
           leoTopologyMode="SITE_TO_SITE"
@@ -409,8 +428,6 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
           })}
           pointBLeo={{ lat: 15, lng: 25 }}
           activeMeshTab="forward"
-          isLinkBudgetDrawerOpen
-          onLinkBudgetDrawerOpenChange={noop}
           siteToSiteResult={makeSiteToSiteResult()}
           leoPerformance={{
             rtt: 120,
@@ -437,12 +454,10 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
     });
 
     it('SINGLE_SITE: keeps Terminal Investigation collapsed when terminal is the detected bottleneck', () => {
-      const html = renderToStaticMarkup(
+      const html = renderLeoRfEvidence(
         <LEOConnectivitySection
           {...baseProps}
           leoTopologyMode="SINGLE_SITE"
-          isLinkBudgetDrawerOpen
-          onLinkBudgetDrawerOpenChange={noop}
           leoPerformance={{
             rtt: 72,
             downlinkGbps: 0.018,
@@ -465,14 +480,12 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
     });
 
     it('SITE_TO_SITE: keeps Site B Investigation collapsed when failureReason ends with _B', () => {
-      const html = renderToStaticMarkup(
+      const html = renderLeoRfEvidence(
         <LEOConnectivitySection
           {...baseProps}
           leoTopologyMode="SITE_TO_SITE"
           pointBLeo={{ lat: 15, lng: 25 }}
           activeMeshTab="forward"
-          isLinkBudgetDrawerOpen
-          onLinkBudgetDrawerOpenChange={noop}
           siteToSiteResult={makeSiteToSiteResult({
             // serviceAvailable must stay true so the drawer receives siteToSiteResult
             // (LEOConnectivitySection passes undefined when !s2sServiceActive)
@@ -502,14 +515,12 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
         ...makeLeoResult(10, 8),
         mainBottleneck: { factor: 'feeder' as const, scope: 'DL' as const, label: 'DL feeder' },
       } as LeoThroughputResult;
-      const html = renderToStaticMarkup(
+      const html = renderLeoRfEvidence(
         <LEOConnectivitySection
           {...baseProps}
           leoTopologyMode="SITE_TO_SITE"
           pointBLeo={{ lat: 15, lng: 25 }}
           activeMeshTab="forward"
-          isLinkBudgetDrawerOpen
-          onLinkBudgetDrawerOpenChange={noop}
           siteToSiteResult={makeSiteToSiteResult({ debugSiteA: feederDebug })}
           leoPerformance={{
             rtt: 120,
@@ -551,14 +562,14 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
       );
 
       expect(html).toContain('Review · LEO result');
-      expect(html.indexOf('Review · LEO result')).toBeLessThan(html.indexOf('Space Segment'));
+      expect(html).not.toContain('Space Segment');
       expect(html).not.toContain('Access Layer');
       expect(html).not.toContain('Site ↔ LEO ↔ SNP');
       expect(html).toContain('Service available');
       expect(html).toContain('Why this result');
       expect(html).toMatch(/\d+\/100/);
 
-      const resultHtml = html.slice(html.indexOf('Review · LEO result'), html.indexOf('Space Segment'));
+      const resultHtml = html.slice(html.indexOf('Review · LEO result'));
       expect(resultHtml).toContain('18 Mbps');
     });
 
@@ -595,7 +606,7 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
         />
       );
 
-      const resultHtml = html.slice(html.indexOf('Review · LEO result'), html.indexOf('Access Layer'));
+      const resultHtml = html.slice(html.indexOf('Review · LEO result'));
       expect(resultHtml).toContain('75 Mbps');
       expect(resultHtml).toContain('60.0 ms');
     });

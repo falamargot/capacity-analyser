@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Maximize2, Minimize2, Route } from 'lucide-react';
+import { Route } from 'lucide-react';
 import type { LeoSiteToSiteResult } from '../../utils/leoSiteToSiteModel';
 import { SectionTooltip } from '../SectionTooltip';
 import PassBeamTimeline from '../PassBeamTimeline';
@@ -23,8 +23,9 @@ import { isEngineeringDeliveryState, type EngineeringAnalysisViewModel } from '.
 import { fmtMbps, fmtMs } from '../../utils/engineeringFormat';
 import LatencyBreakdownCard from './shared/LatencyBreakdownCard';
 import LayerHeading from './shared/LayerHeading';
-import { leoBottleneckToTone } from './shared/linkBudgetTone';
 import EngineeringResultSummary from './shared/EngineeringResultSummary';
+import EngineeringStageEvidencePortal from './shared/EngineeringStageEvidencePortal';
+import { EngineeringDeliveryEvidence, EngineeringEvidenceSummary, EngineeringScenarioEvidence } from './shared/EngineeringStageEvidence';
 import DetailsTogglePill from './shared/DetailsTogglePill';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -148,80 +149,6 @@ const LIMITING_FACTOR_BADGE: Record<NonNullable<LimitingFactor>, { label: string
 };
 
 const fmtMhz = (hz: number) => `${(hz / 1e6).toFixed(0)} MHz`;
-
-interface LeoLinkBudgetSummaryCardProps {
-  debugInfo: LeoRFDebugInfo | null;
-  highlighted?: boolean;
-  onToggle: () => void;
-}
-
-const LeoLinkBudgetSummaryCard = ({ debugInfo, highlighted = false, onToggle }: LeoLinkBudgetSummaryCardProps) => {
-  const tone = leoBottleneckToTone(debugInfo);
-  const satelliteName = debugInfo?.satelliteId ?? 'No LEO path';
-  const budgetSubtitle = debugInfo
-    ? `Beam ${debugInfo.selectedBeamIndex} · DL ${debugInfo.downlink.rf.modcod ?? 'MODCOD --'} · UL ${debugInfo.uplink.rf.modcod ?? 'MODCOD --'}`
-    : 'Satellite -- · Beam --';
-
-  return (
-    <section
-      className={[
-        'relative overflow-hidden rounded-xl border bg-white shadow-sm transition-all duration-200 dark:bg-slate-900',
-        highlighted
-          ? 'border-pink-300 ring-2 ring-pink-500/30 dark:border-pink-500/70 dark:ring-pink-400/30'
-          : 'border-slate-200 dark:border-slate-700',
-      ].join(' ')}
-    >
-      {highlighted && <div className="absolute inset-y-0 left-0 w-1 bg-pink-500" aria-hidden="true" />}
-      <div
-        className={[
-          'border-b px-3.5 py-3',
-          highlighted
-            ? 'border-pink-100 bg-pink-50/75 dark:border-pink-900/70 dark:bg-pink-950/30'
-            : 'border-slate-100 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-900/70',
-        ].join(' ')}
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center text-sm font-semibold" style={{ color: '#db2777' }}>
-                Link Budget
-                <span className={`ml-2 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${tone.className}`}>
-                  RF evidence · {tone.label}
-                </span>
-                <SectionTooltip content="LEO RF and network summary. Open the detail panel to inspect beam geometry, FSPL, C/N, MODCOD, RF chain throughput, beam sharing, the Ka feeder budget, handover, and smoothing." />
-              </span>
-            </div>
-            <h4 className="mt-1.5 truncate text-sm font-semibold text-slate-950 dark:text-slate-50">
-              {satelliteName}
-            </h4>
-            <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
-              {budgetSubtitle}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onToggle}
-            className={[
-              'inline-flex h-9 shrink-0 items-center justify-center rounded-lg border px-2.5 shadow-sm transition-colors',
-              highlighted
-                ? 'border-pink-300 bg-pink-600 text-white hover:bg-pink-700 dark:border-pink-400 dark:bg-pink-500 dark:hover:bg-pink-400'
-                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700',
-            ].join(' ')}
-            aria-label={highlighted ? 'Close detailed link budget' : 'Open detailed link budget'}
-            title={highlighted ? 'Close detailed link budget' : 'Open detailed link budget'}
-            aria-pressed={highlighted}
-          >
-            {highlighted ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-          </button>
-        </div>
-      </div>
-
-      <div className="border-t border-slate-100 bg-slate-50/60 px-3.5 py-2 text-[10px] leading-4 text-slate-500 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-400">
-        Open to inspect beam geometry, RF chains, feeder evidence, sharing, handover, and terminal constraints.
-      </div>
-    </section>
-  );
-};
 
 // Atom: one label + value row used in the geometry and RF sections
 const MetricRow = ({ label, value, mono = true }: { label: string; value: string | number; mono?: boolean }) => (
@@ -739,11 +666,7 @@ const LeoRFLinkBudgetPanel = ({
   );
 };
 
-interface LeoLinkBudgetDrawerProps {
-  open: boolean;
-  onClose: () => void;
-  expanded?: boolean;
-  onExpandedChange?: (expanded: boolean) => void;
+interface LeoLinkBudgetEvidenceProps {
   /** Single-site mode: full RF debug chain for the active terminal. Also used as
    *  fallback in S2S mode when per-site debug chains are unavailable. */
   debugInfo: LeoRFDebugInfo | null;
@@ -805,11 +728,7 @@ const InvestigationSection = ({
   </details>
 );
 
-const LeoLinkBudgetDrawer = ({
-  open,
-  onClose,
-  expanded,
-  onExpandedChange,
+const LeoLinkBudgetEvidence = ({
   debugInfo,
   siteToSiteResult,
   siteToSiteDirection = 'A_TO_B',
@@ -825,9 +744,7 @@ const LeoLinkBudgetDrawer = ({
   confidenceDetail,
   confidence,
   viewModel: providedViewModel,
-}: LeoLinkBudgetDrawerProps) => {
-  if (!open) return null;
-
+}: LeoLinkBudgetEvidenceProps) => {
   const isS2S = siteToSiteResult != null;
   const s2sIsAtoB = siteToSiteDirection === 'A_TO_B';
   const s2sDirectionLabel = s2sIsAtoB ? 'A → B' : 'B → A';
@@ -894,10 +811,6 @@ const LeoLinkBudgetDrawer = ({
 
   return (
     <EngineeringAnalysisWorkspace
-      open={open}
-      onClose={onClose}
-      expanded={expanded}
-      onExpandedChange={onExpandedChange}
       viewModel={viewModel}
     >
       {isS2S ? (
@@ -982,7 +895,6 @@ const LeoLinkBudgetDrawer = ({
 
 interface LEOConnectivitySectionProps {
   engineeringAnalysisViewModel: EngineeringAnalysisViewModel;
-  onConfigure?: () => void;
   showConfigurationControls?: boolean;
   resolvedLEOConnectivity: ResolvedLEOConnectivity | null;
   leoGeometry: LEOGeometry | null;
@@ -1019,12 +931,6 @@ interface LEOConnectivitySectionProps {
   isPointBLeoArmed?: boolean;
   activeMeshTab?: 'forward' | 'reverse';
   onActiveMeshTabChange?: (tab: 'forward' | 'reverse') => void;
-  /** Controlled drawer open state — shared with GEO so mode switches preserve open/closed status. */
-  isLinkBudgetDrawerOpen?: boolean;
-  onLinkBudgetDrawerOpenChange?: (open: boolean) => void;
-  /** Shared workspace expansion state so GEO/LEO tab switches preserve full-height presentation. */
-  isLinkBudgetDetailExpanded?: boolean;
-  onLinkBudgetDetailExpandedChange?: (expanded: boolean) => void;
   // ── Site B terminal (S2S only) ──
   terminalTypeB?: TerminalType;
   onTerminalTypeBChange?: (type: TerminalType) => void;
@@ -1067,7 +973,6 @@ const formatHopDistance = (distanceKm: number | null | undefined, latencyMs: num
 
 const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   engineeringAnalysisViewModel,
-  onConfigure,
   showConfigurationControls = false,
   resolvedLEOConnectivity,
   leoGeometry,
@@ -1098,21 +1003,12 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   pointBLeo = null,
   isPointBLeoArmed = false,
   activeMeshTab,
-  isLinkBudgetDrawerOpen: controlledDrawerOpen = false,
-  onLinkBudgetDrawerOpenChange,
-  isLinkBudgetDetailExpanded,
-  onLinkBudgetDetailExpandedChange,
   terminalTypeB,
   onTerminalTypeBChange,
   terminalModelIdB,
   onTerminalModelIdBChange,
 }) => {
   const siteALabel = 'Site A';
-  const isLinkBudgetDrawerOpen = controlledDrawerOpen;
-  const setIsLinkBudgetDrawerOpen = (value: boolean | ((prev: boolean) => boolean)) => {
-    const next = typeof value === 'function' ? value(controlledDrawerOpen) : value;
-    onLinkBudgetDrawerOpenChange?.(next);
-  };
   const [s2sDirection, setS2SDirection] = useState<'A_TO_B' | 'B_TO_A'>(
     activeMeshTab === 'reverse' ? 'B_TO_A' : 'A_TO_B'
   );
@@ -1245,26 +1141,53 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   const answerDebugInfo = isS2S ? s2sLinkBudgetDebugInfo : (leoPerformance?.debugInfo ?? null);
   const answerLatencyMs = isS2S ? s2sPrimaryLatency : (mobileLeoMetrics?.rtt ?? leoGeometry?.rttTotalMs ?? null);
   const answerLatencyLabel = isS2S ? `${s2sPrimaryLabel} latency` : 'End-to-end RTT';
+  const scenarioEvidence = (
+    <EngineeringScenarioEvidence facts={[
+      { label: 'Topology', value: isS2S ? 'SITE TO SITE' : 'SINGLE SITE' },
+      { label: 'Selected satellite', value: answerDebugInfo?.satelliteId ?? resolvedLEOConnectivity?.satellite.name ?? '--' },
+      { label: 'Site A terminal', value: terminalModelId ?? terminalType },
+      ...(isS2S ? [{ label: 'Site B terminal', value: terminalModelIdB ?? terminalTypeB ?? '--' }] : []),
+      { label: 'Weather', value: `${weatherType}${autoWeatherEnabled ? ' · automatic' : ' · manual'}` },
+      { label: 'Site A', value: siteACoordinatesLabel },
+      ...(isS2S ? [{ label: 'Site B', value: siteBCoordinatesLabel }] : []),
+      { label: 'Serving beam', value: resolvedLEOConnectivity?.connectedBeamIndex != null ? `Beam ${resolvedLEOConnectivity.connectedBeamIndex}` : '--' },
+      { label: 'SNP', value: resolvedLEOConnectivity?.snp?.name ?? s2sSnpAName ?? '--' },
+    ]} />
+  );
+  const leoRouteLabel = isS2S
+    ? `${isAtoB ? 'Site A' : 'Site B'} → ${isAtoB ? s2sSatAName : s2sSatBName} → SNP ${isAtoB ? s2sSnpAName : s2sSnpBName} → ${isAtoB ? 'Site B' : 'Site A'}`
+    : `${siteALabel} → ${resolvedLEOConnectivity?.satellite.name ?? 'LEO satellite'} → SNP ${resolvedLEOConnectivity?.snp?.name ?? 'unresolved'}`;
+  const pathSummaryEvidence = (
+    <EngineeringEvidenceSummary
+      ariaLabel="LEO route summary"
+      facts={[
+        { label: 'Route', value: leoRouteLabel },
+        { label: answerLatencyLabel, value: answerLatencyMs != null ? `${answerLatencyMs.toFixed(1)} ms` : '--' },
+        { label: 'Topology', value: isS2S ? `Site-to-Site · ${s2sPrimaryLabel}` : 'Single Site' },
+      ]}
+    />
+  );
   if (!isEngineeringDeliveryState(engineeringAnalysisViewModel.truth.state)) {
     const showRfEvidence = engineeringAnalysisViewModel.truth.state === 'blocked'
       || engineeringAnalysisViewModel.truth.state === 'budget-unavailable';
     return (
       <>
         {showConfigurationControls && leoTopologyMode && onLeoTopologyModeChange && (
+          <EngineeringStageEvidencePortal technology="LEO" stage="scenario">
           <div className="mb-4 grid grid-cols-2 gap-1">
             <button type="button" onClick={() => onLeoTopologyModeChange('SINGLE_SITE')} className={`rounded px-2 py-2 text-xs font-semibold ${leoTopologyMode === 'SINGLE_SITE' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-gray-300'}`}>Single Site</button>
             <button type="button" onClick={() => onLeoTopologyModeChange('SITE_TO_SITE')} className={`rounded px-2 py-2 text-xs font-semibold ${leoTopologyMode === 'SITE_TO_SITE' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-gray-300'}`}>Site-to-Site</button>
           </div>
+          </EngineeringStageEvidencePortal>
         )}
-        <EngineeringResultSummary technology="LEO" truth={engineeringAnalysisViewModel.truth} onConfigure={onConfigure} />
-        {showRfEvidence && (
-          <div className="space-y-4">
-            <LeoLinkBudgetSummaryCard debugInfo={answerDebugInfo} highlighted={isLinkBudgetDrawerOpen} onToggle={() => setIsLinkBudgetDrawerOpen((open) => !open)} />
-            <LeoLinkBudgetDrawer
-              open={isLinkBudgetDrawerOpen}
-              onClose={() => setIsLinkBudgetDrawerOpen(false)}
-              expanded={isLinkBudgetDetailExpanded}
-              onExpandedChange={onLinkBudgetDetailExpandedChange}
+        <EngineeringResultSummary
+          technology="LEO"
+          truth={engineeringAnalysisViewModel.truth}
+          stageSummaries={{ path: pathSummaryEvidence }}
+          stageEvidence={showRfEvidence ? {
+            scenario: scenarioEvidence,
+            rf: (
+            <LeoLinkBudgetEvidence
               debugInfo={leoPerformance?.debugInfo ?? null}
               siteToSiteResult={siteToSiteResult}
               siteToSiteDirection={s2sDirection}
@@ -1277,14 +1200,17 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
               latencyLabel={answerLatencyLabel}
               viewModel={engineeringAnalysisViewModel}
             />
-          </div>
-        )}
+            ),
+            delivery: <EngineeringDeliveryEvidence viewModel={engineeringAnalysisViewModel} />,
+          } : undefined}
+        />
       </>
     );
   }
   return (
     <>
       {showConfigurationControls && leoTopologyMode && onLeoTopologyModeChange && (
+        <EngineeringStageEvidencePortal technology="LEO" stage="scenario">
         <div className="mb-4">
           <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
             LEO Topology
@@ -1322,12 +1248,41 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
             </button>
           </div>
         </div>
+        </EngineeringStageEvidencePortal>
       )}
 
       <div className="space-y-4">
-      <EngineeringResultSummary technology="LEO" truth={engineeringAnalysisViewModel.truth} onConfigure={onConfigure} />
+      <EngineeringResultSummary
+        technology="LEO"
+        truth={engineeringAnalysisViewModel.truth}
+        stageSummaries={{ path: pathSummaryEvidence }}
+        stageEvidence={{
+          scenario: scenarioEvidence,
+          rf: (
+            <LeoLinkBudgetEvidence
+              debugInfo={leoPerformance?.debugInfo ?? null}
+              siteToSiteResult={isS2S ? siteToSiteResult : undefined}
+              siteToSiteDirection={s2sDirection}
+              debugInfoSiteA={s2sView?.debugSiteA}
+              debugInfoSiteB={s2sView?.debugSiteB}
+              snpAName={s2sSnpAName !== '—' ? s2sSnpAName : undefined}
+              snpBName={s2sSnpBName !== '—' ? s2sSnpBName : undefined}
+              popName={s2sPopName}
+              latencyMs={answerLatencyMs}
+              latencyLabel={answerLatencyLabel}
+              availabilityLabel={`${availabilityContext.indicativeAvailabilityPct.toFixed(1)}% indicative`}
+              confidenceLabel={`${predictionConfidence.level} ${predictionConfidence.score}/100`}
+              confidenceDetail={[predictionConfidence.summary, predictionConfidence.reasons[0] ?? predictionConfidence.limitation].filter(Boolean).join('. ')}
+              confidence={predictionConfidence}
+              viewModel={engineeringAnalysisViewModel}
+            />
+          ),
+          delivery: <EngineeringDeliveryEvidence viewModel={engineeringAnalysisViewModel} />,
+        }}
+      />
 
-        {showConfigurationControls && <>
+        {showConfigurationControls && (
+        <EngineeringStageEvidencePortal technology="LEO" stage="scenario"><>
         <LayerHeading title="Access Layer" detail="RF details, terminal characteristics, weather loss, elevation and visibility." />
         {/* ── S2S mode: two independent terminal cards ── */}
         {isS2S && terminalTypeB != null && onTerminalTypeBChange != null ? (
@@ -1405,38 +1360,15 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
             advancedDetailsOnly
           />
         )}
-        </>}
+        </></EngineeringStageEvidencePortal>
+        )}
 
+        <EngineeringStageEvidencePortal technology="LEO" stage="rf">
         <LayerHeading title="Space Segment" detail="Serving satellites, beam state, RF budget and capacity constraints." />
+        </EngineeringStageEvidencePortal>
 
-        {/* Link Budget */}
-        <LeoLinkBudgetSummaryCard
-          debugInfo={answerDebugInfo}
-          highlighted={isLinkBudgetDrawerOpen}
-          onToggle={() => setIsLinkBudgetDrawerOpen((open) => !open)}
-        />
-        <LeoLinkBudgetDrawer
-          open={isLinkBudgetDrawerOpen}
-          onClose={() => setIsLinkBudgetDrawerOpen(false)}
-          expanded={isLinkBudgetDetailExpanded}
-          onExpandedChange={onLinkBudgetDetailExpandedChange}
-          debugInfo={leoPerformance?.debugInfo ?? null}
-          siteToSiteResult={isS2S ? siteToSiteResult : undefined}
-          siteToSiteDirection={s2sDirection}
-          debugInfoSiteA={s2sView?.debugSiteA}
-          debugInfoSiteB={s2sView?.debugSiteB}
-          snpAName={s2sSnpAName !== '—' ? s2sSnpAName : undefined}
-          snpBName={s2sSnpBName !== '—' ? s2sSnpBName : undefined}
-          popName={s2sPopName}
-          latencyMs={answerLatencyMs}
-          latencyLabel={answerLatencyLabel}
-          availabilityLabel={`${availabilityContext.indicativeAvailabilityPct.toFixed(1)}% indicative`}
-          confidenceLabel={`${predictionConfidence.level} ${predictionConfidence.score}/100`}
-          confidenceDetail={[predictionConfidence.summary, predictionConfidence.reasons[0] ?? predictionConfidence.limitation].filter(Boolean).join('. ')}
-          confidence={predictionConfidence}
-          viewModel={engineeringAnalysisViewModel}
-        />
-
+        <EngineeringStageEvidencePortal technology="LEO" stage="path">
+        <div className="space-y-3">
         <LayerHeading title="Ground Segment" detail="SNP, PoP/backbone and feeder path details." />
         {/* Radio Path */}
         <CollapsibleSection
@@ -1444,7 +1376,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
           title={<>{isRegulatoryBlocked && !isS2S ? 'Radio Path (Diagnostic only)' : isS2S ? <>Radio Path <span className="text-slate-400 dark:text-slate-500 font-normal text-[11px]">({s2sPrimaryLabel})</span></> : 'Radio Path'}<SectionTooltip content={isS2S ? "Full OneWeb site-to-site logical path. Backbone routing is estimated." : "Active one-way LEO signal route: Site A → LEO Satellite → LEO SNP. RTT details are shown in the latency breakdown below."} /></>}
           subtitle={isRegulatoryBlocked && !isS2S ? blockedDiagnosticMessage : undefined}
           accentColor="#db2777"
-          defaultOpen={false}
+          collapsible={false}
         >
           {isS2S ? (
             s2sServiceActive ? (
@@ -1681,7 +1613,11 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
             </div>
           )}
         </CollapsibleSection>
+        </div>
+        </EngineeringStageEvidencePortal>
 
+        <EngineeringStageEvidencePortal technology="LEO" stage="delivery">
+        <div className="space-y-3">
         <LayerHeading title="End-to-End Analysis" detail="Final latency, throughput, availability and bottleneck reasoning." />
         {/* Latency Breakdown */}
         <LatencyBreakdownCard
@@ -1691,6 +1627,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
             ? "Full one-way propagation: Access A + Feeder A + Backbone + Feeder B + Access B + Processing margin."
             : "Breakdown of the full round-trip propagation delay over the LEO link: Site A → Satellite → LEO SNP → Satellite → Site A, plus network overhead."}
           title={isRegulatoryBlocked && !isS2S ? 'Latency breakdown (Diagnostic only)' : 'Latency breakdown'}
+          collapsible={false}
           summary={isS2S
             ? (s2sServiceActive
                 ? `${s2sPrimaryLabel} latency: ${fmtMs(s2sPrimaryLatency)} · round-trip reference: ${fmtMs(siteToSiteResult!.rttMs)}`
@@ -1784,6 +1721,8 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
             />
           </div>
         )}
+        </div>
+        </EngineeringStageEvidencePortal>
       </div>
     </>
   );

@@ -77,10 +77,10 @@ describe('EngineeringConfigurePanel', () => {
     expect(markup).toContain('Path selection');
     expect(markup).toContain('Pending scenario changes');
     expect(markup).toContain('No pending changes.');
-    expect(markup).toContain('Apply and recalculate');
+    expect(markup).toContain('Apply changes');
     expect(markup).toContain('role="radiogroup"');
     expect(markup).toContain('role="radio"');
-    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>[^<]*(?:<[^>]+>)*Apply and recalculate/);
+    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>[^<]*(?:<[^>]+>)*Apply changes/);
   });
 
   it('makes the manual GEO override and return-to-Automatic behavior explicit', () => {

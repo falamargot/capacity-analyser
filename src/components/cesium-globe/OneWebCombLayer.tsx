@@ -467,8 +467,9 @@ const BeamRing = React.memo<{
     hsBeamsRef: React.MutableRefObject<ReadonlySet<number>>;
     regulatoryBlockedRef: React.MutableRefObject<boolean>;
     commercialTone: 'primary' | 'secondary';
-}>(({ beamIndex, ringIndex, scaleFactor, ringOpacity, targetSat, getCombGeometriesRef, viewerRef, hsBeamsRef, regulatoryBlockedRef, commercialTone }) => {
-    const opacityMultiplier = commercialTone === 'secondary' ? 0.28 : 1;
+    opacityScale: number;
+}>(({ beamIndex, ringIndex, scaleFactor, ringOpacity, targetSat, getCombGeometriesRef, viewerRef, hsBeamsRef, regulatoryBlockedRef, commercialTone, opacityScale }) => {
+    const opacityMultiplier = (commercialTone === 'secondary' ? 0.28 : 1) * opacityScale;
     const effectiveRingOpacity = ringOpacity * opacityMultiplier;
 
     // Cached PolygonHierarchy — recomputed only when the worker posts new geometry
@@ -598,7 +599,8 @@ const GradientBeamPolygon = React.memo<{
     hsBeamsRef: React.MutableRefObject<ReadonlySet<number>>;
     regulatoryBlockedRef: React.MutableRefObject<boolean>;
     commercialTone: 'primary' | 'secondary';
-}>(({ beamIndex, targetSat, getCombGeometriesRef, viewerRef, hsBeamsRef, regulatoryBlockedRef, commercialTone }) => {
+    opacityScale: number;
+}>(({ beamIndex, targetSat, getCombGeometriesRef, viewerRef, hsBeamsRef, regulatoryBlockedRef, commercialTone, opacityScale }) => {
 
     if (!GRADIENT_RENDERING.ENABLE_GRADIENT) {
         // Fallback: single flat polygon (original behaviour)
@@ -614,6 +616,7 @@ const GradientBeamPolygon = React.memo<{
                 hsBeamsRef={hsBeamsRef}
                 regulatoryBlockedRef={regulatoryBlockedRef}
                 commercialTone={commercialTone}
+                opacityScale={opacityScale}
             />
         );
     }
@@ -633,6 +636,7 @@ const GradientBeamPolygon = React.memo<{
                     hsBeamsRef={hsBeamsRef}
                     regulatoryBlockedRef={regulatoryBlockedRef}
                     commercialTone={commercialTone}
+                    opacityScale={opacityScale}
                 />
             ))}
         </>
@@ -893,7 +897,7 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
                     semiMinorAxis={horizonRadius}
                     material={backhaulColor.withAlpha(0)}
                     outline={true}
-                    outlineColor={backhaulColor.withAlpha(commercialTone === 'secondary' ? 0.28 : 1)}
+                    outlineColor={backhaulColor.withAlpha((commercialTone === 'secondary' ? 0.28 : 1) * commercialOpacityScale)}
                     outlineWidth={commercialTone === 'secondary' ? 1 : 2}
                     height={FOOTPRINT_OUTLINE_LAYER_HEIGHT_M}
                 />
@@ -906,7 +910,7 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
                         semiMinorAxis={serviceZoneRadius}
                         material={standardColorFill}
                         outline={true}
-                        outlineColor={standardColorOutline.withAlpha(commercialTone === 'secondary' ? 0.28 : 1)}
+                        outlineColor={standardColorOutline.withAlpha((commercialTone === 'secondary' ? 0.28 : 1) * commercialOpacityScale)}
                         outlineWidth={commercialTone === 'secondary' ? 1 : 3}
                         height={FOOTPRINT_LAYER_HEIGHT_M}
                     />
@@ -925,6 +929,7 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
                     hsBeamsRef={hsBeamsRef}
                     regulatoryBlockedRef={regulatoryBlockedRef}
                     commercialTone={commercialTone}
+                    opacityScale={commercialOpacityScale}
                 />
             ))}
 

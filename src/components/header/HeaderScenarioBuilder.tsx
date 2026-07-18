@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
-import { ArrowDown, ArrowLeftRight, ArrowUp, Check, CircleDashed, CloudSun, MapPin, Radio, Satellite, Star, Timer, Undo2 } from 'lucide-react';
+import { ArrowDown, ArrowLeftRight, ArrowUp, Check, CloudSun, MapPin, Radio, Satellite, Star, Timer, Undo2 } from 'lucide-react';
 import { useLocationSearch, type LocationResult } from '../../hooks/useLocationSearch';
 import { useEngineeringConfigureDraft } from '../../hooks/useEngineeringConfigureDraft';
 import type { ConnectivityEndpoint } from '../commercial/commercialTypes';
@@ -65,7 +65,6 @@ export interface HeaderEngineeringConfigure {
   baseline: EngineeringConfigureDraft;
   truths: EngineeringTruthSet;
   candidates: EngineeringConfigureCandidates;
-  applying?: boolean;
   focusSignal?: number;
   onApply: (draft: EngineeringConfigureDraft) => void;
 }
@@ -727,7 +726,7 @@ function TransactionalHeaderScenarioBuilder({
 }: Pick<HeaderScenarioBuilderProps, 'siteA' | 'siteB' | 'analysisSource' | 'compact'> & {
   engineeringConfigure: HeaderEngineeringConfigure;
 }) {
-  const { baseline, truths, candidates, applying = false, onApply } = engineeringConfigure;
+  const { baseline, truths, candidates, onApply } = engineeringConfigure;
   const { draft, setDraft, changes, affectedStages, discard } = useEngineeringConfigureDraft(baseline);
   const configureRef = useRef<HTMLFieldSetElement>(null);
   const isGeo = draft.technology === 'GEO';
@@ -840,7 +839,6 @@ function TransactionalHeaderScenarioBuilder({
     <fieldset
       ref={configureRef}
       tabIndex={-1}
-      disabled={applying}
       className={[
         'relative flex h-full min-w-0 flex-1 flex-col justify-center rounded-xl border border-slate-200/65 bg-slate-50/80',
         'shadow-[0_12px_30px_-30px_rgba(15,23,42,0.38)] dark:border-white/[0.09]',
@@ -856,7 +854,7 @@ function TransactionalHeaderScenarioBuilder({
           <button
             type="button"
             onClick={swapDraftEndpoints}
-            disabled={!canSwap || applying}
+            disabled={!canSwap}
             className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-200/90 bg-white/70 text-sky-600 transition-colors hover:border-sky-300 hover:bg-white disabled:cursor-not-allowed disabled:opacity-30 dark:border-slate-700/80 dark:bg-slate-800/45 dark:text-sky-200 dark:hover:border-sky-500/50 dark:hover:bg-slate-800"
             aria-label="Swap draft origin and destination"
           >
@@ -921,7 +919,7 @@ function TransactionalHeaderScenarioBuilder({
           <div className="truncate text-[9px] font-semibold text-slate-600 dark:text-slate-300" title={activeTruth?.headline}>Review · {activeTruth?.headline ?? 'No published result'}</div>
           <div
             className="mt-0.5 truncate text-[8px] text-slate-500 dark:text-slate-400"
-            title={changes.length > 0 ? 'Impact preview only. No speculative performance is shown before recalculation.' : undefined}
+            title={changes.length > 0 ? 'Impact preview only. The current result remains visible until changes are applied.' : undefined}
           >
             {changes.length === 0
               ? 'No pending changes'
@@ -930,8 +928,8 @@ function TransactionalHeaderScenarioBuilder({
         </div>
 
         <div className="flex items-center gap-1.5">
-          <button type="button" onClick={discard} disabled={changes.length === 0 || applying} className="inline-flex h-7 items-center gap-1 rounded-md border border-slate-200/80 bg-white/55 px-2 text-[9px] font-semibold text-slate-600 transition-colors hover:bg-white disabled:border-transparent disabled:bg-transparent disabled:text-slate-400 disabled:opacity-55 dark:border-slate-700/80 dark:bg-slate-800/35 dark:text-slate-300 dark:hover:bg-slate-800 dark:disabled:border-transparent dark:disabled:bg-transparent dark:disabled:text-slate-600"><Undo2 className="h-3 w-3" />Discard</button>
-          <button type="button" onClick={() => onApply(draft)} disabled={!canApply || applying} aria-label="Apply and recalculate" className="inline-flex h-7 items-center gap-1 whitespace-nowrap rounded-md border border-slate-900 bg-slate-900 px-2.5 text-[9px] font-bold text-white transition-colors hover:bg-slate-800 disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-70 dark:border-white dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200 dark:disabled:border-slate-700 dark:disabled:bg-slate-800/35 dark:disabled:text-slate-600">{applying ? <CircleDashed className="h-3 w-3" /> : <Check className="h-3 w-3" />}{applying ? 'Recalculating' : <><span>Apply</span><span className="hidden min-[1500px]:inline"> / recalc</span></>}</button>
+          <button type="button" onClick={discard} disabled={changes.length === 0} className="inline-flex h-7 items-center gap-1 rounded-md border border-slate-200/80 bg-white/55 px-2 text-[9px] font-semibold text-slate-600 transition-colors hover:bg-white disabled:border-transparent disabled:bg-transparent disabled:text-slate-400 disabled:opacity-55 dark:border-slate-700/80 dark:bg-slate-800/35 dark:text-slate-300 dark:hover:bg-slate-800 dark:disabled:border-transparent dark:disabled:bg-transparent dark:disabled:text-slate-600"><Undo2 className="h-3 w-3" />Discard</button>
+          <button type="button" onClick={() => onApply(draft)} disabled={!canApply} aria-label="Apply engineering changes" className="inline-flex h-7 items-center gap-1 whitespace-nowrap rounded-md border border-slate-900 bg-slate-900 px-2.5 text-[9px] font-bold text-white transition-colors hover:bg-slate-800 disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-70 dark:border-white dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200 dark:disabled:border-slate-700 dark:disabled:bg-slate-800/35 dark:disabled:text-slate-600"><Check className="h-3 w-3" /><span>Apply</span></button>
         </div>
       </div>
 
@@ -947,7 +945,7 @@ function TransactionalHeaderScenarioBuilder({
               onChange={(key) => setDraft((current) => ({ ...current, [selector.key]: key }))}
             />
           ))}
-          <span className="sr-only">No speculative result is shown before recalculation.</span>
+          <span className="sr-only">The current result remains visible until changes are applied.</span>
         </div>
       )}
     </fieldset>

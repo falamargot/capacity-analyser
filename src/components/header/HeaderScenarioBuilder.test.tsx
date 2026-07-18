@@ -120,7 +120,7 @@ describe('HeaderScenarioBuilder transactional Configure workflow', () => {
     expect(markup).toContain('RF</span>');
     expect(markup).toContain('No pending changes');
     expect(markup).toContain('Discard');
-    expect(markup).toContain('Apply and recalculate');
+    expect(markup).toContain('Apply engineering changes');
     expect(markup).toContain('<select');
   });
 

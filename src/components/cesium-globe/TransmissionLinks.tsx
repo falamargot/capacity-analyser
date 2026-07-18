@@ -296,6 +296,11 @@ const engineeringDiagnosticMaterial = new PolylineGlowMaterialProperty({
     glowPower: 0.08,
     taperPower: 0.5,
 });
+const engineeringSecondaryMaterial = new PolylineGlowMaterialProperty({
+    color: Color.fromCssColorString('#94a3b8').withAlpha(0.18),
+    glowPower: 0.025,
+    taperPower: 0.55,
+});
 const engineeringUnavailableMaterial = new PolylineDashMaterialProperty({
     color: Color.fromCssColorString('#fb7185').withAlpha(0.95),
     gapColor: Color.fromCssColorString('#7f1d1d').withAlpha(0.12),
@@ -317,6 +322,7 @@ const materialForEngineeringState = (
     fallback: RouteLineMaterial,
 ): RouteLineMaterial => {
     if (state === 'selected') return engineeringSelectedMaterial;
+    if (state === 'secondary') return engineeringSecondaryMaterial;
     if (state === 'limiting') return engineeringLimitingMaterial;
     if (state === 'diagnostic') return engineeringDiagnosticMaterial;
     if (state === 'unavailable') return engineeringUnavailableMaterial;
@@ -327,6 +333,7 @@ const materialForEngineeringState = (
 
 const widthForEngineeringState = (state: EngineeringPathVisualState | undefined, width: number) => (
     state === 'selected' ? width + 2.2
+        : state === 'secondary' ? Math.max(0.8, width * 0.45)
         : state === 'limiting' || state === 'unavailable' ? width + 1.2
             : state === 'diagnostic' || state === 'unresolved' ? Math.max(1.5, width - 0.45)
                 : width
@@ -346,7 +353,7 @@ const HighlightedRouteSegment = React.memo<HighlightedRouteSegmentProps>(({
     show = true,
     visualState,
 }) => {
-    const haloMaterial = subdued ? leoRouteHaloSecondaryMaterial : leoRouteHaloMaterial;
+    const haloMaterial = subdued || visualState === 'secondary' ? leoRouteHaloSecondaryMaterial : leoRouteHaloMaterial;
     const displayedWidth = widthForEngineeringState(visualState, width);
     const displayedMaterial = materialForEngineeringState(visualState, material);
     const failureEndPosition = useMemo(() => new CallbackPositionProperty((time, result) => {
@@ -443,8 +450,8 @@ const S2SBackboneSegment = React.memo<S2SBackboneSegmentProps>(({
                 <PolylineGraphics
                     positions={positions}
                     width={S2S_BACKBONE_HALO_WIDTH + widthBoost + widthBoostForState}
-                    material={subdued ? s2sBackboneHaloSecondaryMaterial : s2sBackboneHaloMaterial}
-                    depthFailMaterial={subdued ? s2sBackboneHaloSecondaryMaterial : s2sBackboneHaloMaterial}
+                    material={subdued || visualState === 'secondary' ? s2sBackboneHaloSecondaryMaterial : s2sBackboneHaloMaterial}
+                    depthFailMaterial={subdued || visualState === 'secondary' ? s2sBackboneHaloSecondaryMaterial : s2sBackboneHaloMaterial}
                     clampToGround={false}
                     arcType={ArcType.GEODESIC}
                 />
@@ -453,8 +460,8 @@ const S2SBackboneSegment = React.memo<S2SBackboneSegmentProps>(({
                 <PolylineGraphics
                     positions={positions}
                     width={S2S_BACKBONE_GLOW_WIDTH + widthBoost + widthBoostForState}
-                    material={subdued ? s2sBackboneGlowSecondaryMaterial : s2sBackboneGlowMaterial}
-                    depthFailMaterial={subdued ? s2sBackboneGlowSecondaryMaterial : s2sBackboneGlowMaterial}
+                    material={subdued || visualState === 'secondary' ? s2sBackboneGlowSecondaryMaterial : s2sBackboneGlowMaterial}
+                    depthFailMaterial={subdued || visualState === 'secondary' ? s2sBackboneGlowSecondaryMaterial : s2sBackboneGlowMaterial}
                     clampToGround={false}
                     arcType={ArcType.GEODESIC}
                 />

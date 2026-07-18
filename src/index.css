@@ -561,3 +561,15 @@ h1, h2, h3, h4 {
     transition-duration: 0.01ms !important;
   }
 }
+@keyframes engineering-verdict-pulse {
+  0%, 100% { filter: brightness(1); }
+  45% { filter: brightness(1.12); box-shadow: inset 0 0 0 1px rgb(56 189 248 / 0.28); }
+}
+
+.engineering-verdict-pulse {
+  animation: engineering-verdict-pulse 500ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .engineering-verdict-pulse { animation: none; }
+}

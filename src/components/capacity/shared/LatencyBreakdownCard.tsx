@@ -9,6 +9,7 @@ interface LatencyBreakdownCardProps {
   summary: string;
   title?: ReactNode;
   tooltip?: string;
+  collapsible?: boolean;
   children: ReactNode;
 }
 
@@ -23,12 +24,14 @@ const LatencyBreakdownCard = ({
   summary,
   title = 'Latency breakdown',
   tooltip,
+  collapsible = true,
   children,
 }: LatencyBreakdownCardProps) => (
   <CollapsibleSection
     storageKey={storageKey}
     accentColor={accentColor}
     defaultOpen={false}
+    collapsible={collapsible}
     title={<>{title}{tooltip && <SectionTooltip content={tooltip} />}</>}
     subtitle={summary}
   >

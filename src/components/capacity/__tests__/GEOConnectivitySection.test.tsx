@@ -1,4 +1,5 @@
 import { renderToStaticMarkup } from 'react-dom/server';
+import type { ReactNode } from 'react';
 import { describe, expect, it } from 'vitest';
 import GEOConnectivitySection from '../GEOConnectivitySection';
 import type { DualSegmentResult } from '../../../utils/geoDualSegmentBudget';
@@ -9,6 +10,8 @@ import type { SatelliteData } from '../../../types/satellites';
 import { GEO_GATEWAYS } from '../../globe/GlobeConfig';
 import { resolveStarTrafficGatewayForCoverage, type StarTrafficGatewaySelection } from '../../../utils/geoConnectivityModel';
 import { buildGeoEngineeringAnalysisViewModel } from '../../../utils/engineeringAnalysisViewModel';
+import { EngineeringFocusProvider, type EngineeringFocusController } from '../../../contexts/EngineeringFocusContext';
+import { createEngineeringFocus } from '../../../utils/engineeringFocusModel';
 
 // Regression tripwire for the 4 GEO link-mode topology branches
 // (STAR_FORWARD, STAR_RETURN, MESH, POINT_TO_POINT). Smoke-tests only: assert
@@ -134,6 +137,25 @@ const makeMeshResult = (forwardMarginDb: number, reverseMarginDb: number): DualS
 } as unknown as DualSegmentResult);
 
 const noop = () => undefined;
+
+const rfFocusController: EngineeringFocusController = {
+  truths: {},
+  focus: createEngineeringFocus('locked', 'GEO', 'rf', 'lens'),
+  lensPosture: 'reasoning',
+  surfaceMode: 'result',
+  preview: noop,
+  lock: noop,
+  clearPreview: noop,
+  clear: noop,
+  setLensPosture: noop,
+  setSurfaceMode: noop,
+};
+
+const renderGeoRfEvidence = (content: ReactNode) => renderToStaticMarkup(
+  <EngineeringFocusProvider controller={rfFocusController} truths={{}}>
+    {content}
+  </EngineeringFocusProvider>,
+);
 
 const createGeoSatellite = (
   id: string,
@@ -281,7 +303,7 @@ const renderGeoWithStarGateway = ({
   const result = makeStarResult(4.5, selection.gateway.name, selection.trafficCapability);
   return {
     selection,
-    html: renderToStaticMarkup(
+    html: renderGeoRfEvidence(
       <GEOConnectivitySection
         {...baseProps}
         resolvedGEOConnectivity={makeResolvedGeoConnectivity(satellite, selectedCoverage)}
@@ -292,7 +314,6 @@ const renderGeoWithStarGateway = ({
         selectedCoverage={selectedCoverage}
         selectedUplinkCoverage={linkMode === 'STAR_RETURN' ? selectedCoverage : null}
         selectedDownlinkCoverage={linkMode === 'STAR_FORWARD' ? selectedCoverage : null}
-        isLinkBudgetDrawerOpen
       />
     ),
   };
@@ -328,7 +349,7 @@ const baseProps = {
 };
 
 const renderGeo = (linkMode: LinkMode, dualSegmentResult: DualSegmentResult | null) =>
-  renderToStaticMarkup(
+  renderGeoRfEvidence(
     <GEOConnectivitySection
       {...baseProps}
       linkMode={linkMode}
@@ -380,7 +401,6 @@ describe('GEOConnectivitySection topology render smoke tests', () => {
         expect(html).toContain(expectedGatewayName);
         expect(html).toContain(`Traffic Gateway side - ${expectedGatewayName}`);
         expect(html).toContain(selection.trafficCapability.capabilityId);
-        expect(html).toContain('Beam gateway assignment');
         if (expectedGatewayName !== 'Rambouillet') {
           expect(html).not.toContain('Traffic Gateway side - Rambouillet');
         }
@@ -400,8 +420,7 @@ describe('GEOConnectivitySection topology render smoke tests', () => {
         reason: 'BEAM_ASSIGNMENT_NOT_FOUND',
       }));
       expect(html).toContain('Traffic Gateway side - Rambouillet');
-      expect(html).toContain('Legacy gateway fallback');
-      expect(html).toContain('No beam gateway assignment found for KVHTS beam 9999.');
+      expect(selection.diagnostic.message).toContain('No beam gateway assignment found for KVHTS beam 9999.');
     });
 
     it('does not apply STAR gateway overrides to MESH panels', () => {
@@ -442,7 +461,7 @@ describe('GEOConnectivitySection topology render smoke tests', () => {
 
   it('renders STAR_RETURN with a blocked tone when margin is negative', () => {
     const html = renderGeo('STAR_RETURN', makeStarResult(-1.4));
-    expect(html).toContain('Blocked');
+    expect(html).toContain('Service blocked');
     expect(html).toContain('-1.4 dB');
   });
 
@@ -478,13 +497,12 @@ describe('GEOConnectivitySection topology render smoke tests', () => {
     };
 
     const renderGeoWithDrawer = (linkMode: LinkMode, dualSegmentResult: DualSegmentResult | null) =>
-      renderToStaticMarkup(
+      renderGeoRfEvidence(
         <GEOConnectivitySection
           {...baseProps}
           linkMode={linkMode}
           dualSegmentResult={dualSegmentResult}
           pointB={linkMode === 'MESH' || linkMode === 'POINT_TO_POINT' ? { lat: 10, lng: 20 } : null}
-          isLinkBudgetDrawerOpen
         />
       );
 
@@ -535,7 +553,7 @@ describe('GEOConnectivitySection topology render smoke tests', () => {
       const html = renderGeo('STAR_FORWARD', makeStarResult(4.5));
 
       expect(html).toContain('Review · GEO result');
-      expect(html.indexOf('Review · GEO result')).toBeLessThan(html.indexOf('Space Segment'));
+      expect(html).not.toContain('Space Segment');
       expect(html).not.toContain('Access Layer');
       expect(html).not.toContain('STAR · Hub &amp; Spoke');
       expect(html).toContain('Service available — constrained by shared capacity');
@@ -546,7 +564,7 @@ describe('GEOConnectivitySection topology render smoke tests', () => {
 
     it('shows a non-zero latency for MESH, derived the same way as the link budget drawer', () => {
       const html = renderGeo('MESH', makeMeshResult(3.2, 2.1));
-      const resultHtml = html.slice(html.indexOf('Review · GEO result'), html.indexOf('Space Segment'));
+      const resultHtml = html.slice(html.indexOf('Review · GEO result'));
 
       expect(resultHtml).toContain('latency');
       expect(resultHtml).toMatch(/\d+(\.\d+)? ms/);

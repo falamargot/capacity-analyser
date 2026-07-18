@@ -1581,7 +1581,7 @@ const DualSegmentPanel = memo<DualSegmentPanelProps>(({
       : resultWithRfContext!.networkLayer?.forward;
 
     return (
-      <div className="grid grid-cols-[minmax(260px,0.72fr)_minmax(0,1.9fr)] gap-3 text-xs">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,260px),1fr))] gap-3 text-xs">
         <div className="flex flex-col gap-3">
           <GeoTopologyCockpitPanel linkMode={linkMode} mode={result.transponderMode} satelliteName={satelliteName} />
           {rfContext && <GeoRfContextCockpitPanel context={rfContext} />}

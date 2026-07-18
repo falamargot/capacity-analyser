@@ -1,4 +1,15 @@
-import type { LinkBudgetWorkspaceClosureStep } from './LinkBudgetWorkspaceFrame';
+export interface LinkBudgetWorkspaceClosureStep {
+  label: string;
+  value?: string;
+  detail?: string;
+  input?: string;
+  transformation?: string;
+  output?: string;
+  loss?: string;
+  tone?: 'default' | 'good' | 'warn' | 'danger' | 'accent';
+  inputMbps?: number | null;
+  outputMbps?: number | null;
+}
 
 export type EngineeringClosurePipelineLayout = 'geo' | 'leo-single' | 'leo-s2s';
 
