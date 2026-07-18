@@ -116,7 +116,6 @@ import {
   getRFClassSpec,
   isRFClassCompatibleWithUseCase,
   type TerminalRFClassId,
-  type TerminalRFCustomParams,
 } from './utils/geoTerminalRFModel';
 import { supportsStarTrafficTopology } from './utils/geoGroundInfrastructure';
 import { buildGeoRouteAnalysisViewModel } from './utils/geoRouteAnalysisViewModel';
@@ -156,6 +155,7 @@ import EngineeringConfigurePanel from './components/capacity/EngineeringConfigur
 import { EngineeringFocusProvider, useEngineeringFocusController } from './contexts/EngineeringFocusContext';
 import { EngineeringAnalysisProvider } from './contexts/EngineeringAnalysisContext';
 import { useEngineeringAnalysis } from './hooks/useEngineeringAnalysis';
+import { useScenarioState } from './state/scenario/useScenarioState';
 
 const CapacityDetails = lazy(() => import('./components/CapacityDetails'));
 const CommandPalette = lazy(() => import('./components/CommandPalette'));
@@ -524,16 +524,27 @@ const App: React.FC = () => {
     handleSizeScaleReset,
   } = useViewport();
   const [searchQuery, setSearchQuery] = useState('');
-  const [leoTerminalType, setLeoTerminalType] = useState<TerminalType>('fixed');
-  const [leoTerminalModelId, setLeoTerminalModelId] = useState<string>(() => getLeoTerminalProfile('fixed').id);
-  const [leoTerminalTypeB, setLeoTerminalTypeB] = useState<TerminalType>('fixed');
-  const [leoTerminalModelIdB, setLeoTerminalModelIdB] = useState<string>(() => getLeoTerminalProfile('fixed').id);
-  const [geoTerminalType, setGeoTerminalType] = useState<TerminalType>('fixed');
-  const [geoTerminalTypeB, setGeoTerminalTypeB] = useState<TerminalType>('fixed');
-  const [geoRFClassIdA, setGeoRFClassIdA] = useState<TerminalRFClassId>(() => USE_CASE_DEFAULT_RF_CLASS.fixed.Ku);
-  const [geoRFClassIdB, setGeoRFClassIdB] = useState<TerminalRFClassId>(() => USE_CASE_DEFAULT_RF_CLASS.fixed.Ku);
-  const [geoRFCustomParamsA, setGeoRFCustomParamsA] = useState<TerminalRFCustomParams | null>(null);
-  const [geoRFCustomParamsB, setGeoRFCustomParamsB] = useState<TerminalRFCustomParams | null>(null);
+  // ── M3: single scenario owner — same value/setter names as the former useStates ──
+  const {
+    patchScenario,
+    linkMode, setLinkMode,
+    activeMeshTab, setActiveMeshTab,
+    leoTopologyMode, setLeoTopologyMode,
+    leoTerminalType, setLeoTerminalType,
+    leoTerminalModelId, setLeoTerminalModelId,
+    leoTerminalTypeB, setLeoTerminalTypeB,
+    leoTerminalModelIdB, setLeoTerminalModelIdB,
+    geoTerminalType, setGeoTerminalType,
+    geoTerminalTypeB, setGeoTerminalTypeB,
+    geoRFClassIdA, setGeoRFClassIdA,
+    geoRFClassIdB, setGeoRFClassIdB,
+    geoRFCustomParamsA, setGeoRFCustomParamsA,
+    geoRFCustomParamsB, setGeoRFCustomParamsB,
+    weatherType, setWeatherType,
+    weatherTypeB, setWeatherTypeB,
+    autoWeatherEnabled, setAutoWeatherEnabled,
+    autoWeatherEnabledB, setAutoWeatherEnabledB,
+  } = useScenarioState({ weatherType: weatherTypeFromCondition(weatherCondition) });
   const handleLeoTerminalTypeChange = useCallback((type: TerminalType) => {
     setLeoTerminalType(type);
     setLeoTerminalModelId(getLeoTerminalProfile(type).id);
@@ -604,10 +615,6 @@ const App: React.FC = () => {
       parityOk: engineeringDestinationGeoReadModelParity.ok,
     })
   ), [engineeringDestinationGeoReadModelParity.ok, engineeringScenarioReadModel.destination?.geoTerminal?.label, geoRFClassIdB]);
-  const [weatherType, setWeatherType] = useState<WeatherType>(() => weatherTypeFromCondition(weatherCondition));
-  const [autoWeatherEnabled, setAutoWeatherEnabled] = useState<boolean>(true);
-  const [weatherTypeB, setWeatherTypeB] = useState<WeatherType>('clear');
-  const [autoWeatherEnabledB, setAutoWeatherEnabledB] = useState<boolean>(true);
   const [previousAnalysisSource, setPreviousAnalysisSource] = useState<'earth' | 'aircraft' | undefined>(undefined);
   const [cameraTarget, setCameraTarget] = useState<{ lat: number; lng: number; alt: number } | null>(null);
   const {
@@ -619,8 +626,6 @@ const App: React.FC = () => {
     selectTarget,
   } = useSelectionState();
   // ── Link mode & dual-point selection ─────────────────────────────────────
-  const [linkMode, setLinkMode] = useState<LinkMode>('STAR_FORWARD');
-  const [activeMeshTab, setActiveMeshTab] = useState<'forward' | 'reverse'>('forward');
   const preserveMeshTabOnNextLinkModeRef = useRef(false);
   useEffect(() => {
     if (preserveMeshTabOnNextLinkModeRef.current) {
@@ -649,7 +654,6 @@ const App: React.FC = () => {
   }, []);
 
   // ── LEO site-to-site state ────────────────────────────────────────────────
-  const [leoTopologyMode, setLeoTopologyMode] = useState<'SINGLE_SITE' | 'SITE_TO_SITE'>('SINGLE_SITE');
   const [autoSelectedLEOIdB, setAutoSelectedLEOIdB] = useState<string | null>(null);
   const [leoServingAssignmentB, setLeoServingAssignmentB] = useState<LeoServingAssignment | null>(null);
   const selectedSNPB: SNPData | null = leoServingAssignmentB?.feeder?.snp ?? null;
@@ -4714,23 +4718,34 @@ const App: React.FC = () => {
 
     if (draft.technology === 'GEO') {
       if (draft.siteA.geoTerminalType !== engineeringConfigureBaseline.siteA.geoTerminalType) handleGeoTerminalTypeChange(draft.siteA.geoTerminalType);
-      if (draft.siteA.geoRFClassId !== engineeringConfigureBaseline.siteA.geoRFClassId) setGeoRFClassIdA(draft.siteA.geoRFClassId);
-      if (JSON.stringify(draft.siteA.geoRFCustomParams) !== JSON.stringify(engineeringConfigureBaseline.siteA.geoRFCustomParams)) setGeoRFCustomParamsA(draft.siteA.geoRFCustomParams);
       if (draft.siteB.geoTerminalType !== engineeringConfigureBaseline.siteB.geoTerminalType) handleGeoTerminalTypeBChange(draft.siteB.geoTerminalType);
-      if (draft.siteB.geoRFClassId !== engineeringConfigureBaseline.siteB.geoRFClassId) setGeoRFClassIdB(draft.siteB.geoRFClassId);
-      if (JSON.stringify(draft.siteB.geoRFCustomParams) !== JSON.stringify(engineeringConfigureBaseline.siteB.geoRFCustomParams)) setGeoRFCustomParamsB(draft.siteB.geoRFCustomParams);
     } else {
       if (draft.siteA.leoTerminalType !== engineeringConfigureBaseline.siteA.leoTerminalType) handleLeoTerminalTypeChange(draft.siteA.leoTerminalType);
-      if (draft.siteA.leoTerminalModelId !== engineeringConfigureBaseline.siteA.leoTerminalModelId) setLeoTerminalModelId(draft.siteA.leoTerminalModelId);
       if (draft.siteB.leoTerminalType !== engineeringConfigureBaseline.siteB.leoTerminalType) handleLeoTerminalTypeBChange(draft.siteB.leoTerminalType);
-      if (draft.siteB.leoTerminalModelId !== engineeringConfigureBaseline.siteB.leoTerminalModelId) setLeoTerminalModelIdB(draft.siteB.leoTerminalModelId);
     }
     if (draft.siteA.weatherType !== engineeringConfigureBaseline.siteA.weatherType) {
       handleWeatherTypeChange(draft.siteA.weatherType);
     }
-    if (draft.siteA.autoWeatherEnabled !== engineeringConfigureBaseline.siteA.autoWeatherEnabled) setAutoWeatherEnabled(draft.siteA.autoWeatherEnabled);
     if (draft.siteB.weatherType !== engineeringConfigureBaseline.siteB.weatherType) handleWeatherTypeBChange(draft.siteB.weatherType);
-    if (draft.siteB.autoWeatherEnabled !== engineeringConfigureBaseline.siteB.autoWeatherEnabled) setAutoWeatherEnabledB(draft.siteB.autoWeatherEnabled);
+
+    // M3.3: pure scenario fields apply as one patch. It runs after the
+    // orchestration handlers above, so their cascades (terminal-class reset,
+    // auto-weather disable) keep the same last-write-wins outcome as the
+    // former per-field setter calls. Only changed fields are included, so
+    // handler cascades win exactly when they did before.
+    patchScenario({
+      ...(draft.technology === 'GEO' ? {
+        ...(draft.siteA.geoRFClassId !== engineeringConfigureBaseline.siteA.geoRFClassId ? { geoRFClassIdA: draft.siteA.geoRFClassId } : {}),
+        ...(JSON.stringify(draft.siteA.geoRFCustomParams) !== JSON.stringify(engineeringConfigureBaseline.siteA.geoRFCustomParams) ? { geoRFCustomParamsA: draft.siteA.geoRFCustomParams } : {}),
+        ...(draft.siteB.geoRFClassId !== engineeringConfigureBaseline.siteB.geoRFClassId ? { geoRFClassIdB: draft.siteB.geoRFClassId } : {}),
+        ...(JSON.stringify(draft.siteB.geoRFCustomParams) !== JSON.stringify(engineeringConfigureBaseline.siteB.geoRFCustomParams) ? { geoRFCustomParamsB: draft.siteB.geoRFCustomParams } : {}),
+      } : {
+        ...(draft.siteA.leoTerminalModelId !== engineeringConfigureBaseline.siteA.leoTerminalModelId ? { leoTerminalModelId: draft.siteA.leoTerminalModelId } : {}),
+        ...(draft.siteB.leoTerminalModelId !== engineeringConfigureBaseline.siteB.leoTerminalModelId ? { leoTerminalModelIdB: draft.siteB.leoTerminalModelId } : {}),
+      }),
+      ...(draft.siteA.autoWeatherEnabled !== engineeringConfigureBaseline.siteA.autoWeatherEnabled ? { autoWeatherEnabled: draft.siteA.autoWeatherEnabled } : {}),
+      ...(draft.siteB.autoWeatherEnabled !== engineeringConfigureBaseline.siteB.autoWeatherEnabled ? { autoWeatherEnabledB: draft.siteB.autoWeatherEnabled } : {}),
+    });
 
     if (draft.technology === 'GEO' && draft.selectionPolicy === 'auto') {
       setSelectedUplinkKey(null);
@@ -4770,6 +4785,7 @@ const App: React.FC = () => {
     handleTechnologyScopeChange,
     handleWeatherTypeBChange,
     handleWeatherTypeChange,
+    patchScenario,
     satelliteScope,
   ]);
 

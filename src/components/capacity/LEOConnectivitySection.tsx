@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { memo, useMemo, type ReactNode } from 'react';
 import { Route } from 'lucide-react';
 import type { LeoSiteToSiteResult } from '../../utils/leoSiteToSiteModel';
 import { SectionTooltip } from '../SectionTooltip';
@@ -1005,9 +1005,9 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   onTerminalModelIdBChange,
 }) => {
   const siteALabel = 'Site A';
-  const [s2sDirection, setS2SDirection] = useState<'A_TO_B' | 'B_TO_A'>(
-    activeMeshTab === 'reverse' ? 'B_TO_A' : 'A_TO_B'
-  );
+  // M3.2: the scenario direction is the single owner — the former local
+  // s2sDirection state (synced from activeMeshTab by effect) is now derived.
+  const s2sDirection: 'A_TO_B' | 'B_TO_A' = activeMeshTab === 'reverse' ? 'B_TO_A' : 'A_TO_B';
 
   // ── Site-to-site derived values ───────────────────────────────────────────
   const isS2S = siteToSiteResult !== undefined;
@@ -1031,11 +1031,6 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
     weatherType,
     lat: activePoint?.lat,
   });
-
-  useEffect(() => {
-    if (!isS2S || !activeMeshTab) return;
-    setS2SDirection(activeMeshTab === 'reverse' ? 'B_TO_A' : 'A_TO_B');
-  }, [activeMeshTab, isS2S]);
 
   // Single directional view derived from s2sDirection.
   // Final throughput values (primaryMbps / secondaryMbps) are direction-aware:
