@@ -91,8 +91,10 @@ describe('Engineering Cause Chain investigation', () => {
     expect(markup).toContain('data-engineering-stage-evidence="rf"');
     expect(markup).toContain('Existing RF proof');
     expect(markup).toContain('Exact RF evidence');
-    expect(markup).toContain('Link budget &amp; RF evidence');
-    expect(markup).toContain('<details');
+    expect(markup).not.toContain('Link Budget &amp; RF Evidence');
+    expect(markup).not.toContain('<details');
+    expect(markup).not.toContain('At a glance');
+    expect(markup.match(/>Closes</g)).toHaveLength(1);
     expect(markup.match(/aria-expanded="true"/g)).toHaveLength(1);
   });
 
@@ -111,8 +113,9 @@ describe('Engineering Cause Chain investigation', () => {
       </EngineeringFocusProvider>,
     );
 
-    expect(markup.indexOf('LEO route summary')).toBeLessThan(markup.indexOf('Major hops &amp; technical evidence'));
+    expect(markup.indexOf('LEO route summary')).toBeLessThan(markup.indexOf('Major Hops &amp; Technical Evidence'));
     expect(markup).toContain('Site A → Satellite → SNP');
     expect(markup).toContain('Existing path proof');
+    expect(markup).not.toContain('At a glance');
   });
 });

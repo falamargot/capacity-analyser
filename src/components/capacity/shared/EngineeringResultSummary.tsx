@@ -216,15 +216,7 @@ const CauseStage = ({
       </div>
     );
   });
-  const technicalLabel = stage.id === 'path'
-    ? 'Major hops & technical evidence'
-    : stage.id === 'rf'
-      ? 'Link budget & RF evidence'
-      : stage.id === 'service'
-        ? 'All service gate evidence'
-        : stage.id === 'delivery'
-          ? 'Capacity, latency & delivery evidence'
-          : 'Detailed scenario assumptions';
+  const hasPrimaryEvidence = Boolean(summaryEvidence) || primaryEvidence.length > 0;
   return (
     <li className={`relative min-w-0 ${compact ? '' : 'pb-2.5 last:pb-0 [@media(max-height:700px)]:pb-2'}`}>
       {!last && <span className={`absolute bottom-0 left-[0.73rem] top-6 w-px ${styles.lineClass}`} aria-hidden="true" />}
@@ -261,27 +253,22 @@ const CauseStage = ({
           className="relative z-10 ml-2 mt-2 min-w-0 rounded-xl border border-slate-200 bg-slate-50/70 p-3 shadow-[0_16px_36px_-34px_rgba(15,23,42,0.9)] dark:border-slate-700 dark:bg-slate-900/55"
           data-engineering-stage-evidence={stage.id}
         >
-          <div className="mb-3">
-            <div className="text-[8px] font-black uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">At a glance</div>
-            <div className="mt-1 text-[12px] font-bold leading-5 text-slate-900 dark:text-slate-100">{stage.summary}</div>
-            {displayedDetail && <p className="mt-0.5 text-[10px] leading-4 text-slate-500 dark:text-slate-400">{displayedDetail}</p>}
-          </div>
           {summaryEvidence && <div className="mb-3">{summaryEvidence}</div>}
           {primaryEvidence.length > 0 && (
-            <dl className="grid gap-2 sm:grid-cols-2" aria-label={`${stage.label} summary evidence`}>
+            <dl className="grid gap-2 sm:grid-cols-2" aria-label={`${stage.label} primary evidence`}>
               {renderEvidence(primaryEvidence)}
             </dl>
           )}
-          {stage.id === 'scenario' ? (
+          {stage.id !== 'path' ? (
             <>
               {secondaryEvidence.length > 0 && <dl className="mt-2">{renderEvidence(secondaryEvidence, true)}</dl>}
-              {evidence && <div className="mt-3">{evidence}</div>}
-              <div className="mt-3" data-engineering-stage-evidence-host={`${technology}:${stage.id}`} />
+              {evidence && <div className={hasPrimaryEvidence || secondaryEvidence.length > 0 ? 'mt-3' : ''}>{evidence}</div>}
+              <div className={hasPrimaryEvidence || secondaryEvidence.length > 0 || evidence ? 'mt-3' : ''} data-engineering-stage-evidence-host={`${technology}:${stage.id}`} />
             </>
           ) : (
-            <details className="group mt-3 rounded-lg border border-slate-200 bg-white/80 open:bg-white dark:border-slate-700 dark:bg-slate-950/45 dark:open:bg-slate-950/70">
+            <details className={`group rounded-lg border border-slate-200 bg-white/80 open:bg-white dark:border-slate-700 dark:bg-slate-950/45 dark:open:bg-slate-950/70 ${hasPrimaryEvidence ? 'mt-3' : ''}`}>
               <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-[10px] font-bold text-slate-700 outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-sky-400 dark:text-slate-200 dark:hover:bg-slate-900 [&::-webkit-details-marker]:hidden">
-                <span>{technicalLabel}</span>
+                <span>Major Hops &amp; Technical Evidence</span>
                 <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform group-open:rotate-180" aria-hidden="true" />
               </summary>
               <div className="border-t border-slate-200 p-3 dark:border-slate-700">
