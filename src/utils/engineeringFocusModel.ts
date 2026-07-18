@@ -7,8 +7,6 @@ import type {
 
 export type EngineeringFocusKind = 'none' | 'preview' | 'locked';
 export type EngineeringFocusOrigin = 'lens' | 'globe' | 'system';
-export type EngineeringLensPosture = 'quiet' | 'summary' | 'reasoning';
-export type EngineeringSurfaceMode = 'result' | 'configuration' | 'investigation';
 export type EngineeringSpatialTarget = 'endpoints' | 'route' | 'access' | 'backhaul' | 'delivery';
 export type EngineeringRouteSegment = 'access' | 'backhaul' | 'destination';
 export type EngineeringPathVisualState =

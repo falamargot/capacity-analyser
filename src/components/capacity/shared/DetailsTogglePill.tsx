@@ -1,11 +1,5 @@
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
-type DetailsTogglePillScope = 'workspace' | 'investigation';
-
-interface DetailsTogglePillProps {
-  scope: DetailsTogglePillScope;
-}
-
 const pillClassName = [
   'shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full',
   'border border-slate-700/80 bg-slate-900/70 px-2.5 py-1',
@@ -14,26 +8,15 @@ const pillClassName = [
   'transition-colors duration-150',
 ].join(' ');
 
-const scopeClassName: Record<DetailsTogglePillScope, { collapsed: string; expanded: string; hover: string }> = {
-  workspace: {
-    collapsed: 'group-open/workspace:hidden',
-    expanded: 'group-open/workspace:inline-flex',
-    hover: 'group-hover/workspace:border-slate-500/80 group-hover/workspace:bg-slate-800/80 group-hover/workspace:text-slate-100',
-  },
-  investigation: {
-    collapsed: 'group-open/investigation:hidden',
-    expanded: 'group-open/investigation:inline-flex',
-    hover: 'group-hover/investigation:border-slate-500/80 group-hover/investigation:bg-slate-800/80 group-hover/investigation:text-slate-100',
-  },
-};
+const hoverClassName = 'group-hover/investigation:border-slate-500/80 group-hover/investigation:bg-slate-800/80 group-hover/investigation:text-slate-100';
 
-const DetailsTogglePill = ({ scope }: DetailsTogglePillProps) => (
+const DetailsTogglePill = () => (
   <>
-    <span className={`inline-flex ${pillClassName} ${scopeClassName[scope].hover} ${scopeClassName[scope].collapsed}`}>
+    <span className={`inline-flex ${pillClassName} ${hoverClassName} group-open/investigation:hidden`}>
       Show details
       <ChevronDown className="h-3 w-3" aria-hidden="true" />
     </span>
-    <span className={`hidden ${pillClassName} ${scopeClassName[scope].hover} ${scopeClassName[scope].expanded}`}>
+    <span className={`hidden ${pillClassName} ${hoverClassName} group-open/investigation:inline-flex`}>
       Hide details
       <ChevronUp className="h-3 w-3" aria-hidden="true" />
     </span>

@@ -28,14 +28,10 @@ const truth: EngineeringTruth = {
 const controller = (overrides: Partial<EngineeringFocusController> = {}): EngineeringFocusController => ({
   truths: { LEO: truth },
   focus: createEngineeringFocus('locked', 'LEO', 'delivery', 'globe'),
-  lensPosture: 'reasoning',
-  surfaceMode: 'result',
   preview: () => undefined,
   lock: () => undefined,
   clearPreview: () => undefined,
   clear: () => undefined,
-  setLensPosture: () => undefined,
-  setSurfaceMode: () => undefined,
   ...overrides,
 });
 
@@ -63,7 +59,7 @@ describe('Engineering Cause Chain investigation', () => {
   it('keeps the Summary posture compact while retaining the five-stage textual equivalent', () => {
     const markup = renderToStaticMarkup(
       <EngineeringFocusProvider
-        controller={controller({ focus: { kind: 'none', technology: null, stageId: null, spatialTarget: null, origin: null }, lensPosture: 'summary' })}
+        controller={controller({ focus: { kind: 'none', technology: null, stageId: null, spatialTarget: null, origin: null } })}
         truths={{ LEO: truth }}
       >
         <EngineeringResultSummary technology="LEO" truth={truth} />

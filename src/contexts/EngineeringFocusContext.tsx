@@ -6,35 +6,25 @@ import {
   EMPTY_ENGINEERING_FOCUS,
   type EngineeringAnalyticalFocus,
   type EngineeringFocusOrigin,
-  type EngineeringLensPosture,
-  type EngineeringSurfaceMode,
 } from '../utils/engineeringFocusModel';
 
 export interface EngineeringFocusController {
   truths: EngineeringTruthSet;
   focus: EngineeringAnalyticalFocus;
-  lensPosture: EngineeringLensPosture;
-  surfaceMode: EngineeringSurfaceMode;
   preview: (technology: 'GEO' | 'LEO', stageId: EngineeringCauseStageId, origin: EngineeringFocusOrigin) => void;
   lock: (technology: 'GEO' | 'LEO', stageId: EngineeringCauseStageId, origin: EngineeringFocusOrigin) => void;
   clearPreview: () => void;
   clear: () => void;
-  setLensPosture: (posture: EngineeringLensPosture) => void;
-  setSurfaceMode: (mode: EngineeringSurfaceMode) => void;
 }
 
 const noop = () => {};
 const defaultController: EngineeringFocusController = {
   truths: {},
   focus: EMPTY_ENGINEERING_FOCUS,
-  lensPosture: 'summary',
-  surfaceMode: 'result',
   preview: noop,
   lock: noop,
   clearPreview: noop,
   clear: noop,
-  setLensPosture: noop,
-  setSurfaceMode: noop,
 };
 
 const EngineeringFocusContext = createContext<EngineeringFocusController>(defaultController);
@@ -44,8 +34,6 @@ const EngineeringFocusContext = createContext<EngineeringFocusController>(defaul
 // eslint-disable-next-line react-refresh/only-export-components
 export const useEngineeringFocusController = (): EngineeringFocusController => {
   const [focus, setFocus] = useState<EngineeringAnalyticalFocus>(EMPTY_ENGINEERING_FOCUS);
-  const [lensPosture, setLensPosture] = useState<EngineeringLensPosture>('summary');
-  const [surfaceMode, setSurfaceMode] = useState<EngineeringSurfaceMode>('result');
 
   const preview = useCallback((technology: 'GEO' | 'LEO', stageId: EngineeringCauseStageId, origin: EngineeringFocusOrigin) => {
     setFocus((current) => {
@@ -56,8 +44,6 @@ export const useEngineeringFocusController = (): EngineeringFocusController => {
 
   const lock = useCallback((technology: 'GEO' | 'LEO', stageId: EngineeringCauseStageId, origin: EngineeringFocusOrigin) => {
     setFocus((current) => applyEngineeringFocusIntent(current, { type: 'lock', technology, stageId, origin }));
-    setLensPosture('reasoning');
-    setSurfaceMode('result');
   }, []);
 
   const clearPreview = useCallback(() => {
@@ -68,15 +54,11 @@ export const useEngineeringFocusController = (): EngineeringFocusController => {
   return useMemo(() => ({
     truths: {},
     focus,
-    lensPosture,
-    surfaceMode,
     preview,
     lock,
     clearPreview,
     clear,
-    setLensPosture,
-    setSurfaceMode,
-  }), [clear, clearPreview, focus, lensPosture, lock, preview, surfaceMode]);
+  }), [clear, clearPreview, focus, lock, preview]);
 };
 
 export const EngineeringFocusProvider = ({

@@ -9,7 +9,6 @@ import type { CandidateCoverage } from '../../types/analysis';
 import type { TerminalType, TerminalRFClassId, TerminalRFCustomParams } from './TerminalConfig';
 import type { LinkMode } from '../../types/linkMode';
 import DualSegmentPanel from './DualSegmentPanel';
-import EngineeringAnalysisWorkspace from './EngineeringAnalysisWorkspace';
 import type { DualSegmentResult } from '../../utils/geoDualSegmentBudget';
 import LinkModeSelector from './LinkModeSelector';
 import type { ResolvedGeoGateway, StarTrafficGatewayResolution } from '../../utils/geoConnectivityModel';
@@ -104,9 +103,7 @@ const GeoLinkBudgetEvidence = ({
   });
 
   return (
-    <EngineeringAnalysisWorkspace
-      viewModel={viewModel}
-    >
+    <div className="min-w-0 space-y-3" data-engineering-embedded-evidence={viewModel.mode}>
       <DualSegmentPanel
         linkMode={linkMode}
         result={result}
@@ -147,7 +144,7 @@ const GeoLinkBudgetEvidence = ({
           </div>
         </div>
       )}
-    </EngineeringAnalysisWorkspace>
+    </div>
   );
 };
 

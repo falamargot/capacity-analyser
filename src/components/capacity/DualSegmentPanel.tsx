@@ -1367,7 +1367,7 @@ const GeoInvestigationSection = ({
         <h4 className="text-sm font-semibold text-slate-100">{title}</h4>
         {subtitle && <p className="mt-0.5 text-xs leading-snug text-slate-500">{subtitle}</p>}
       </div>
-      <DetailsTogglePill scope="investigation" />
+      <DetailsTogglePill />
     </summary>
     <div className="border-t border-slate-800 p-2.5">
       {children}

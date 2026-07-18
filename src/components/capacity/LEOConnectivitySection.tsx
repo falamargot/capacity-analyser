@@ -15,7 +15,6 @@ import type { BeamLoadResult } from '../../utils/capacityLayer';
 import type { ServiceLayerResult } from '../../utils/serviceLayer';
 import type { TerminalType } from './TerminalConfig';
 import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
-import EngineeringAnalysisWorkspace from './EngineeringAnalysisWorkspace';
 import type { LeoBottleneckFactor, LeoThroughputLeg, LeoThroughputResult } from '../../types/leoThroughput';
 import { buildLeoSingleSiteConfidence, type PredictionConfidence } from '../../utils/predictionConfidence';
 import { buildLinkAvailabilityContext, formatLinkAvailabilityContext } from '../../utils/linkAvailabilityContext';
@@ -720,7 +719,7 @@ const InvestigationSection = ({
         <h4 className="flex items-center gap-2 text-sm font-semibold text-slate-100">{title}</h4>
         {subtitle && <p className="mt-0.5 text-xs leading-snug text-slate-500">{subtitle}</p>}
       </div>
-      <DetailsTogglePill scope="investigation" />
+      <DetailsTogglePill />
     </summary>
     <div className="border-t border-slate-800 p-2.5">
       {children}
@@ -810,9 +809,7 @@ const LeoLinkBudgetEvidence = ({
   };
 
   return (
-    <EngineeringAnalysisWorkspace
-      viewModel={viewModel}
-    >
+    <div className="min-w-0 space-y-3" data-engineering-embedded-evidence={viewModel.mode}>
       {isS2S ? (
         hasS2SAccessBudgets ? (
           <div className="flex flex-col gap-2">
@@ -886,7 +883,7 @@ const LeoLinkBudgetEvidence = ({
           </div>
         ) : <NoBudgetPlaceholder />
       )}
-    </EngineeringAnalysisWorkspace>
+    </div>
   );
 };
 

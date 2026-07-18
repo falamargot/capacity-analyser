@@ -43,14 +43,10 @@ const truth: EngineeringTruth = {
 const controller = (overrides: Partial<EngineeringFocusController> = {}): EngineeringFocusController => ({
   truths: { LEO: truth },
   focus: EMPTY_ENGINEERING_FOCUS,
-  lensPosture: 'summary',
-  surfaceMode: 'result',
   preview: () => undefined,
   lock: () => undefined,
   clearPreview: () => undefined,
   clear: () => undefined,
-  setLensPosture: () => undefined,
-  setSurfaceMode: () => undefined,
   ...overrides,
 });
 

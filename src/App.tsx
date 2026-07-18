@@ -144,7 +144,7 @@ import {
   connectivityScenarioTypeFromDestinationType,
   scenarioToConnectivityScenarioCard,
 } from './utils/connectivityScenarioCardProjection';
-import { computeEngineeringCameraCompensation, shouldApplyEngineeringCameraFocus } from './utils/engineeringCameraCompensation';
+import { shouldApplyEngineeringCameraFocus } from './utils/engineeringCameraCompensation';
 import type { EngineeringTruth, EngineeringTruthSet } from './utils/engineeringAnalysisViewModel';
 import type { EngineeringConfigureDraft } from './types/engineeringConfigure';
 import {
@@ -173,13 +173,10 @@ const REPRESENTATIVE_TELEPORT_IMAGE_URL = 'https://upload.wikimedia.org/wikipedi
 const AUTHORSHIP_SIGNATURE = 'F.Alamargot - 2026';
 const EMPTY_SNP_CONNECTED_SATELLITES: SNPConnectedSatellite[] = [];
 const clampNumber = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
-type EngineeringDisplayMode = 'connectivity' | 'analysis';
 
 const lerp = (start: number, end: number, progress: number) => start + (end - start) * progress;
 
 const ENGINEERING_CONTEXT_GROUND_ALTITUDE_KM = 0.08;
-const ENGINEERING_CONTEXT_LEO_MIN_RADIUS_M = 1_100_000;
-const ENGINEERING_CONTEXT_GEO_MIN_RADIUS_M = 2_200_000;
 const ENGINEERING_CAMERA_ANIMATION_SECONDS = 0.34;
 const MODE_SWITCH_CAMERA_ANIMATION_SECONDS = 0.22;
 
@@ -194,8 +191,6 @@ interface EngineeringModeSnapshot {
   camera: EngineeringCameraSnapshot | null;
   satelliteScope: SatelliteScope;
   activeConnectivityTab: 'LEO' | 'GEO';
-  engineeringDisplayMode: EngineeringDisplayMode;
-  isDetailedEngineeringWorkspaceOpen: boolean;
   showSatelliteTrajectory: boolean;
   showAggregatedConnectivity: boolean;
   showFillRateLayer: boolean;
@@ -272,6 +267,7 @@ const flyToEngineeringCameraSnapshot = (
   });
 };
 
+
 interface EngineeringSemanticCameraView {
   destination: Cartesian3;
   direction: Cartesian3;
@@ -331,28 +327,6 @@ const createSemanticGeoPathCameraView = (
   if (Cartesian3.magnitudeSquared(up) < 0.01) up = Cartesian3.cross(lateral, direction, up);
   Cartesian3.normalize(up, up);
   return { destination, direction, up };
-};
-
-const computeEngineeringCameraRange = (
-  snapshot: EngineeringCameraSnapshot,
-  routePositions: Cartesian3[],
-) => {
-  if (routePositions.length === 0) {
-    return Math.max(1, Cartesian3.magnitude(snapshot.position));
-  }
-
-  const sphere = BoundingSphere.fromPoints(routePositions);
-  return Math.max(1, Cartesian3.distance(snapshot.position, sphere.center));
-};
-
-const computeCompensatedEngineeringCameraPosition = (
-  snapshot: EngineeringCameraSnapshot,
-  extraRangeMeters: number,
-) => {
-  const backwards = Cartesian3.negate(snapshot.direction, new Cartesian3());
-  Cartesian3.normalize(backwards, backwards);
-  Cartesian3.multiplyByScalar(backwards, extraRangeMeters, backwards);
-  return Cartesian3.add(snapshot.position, backwards, new Cartesian3());
 };
 
 const getCandidateLinkMargin = (candidate: CandidateCoverage): number => (
@@ -787,19 +761,9 @@ const App: React.FC = () => {
     handleTechnologyChange,
     handleTechnologyScopeChange,
   } = useUiModeState();
-  const [engineeringDisplayMode, setEngineeringDisplayMode] = useState<EngineeringDisplayMode>('connectivity');
-  const [isDetailedEngineeringWorkspaceOpen, setIsDetailedEngineeringWorkspaceOpen] = useState(false);
   const [commercialSelectedSegment, setCommercialSelectedSegment] = useState<string>('summary');
   const [isGlobeModePeekPressed, setIsGlobeModePeekPressed] = useState(false);
   const globeCommercialMode = isGlobeModePeekPressed ? !commercialMode : commercialMode;
-
-  useEffect(() => {
-    if (isDetailedEngineeringWorkspaceOpen) {
-      engineeringFocusController.setSurfaceMode('investigation');
-    } else if (engineeringFocusController.surfaceMode === 'investigation') {
-      engineeringFocusController.setSurfaceMode('result');
-    }
-  }, [engineeringFocusController, isDetailedEngineeringWorkspaceOpen]);
 
   const handleGlobeModePeekChange = useCallback((pressed: boolean) => {
     setIsGlobeModePeekPressed(pressed);
@@ -895,8 +859,6 @@ const App: React.FC = () => {
   });
   const viewerRef = useRef<CesiumViewerType | null>(null);
   const globeContainerRef = useRef<HTMLDivElement>(null);
-  const unobstructedGlobeHeightRef = useRef<number | null>(null);
-  const engineeringCameraSnapshotRef = useRef<EngineeringCameraSnapshot | null>(null);
   const engineeringAnalyticalCameraSnapshotRef = useRef<EngineeringCameraSnapshot | null>(null);
   const engineeringModeSnapshotRef = useRef<EngineeringModeSnapshot | null>(null);
   const engineeringFocusCameraKeyRef = useRef<string | null>(null);
@@ -3533,15 +3495,8 @@ const App: React.FC = () => {
     ...displayPrefs,
     isPhone: false,
     isMobileViewport: false,
-    showAggregatedConnectivity: isDetailedEngineeringWorkspaceOpen ? false : displayPrefs.showAggregatedConnectivity,
-    showFillRateLayer: isDetailedEngineeringWorkspaceOpen ? false : displayPrefs.showFillRateLayer,
-    showFootprintProjection: isDetailedEngineeringWorkspaceOpen ? false : displayPrefs.showFootprintProjection,
-    showFlowAnimation: isDetailedEngineeringWorkspaceOpen ? false : displayPrefs.showFlowAnimation,
-    showSatelliteTrajectory: isDetailedEngineeringWorkspaceOpen ? false : displayPrefs.showSatelliteTrajectory,
-    hideBottomPathStrip: isDetailedEngineeringWorkspaceOpen || displayPrefs.hideBottomPathStrip,
-    isCompactMap: isDetailedEngineeringWorkspaceOpen && uiMode !== 'commercial' && !isFullscreen,
-    simplifySatellitesForEngineeringAnalysis: isDetailedEngineeringWorkspaceOpen || displayPrefs.simplifySatellitesForEngineeringAnalysis,
-  }), [displayPrefs, isDetailedEngineeringWorkspaceOpen, uiMode, isFullscreen]);
+    isCompactMap: false,
+  }), [displayPrefs]);
 
   const displayLayerProps = useMemo<DisplayLayerProps>(() => ({
     displayPrefs,
@@ -3781,73 +3736,9 @@ const App: React.FC = () => {
   const useCondensedHeaderSites = !isMobile && viewportSnapshot.innerWidth < 1420;
   const desktopSidebarWidth = Math.round(lerp(500, 405, desktopCompactProgress));
   const desktopLayoutGap = Math.round(lerp(24, 16, desktopCompactProgress));
-  const isEngineeringSplitLayoutActive = uiMode !== 'commercial'
-    && isDetailedEngineeringWorkspaceOpen
-    && !isFullscreen;
   useEffect(() => {
     document.documentElement.style.setProperty('--desktop-sidebar-width', `${desktopSidebarWidth}px`);
   }, [desktopSidebarWidth]);
-
-  useEffect(() => {
-    if (isEngineeringSplitLayoutActive) return;
-
-    const updateUnobstructedHeight = () => {
-      const height = globeContainerRef.current?.getBoundingClientRect().height;
-      if (height && Number.isFinite(height) && height > 0) {
-        unobstructedGlobeHeightRef.current = height;
-      }
-    };
-
-    updateUnobstructedHeight();
-    const target = globeContainerRef.current;
-    const observer = target ? new ResizeObserver(updateUnobstructedHeight) : null;
-    if (target && observer) observer.observe(target);
-
-    return () => observer?.disconnect();
-  }, [
-    isEngineeringSplitLayoutActive,
-    viewportSnapshot.innerHeight,
-    viewportSnapshot.innerWidth,
-  ]);
-
-  useEffect(() => {
-    const root = document.documentElement;
-
-    if (!isEngineeringSplitLayoutActive) {
-      root.style.removeProperty('--engineering-workspace-top');
-      return;
-    }
-
-    const updateWorkspaceTop = () => {
-      const rect = globeContainerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      root.style.setProperty('--engineering-workspace-top', `${Math.max(0, rect.bottom)}px`);
-    };
-
-    updateWorkspaceTop();
-    const frameId = requestAnimationFrame(updateWorkspaceTop);
-
-    // ResizeObserver tracks the map container's actual box, so the workspace
-    // top edge stays glued to the map bottom edge regardless of *why* it
-    // resized (header collapse, sidebar width change, content reflow) rather
-    // than only on the specific state changes listed in the dependency array.
-    const target = globeContainerRef.current;
-    const observer = target ? new ResizeObserver(updateWorkspaceTop) : null;
-    if (target && observer) observer.observe(target);
-
-    return () => {
-      cancelAnimationFrame(frameId);
-      observer?.disconnect();
-      root.style.removeProperty('--engineering-workspace-top');
-    };
-  }, [
-    desktopLayoutGap,
-    desktopSidebarWidth,
-    isDesktopHeaderCollapsed,
-    isEngineeringSplitLayoutActive,
-    viewportSnapshot.innerHeight,
-    viewportSnapshot.innerWidth,
-  ]);
 
   const selectedGatewayHeroData = useMemo(() => {
     if (!selectedGateway) return null;
@@ -4221,11 +4112,6 @@ const App: React.FC = () => {
     siteB,
   ]);
 
-  const engineeringContextRoutePositionsRef = useRef<Cartesian3[]>([]);
-  useEffect(() => {
-    engineeringContextRoutePositionsRef.current = engineeringContextRoutePositions;
-  }, [engineeringContextRoutePositions]);
-
   const engineeringFocusedRoutePositions = useMemo(() => {
     const focus = engineeringFocusController.focus;
     if (focus.kind === 'none' || focus.technology !== activeConnectivityTab || !focus.stageId) return [];
@@ -4394,136 +4280,17 @@ const App: React.FC = () => {
   }, [activeConnectivityTab, engineeringFocusController, handleTechnologyChange]);
 
   useEffect(() => {
-    const viewer = viewerRef.current;
-    if (!viewer || viewer.isDestroyed?.()) return;
-
-    let cancelled = false;
-    let firstFrameId: number | null = null;
-    let secondFrameId: number | null = null;
-
-    const restoreOriginalCamera = () => {
-      const snapshot = engineeringCameraSnapshotRef.current;
-      if (!snapshot) return;
-      flyToEngineeringCameraSnapshot(viewer, snapshot);
-      engineeringCameraSnapshotRef.current = null;
-    };
-
-    if (!isDetailedEngineeringWorkspaceOpen || uiMode === 'commercial' || isFullscreen) {
-      restoreOriginalCamera();
-      return;
-    }
-
-    if (engineeringCameraSnapshotRef.current) return;
-
-    const previousViewportHeight =
-      unobstructedGlobeHeightRef.current ??
-      globeContainerRef.current?.getBoundingClientRect().height ??
-      viewportSnapshot.innerHeight;
-    const snapshot = captureEngineeringCameraSnapshot(viewer, previousViewportHeight);
-    engineeringCameraSnapshotRef.current = snapshot;
-
-    firstFrameId = requestAnimationFrame(() => {
-      secondFrameId = requestAnimationFrame(() => {
-        if (cancelled || viewer.isDestroyed?.()) return;
-        viewer.resize?.();
-        const visibleViewportHeight = globeContainerRef.current?.getBoundingClientRect().height ?? snapshot.viewportHeight;
-        const currentRangeMeters = computeEngineeringCameraRange(snapshot, engineeringContextRoutePositionsRef.current);
-        const compensation = computeEngineeringCameraCompensation({
-          previousViewportHeight: snapshot.viewportHeight,
-          visibleViewportHeight,
-          currentRangeMeters,
-        });
-
-        if (compensation.extraRangeMeters <= 0) return;
-        const destination = computeCompensatedEngineeringCameraPosition(snapshot, compensation.extraRangeMeters);
-        viewer.camera.cancelFlight();
-        viewer.camera.flyTo({
-          destination,
-          orientation: {
-            direction: snapshot.direction,
-            up: snapshot.up,
-          },
-          duration: ENGINEERING_CAMERA_ANIMATION_SECONDS,
-          easingFunction: EasingFunction.CUBIC_OUT,
-        });
-      });
-    });
-
-    return () => {
-      cancelled = true;
-      if (firstFrameId !== null) cancelAnimationFrame(firstFrameId);
-      if (secondFrameId !== null) cancelAnimationFrame(secondFrameId);
-    };
-  }, [
-    isDetailedEngineeringWorkspaceOpen,
-    isFullscreen,
-    uiMode,
-    viewportSnapshot.innerHeight,
-  ]);
-
-  useEffect(() => {
     return () => {
       const viewer = viewerRef.current;
-      const snapshot = engineeringAnalyticalCameraSnapshotRef.current ?? engineeringCameraSnapshotRef.current;
+      const snapshot = engineeringAnalyticalCameraSnapshotRef.current;
       if (!viewer || !snapshot || viewer.isDestroyed?.()) return;
       viewer.camera.setView({
         destination: snapshot.position,
         orientation: { direction: snapshot.direction, up: snapshot.up },
       });
       engineeringAnalyticalCameraSnapshotRef.current = null;
-      engineeringCameraSnapshotRef.current = null;
     };
   }, []);
-
-  useEffect(() => {
-    if (!isDetailedEngineeringWorkspaceOpen || uiMode === 'commercial' || isFullscreen) return;
-
-    let cancelled = false;
-    let timeoutId: number | null = null;
-    const isLeoContext = activeConnectivityTab === 'LEO';
-
-    const fitEngineeringContext = () => {
-      if (cancelled) return;
-      const viewer = viewerRef.current;
-      if (!viewer || viewer.isDestroyed?.()) return;
-      if (engineeringCameraSnapshotRef.current) return;
-      viewer.resize?.();
-      if (engineeringContextRoutePositions.length === 0) return;
-
-      const rawSphere = BoundingSphere.fromPoints(engineeringContextRoutePositions);
-      const minRadius = isLeoContext
-        ? ENGINEERING_CONTEXT_LEO_MIN_RADIUS_M
-        : ENGINEERING_CONTEXT_GEO_MIN_RADIUS_M;
-      const radius = Math.max(rawSphere.radius * 1.18, minRadius);
-      const range = radius * (isLeoContext ? 2.8 : 2.5);
-      const pitch = CesiumMath.toRadians(isLeoContext ? -46 : -40);
-
-      viewer.camera.flyToBoundingSphere(
-        new BoundingSphere(rawSphere.center, radius),
-        {
-          duration: 0.7,
-          offset: new HeadingPitchRange(0, pitch, range),
-        },
-      );
-    };
-
-    const frameId = requestAnimationFrame(() => {
-      fitEngineeringContext();
-      timeoutId = window.setTimeout(fitEngineeringContext, 240);
-    });
-
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(frameId);
-      if (timeoutId !== null) window.clearTimeout(timeoutId);
-    };
-  }, [
-    activeConnectivityTab,
-    engineeringContextRoutePositions,
-    isDetailedEngineeringWorkspaceOpen,
-    isFullscreen,
-    uiMode,
-  ]);
 
   const activeCommercialTechnology = activeConnectivityTab;
 
@@ -4682,11 +4449,6 @@ const App: React.FC = () => {
     uiMode,
   ]);
 
-  const canUseEngineeringAnalysisView = showEngineeringRouteStatus;
-  const isEngineeringAnalysisView = uiMode !== 'commercial'
-    && engineeringDisplayMode === 'analysis'
-    && canUseEngineeringAnalysisView
-    && !isFullscreen;
   const engineeringRouteContext = useMemo(() => {
     const siteAName = activeAnalysisPoint
       ? (commercialScenarioViewModel.siteA?.name ?? formatCoordinates(activeAnalysisPoint))
@@ -4911,10 +4673,9 @@ const App: React.FC = () => {
   const handleOpenEngineeringConfigure = useCallback((technology?: 'GEO' | 'LEO') => {
     if (technology && technology !== activeConnectivityTab) handleTechnologyChange(technology);
     setIsMobileAnalysisPanelOpen(false);
-    engineeringFocusController.setSurfaceMode('configuration');
     if (isMobile) setIsEngineeringConfigureOpen(true);
     else setEngineeringHeaderConfigureFocusSignal((signal) => signal + 1);
-  }, [activeConnectivityTab, engineeringFocusController, handleTechnologyChange, isMobile]);
+  }, [activeConnectivityTab, handleTechnologyChange, isMobile]);
 
   const handleApplyEngineeringConfigure = useCallback((draft: EngineeringConfigureDraft) => {
     const changes = getEngineeringConfigureChanges(engineeringConfigureBaseline, draft);
@@ -4978,12 +4739,10 @@ const App: React.FC = () => {
       if (downlinkB) handleSelectDownlinkCoverageB(downlinkB);
     }
     setIsEngineeringConfigureOpen(false);
-    engineeringFocusController.setSurfaceMode('result');
   }, [
     candidateCoveragesB,
     eligibleCandidateCoverages,
     engineeringConfigureBaseline,
-    engineeringFocusController,
     handleActiveMeshTabChange,
     handleClearSiteB,
     handleDestinationLocationSelect,
@@ -5024,8 +4783,6 @@ const App: React.FC = () => {
         : null,
       satelliteScope,
       activeConnectivityTab,
-      engineeringDisplayMode,
-      isDetailedEngineeringWorkspaceOpen,
       showSatelliteTrajectory,
       showAggregatedConnectivity,
       showFillRateLayer,
@@ -5048,8 +4805,6 @@ const App: React.FC = () => {
     activeConnectivityTab,
     activeMeshTab,
     countryOverlayMode,
-    engineeringDisplayMode,
-    isDetailedEngineeringWorkspaceOpen,
     leoTopologyMode,
     linkMode,
     manualGeoCoverageVisibility,
@@ -5073,8 +4828,6 @@ const App: React.FC = () => {
 
     handleTechnologyScopeChange(snapshot.satelliteScope);
     handleTechnologyChange(snapshot.activeConnectivityTab);
-    setEngineeringDisplayMode(snapshot.engineeringDisplayMode);
-    setIsDetailedEngineeringWorkspaceOpen(snapshot.isDetailedEngineeringWorkspaceOpen);
     setShowSatelliteTrajectory(snapshot.showSatelliteTrajectory);
     setShowAggregatedConnectivity(snapshot.showAggregatedConnectivity);
     setShowFillRateLayer(snapshot.showFillRateLayer);
@@ -5198,48 +4951,13 @@ const App: React.FC = () => {
     </div>
   );
 
-  const renderEngineeringDisplaySwitch = (compact = false) => (
-    <div className={`inline-flex shrink-0 border border-slate-200/80 bg-white/90 p-1 shadow-sm backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-900/86 ${compact ? 'rounded-[18px] text-[12px]' : 'rounded-xl text-[13px]'}`}>
-      {([
-        ['connectivity', 'Connectivity View'],
-        ['analysis', 'Engineering Analysis'],
-      ] as const).map(([mode, label]) => {
-        const disabled = mode === 'analysis' && !canUseEngineeringAnalysisView;
-        return (
-          <button
-            key={mode}
-            type="button"
-            onClick={() => {
-              if (!disabled) {
-                setEngineeringDisplayMode(mode);
-              }
-            }}
-            disabled={disabled}
-            className={[
-              compact ? 'rounded-[14px] px-3 py-2' : 'rounded-lg px-3.5 py-2',
-              'font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-45',
-              engineeringDisplayMode === mode && !disabled
-                ? 'bg-slate-950 text-white shadow-sm dark:bg-white dark:text-slate-950'
-                : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800',
-            ].join(' ')}
-            aria-pressed={engineeringDisplayMode === mode}
-          >
-            {label}
-          </button>
-        );
-      })}
-    </div>
-  );
-
   const renderDesktopCapacityDetails = ({
     compactDesktop,
     externalHeader,
-    presentationMode = 'sidebar',
     onExportStateChange,
   }: {
     compactDesktop: boolean;
     externalHeader: boolean;
-    presentationMode?: 'sidebar' | 'workspace';
     onExportStateChange?: (payload: ExportButtonPayload | null) => void;
   }) => (
     <CapacityDetails
@@ -5304,7 +5022,6 @@ const App: React.FC = () => {
       onMetricsChange={setMobileMetrics}
       compactDesktop={compactDesktop}
       externalHeader={externalHeader}
-      presentationMode={presentationMode}
       globeRef={globeContainerRef}
       cesiumViewerRef={viewerRef}
       onExportStateChange={onExportStateChange}
@@ -5413,7 +5130,6 @@ const App: React.FC = () => {
       returnLabel="Summary"
       onCancel={() => {
         setIsEngineeringConfigureOpen(false);
-        engineeringFocusController.setSurfaceMode('result');
       }}
       onApply={handleApplyEngineeringConfigure}
     />
@@ -6203,8 +5919,6 @@ const App: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => {
-                              engineeringFocusController.setLensPosture('reasoning');
-                              engineeringFocusController.setSurfaceMode('result');
                               setIsMobileAnalysisPanelOpen(true);
                             }}
                             className="inline-flex h-9 items-center justify-center gap-1 rounded-[16px] bg-slate-950 px-2 text-[12px] font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
@@ -6246,7 +5960,6 @@ const App: React.FC = () => {
                               type="button"
                               onClick={() => {
                                 setIsMobileAnalysisPanelOpen(false);
-                                engineeringFocusController.setSurfaceMode('result');
                               }}
                               className="absolute right-0 inline-flex h-10 w-10 items-center justify-center rounded-[18px] border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
                               aria-label="Return to engineering summary"
@@ -6417,7 +6130,6 @@ const App: React.FC = () => {
                 ? 'flex min-w-0 flex-1 flex-col'
                 : [
                     'flex-1 relative bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300',
-                    isEngineeringSplitLayoutActive ? 'flex flex-col' : '',
                     isFullscreen ? 'fixed inset-0 z-50' : '',
                   ].filter(Boolean).join(' ')
               }
@@ -6430,9 +6142,7 @@ const App: React.FC = () => {
               <div
                 className={uiMode === 'commercial'
                   ? 'relative min-h-0 flex-1 overflow-hidden bg-slate-100 dark:bg-slate-950'
-                  : isEngineeringSplitLayoutActive
-                    ? 'relative h-[24%] min-h-[8.5rem] shrink-0 overflow-hidden bg-slate-950 min-[1500px]:h-[22%]'
-                    : 'absolute inset-0'
+                  : 'absolute inset-0'
                 }
               >
                 {/* Commercial props passed separately — see §4.1 comment on sharedMapProps. */}
@@ -6509,10 +6219,7 @@ const App: React.FC = () => {
 
               {/* Slot 2: always empty — commercial route strip moved to globe overlay above.
                   Keeping a stable div here preserves the Cesium fiber position. */}
-              <div
-                className={isEngineeringSplitLayoutActive ? 'min-h-0 flex-1 overflow-hidden bg-slate-950' : 'h-0 overflow-hidden'}
-                aria-hidden="true"
-              />
+              <div className="h-0 overflow-hidden" aria-hidden="true" />
             </div>
 
             {/* Right panel: engineering sidebar only.
@@ -6640,7 +6347,6 @@ const App: React.FC = () => {
                           onMetricsChange={setMobileMetrics}
                           compactDesktop={useCompactDesktopSidebar}
                           externalHeader
-                          presentationMode={isEngineeringAnalysisView ? 'workspace' : 'sidebar'}
                           globeRef={globeContainerRef}
                           cesiumViewerRef={viewerRef}
                           onExportStateChange={setFullscreenExportButtonProps}

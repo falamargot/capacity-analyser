@@ -141,14 +141,10 @@ const noop = () => undefined;
 const rfFocusController: EngineeringFocusController = {
   truths: {},
   focus: createEngineeringFocus('locked', 'GEO', 'rf', 'lens'),
-  lensPosture: 'reasoning',
-  surfaceMode: 'result',
   preview: noop,
   lock: noop,
   clearPreview: noop,
   clear: noop,
-  setLensPosture: noop,
-  setSurfaceMode: noop,
 };
 
 const renderGeoRfEvidence = (content: ReactNode) => renderToStaticMarkup(

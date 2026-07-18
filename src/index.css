@@ -513,10 +513,6 @@ h1, h2, h3, h4 {
   animation: engineering-lens-recompose 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.engineering-result-delta {
-  animation: engineering-result-delta-reveal 180ms ease-out both;
-}
-
 @keyframes engineering-lens-recompose {
   from {
     opacity: 0.94;
@@ -525,15 +521,6 @@ h1, h2, h3, h4 {
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-@keyframes engineering-result-delta-reveal {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
   }
 }
 
@@ -550,8 +537,7 @@ h1, h2, h3, h4 {
   .endpoint-selection-header-settle,
   .endpoint-selection-panel-reveal,
   .endpoint-selection-label-settle > div,
-  .engineering-lens[data-engineering-lens-posture='reasoning'],
-  .engineering-result-delta {
+  .engineering-lens[data-engineering-lens-posture='reasoning'] {
     animation: none;
   }
 
