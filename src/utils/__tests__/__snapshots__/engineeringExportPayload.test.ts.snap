@@ -1,0 +1,453 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`M2 export payload golden > freezes the GEO PDF details contract 1`] = `
+{
+  "latency": {
+    "overheadRows": [
+      {
+        "label": "Traffic gateway processing delay",
+        "value": "15 ms",
+      },
+      {
+        "label": "Modem processing delay",
+        "value": "20 ms",
+      },
+      {
+        "label": "Routing delay",
+        "value": "5 ms",
+      },
+    ],
+    "overheadTotal": "40.0 ms",
+    "propagationRows": [
+      {
+        "label": "User -> Satellite",
+        "value": "128.1 ms",
+      },
+      {
+        "label": "Satellite -> Traffic Gateway",
+        "value": "126.1 ms",
+      },
+      {
+        "label": "Traffic Gateway -> Satellite",
+        "value": "126.1 ms",
+      },
+      {
+        "label": "Satellite -> User",
+        "value": "128.1 ms",
+      },
+    ],
+    "propagationTotal": "508.4 ms",
+    "summary": "Estimated RTT total: 548.4 ms",
+    "total": "548.4 ms",
+    "warnings": [],
+  },
+  "oneWayPropagation": {
+    "distanceKm": 76212,
+    "latencyMs": 254.2,
+  },
+  "performance": {
+    "downlinkGbps": 0.152,
+    "maxDlGbps": 0.195,
+    "maxUlGbps": 0.032,
+    "notes": [
+      "Basis: Selected link budget",
+    ],
+    "performanceFactor": 0.4,
+    "rttLabel": "End-to-End GEO RTT",
+    "rttMs": 548.4,
+    "stability": "Medium",
+    "uplinkGbps": 0.048,
+  },
+  "radioPath": "User -> EUTELSAT TEST -> Rambouillet -> EUTELSAT TEST -> User",
+  "routeLines": [
+    "User -> Ku Europe",
+    "Elevation: 34.2 deg | Slant range: 38412 km (128.1 ms)",
+    "Rambouillet -> EUTELSAT TEST",
+    "Slant range: 37800 km (126.1 ms)",
+  ],
+}
+`;
+
+exports[`M2 export payload golden > freezes the GEO-scope star-return payload direction mapping 1`] = `
+{
+  "cesiumViewerRef": undefined,
+  "evidenceSummary": {
+    "architectureChoice": "GEO feasibility path",
+    "availabilityContext": "Weather-sensitive (99.1% indicative, fade risk ~1.5 dB)",
+    "confidence": "High 89/100",
+    "confidenceReasons": [
+      "Scenario: Inputs ready",
+      "Path: GEO route resolved",
+      "RF closure: 4.5 dB · closes",
+      "Service gates: Not evaluated",
+      "Delivery: Shared capacity limiting",
+    ],
+    "expectedPerformance": "Forward throughput: 18 Mbps",
+    "limitingFactor": "Shared capacity",
+  },
+  "geoData": {
+    "distance": 38412,
+    "downlinkGbps": 0,
+    "elevation": 34.2,
+    "name": "EUTELSAT TEST",
+    "radioPath": "User → EUTELSAT TEST → User",
+    "rtt": 548.4,
+    "stability": "Medium",
+    "uplinkGbps": 0.018,
+  },
+  "geoDetails": {
+    "latency": {
+      "overheadRows": [
+        {
+          "label": "Traffic gateway processing delay",
+          "value": "15 ms",
+        },
+        {
+          "label": "Modem processing delay",
+          "value": "20 ms",
+        },
+        {
+          "label": "Routing delay",
+          "value": "5 ms",
+        },
+      ],
+      "overheadTotal": "40.0 ms",
+      "propagationRows": [
+        {
+          "label": "User -> Satellite",
+          "value": "128.1 ms",
+        },
+        {
+          "label": "Satellite -> Traffic Gateway",
+          "value": "126.1 ms",
+        },
+        {
+          "label": "Traffic Gateway -> Satellite",
+          "value": "126.1 ms",
+        },
+        {
+          "label": "Satellite -> User",
+          "value": "128.1 ms",
+        },
+      ],
+      "propagationTotal": "508.4 ms",
+      "summary": "Estimated RTT total: 548.4 ms",
+      "total": "548.4 ms",
+      "warnings": [],
+    },
+    "oneWayPropagation": {
+      "distanceKm": 76212,
+      "latencyMs": 254.2,
+    },
+    "performance": {
+      "downlinkGbps": 0.152,
+      "maxDlGbps": 0.195,
+      "maxUlGbps": 0.032,
+      "notes": [
+        "Basis: Selected link budget",
+      ],
+      "performanceFactor": 0.4,
+      "rttLabel": "End-to-End GEO RTT",
+      "rttMs": 548.4,
+      "stability": "Medium",
+      "uplinkGbps": 0.048,
+    },
+    "radioPath": "User -> EUTELSAT TEST -> Rambouillet -> EUTELSAT TEST -> User",
+    "routeLines": [
+      "User -> Ku Europe",
+      "Elevation: 34.2 deg | Slant range: 38412 km (128.1 ms)",
+      "Rambouillet -> EUTELSAT TEST",
+      "Slant range: 37800 km (126.1 ms)",
+    ],
+  },
+  "globeRef": undefined,
+  "leoData": null,
+  "leoDetails": null,
+  "location": {
+    "lat": 48.86,
+    "lng": 2.35,
+    "name": undefined,
+  },
+  "scope": "GEO",
+}
+`;
+
+exports[`M2 export payload golden > freezes the LEO PDF details contract 1`] = `
+{
+  "latency": {
+    "overheadRows": [
+      {
+        "label": "Gateway processing delay",
+        "value": "15 ms",
+      },
+      {
+        "label": "Modem processing delay",
+        "value": "20 ms",
+      },
+      {
+        "label": "Routing delay",
+        "value": "10 ms",
+      },
+      {
+        "label": "Queueing delay",
+        "value": "9 ms",
+      },
+    ],
+    "overheadTotal": "53.6 ms",
+    "propagationRows": [
+      {
+        "label": "Site A -> Satellite",
+        "value": "4.1 ms",
+      },
+      {
+        "label": "Satellite -> SNP",
+        "value": "4.9 ms",
+      },
+      {
+        "label": "SNP -> Satellite",
+        "value": "4.9 ms",
+      },
+      {
+        "label": "Satellite -> Site A",
+        "value": "4.3 ms",
+      },
+    ],
+    "propagationTotal": "18.2 ms",
+    "summary": "Estimated RTT total: 71.8 ms",
+    "total": "71.8 ms",
+    "warnings": [],
+  },
+  "oneWayPropagation": {
+    "distanceKm": 2624,
+    "latencyMs": 9.1,
+  },
+  "performance": {
+    "downlinkGbps": 0.018,
+    "maxDlGbps": 0.195,
+    "maxUlGbps": 0.032,
+    "notes": [
+      "Weather profile: Clear sky (95% link factor)",
+      "Main bottleneck: None",
+    ],
+    "performanceFactor": 0.62,
+    "rttLabel": "End-to-End LEO RTT",
+    "rttMs": 71.8,
+    "stability": "High",
+    "uplinkGbps": 0.012,
+  },
+  "radioPath": "Site A -> ONEWEB-0123 -> SNP Svalbard -> ONEWEB-0123 -> Site A",
+  "routeLines": [
+    "Site A -> ONEWEB-0123 · Beam 7",
+    "Elevation: 54.2 deg | Distance: 1204 km (4.1 ms)",
+    "SNP Svalbard -> ONEWEB-0123",
+    "Elevation: 38.6 deg | Distance: 1420 km (4.9 ms)",
+  ],
+}
+`;
+
+exports[`M2 export payload golden > freezes the LEO PDF details no-SNP fallback 1`] = `
+{
+  "oneWayPropagation": {
+    "distanceKm": 1204,
+    "latencyMs": 4.01611170618575,
+  },
+  "performance": {
+    "downlinkGbps": null,
+    "maxDlGbps": 0.195,
+    "maxUlGbps": 0.032,
+    "notes": [
+      "No performance data is available without SNP connectivity.",
+    ],
+    "rttLabel": "End-to-End LEO RTT",
+    "rttMs": null,
+    "uplinkGbps": null,
+  },
+  "radioPath": "Site A -> ONEWEB-0123 (-> No SNP connectivity)",
+  "routeLines": [
+    "Site A -> ONEWEB-0123 · Beam 7",
+    "Elevation: 54.2 deg | Distance: 1204 km",
+  ],
+}
+`;
+
+exports[`M2 export payload golden > freezes the full export payload for an ALL-scope LEO-focused scenario 1`] = `
+{
+  "cesiumViewerRef": undefined,
+  "evidenceSummary": {
+    "architectureChoice": "LEO feasibility path",
+    "availabilityContext": "Robust (99.8% indicative, fade risk ~0.0 dB)",
+    "confidence": "High 91/100",
+    "confidenceReasons": [
+      "Scenario: Inputs ready",
+      "Path: Satellite and ground path resolved",
+      "RF closure: Access link closes",
+      "Service gates: Allowed",
+      "Delivery: 18 Mbps delivered",
+    ],
+    "expectedPerformance": "Downlink throughput: 18 Mbps / Uplink throughput: 12 Mbps",
+    "limitingFactor": "No primary limiter detected",
+  },
+  "geoData": {
+    "distance": 38412,
+    "downlinkGbps": 0.018,
+    "elevation": 34.2,
+    "name": "EUTELSAT TEST",
+    "radioPath": "User → EUTELSAT TEST → User",
+    "rtt": 548.4,
+    "stability": "Medium",
+    "uplinkGbps": 0,
+  },
+  "geoDetails": {
+    "latency": {
+      "overheadRows": [
+        {
+          "label": "Traffic gateway processing delay",
+          "value": "15 ms",
+        },
+        {
+          "label": "Modem processing delay",
+          "value": "20 ms",
+        },
+        {
+          "label": "Routing delay",
+          "value": "5 ms",
+        },
+      ],
+      "overheadTotal": "40.0 ms",
+      "propagationRows": [
+        {
+          "label": "User -> Satellite",
+          "value": "128.1 ms",
+        },
+        {
+          "label": "Satellite -> Traffic Gateway",
+          "value": "126.1 ms",
+        },
+        {
+          "label": "Traffic Gateway -> Satellite",
+          "value": "126.1 ms",
+        },
+        {
+          "label": "Satellite -> User",
+          "value": "128.1 ms",
+        },
+      ],
+      "propagationTotal": "508.4 ms",
+      "summary": "Estimated RTT total: 548.4 ms",
+      "total": "548.4 ms",
+      "warnings": [],
+    },
+    "oneWayPropagation": {
+      "distanceKm": 76212,
+      "latencyMs": 254.2,
+    },
+    "performance": {
+      "downlinkGbps": 0.152,
+      "maxDlGbps": 0.195,
+      "maxUlGbps": 0.032,
+      "notes": [
+        "Basis: Selected link budget",
+      ],
+      "performanceFactor": 0.4,
+      "rttLabel": "End-to-End GEO RTT",
+      "rttMs": 548.4,
+      "stability": "Medium",
+      "uplinkGbps": 0.048,
+    },
+    "radioPath": "User -> EUTELSAT TEST -> Rambouillet -> EUTELSAT TEST -> User",
+    "routeLines": [
+      "User -> Ku Europe",
+      "Elevation: 34.2 deg | Slant range: 38412 km (128.1 ms)",
+      "Rambouillet -> EUTELSAT TEST",
+      "Slant range: 37800 km (126.1 ms)",
+    ],
+  },
+  "globeRef": undefined,
+  "leoData": {
+    "distance": 1204,
+    "downlinkGbps": 0.018,
+    "elevation": 54.2,
+    "name": "ONEWEB-0123",
+    "radioPath": "User → ONEWEB-0123 → SNP Svalbard → ONEWEB-0123 → User",
+    "rtt": 71.8,
+    "stability": "High",
+    "uplinkGbps": 0.012,
+  },
+  "leoDetails": {
+    "latency": {
+      "overheadRows": [
+        {
+          "label": "Gateway processing delay",
+          "value": "15 ms",
+        },
+        {
+          "label": "Modem processing delay",
+          "value": "20 ms",
+        },
+        {
+          "label": "Routing delay",
+          "value": "10 ms",
+        },
+        {
+          "label": "Queueing delay",
+          "value": "9 ms",
+        },
+      ],
+      "overheadTotal": "53.6 ms",
+      "propagationRows": [
+        {
+          "label": "Site A -> Satellite",
+          "value": "4.1 ms",
+        },
+        {
+          "label": "Satellite -> SNP",
+          "value": "4.9 ms",
+        },
+        {
+          "label": "SNP -> Satellite",
+          "value": "4.9 ms",
+        },
+        {
+          "label": "Satellite -> Site A",
+          "value": "4.3 ms",
+        },
+      ],
+      "propagationTotal": "18.2 ms",
+      "summary": "Estimated RTT total: 71.8 ms",
+      "total": "71.8 ms",
+      "warnings": [],
+    },
+    "oneWayPropagation": {
+      "distanceKm": 2624,
+      "latencyMs": 9.1,
+    },
+    "performance": {
+      "downlinkGbps": 0.018,
+      "maxDlGbps": 0.195,
+      "maxUlGbps": 0.032,
+      "notes": [
+        "Weather profile: Clear sky (95% link factor)",
+        "Main bottleneck: None",
+      ],
+      "performanceFactor": 0.62,
+      "rttLabel": "End-to-End LEO RTT",
+      "rttMs": 71.8,
+      "stability": "High",
+      "uplinkGbps": 0.012,
+    },
+    "radioPath": "Site A -> ONEWEB-0123 -> SNP Svalbard -> ONEWEB-0123 -> Site A",
+    "routeLines": [
+      "Site A -> ONEWEB-0123 · Beam 7",
+      "Elevation: 54.2 deg | Distance: 1204 km (4.1 ms)",
+      "SNP Svalbard -> ONEWEB-0123",
+      "Elevation: 38.6 deg | Distance: 1420 km (4.9 ms)",
+    ],
+  },
+  "location": {
+    "lat": 48.86,
+    "lng": 2.35,
+    "name": "Paris, France",
+  },
+  "scope": "ALL",
+}
+`;

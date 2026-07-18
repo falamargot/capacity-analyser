@@ -13,7 +13,7 @@ import SidebarHeroCard from './components/layout/SidebarHeroCard';
 import { MemoryMonitorHud } from './components/MemoryMonitorHud';
 import { CapacityAnalyzerSignature } from './components/brand/CapacityAnalyzerSignature';
 import { setMemoryMonitorViewerGetter } from './utils/memoryMonitor';
-import ExportButton, { type ExportButtonPayload } from './components/ExportButton';
+import ExportButton from './components/ExportButton';
 import SimulationSettings from './components/layout/SimulationSettings';
 import HeaderScenarioBuilder, { HeaderRouteStatusPanel, type HeaderRouteStatus, type HeaderRouteStatusTone } from './components/header/HeaderScenarioBuilder';
 import CommercialRouteStrip from './components/commercial/CommercialRouteStrip';
@@ -28,7 +28,7 @@ import {
 import { buildCommercialRouteModel } from './utils/commercialRouteModel';
 import { type TerminalType, type WeatherType, toWeatherCondition } from './components/capacity';
 import { SatelliteData } from './types/satellites';
-import type { CandidateCoverage, GEOBeam, MobileAnalysisMetrics, SelectedSNP } from './types/analysis';
+import type { CandidateCoverage, GEOBeam, SelectedSNP } from './types/analysis';
 import type { Selection } from './types/analysis';
 import type { CoverageSwitcherCoverage } from './components/CoverageSwitcherVertical';
 import { useSatelliteLoader } from './hooks/useSatelliteLoader';
@@ -145,7 +145,7 @@ import {
   scenarioToConnectivityScenarioCard,
 } from './utils/connectivityScenarioCardProjection';
 import { shouldApplyEngineeringCameraFocus } from './utils/engineeringCameraCompensation';
-import type { EngineeringTruth, EngineeringTruthSet } from './utils/engineeringAnalysisViewModel';
+import type { EngineeringTruth } from './utils/engineeringAnalysisViewModel';
 import type { EngineeringConfigureDraft } from './types/engineeringConfigure';
 import {
   getEngineeringConfigureChanges,
@@ -154,6 +154,8 @@ import {
 } from './utils/engineeringConfigureModel';
 import EngineeringConfigurePanel from './components/capacity/EngineeringConfigurePanel';
 import { EngineeringFocusProvider, useEngineeringFocusController } from './contexts/EngineeringFocusContext';
+import { EngineeringAnalysisProvider } from './contexts/EngineeringAnalysisContext';
+import { useEngineeringAnalysis } from './hooks/useEngineeringAnalysis';
 
 const CapacityDetails = lazy(() => import('./components/CapacityDetails'));
 const CommandPalette = lazy(() => import('./components/CommandPalette'));
@@ -750,7 +752,6 @@ const App: React.FC = () => {
   const [nearestLocationB, setNearestLocationB] = useState<{ city: string; country: string } | null>(null);
   const [hoveredSatelliteId, setHoveredSatelliteId] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(initialDisplayDefaults.isFullscreen);
-  const [fullscreenExportButtonProps, setFullscreenExportButtonProps] = useState<ExportButtonPayload | null>(null);
   const {
     uiMode,
     commercialMode,
@@ -821,7 +822,6 @@ const App: React.FC = () => {
   const mobileResultStoryScrollRef = useRef(0);
   const mobileAnalysisScrollElementRef = useRef<HTMLDivElement | null>(null);
   const [isMobileAnalysisSummaryReady, setIsMobileAnalysisSummaryReady] = useState(false);
-  const [engineeringTruths, setEngineeringTruths] = useState<EngineeringTruthSet>({});
   const [isEngineeringConfigureOpen, setIsEngineeringConfigureOpen] = useState(false);
   const [engineeringHeaderConfigureFocusSignal, setEngineeringHeaderConfigureFocusSignal] = useState(0);
   const [isSatelliteModalOpen, setIsSatelliteModalOpen] = useState(false);
@@ -851,12 +851,6 @@ const App: React.FC = () => {
     return () => { cancelled = true; };
   }, []);
 
-  const [mobileMetrics, setMobileMetrics] = useState<MobileAnalysisMetrics>({
-    leo: null,
-    geo: null,
-    totalGbps: 0,
-    coveredCount: 0,
-  });
   const viewerRef = useRef<CesiumViewerType | null>(null);
   const globeContainerRef = useRef<HTMLDivElement>(null);
   const engineeringAnalyticalCameraSnapshotRef = useRef<EngineeringCameraSnapshot | null>(null);
@@ -1108,12 +1102,6 @@ const App: React.FC = () => {
   // Helper functions (isPointInGEOCoverage, isPointInPolygon) are now centralized in utils/geoUtils.ts
   // resolveAutoSelectedSatellites is centralized in utils/satelliteResolution.ts
 
-  useEffect(() => {
-    if (selectedGateway || inspectedSNP || selectedSatelliteId || !(analyzisPosition || selectedPosition)) {
-      setFullscreenExportButtonProps(null);
-    }
-  }, [analyzisPosition, inspectedSNP, selectedGateway, selectedPosition, selectedSatelliteId]);
-
   const hasMobileSelection = !!(
     selectedPosition
     || analyzisPosition
@@ -1191,28 +1179,6 @@ const App: React.FC = () => {
       document.body.style.overflow = previousOverflow;
     };
   }, [isMobile, isMobileAnalysisPanelOpen]);
-
-  useEffect(() => {
-    setMobileMetrics({
-      leo: null,
-      geo: null,
-      totalGbps: 0,
-      coveredCount: 0,
-    });
-  }, [
-    analyzisPosition?.aircraftCallsign,
-    analyzisPosition?.lat,
-    analyzisPosition?.lng,
-    inspectedSNP?.name,
-    isMobile,
-    satelliteScope,
-    selectedAircraft?.icao24,
-    selectedGateway?.name,
-    selectedPosition?.lat,
-    selectedPosition?.lng,
-    selectedSatelliteId,
-    selectedVessel?.mmsi,
-  ]);
 
   // ─── Satellite loading + off-thread position propagation ──────────────────
   const { satellites, loading, satellitesForResolutionRef } = useSatelliteLoader({
@@ -2221,6 +2187,57 @@ const App: React.FC = () => {
   ]);
 
   const activeLeoSiteToSiteResult = activeLeoRouteEvidence.routeResult;
+
+  // ── M2: single engineering analysis engine shared by every surface ────────
+  const engineeringAnalysis = useEngineeringAnalysis({
+    satellites: filteredSatellites,
+    selectedPoint: activeAnalysisPoint,
+    selectedSatellite,
+    autoSelectedLEOSatellite: resolvedAutoLEO,
+    satelliteScope,
+    activeConnTab: activeConnectivityTab,
+    analysisSource: activeAnalysisSource,
+    aircraftCallsign: selectedAircraft?.callsign,
+    selectedSNP,
+    candidateCoverages: eligibleCandidateCoverages,
+    selectedCoverage,
+    selectedUplinkCoverage,
+    selectedDownlinkCoverage,
+    selectedUplinkCoverageB,
+    selectedDownlinkCoverageB,
+    candidateCoveragesB,
+    linkMode,
+    activeMeshTab,
+    pointB,
+    leoTopologyMode,
+    pointBLeo,
+    leoTerminalType,
+    leoTerminalModelId,
+    leoTerminalTypeB,
+    leoTerminalModelIdB,
+    geoTerminalType,
+    geoTerminalTypeB,
+    geoRFClassIdA,
+    geoRFClassIdB,
+    geoRFCustomParamsA,
+    geoRFCustomParamsB,
+    weatherType,
+    weatherTypeB,
+    activeLeoRouteEvidence,
+    regulatoryResultOverride: leoRegulatoryResult,
+    beamLoadResultOverride: leoBeamLoadResult,
+    serviceLayerResultOverride: leoServiceLayerResult,
+    leoServiceViewModelOverride: leoServiceViewModel,
+    globeRef: globeContainerRef,
+    cesiumViewerRef: viewerRef,
+  });
+  const engineeringTruths = engineeringAnalysis.engineeringTruths;
+  const mobileMetrics = engineeringAnalysis.mobileMetrics;
+  // Same gating the former onExportStateChange effect enforced: no export
+  // action while a non-analysis selection (gateway/SNP/satellite) is active.
+  const fullscreenExportButtonProps = (selectedGateway || inspectedSNP || selectedSatelliteId || !(analyzisPosition || selectedPosition))
+    ? null
+    : engineeringAnalysis.exportButtonPayload;
 
   useEffect(() => {
     if (!import.meta.env.DEV) return;
@@ -4017,14 +4034,6 @@ const App: React.FC = () => {
     iss.position,
   ]);
 
-  const mobileBackgroundMetricsCollectorVisible = isMobile
-    && hasMobileSelection
-    && !isMobileAnalysisPanelOpen
-    && !selectedGateway
-    && !inspectedSNP
-    && !selectedMoon
-    && !selectedSatellite
-    && !selectedIss;
   const showPhoneFloatingHeader = isPhone
     && !isFullscreen
     && !isMobileAnalysisPanelOpen
@@ -4951,108 +4960,6 @@ const App: React.FC = () => {
     </div>
   );
 
-  const renderDesktopCapacityDetails = ({
-    compactDesktop,
-    externalHeader,
-    onExportStateChange,
-  }: {
-    compactDesktop: boolean;
-    externalHeader: boolean;
-    onExportStateChange?: (payload: ExportButtonPayload | null) => void;
-  }) => (
-    <CapacityDetails
-      satellites={filteredSatellites}
-      selectedPoint={activeAnalysisPoint}
-      selectedSatellite={selectedSatellite}
-      autoSelectedLEOSatellite={resolvedAutoLEO}
-      autoSelectedGEOSatellite={activeGeoSatellite}
-      satelliteScope={satelliteScope}
-      activeConnectionTab={activeConnectivityTab}
-      onActiveConnectionTabChange={handleTechnologyChange}
-      onSatelliteClick={handleSatelliteClick}
-      analysisSource={activeAnalysisSource}
-      aircraftCallsign={selectedAircraft?.callsign}
-      leoTerminalType={leoTerminalType}
-      onLeoTerminalTypeChange={handleLeoTerminalTypeChange}
-      leoTerminalModelId={leoTerminalModelId}
-      onLeoTerminalModelIdChange={setLeoTerminalModelId}
-      leoTerminalTypeB={leoTerminalTypeB}
-      onLeoTerminalTypeBChange={handleLeoTerminalTypeBChange}
-      leoTerminalModelIdB={leoTerminalModelIdB}
-      onLeoTerminalModelIdBChange={setLeoTerminalModelIdB}
-      geoTerminalType={geoTerminalType}
-      onGeoTerminalTypeChange={setGeoTerminalType}
-      geoTerminalTypeB={geoTerminalTypeB}
-      onGeoTerminalTypeBChange={setGeoTerminalTypeB}
-      geoRFClassIdA={geoRFClassIdA}
-      onGeoRFClassIdAChange={setGeoRFClassIdA}
-      geoRFPresetDisplayLabelA={geoRFPresetDisplayLabelA}
-      geoRFClassIdB={geoRFClassIdB}
-      onGeoRFClassIdBChange={setGeoRFClassIdB}
-      geoRFPresetDisplayLabelB={geoRFPresetDisplayLabelB}
-      geoRFCustomParamsA={geoRFCustomParamsA}
-      onGeoRFCustomParamsAChange={setGeoRFCustomParamsA}
-      geoRFCustomParamsB={geoRFCustomParamsB}
-      onGeoRFCustomParamsBChange={setGeoRFCustomParamsB}
-      weatherType={weatherType}
-      onWeatherTypeChange={handleWeatherTypeChange}
-      weatherTypeB={weatherTypeB}
-      onWeatherTypeBChange={handleWeatherTypeBChange}
-      autoWeatherEnabled={autoWeatherEnabled}
-      onAutoWeatherChange={setAutoWeatherEnabled}
-      selectedSNP={selectedSNP}
-      candidateCoverages={eligibleCandidateCoverages}
-      selectedCoverage={selectedCoverage}
-      onSelectCoverage={handleSelectTargetCoverage}
-      selectedUplinkCoverage={selectedUplinkCoverage}
-      selectedDownlinkCoverage={selectedDownlinkCoverage}
-      onSelectUplinkCoverage={handleSelectUplinkCoverage}
-      onSelectDownlinkCoverage={handleSelectDownlinkCoverage}
-      selectedUplinkCoverageB={selectedUplinkCoverageB}
-      selectedDownlinkCoverageB={selectedDownlinkCoverageB}
-      onSelectUplinkCoverageB={handleSelectUplinkCoverageB}
-      onSelectDownlinkCoverageB={handleSelectDownlinkCoverageB}
-      selectedGeoCoverageName={selectedGeoCoverageName}
-      selectedGeoBeamId={selectedGeoBeamId}
-      visibleGeoCoverageKeys={visibleManualGeoCoverageKeys}
-      onSelectGeoCoverage={handleSelectGeoCoverage}
-      onSelectGeoBeam={handleSelectGeoBeam}
-      onVisibleGeoCoverageKeysChange={handleVisibleManualGeoCoverageKeysChange}
-      onSnpClick={handleSnpClick}
-      onMetricsChange={setMobileMetrics}
-      compactDesktop={compactDesktop}
-      externalHeader={externalHeader}
-      globeRef={globeContainerRef}
-      cesiumViewerRef={viewerRef}
-      onExportStateChange={onExportStateChange}
-      regulatoryResultOverride={leoRegulatoryResult}
-      regulatoryResultBOverride={leoRegulatoryResultB}
-      beamLoadResultOverride={leoBeamLoadResult}
-      serviceLayerResultOverride={leoServiceLayerResult}
-      leoServiceViewModelOverride={leoServiceViewModel}
-      linkMode={linkMode}
-      onLinkModeChange={handleLinkModeChange}
-      pointB={pointB}
-      candidateCoveragesB={candidateCoveragesB}
-      pointAIsUserDefined={pointAIsUserDefined}
-      pointBIsUserDefined={pointBIsUserDefined}
-      activeMeshTab={activeMeshTab}
-      onActiveMeshTabChange={handleActiveMeshTabChange}
-      leoTopologyMode={leoTopologyMode}
-      onLeoTopologyModeChange={handleLeoTopologyModeChange}
-      pointBLeo={pointBLeo}
-      autoSelectedLEOSatelliteB={resolvedAutoLEOB}
-      selectedSNPB={selectedSNPB}
-      isPointBLeoArmed={isSiteBArmed}
-      onArmPointBLeo={() => setIsSiteBArmed(true)}
-      activeLeoRouteEvidence={activeLeoRouteEvidence}
-      onEngineeringTruthChange={setEngineeringTruths}
-      onConfigure={handleOpenEngineeringConfigure}
-      engineeringConfigureBaseline={engineeringConfigureBaseline}
-      engineeringConfigureCandidates={engineeringConfigureCandidates}
-      selectionMotionKey={endpointSelectionMotion?.token}
-    />
-  );
 
   const headerSiteAConfig = {
     endpoint: routeSelectorRoute.origin,
@@ -5137,6 +5044,7 @@ const App: React.FC = () => {
 
   return (
     <EngineeringFocusProvider controller={engineeringFocusController} truths={engineeringTruths}>
+    <EngineeringAnalysisProvider value={engineeringAnalysis}>
     <div
       className={[
         'bg-white transition-colors duration-300 dark:bg-slate-950',
@@ -5725,97 +5633,6 @@ const App: React.FC = () => {
               </div>
             )}
 
-            {mobileBackgroundMetricsCollectorVisible && (
-              <div className="hidden" aria-hidden="true">
-                <Suspense fallback={null}>
-                  <CapacityDetails
-                    satellites={filteredSatellites}
-                    selectedPoint={activeAnalysisPoint}
-                    selectedSatellite={selectedSatellite}
-                    autoSelectedLEOSatellite={resolvedAutoLEO}
-                    autoSelectedGEOSatellite={activeGeoSatellite}
-                    satelliteScope={satelliteScope}
-                    activeConnectionTab={activeConnectivityTab}
-                    onActiveConnectionTabChange={handleTechnologyChange}
-                    onSatelliteClick={handleSatelliteClick}
-                    analysisSource={activeAnalysisSource}
-                    aircraftCallsign={selectedAircraft?.callsign}
-                    leoTerminalType={leoTerminalType}
-                    onLeoTerminalTypeChange={handleLeoTerminalTypeChange}
-                    leoTerminalModelId={leoTerminalModelId}
-                    onLeoTerminalModelIdChange={setLeoTerminalModelId}
-                    leoTerminalTypeB={leoTerminalTypeB}
-                    onLeoTerminalTypeBChange={handleLeoTerminalTypeBChange}
-                    leoTerminalModelIdB={leoTerminalModelIdB}
-                    onLeoTerminalModelIdBChange={setLeoTerminalModelIdB}
-                    geoTerminalType={geoTerminalType}
-                    onGeoTerminalTypeChange={handleGeoTerminalTypeChange}
-                    geoTerminalTypeB={geoTerminalTypeB}
-                    onGeoTerminalTypeBChange={handleGeoTerminalTypeBChange}
-                    geoRFClassIdA={geoRFClassIdA}
-                    onGeoRFClassIdAChange={setGeoRFClassIdA}
-                    geoRFPresetDisplayLabelA={geoRFPresetDisplayLabelA}
-                    geoRFClassIdB={geoRFClassIdB}
-                    onGeoRFClassIdBChange={setGeoRFClassIdB}
-                    geoRFPresetDisplayLabelB={geoRFPresetDisplayLabelB}
-                    geoRFCustomParamsA={geoRFCustomParamsA}
-                    onGeoRFCustomParamsAChange={setGeoRFCustomParamsA}
-                    geoRFCustomParamsB={geoRFCustomParamsB}
-                    onGeoRFCustomParamsBChange={setGeoRFCustomParamsB}
-                    weatherType={weatherType}
-                    onWeatherTypeChange={handleWeatherTypeChange}
-                    weatherTypeB={weatherTypeB}
-                    onWeatherTypeBChange={handleWeatherTypeBChange}
-                    autoWeatherEnabled={autoWeatherEnabled}
-                    onAutoWeatherChange={setAutoWeatherEnabled}
-                    selectedSNP={selectedSNP}
-                    candidateCoverages={eligibleCandidateCoverages}
-                    selectedUplinkCoverage={selectedUplinkCoverage}
-                    selectedDownlinkCoverage={selectedDownlinkCoverage}
-                    onSelectUplinkCoverage={handleSelectUplinkCoverage}
-                    onSelectDownlinkCoverage={handleSelectDownlinkCoverage}
-                    selectedUplinkCoverageB={selectedUplinkCoverageB}
-                    selectedDownlinkCoverageB={selectedDownlinkCoverageB}
-                    onSelectUplinkCoverageB={handleSelectUplinkCoverageB}
-                    onSelectDownlinkCoverageB={handleSelectDownlinkCoverageB}
-                    selectedGeoCoverageName={selectedGeoCoverageName}
-                    selectedGeoBeamId={selectedGeoBeamId}
-                    visibleGeoCoverageKeys={visibleManualGeoCoverageKeys}
-                    onSelectGeoCoverage={handleSelectGeoCoverage}
-                    onSelectGeoBeam={handleSelectGeoBeam}
-                    onVisibleGeoCoverageKeysChange={handleVisibleManualGeoCoverageKeysChange}
-                    onSnpClick={handleSnpClick}
-                    onMetricsChange={setMobileMetrics}
-                    globeRef={globeContainerRef}
-                    cesiumViewerRef={viewerRef}
-                    regulatoryResultOverride={leoRegulatoryResult}
-                    regulatoryResultBOverride={leoRegulatoryResultB}
-                    beamLoadResultOverride={leoBeamLoadResult}
-                    serviceLayerResultOverride={leoServiceLayerResult}
-                    leoServiceViewModelOverride={leoServiceViewModel}
-                    linkMode={linkMode}
-                    onLinkModeChange={handleLinkModeChange}
-                    pointB={pointB}
-                    candidateCoveragesB={candidateCoveragesB}
-                    pointAIsUserDefined={pointAIsUserDefined}
-                    pointBIsUserDefined={pointBIsUserDefined}
-                    activeMeshTab={activeMeshTab}
-                    onActiveMeshTabChange={handleActiveMeshTabChange}
-                    leoTopologyMode={leoTopologyMode}
-                    onLeoTopologyModeChange={handleLeoTopologyModeChange}
-                    pointBLeo={pointBLeo}
-                    autoSelectedLEOSatelliteB={resolvedAutoLEOB}
-                    selectedSNPB={selectedSNPB}
-                    isPointBLeoArmed={isSiteBArmed}
-                    onArmPointBLeo={() => setIsSiteBArmed(true)}
-                    activeLeoRouteEvidence={activeLeoRouteEvidence}
-                    onEngineeringTruthChange={setEngineeringTruths}
-                    onConfigure={handleOpenEngineeringConfigure}
-                  />
-                </Suspense>
-              </div>
-            )}
-
             {commercialMode && !isFullscreen && (
               <div
                 className="commercial-mobile-decision-layer pointer-events-none absolute inset-x-0 bottom-0 z-[44] px-2.5"
@@ -6012,7 +5829,6 @@ const App: React.FC = () => {
                                 satellites={filteredSatellites}
                                 selectedPoint={activeAnalysisPoint}
                                 selectedSatellite={selectedSatellite}
-                                autoSelectedLEOSatellite={resolvedAutoLEO}
                                 autoSelectedGEOSatellite={activeGeoSatellite}
                                 satelliteScope={satelliteScope}
                                 activeConnectionTab={activeConnectivityTab}
@@ -6022,11 +5838,9 @@ const App: React.FC = () => {
                                 aircraftCallsign={selectedAircraft?.callsign}
                                 leoTerminalType={leoTerminalType}
                                 onLeoTerminalTypeChange={handleLeoTerminalTypeChange}
-                                leoTerminalModelId={leoTerminalModelId}
                                 onLeoTerminalModelIdChange={setLeoTerminalModelId}
                                 leoTerminalTypeB={leoTerminalTypeB}
                                 onLeoTerminalTypeBChange={handleLeoTerminalTypeBChange}
-                                leoTerminalModelIdB={leoTerminalModelIdB}
                                 onLeoTerminalModelIdBChange={setLeoTerminalModelIdB}
                                 geoTerminalType={geoTerminalType}
                                 onGeoTerminalTypeChange={setGeoTerminalType}
@@ -6044,11 +5858,9 @@ const App: React.FC = () => {
                                 onGeoRFCustomParamsBChange={setGeoRFCustomParamsB}
                                 weatherType={weatherType}
                                 onWeatherTypeChange={handleWeatherTypeChange}
-                                weatherTypeB={weatherTypeB}
                                 onWeatherTypeBChange={handleWeatherTypeBChange}
                                 autoWeatherEnabled={autoWeatherEnabled}
                                 onAutoWeatherChange={setAutoWeatherEnabled}
-                                selectedSNP={selectedSNP}
                                 candidateCoverages={eligibleCandidateCoverages}
                                 selectedCoverage={selectedCoverage}
                                 onSelectCoverage={handleSelectTargetCoverage}
@@ -6059,14 +5871,6 @@ const App: React.FC = () => {
                                 onSelectGeoBeam={handleSelectGeoBeam}
                                 onVisibleGeoCoverageKeysChange={handleVisibleManualGeoCoverageKeysChange}
                                 onSnpClick={handleSnpClick}
-                                onMetricsChange={setMobileMetrics}
-                                globeRef={globeContainerRef}
-                                cesiumViewerRef={viewerRef}
-                                regulatoryResultOverride={leoRegulatoryResult}
-                                regulatoryResultBOverride={leoRegulatoryResultB}
-                                beamLoadResultOverride={leoBeamLoadResult}
-                                serviceLayerResultOverride={leoServiceLayerResult}
-                                leoServiceViewModelOverride={leoServiceViewModel}
                                 linkMode={linkMode}
                                 onLinkModeChange={handleLinkModeChange}
                                 pointB={pointB}
@@ -6078,12 +5882,8 @@ const App: React.FC = () => {
                                 leoTopologyMode={leoTopologyMode}
                                 onLeoTopologyModeChange={handleLeoTopologyModeChange}
                                 pointBLeo={pointBLeo}
-                                autoSelectedLEOSatelliteB={resolvedAutoLEOB}
-                                selectedSNPB={selectedSNPB}
                                 isPointBLeoArmed={isSiteBArmed}
                                 onArmPointBLeo={() => setIsSiteBArmed(true)}
-                                activeLeoRouteEvidence={activeLeoRouteEvidence}
-                                onEngineeringTruthChange={setEngineeringTruths}
                                 onConfigure={handleOpenEngineeringConfigure}
                                 selectionMotionKey={endpointSelectionMotion?.token}
                               />
@@ -6289,7 +6089,6 @@ const App: React.FC = () => {
                           satellites={filteredSatellites}
                           selectedPoint={activeAnalysisPoint}
                           selectedSatellite={selectedSatellite}
-                          autoSelectedLEOSatellite={resolvedAutoLEO}
                           autoSelectedGEOSatellite={activeGeoSatellite}
                           satelliteScope={satelliteScope}
                           activeConnectionTab={activeConnectivityTab}
@@ -6299,11 +6098,9 @@ const App: React.FC = () => {
                           aircraftCallsign={selectedAircraft?.callsign}
                           leoTerminalType={leoTerminalType}
                           onLeoTerminalTypeChange={handleLeoTerminalTypeChange}
-                          leoTerminalModelId={leoTerminalModelId}
                           onLeoTerminalModelIdChange={setLeoTerminalModelId}
                           leoTerminalTypeB={leoTerminalTypeB}
                           onLeoTerminalTypeBChange={handleLeoTerminalTypeBChange}
-                          leoTerminalModelIdB={leoTerminalModelIdB}
                           onLeoTerminalModelIdBChange={setLeoTerminalModelIdB}
                           geoTerminalType={geoTerminalType}
                           onGeoTerminalTypeChange={setGeoTerminalType}
@@ -6321,11 +6118,9 @@ const App: React.FC = () => {
                           onGeoRFCustomParamsBChange={setGeoRFCustomParamsB}
                           weatherType={weatherType}
                           onWeatherTypeChange={handleWeatherTypeChange}
-                          weatherTypeB={weatherTypeB}
                           onWeatherTypeBChange={handleWeatherTypeBChange}
                           autoWeatherEnabled={autoWeatherEnabled}
                           onAutoWeatherChange={setAutoWeatherEnabled}
-                          selectedSNP={selectedSNP}
                           candidateCoverages={eligibleCandidateCoverages}
                           selectedCoverage={selectedCoverage}
                           onSelectCoverage={handleSelectTargetCoverage}
@@ -6333,8 +6128,6 @@ const App: React.FC = () => {
                           selectedDownlinkCoverage={selectedDownlinkCoverage}
                           onSelectUplinkCoverage={handleSelectUplinkCoverage}
                           onSelectDownlinkCoverage={handleSelectDownlinkCoverage}
-                          selectedUplinkCoverageB={selectedUplinkCoverageB}
-                          selectedDownlinkCoverageB={selectedDownlinkCoverageB}
                           onSelectUplinkCoverageB={handleSelectUplinkCoverageB}
                           onSelectDownlinkCoverageB={handleSelectDownlinkCoverageB}
                           selectedGeoCoverageName={selectedGeoCoverageName}
@@ -6344,17 +6137,8 @@ const App: React.FC = () => {
                           onSelectGeoBeam={handleSelectGeoBeam}
                           onVisibleGeoCoverageKeysChange={handleVisibleManualGeoCoverageKeysChange}
                           onSnpClick={handleSnpClick}
-                          onMetricsChange={setMobileMetrics}
                           compactDesktop={useCompactDesktopSidebar}
                           externalHeader
-                          globeRef={globeContainerRef}
-                          cesiumViewerRef={viewerRef}
-                          onExportStateChange={setFullscreenExportButtonProps}
-                          regulatoryResultOverride={leoRegulatoryResult}
-                          regulatoryResultBOverride={leoRegulatoryResultB}
-                          beamLoadResultOverride={leoBeamLoadResult}
-                          serviceLayerResultOverride={leoServiceLayerResult}
-                          leoServiceViewModelOverride={leoServiceViewModel}
                           linkMode={linkMode}
                           onLinkModeChange={handleLinkModeChange}
                           pointB={pointB}
@@ -6366,12 +6150,8 @@ const App: React.FC = () => {
                           leoTopologyMode={leoTopologyMode}
                           onLeoTopologyModeChange={handleLeoTopologyModeChange}
                           pointBLeo={pointBLeo}
-                          autoSelectedLEOSatelliteB={resolvedAutoLEOB}
-                          selectedSNPB={selectedSNPB}
                           isPointBLeoArmed={isSiteBArmed}
                           onArmPointBLeo={() => setIsSiteBArmed(true)}
-                          activeLeoRouteEvidence={activeLeoRouteEvidence}
-                          onEngineeringTruthChange={setEngineeringTruths}
                           onConfigure={handleOpenEngineeringConfigure}
                           selectionMotionKey={endpointSelectionMotion?.token}
                         />
@@ -6460,6 +6240,7 @@ const App: React.FC = () => {
       )}
       <MemoryMonitorHud />
     </div>
+    </EngineeringAnalysisProvider>
     </EngineeringFocusProvider>
   );
 };
