@@ -1,6 +1,13 @@
-import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
-import { EngineeringFocusProvider, type EngineeringFocusController } from '../../../contexts/EngineeringFocusContext';
+// @vitest-environment jsdom
+
+import { act, type ReactElement } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import {
+  EngineeringFocusProvider,
+  type EngineeringFocusController,
+  useEngineeringFocusController,
+} from '../../../contexts/EngineeringFocusContext';
 import type { EngineeringTruth } from '../../../utils/engineeringAnalysisViewModel';
 import { createEngineeringFocus } from '../../../utils/engineeringFocusModel';
 import EngineeringResultSummary from '../shared/EngineeringResultSummary';
@@ -35,29 +42,74 @@ const controller = (overrides: Partial<EngineeringFocusController> = {}): Engine
   ...overrides,
 });
 
+let mountedRoot: Root | null = null;
+
+beforeEach(() => {
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    value: () => ({
+      matches: false,
+      media: '',
+      onchange: null,
+      addListener: () => undefined,
+      removeListener: () => undefined,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+      dispatchEvent: () => false,
+    }),
+  });
+  Element.prototype.scrollIntoView = () => undefined;
+});
+
+const renderLens = async (element: ReactElement) => {
+  const container = document.createElement('div');
+  const inspectorHost = document.createElement('div');
+  inspectorHost.setAttribute('data-engineering-inspector-host', '');
+  document.body.append(container, inspectorHost);
+  mountedRoot = createRoot(container);
+  await act(async () => { mountedRoot?.render(element); });
+  return { container, inspectorHost };
+};
+
+afterEach(async () => {
+  if (mountedRoot) await act(async () => { mountedRoot?.unmount(); });
+  mountedRoot = null;
+  document.body.replaceChildren();
+});
+
+const StatefulLens = () => {
+  const focusController = useEngineeringFocusController();
+  return (
+    <EngineeringFocusProvider controller={focusController} truths={{ LEO: truth }}>
+      <EngineeringResultSummary technology="LEO" truth={truth} />
+    </EngineeringFocusProvider>
+  );
+};
+
 describe('Engineering Cause Chain investigation', () => {
-  it('renders the globe-selected stage as the only expanded accordion item', () => {
-    const markup = renderToStaticMarkup(
+  it('renders the globe-selected stage in the attached Inspector, not inline', async () => {
+    const { container, inspectorHost } = await renderLens(
       <EngineeringFocusProvider controller={controller()} truths={{ LEO: truth }}>
         <EngineeringResultSummary technology="LEO" truth={truth} />
       </EngineeringFocusProvider>,
     );
 
-    expect(markup).toContain('data-engineering-lens-posture="reasoning"');
-    expect(markup).toContain('Engineering cause chain');
-    expect(markup).toContain('Delivery: Beam sharing. 188 Mbps → 8 Mbps. Collapse evidence.');
-    expect(markup).toContain('aria-expanded="true"');
-    expect(markup.match(/aria-expanded="true"/g)).toHaveLength(1);
-    expect(markup).toContain('data-engineering-stage-evidence="delivery"');
-    expect(markup).toContain('Globe path: selected focus');
-    expect(markup).toContain('188 Mbps → 8 Mbps');
-    expect(markup).not.toContain('Route view');
-    expect(markup).not.toContain('Clear focus');
-    expect(markup).not.toContain('>Summary<');
+    expect(container.innerHTML).toContain('data-engineering-lens-posture="reasoning"');
+    expect(container.innerHTML).toContain('Engineering cause chain');
+    expect(container.innerHTML).toContain('Delivery: Beam sharing. 188 Mbps → 8 Mbps. Close Engineering Inspector.');
+    expect(container.querySelectorAll('[aria-expanded="true"]')).toHaveLength(1);
+    expect(container.querySelector('[data-engineering-stage-evidence]')).toBeNull();
+    expect(container.textContent).toContain('Globe path: selected focus');
+    expect(inspectorHost.querySelector('[data-engineering-inspector]')).not.toBeNull();
+    expect(inspectorHost.querySelector('[data-engineering-stage-evidence="delivery"]')).not.toBeNull();
+    expect(inspectorHost.textContent).toContain('188 Mbps → 8 Mbps');
+    expect(inspectorHost.textContent).toContain('Next investigation: Inspect beam sharing');
+    expect(inspectorHost.textContent).not.toContain('Route view');
   });
 
-  it('keeps the Summary posture compact while retaining the five-stage textual equivalent', () => {
-    const markup = renderToStaticMarkup(
+  it('keeps the Summary posture compact while retaining the five-stage textual equivalent', async () => {
+    const { container, inspectorHost } = await renderLens(
       <EngineeringFocusProvider
         controller={controller({ focus: { kind: 'none', technology: null, stageId: null, spatialTarget: null, origin: null } })}
         truths={{ LEO: truth }}
@@ -66,16 +118,16 @@ describe('Engineering Cause Chain investigation', () => {
       </EngineeringFocusProvider>,
     );
 
-    expect(markup).toContain('data-engineering-lens-posture="summary"');
-    expect(markup).toContain('Scenario: Ready');
-    expect(markup).toContain('Delivery: Beam sharing');
-    expect(markup.match(/aria-expanded="false"/g)).toHaveLength(5);
-    expect(markup).not.toContain('>188 Mbps → 8 Mbps<');
-    expect(markup).not.toContain('Next investigation:');
+    expect(container.innerHTML).toContain('data-engineering-lens-posture="summary"');
+    expect(container.innerHTML).toContain('Scenario: Ready');
+    expect(container.innerHTML).toContain('Delivery: Beam sharing');
+    expect(container.querySelectorAll('[aria-expanded="false"]')).toHaveLength(5);
+    expect(container.textContent).not.toContain('188 Mbps → 8 Mbps');
+    expect(inspectorHost.childElementCount).toBe(0);
   });
 
-  it('embeds the existing proof component directly beneath its stage', () => {
-    const markup = renderToStaticMarkup(
+  it('moves the existing proof component into the Inspector without changing its content', async () => {
+    const { container, inspectorHost } = await renderLens(
       <EngineeringFocusProvider
         controller={controller({ focus: createEngineeringFocus('locked', 'LEO', 'rf', 'lens') })}
         truths={{ LEO: truth }}
@@ -88,18 +140,17 @@ describe('Engineering Cause Chain investigation', () => {
       </EngineeringFocusProvider>,
     );
 
-    expect(markup).toContain('data-engineering-stage-evidence="rf"');
-    expect(markup).toContain('Existing RF proof');
-    expect(markup).toContain('Exact RF evidence');
-    expect(markup).not.toContain('Link Budget &amp; RF Evidence');
-    expect(markup).not.toContain('<details');
-    expect(markup).not.toContain('At a glance');
-    expect(markup.match(/>Closes</g)).toHaveLength(1);
-    expect(markup.match(/aria-expanded="true"/g)).toHaveLength(1);
+    expect(container.querySelector('[data-engineering-stage-evidence]')).toBeNull();
+    expect(inspectorHost.querySelector('[data-engineering-stage-evidence="rf"]')).not.toBeNull();
+    expect(inspectorHost.querySelector('[aria-label="Existing RF proof"]')).not.toBeNull();
+    expect(inspectorHost.textContent).toContain('Exact RF evidence');
+    expect(inspectorHost.textContent).not.toContain('Link Budget & RF Evidence');
+    expect(inspectorHost.querySelector('details')).toBeNull();
+    expect(container.querySelectorAll('[aria-expanded="true"]')).toHaveLength(1);
   });
 
-  it('places the route answer before progressively disclosed hop evidence', () => {
-    const markup = renderToStaticMarkup(
+  it('places the route answer before progressively disclosed hop evidence inside the Inspector', async () => {
+    const { inspectorHost } = await renderLens(
       <EngineeringFocusProvider
         controller={controller({ focus: createEngineeringFocus('locked', 'LEO', 'path', 'lens') })}
         truths={{ LEO: truth }}
@@ -113,9 +164,34 @@ describe('Engineering Cause Chain investigation', () => {
       </EngineeringFocusProvider>,
     );
 
-    expect(markup.indexOf('LEO route summary')).toBeLessThan(markup.indexOf('Major Hops &amp; Technical Evidence'));
-    expect(markup).toContain('Site A → Satellite → SNP');
-    expect(markup).toContain('Existing path proof');
-    expect(markup).not.toContain('At a glance');
+    expect(inspectorHost.innerHTML.indexOf('LEO route summary')).toBeLessThan(inspectorHost.innerHTML.indexOf('Major Hops &amp; Technical Evidence'));
+    expect(inspectorHost.textContent).toContain('Site A → Satellite → SNP');
+    expect(inspectorHost.querySelector('[aria-label="Existing path proof"]')).not.toBeNull();
+  });
+
+  it('keeps one Inspector mounted while switching stages and supports both close paths', async () => {
+    const { container, inspectorHost } = await renderLens(<StatefulLens />);
+    const deliveryButton = Array.from(container.querySelectorAll('button')).find((button) => button.getAttribute('aria-label')?.startsWith('Delivery:'));
+    await act(async () => { deliveryButton?.click(); });
+
+    const inspector = inspectorHost.querySelector('[data-engineering-inspector]');
+    expect(inspector).not.toBeNull();
+    expect(inspectorHost.textContent).toContain('Delivery');
+
+    const rfButton = Array.from(container.querySelectorAll('button')).find((button) => button.getAttribute('aria-label')?.startsWith('RF:'));
+    await act(async () => { rfButton?.click(); });
+    expect(inspectorHost.querySelector('[data-engineering-inspector]')).toBe(inspector);
+    expect(inspectorHost.textContent).toContain('RF');
+    expect(container.querySelectorAll('[aria-expanded="true"]')).toHaveLength(1);
+
+    await act(async () => { rfButton?.click(); });
+    expect(inspector?.getAttribute('data-engineering-inspector-state')).toBe('closing');
+    expect(rfButton?.getAttribute('aria-expanded')).toBe('false');
+
+    await act(async () => { deliveryButton?.click(); });
+    const closeButton = inspectorHost.querySelector<HTMLButtonElement>('button[aria-label="Close Engineering Inspector"]');
+    expect(closeButton).not.toBeNull();
+    await act(async () => { closeButton?.click(); });
+    expect(inspectorHost.querySelector('[data-engineering-inspector]')?.getAttribute('data-engineering-inspector-state')).toBe('closing');
   });
 });

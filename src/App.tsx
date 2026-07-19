@@ -6029,9 +6029,13 @@ const App: React.FC = () => {
                 Remounts on switch — intentional; it does not contain the globe. */}
             {uiMode !== 'commercial' && (
               <div
-                className={`relative flex-shrink-0 overflow-hidden rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.96))] shadow-[0_30px_70px_-35px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.98))] flex flex-col ${isFullscreen ? 'hidden' : ''}`}
+                className={`relative z-40 flex flex-shrink-0 flex-col overflow-visible rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.96))] shadow-[0_30px_70px_-35px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.98))] ${isFullscreen ? 'hidden' : ''}`}
                 style={{ width: desktopSidebarWidth }}
               >
+                <div
+                  data-engineering-inspector-host=""
+                  className="pointer-events-none absolute -bottom-px -top-px right-full z-50 w-[clamp(22rem,32vw,30rem)]"
+                />
                 <>
                   {!showEngineeringRouteStatus && (
                     <SidebarHeroCard

@@ -25,6 +25,22 @@ npm install
 npm run dev
 ```
 
+### Validation
+
+```bash
+npm run lint       # ESLint — le repo est tenu à 0 erreur ET 0 warning
+npm run typecheck  # tsc -p tsconfig.app.json --noEmit
+npm run test       # vitest
+```
+
+> ⚠️ Ne pas utiliser `npx tsc --noEmit` seul : `tsconfig.json` est un fichier
+> « solution » (`files: []` + `references`), donc cette commande ne vérifie
+> **aucun** fichier et sort toujours en succès. Le vrai typecheck cible
+> `tsconfig.app.json` — c'est ce que fait `npm run typecheck`. Le projet porte
+> un stock d'erreurs tsc préexistantes tolérées ; la règle est : aucune
+> nouvelle erreur par rapport à la base (comparer les sorties triées, numéros
+> de ligne retirés).
+
 ## Données maritimes live (AIS)
 
 Le flux AIS ne peut pas être consommé directement depuis le navigateur (CORS / politique fournisseur).

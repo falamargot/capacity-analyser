@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
-import { AlertTriangle, Check, ChevronDown, CircleDashed, LocateFixed, Minus, ShieldX } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { AlertTriangle, Check, ChevronDown, ChevronLeft, CircleDashed, LocateFixed, Minus, ShieldX, X } from 'lucide-react';
 import type {
   EngineeringCauseStageId,
   EngineeringCauseStage,
@@ -131,14 +132,76 @@ const pathStateLabel: Record<EngineeringPathVisualState, string> = {
   unresolved: 'unresolved path',
 };
 
+const StageEvidenceContent = ({
+  stage,
+  evidence,
+  summaryEvidence,
+}: {
+  stage: EngineeringCauseStage;
+  evidence?: ReactNode;
+  summaryEvidence?: ReactNode;
+}) => {
+  const primaryEvidence = stage.evidence?.slice(0, 3) ?? [];
+  const secondaryEvidence = stage.evidence?.slice(3) ?? [];
+  const renderEvidence = (items: EngineeringCauseStage['evidence'], compactEvidence = false) => items?.map((item) => (
+    <div
+      key={`${item.label}:${item.value}`}
+      className={compactEvidence
+        ? 'grid min-w-0 grid-cols-[minmax(5.5rem,0.8fr)_minmax(0,1.2fr)] items-baseline gap-2 border-t border-slate-200/75 py-1.5 first:border-t-0 dark:border-slate-700/75'
+        : 'min-w-0 rounded-lg border border-slate-200 bg-white px-2.5 py-2.5 shadow-[0_8px_20px_-22px_rgba(15,23,42,0.8)] dark:border-slate-700 dark:bg-slate-950/70'}
+    >
+      <dt className="text-[8px] font-bold uppercase tracking-[0.09em] text-slate-500 dark:text-slate-400">{item.label}</dt>
+      <dd
+        className={`${compactEvidence ? 'text-right text-[10px]' : 'mt-1 text-[12px]'} break-words font-bold leading-4 ${stageStyles[item.state].textClass}`}
+        title={item.detail}
+        aria-label={item.detail ? `${item.label}: ${item.value}. ${item.detail}` : undefined}
+      >
+        {item.value}
+      </dd>
+      {!compactEvidence && item.detail && (
+        <p className="mt-1 text-[9px] leading-4 text-slate-500 dark:text-slate-400">{item.detail}</p>
+      )}
+    </div>
+  ));
+  const hasPrimaryEvidence = Boolean(summaryEvidence) || primaryEvidence.length > 0;
+
+  return (
+    <div data-engineering-stage-evidence={stage.id}>
+      {summaryEvidence && <div className="mb-3">{summaryEvidence}</div>}
+      {primaryEvidence.length > 0 && (
+        <dl className="grid gap-2 sm:grid-cols-2" aria-label={`${stage.label} primary evidence`}>
+          {renderEvidence(primaryEvidence)}
+        </dl>
+      )}
+      {stage.id !== 'path' ? (
+        <>
+          {secondaryEvidence.length > 0 && <dl className="mt-2">{renderEvidence(secondaryEvidence, true)}</dl>}
+          {evidence && <div className={hasPrimaryEvidence || secondaryEvidence.length > 0 ? 'mt-3' : ''}>{evidence}</div>}
+        </>
+      ) : (
+        <details className={`group rounded-lg border border-slate-200 bg-white/80 open:bg-white dark:border-slate-700 dark:bg-slate-950/45 dark:open:bg-slate-950/70 ${hasPrimaryEvidence ? 'mt-3' : ''}`}>
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-[10px] font-bold text-slate-700 outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-sky-400 dark:text-slate-200 dark:hover:bg-slate-900 [&::-webkit-details-marker]:hidden">
+            <span>Major Hops &amp; Technical Evidence</span>
+            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform group-open:rotate-180" aria-hidden="true" />
+          </summary>
+          <div className="border-t border-slate-200 p-3 dark:border-slate-700">
+            {secondaryEvidence.length > 0 && <dl className="mb-3">{renderEvidence(secondaryEvidence, true)}</dl>}
+            {evidence}
+          </div>
+        </details>
+      )}
+    </div>
+  );
+};
+
 const CauseStage = ({
   stage,
   last,
   compact,
   selected,
   expanded,
-  evidence,
-  summaryEvidence,
+  inspectorId,
+  inlineEvidence,
   buttonRef,
   onToggle,
   onKeyDown,
@@ -148,15 +211,14 @@ const CauseStage = ({
   compact: boolean;
   selected: boolean;
   expanded: boolean;
-  evidence?: ReactNode;
-  summaryEvidence?: ReactNode;
+  inspectorId: string;
+  inlineEvidence?: ReactNode;
   buttonRef: (node: HTMLButtonElement | null) => void;
   onToggle: () => void;
   onKeyDown: (event: React.KeyboardEvent<HTMLButtonElement>) => void;
 }) => {
   const styles = stageStyles[stage.state];
   const Icon = styles.icon;
-  const contentId = useId();
   const buttonId = useId();
   const displayedDetail = stage.detail ?? null;
   const accessibleEvidence = stage.evidence?.map((item) => (
@@ -165,32 +227,6 @@ const CauseStage = ({
   const accessibleDescription = [stage.summary, displayedDetail, accessibleEvidence]
     .filter(Boolean)
     .join('. ');
-  const primaryEvidence = stage.evidence?.slice(0, 3) ?? [];
-  const secondaryEvidence = stage.evidence?.slice(3) ?? [];
-  const renderEvidence = (items: EngineeringCauseStage['evidence'], compactEvidence = false) => items?.map((item) => {
-    const displayedValue = item.value;
-    return (
-      <div
-        key={`${item.label}:${item.value}`}
-        className={compactEvidence
-          ? 'grid min-w-0 grid-cols-[minmax(5.5rem,0.8fr)_minmax(0,1.2fr)] items-baseline gap-2 border-t border-slate-200/75 py-1.5 first:border-t-0 dark:border-slate-700/75'
-          : 'min-w-0 rounded-lg border border-slate-200 bg-white px-2.5 py-2.5 shadow-[0_8px_20px_-22px_rgba(15,23,42,0.8)] dark:border-slate-700 dark:bg-slate-950/70'}
-      >
-        <dt className="text-[8px] font-bold uppercase tracking-[0.09em] text-slate-500 dark:text-slate-400">{item.label}</dt>
-        <dd
-          className={`${compactEvidence ? 'text-right text-[10px]' : 'mt-1 text-[12px]'} break-words font-bold leading-4 ${stageStyles[item.state].textClass}`}
-          title={item.detail}
-          aria-label={item.detail ? `${item.label}: ${displayedValue}. ${item.detail}` : undefined}
-        >
-          {displayedValue}
-        </dd>
-        {!compactEvidence && item.detail && (
-          <p className="mt-1 text-[9px] leading-4 text-slate-500 dark:text-slate-400">{item.detail}</p>
-        )}
-      </div>
-    );
-  });
-  const hasPrimaryEvidence = Boolean(summaryEvidence) || primaryEvidence.length > 0;
   return (
     <li className={`relative min-w-0 ${compact ? '' : 'pb-2.5 last:pb-0 [@media(max-height:700px)]:pb-2'}`}>
       {!last && <span className={`absolute bottom-0 left-[0.73rem] top-6 w-px ${styles.lineClass}`} aria-hidden="true" />}
@@ -199,8 +235,8 @@ const CauseStage = ({
         ref={buttonRef}
         type="button"
         aria-expanded={expanded}
-        aria-controls={contentId}
-        aria-label={`${stage.label}: ${accessibleDescription}. ${expanded ? 'Collapse evidence.' : 'Expand evidence and focus on globe.'}`}
+        aria-controls={inspectorId}
+        aria-label={`${stage.label}: ${accessibleDescription}. ${expanded ? 'Close Engineering Inspector.' : 'Open in Engineering Inspector and focus on globe.'}`}
         onClick={onToggle}
         onKeyDown={onKeyDown}
         className={`group grid w-full min-w-0 grid-cols-[1.5rem_minmax(0,1fr)] gap-2.5 rounded-lg text-left outline-none transition-[background-color,box-shadow,transform] duration-150 focus-visible:ring-2 focus-visible:ring-sky-400 ${compact ? 'p-1.5' : 'p-1'} ${selected ? 'bg-sky-50 shadow-[inset_0_0_0_1px_rgba(14,165,233,0.3)] dark:bg-sky-950/30' : 'hover:bg-slate-50 dark:hover:bg-slate-900/75'}`}
@@ -213,46 +249,93 @@ const CauseStage = ({
           <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">{stage.label}</span>
           <span className="flex min-w-0 items-center justify-end gap-1.5">
             <span className={`text-right text-[10px] font-semibold leading-4 ${styles.textClass}`}>{stage.summary}</span>
-            <ChevronDown className={`h-3 w-3 shrink-0 text-slate-400 transition-transform ${expanded ? 'rotate-180' : ''}`} aria-hidden="true" />
+            <ChevronLeft className={`h-3 w-3 shrink-0 text-slate-400 transition-transform duration-200 ${expanded ? 'rotate-180 text-sky-500' : ''}`} aria-hidden="true" />
           </span>
         </div>
         {!compact && displayedDetail && <p className="mt-0.5 text-[10px] leading-4 text-slate-500 dark:text-slate-400" title={displayedDetail}>{displayedDetail}</p>}
         </span>
       </button>
-      {expanded && (
-        <div
-          id={contentId}
-          role="region"
-          aria-labelledby={buttonId}
-          className="relative z-10 ml-2 mt-2 min-w-0 rounded-xl border border-slate-200 bg-slate-50/70 p-3 shadow-[0_16px_36px_-34px_rgba(15,23,42,0.9)] dark:border-slate-700 dark:bg-slate-900/55"
-          data-engineering-stage-evidence={stage.id}
+      {inlineEvidence}
+    </li>
+  );
+};
+
+const EngineeringInspector = ({
+  id,
+  technology,
+  stage,
+  evidence,
+  summaryEvidence,
+  nextAction,
+  motionState,
+  onClose,
+}: {
+  id: string;
+  technology: 'GEO' | 'LEO';
+  stage: EngineeringCauseStage;
+  evidence?: ReactNode;
+  summaryEvidence?: ReactNode;
+  nextAction?: string;
+  motionState: 'open' | 'closing';
+  onClose: () => void;
+}) => {
+  const styles = stageStyles[stage.state];
+  const StatusIcon = styles.icon;
+  return (
+    <aside
+      id={id}
+      aria-label={`${technology} ${stage.label} Engineering Inspector`}
+      data-engineering-inspector=""
+      data-engineering-inspector-state={motionState}
+      className="engineering-inspector pointer-events-auto flex h-full min-h-0 w-full flex-col overflow-hidden rounded-l-[24px] border border-r-0 border-slate-200/90 bg-white/98 shadow-[-24px_24px_60px_-32px_rgba(15,23,42,0.6)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-950/98 dark:shadow-[-28px_24px_70px_-32px_rgba(0,0,0,0.9)]"
+      onKeyDown={(event) => {
+        if (event.key !== 'Escape') return;
+        event.preventDefault();
+        event.stopPropagation();
+        onClose();
+      }}
+    >
+      <header className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200/80 bg-slate-50/90 px-4 py-3.5 dark:border-slate-800 dark:bg-slate-900/85">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className={`h-2 w-2 shrink-0 rounded-full ${technology === 'LEO' ? 'bg-pink-500' : 'bg-blue-500'}`} aria-hidden="true" />
+            <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">Engineering Inspector</span>
+          </div>
+          <div className="mt-2 flex items-center gap-2.5">
+            <span className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border ${styles.iconClass}`}>
+              <StatusIcon className="h-3.5 w-3.5" aria-hidden="true" />
+            </span>
+            <div className="min-w-0">
+              <div className="text-[9px] font-bold uppercase tracking-[0.13em] text-slate-400 dark:text-slate-500">{technology} · Cause Chain</div>
+              <h2 className="truncate text-[16px] font-bold leading-5 text-slate-950 dark:text-white">{stage.label}</h2>
+            </div>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm outline-none transition-colors hover:bg-slate-100 hover:text-slate-800 focus-visible:ring-2 focus-visible:ring-sky-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+          aria-label="Close Engineering Inspector"
         >
-          {summaryEvidence && <div className="mb-3">{summaryEvidence}</div>}
-          {primaryEvidence.length > 0 && (
-            <dl className="grid gap-2 sm:grid-cols-2" aria-label={`${stage.label} primary evidence`}>
-              {renderEvidence(primaryEvidence)}
-            </dl>
-          )}
-          {stage.id !== 'path' ? (
-            <>
-              {secondaryEvidence.length > 0 && <dl className="mt-2">{renderEvidence(secondaryEvidence, true)}</dl>}
-              {evidence && <div className={hasPrimaryEvidence || secondaryEvidence.length > 0 ? 'mt-3' : ''}>{evidence}</div>}
-            </>
-          ) : (
-            <details className={`group rounded-lg border border-slate-200 bg-white/80 open:bg-white dark:border-slate-700 dark:bg-slate-950/45 dark:open:bg-slate-950/70 ${hasPrimaryEvidence ? 'mt-3' : ''}`}>
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-[10px] font-bold text-slate-700 outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-sky-400 dark:text-slate-200 dark:hover:bg-slate-900 [&::-webkit-details-marker]:hidden">
-                <span>Major Hops &amp; Technical Evidence</span>
-                <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform group-open:rotate-180" aria-hidden="true" />
-              </summary>
-              <div className="border-t border-slate-200 p-3 dark:border-slate-700">
-                {secondaryEvidence.length > 0 && <dl className="mb-3">{renderEvidence(secondaryEvidence, true)}</dl>}
-                {evidence}
-              </div>
-            </details>
+          <X className="h-4 w-4" aria-hidden="true" />
+        </button>
+      </header>
+
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div key={stage.id} className="engineering-inspector-content p-4" aria-live="polite">
+          <div className="mb-4 border-b border-slate-200/80 pb-3 dark:border-slate-800">
+            <div className={`text-[11px] font-semibold leading-4 ${styles.textClass}`}>{stage.summary}</div>
+            {stage.detail && <p className="mt-1 text-[11px] leading-4 text-slate-500 dark:text-slate-400">{stage.detail}</p>}
+          </div>
+          <StageEvidenceContent stage={stage} evidence={evidence} summaryEvidence={summaryEvidence} />
+          {nextAction && (
+            <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-[11px] leading-4 text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+              <strong className="font-semibold text-slate-800 dark:text-slate-100">Next investigation:</strong> {nextAction}
+            </div>
           )}
         </div>
-      )}
-    </li>
+      </div>
+    </aside>
   );
 };
 
@@ -264,6 +347,7 @@ const EngineeringResultSummary = ({ technology, truth, stageEvidence, stageSumma
     clear,
   } = useEngineeringFocus();
   const stageButtonRefs = useRef<Partial<Record<EngineeringCauseStage['id'], HTMLButtonElement | null>>>({});
+  const inspectorCloseTimerRef = useRef<number | null>(null);
   const previousTruthStateRef = useRef(truth.state);
   const [verdictPulse, setVerdictPulse] = useState(false);
   const [confidenceOpen, setConfidenceOpen] = useState(false);
@@ -272,6 +356,14 @@ const EngineeringResultSummary = ({ technology, truth, stageEvidence, stageSumma
     ?? [truth.confidence?.label, truth.confidence?.score != null ? `${truth.confidence.score}/100` : null].filter(Boolean).join(' · ');
   const focusedStageId = focus.technology === technology ? focus.stageId : null;
   const expandedStageId = focus.kind === 'locked' && focus.technology === technology ? focus.stageId : null;
+  const inspectorId = `engineering-inspector-${useId()}`;
+  const [inspectorHost, setInspectorHost] = useState<HTMLElement | null>();
+  const [presentedStageId, setPresentedStageId] = useState<EngineeringCauseStageId | null>(expandedStageId);
+  const [inspectorMotionState, setInspectorMotionState] = useState<'open' | 'closing'>('open');
+  const useInlineEvidenceFallback = inspectorHost === null || typeof document === 'undefined';
+  const presentedStage = presentedStageId
+    ? truth.causeChain.find((stage) => stage.id === presentedStageId) ?? null
+    : null;
   const spatialState = useMemo(() => {
     const states = (['access', 'backhaul', 'destination'] as const).map((segment) => (
       getEngineeringPathVisualState({ truth, segment, focus })
@@ -292,6 +384,33 @@ const EngineeringResultSummary = ({ technology, truth, stageEvidence, stageSumma
     const timeoutId = window.setTimeout(() => setVerdictPulse(false), 500);
     return () => window.clearTimeout(timeoutId);
   }, [truth.state]);
+
+  useEffect(() => {
+    setInspectorHost(document.querySelector<HTMLElement>('[data-engineering-inspector-host]'));
+  }, []);
+
+  useEffect(() => {
+    if (inspectorCloseTimerRef.current !== null) {
+      window.clearTimeout(inspectorCloseTimerRef.current);
+      inspectorCloseTimerRef.current = null;
+    }
+    if (expandedStageId) {
+      setPresentedStageId(expandedStageId);
+      setInspectorMotionState('open');
+      return;
+    }
+    if (!presentedStageId) return;
+    setInspectorMotionState('closing');
+    const closeDelay = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 250;
+    inspectorCloseTimerRef.current = window.setTimeout(() => {
+      setPresentedStageId(null);
+      inspectorCloseTimerRef.current = null;
+    }, closeDelay);
+  }, [expandedStageId, presentedStageId]);
+
+  useEffect(() => () => {
+    if (inspectorCloseTimerRef.current !== null) window.clearTimeout(inspectorCloseTimerRef.current);
+  }, []);
 
   useEffect(() => {
     if (focus.kind !== 'locked' || focus.technology !== technology || focus.origin !== 'globe' || !focus.stageId) return;
@@ -318,6 +437,14 @@ const EngineeringResultSummary = ({ technology, truth, stageEvidence, stageSumma
           ? (index + 1) % ENGINEERING_CAUSE_STAGE_ORDER.length
           : (index - 1 + ENGINEERING_CAUSE_STAGE_ORDER.length) % ENGINEERING_CAUSE_STAGE_ORDER.length;
     stageButtonRefs.current[ENGINEERING_CAUSE_STAGE_ORDER[nextIndex]]?.focus();
+  };
+
+  const closeInspector = () => {
+    const returnFocusStageId = presentedStageId;
+    clear();
+    if (returnFocusStageId) {
+      window.requestAnimationFrame(() => stageButtonRefs.current[returnFocusStageId]?.focus({ preventScroll: true }));
+    }
   };
 
   return (
@@ -409,8 +536,16 @@ const EngineeringResultSummary = ({ technology, truth, stageEvidence, stageSumma
               compact={expandedStageId !== stage.id}
               selected={focusedStageId === stage.id}
               expanded={expandedStageId === stage.id}
-              evidence={stageEvidence?.[stage.id]}
-              summaryEvidence={stageSummaries?.[stage.id]}
+              inspectorId={inspectorId}
+              inlineEvidence={expandedStageId === stage.id && useInlineEvidenceFallback ? (
+                <div className="relative z-10 ml-2 mt-2 min-w-0 rounded-xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-700 dark:bg-slate-900/55">
+                  <StageEvidenceContent
+                    stage={stage}
+                    evidence={stageEvidence?.[stage.id]}
+                    summaryEvidence={stageSummaries?.[stage.id]}
+                  />
+                </div>
+              ) : undefined}
               buttonRef={(node) => { stageButtonRefs.current[stage.id] = node; }}
               onToggle={() => {
                 if (expandedStageId === stage.id) clear();
@@ -420,12 +555,25 @@ const EngineeringResultSummary = ({ technology, truth, stageEvidence, stageSumma
             />
           ))}
         </ol>
-        {expandedStageId && truth.nextAction && (
+        {expandedStageId && useInlineEvidenceFallback && truth.nextAction && (
           <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] leading-4 text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
             <strong className="font-semibold text-slate-800 dark:text-slate-100">Next investigation:</strong> {truth.nextAction}
           </div>
         )}
       </div>
+      {inspectorHost && presentedStage && createPortal(
+        <EngineeringInspector
+          id={inspectorId}
+          technology={technology}
+          stage={presentedStage}
+          evidence={stageEvidence?.[presentedStage.id]}
+          summaryEvidence={stageSummaries?.[presentedStage.id]}
+          nextAction={truth.nextAction}
+          motionState={inspectorMotionState}
+          onClose={closeInspector}
+        />,
+        inspectorHost,
+      )}
     </section>
   );
 };

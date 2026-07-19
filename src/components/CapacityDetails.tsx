@@ -302,7 +302,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
           {(satelliteScope === 'LEO' || satelliteScope === 'GEO' || satelliteScope === 'ALL') && (
             <div className="mb-6">
               <div className={satelliteScope === 'ALL'
-                ? `overflow-hidden rounded-xl border bg-white shadow-sm transition-colors duration-300 dark:bg-slate-900/80 ${activeConnTab === 'LEO' ? 'border-pink-500/70 dark:border-pink-500/60' : 'border-blue-500/70 dark:border-blue-500/60'}`
+                ? `relative overflow-hidden rounded-xl border border-transparent bg-transparent transition-colors duration-300 after:pointer-events-none after:absolute after:inset-y-2 after:left-0 after:z-10 after:w-[2px] after:rounded-full after:content-[''] ${activeConnTab === 'LEO' ? 'after:bg-pink-500/45 dark:after:bg-pink-400/40' : 'after:bg-blue-500/45 dark:after:bg-blue-400/40'}`
                 : undefined}
               >
                 {/* Technology focus selector (only when scope is ALL) */}
@@ -338,7 +338,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                 )}
 
                 <div
-                  className={satelliteScope === 'ALL' ? `${compactDesktop ? 'gap-2 p-1.5' : 'gap-3 p-2'} flex flex-col bg-white transition-colors duration-300 dark:bg-slate-900` : undefined}
+                  className={satelliteScope === 'ALL' ? `${compactDesktop ? 'gap-2 p-1.5' : 'gap-3 p-2'} flex flex-col bg-transparent transition-colors duration-300` : undefined}
                 >
 
               {/* LEO Connectivity */}

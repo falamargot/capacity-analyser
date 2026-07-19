@@ -20,6 +20,7 @@
     "build:regulatory-overlay": "node scripts/build-regulatory-overlay.mjs",
     "generate:fill-rate-grid": "node scripts/generate-fill-rate-grid.mjs",
     "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.app.json --noEmit",
     "test": "vitest run",
     "preview": "vite preview"
   },
