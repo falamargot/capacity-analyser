@@ -3,7 +3,7 @@ import type { LinkMode } from '../types/linkMode';
 import type { SatelliteScope } from '../components/SatelliteScopeFilter';
 import type { SatelliteData } from '../types/satellites';
 import { GEO_GATEWAYS, type GeoGatewayData } from '../components/globe/GlobeConfig';
-import { TERMINAL_PROFILES, WEATHER_PROFILES, getWeatherFactor, type TerminalType, type WeatherType } from '../components/capacity/TerminalConfig';
+import { TERMINAL_PROFILES, WEATHER_PROFILES, getWeatherFactor, type TerminalType, type WeatherType } from '../components/capacity/terminalAssumptions';
 import { computeOneWayLatencyMs } from './capacityCalculator';
 import { computeGeoConnectivity, findCandidateCoverages, getCandidateCoverageKey } from './geoCoverageSelection';
 import {

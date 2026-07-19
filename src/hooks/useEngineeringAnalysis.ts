@@ -63,6 +63,8 @@ import {
   resolveActiveStarTrafficGatewaySelection,
 } from '../utils/geoStarGatewaySelection';
 import { getLeoTerminalProfile } from '../config/leoTerminals';
+import { getResolvedEngineeringGeoCoverageKeys } from '../utils/engineeringConfigureModel';
+import type { EngineeringConfigureCandidates } from '../types/engineeringConfigure';
 import { buildGeoConfidence, buildLeoSingleSiteConfidence } from '../utils/predictionConfidence';
 import { estimateGeoSatelliteCapacity } from '../utils/geoCapacityModel';
 import { buildLinkAvailabilityContext } from '../utils/linkAvailabilityContext';
@@ -152,6 +154,10 @@ export interface EngineeringAnalysisInputs {
   selectedUplinkCoverageB?: CandidateCoverage | null;
   selectedDownlinkCoverageB?: CandidateCoverage | null;
   candidateCoveragesB?: CandidateCoverage[];
+  // Globe-facing Site B coverages (same-satellite constraint) — feed the
+  // Configure surface's resolved-candidate display.
+  uplinkAtBForGlobe?: CandidateCoverage | null;
+  downlinkAtBForGlobe?: CandidateCoverage | null;
   linkMode?: LinkMode;
   activeMeshTab?: 'forward' | 'reverse';
   pointB?: { lat: number; lng: number } | null;
@@ -211,6 +217,8 @@ export interface EngineeringAnalysis {
   geoPerformance: GeoPerformanceEstimate | null;
   geoEffectivePerformance: GeoPerformanceEstimate | null;
   engineeringAnalysisViewModels: Record<'GEO' | 'LEO', EngineeringAnalysisViewModel>;
+  resolvedGeoCoverageKeys: ReturnType<typeof getResolvedEngineeringGeoCoverageKeys>;
+  engineeringConfigureCandidates: EngineeringConfigureCandidates;
   engineeringTruths: EngineeringTruthSet;
   activeEngineeringTruth: EngineeringTruth | undefined;
   leoPdfDetails: PDFConnectionDetails | null;
@@ -251,6 +259,8 @@ export function useEngineeringAnalysis({
   selectedUplinkCoverageB = null,
   selectedDownlinkCoverageB = null,
   candidateCoveragesB = [],
+  uplinkAtBForGlobe = null,
+  downlinkAtBForGlobe = null,
   linkMode = 'STAR_FORWARD',
   activeMeshTab,
   pointB = null,
@@ -1145,6 +1155,20 @@ export function useEngineeringAnalysis({
     return { GEO: geoViewModel, LEO: leoViewModel };
   }, [activeCoverageForGeo, activeMeshTab, activePoint, beamLoadResult?.loadSource, downlinkAtB, downlinkAtUser, dualSegmentResult, geoGeometry, hasCurrentLEORF, leoGeometry, leoPerformance, leoServiceViewModel, leoSiteToSiteResult, leoTopologyMode, linkMode, meshMetrics, mobileLeoMetrics?.rtt, pointB, pointBLeo, regulatoryResult?.status, resolvedGEOConnectivity, resolvedLEOConnectivity, trafficGatewaySelection, uplinkAtB, uplinkAtUser, weatherType]);
 
+  const resolvedGeoCoverageKeys = useMemo(() => getResolvedEngineeringGeoCoverageKeys({
+    siteA: { uplink: selectedUplinkCoverage, downlink: selectedDownlinkCoverage },
+    siteB: { uplink: uplinkAtBForGlobe, downlink: downlinkAtBForGlobe },
+  }), [downlinkAtBForGlobe, selectedDownlinkCoverage, selectedUplinkCoverage, uplinkAtBForGlobe]);
+
+  const engineeringConfigureCandidates = useMemo<EngineeringConfigureCandidates>(() => ({
+    siteA: candidateCoverages,
+    siteB: candidateCoveragesB,
+    resolved: {
+      siteA: { uplink: selectedUplinkCoverage, downlink: selectedDownlinkCoverage },
+      siteB: { uplink: uplinkAtBForGlobe, downlink: downlinkAtBForGlobe },
+    },
+  }), [candidateCoverages, candidateCoveragesB, downlinkAtBForGlobe, selectedDownlinkCoverage, selectedUplinkCoverage, uplinkAtBForGlobe]);
+
   const engineeringTruths = useMemo<EngineeringTruthSet>(() => ({
     GEO: engineeringAnalysisViewModels.GEO.truth,
     LEO: engineeringAnalysisViewModels.LEO.truth,
@@ -1399,6 +1423,8 @@ export function useEngineeringAnalysis({
     geoPerformance,
     geoEffectivePerformance,
     engineeringAnalysisViewModels,
+    resolvedGeoCoverageKeys,
+    engineeringConfigureCandidates,
     engineeringTruths,
     activeEngineeringTruth,
     leoPdfDetails,

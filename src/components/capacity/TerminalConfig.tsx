@@ -1,10 +1,9 @@
 import { CheckCircle2, ChevronDown, CircleDashed, RotateCcw, Sparkles, X, type LucideIcon } from 'lucide-react';
 import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { SectionTooltip } from '../SectionTooltip';
-import { WEATHER_ATTENUATION_DB, type WeatherCondition } from '../../utils/realisticSimulation';
+import { WEATHER_ATTENUATION_DB } from '../../utils/realisticSimulation';
 import {
   GEO_TERMINAL_RF_CATALOGUE,
-  USE_CASE_DEFAULT_RF_CLASS,
   getRFClassBand,
   resolveTerminalRFParams,
   computeAntennaGainDbi,
@@ -19,63 +18,31 @@ import { BAND_PARAMS } from '../../utils/geoLinkBudget';
 import {
   getEnabledLeoTerminalCatalogEntries,
   getLeoTerminalProfile,
-  LEO_TERMINAL_PROFILES,
   type LeoTerminalProfile,
 } from '../../config/leoTerminals';
 
-export type TerminalType = 'fixed' | 'mobile' | 'aviation' | 'maritime';
+import {
+  TERMINAL_PROFILES,
+  WEATHER_PROFILES,
+  getDefaultRFClassForUseCase,
+  getRFClassOptionsForUseCase,
+  toWeatherCondition,
+  weatherIcon,
+  type TerminalType,
+  type WeatherType,
+} from './terminalAssumptions';
+
+// Type-only re-exports keep this module's public surface stable for existing
+// importers; the value exports live in ./terminalAssumptions.
+export type { TerminalType, WeatherType };
 export type { TerminalRFClassId };
 export type { TerminalRFCustomParams };
-
-export const TERMINAL_PROFILES: Record<TerminalType, { label: string; maxDlGbps: number; maxUlGbps: number }> =
-  Object.fromEntries(
-    Object.entries(LEO_TERMINAL_PROFILES).map(([key, profile]) => [
-      key,
-      {
-        label: profile.label,
-        maxDlGbps: profile.maxDlMbps / 1000,
-        maxUlGbps: profile.maxUlMbps / 1000,
-      },
-    ]),
-  ) as Record<TerminalType, { label: string; maxDlGbps: number; maxUlGbps: number }>;
-
-export type WeatherType = 'clear' | 'light_rain' | 'heavy_rain' | 'storm';
-
-export const WEATHER_PROFILES: Record<WeatherType, { label: string; condition: WeatherCondition }> = {
-  clear: { label: 'Clear Sky', condition: 'CLEAR' },
-  light_rain: { label: 'Clouds', condition: 'CLOUDS' },
-  heavy_rain: { label: 'Rain', condition: 'RAIN' },
-  storm: { label: 'Rain (Heavy)', condition: 'RAIN' },
-};
-
-export const toWeatherCondition = (wt: WeatherType): WeatherCondition => {
-  if (wt === 'clear') return 'CLEAR';
-  if (wt === 'light_rain') return 'CLOUDS';
-  return 'RAIN';
-};
-
-export const getWeatherFactor = (wt: WeatherType, isAviation: boolean): number => {
-  if (isAviation) return 1.0;
-  return Math.pow(10, WEATHER_ATTENUATION_DB[toWeatherCondition(wt)] / 10);
-};
-
-/** Returns the default RF class ID for a given use-case and band. */
-export function getDefaultRFClassForUseCase(useCase: TerminalType, band: GeoBand = 'Ku'): TerminalRFClassId {
-  return USE_CASE_DEFAULT_RF_CLASS[useCase as TerminalUseCase]?.[band] ?? 'ku_standard_vsat';
-}
 
 const terminalIcon = (key: TerminalType): string => {
   if (key === 'fixed') return '🏠';
   if (key === 'mobile') return '🚐';
   if (key === 'aviation') return '✈️';
   return '🚢';
-};
-
-const weatherIcon = (key: WeatherType): string => {
-  if (key === 'clear') return '☀️';
-  if (key === 'light_rain') return '☁️';
-  if (key === 'heavy_rain') return '🌧️';
-  return '⛈️';
 };
 
 const selectClassName = (compact: boolean, widthClass: string) =>
@@ -93,50 +60,6 @@ const formatCompactNumber = (value: number, digits = 2): string => (
   Number.isInteger(value) ? value.toFixed(0) : value.toFixed(digits).replace(/0+$/, '').replace(/\.$/, '')
 );
 
-const RF_CLASS_DISPLAY_ORDER: TerminalRFClassId[] = [
-  'c_standard_vsat',
-  'ku_standard_vsat',
-  'ku_highpower_vsat',
-  'ku_enterprise_vsat',
-  'ka_consumer_terminal',
-  'ka_enterprise_vsat',
-  'c_compact_vsat',
-  'ku_compact_vsat',
-  'ka_consumer_terminal_mobile',
-  'ka_mobility_terminal',
-  'maritime_vsat_compact',
-  'aviation_esim',
-  'ka_aviation_esim',
-  'maritime_vsat_large',
-];
-const RF_CLASS_DISPLAY_RANK = new Map(RF_CLASS_DISPLAY_ORDER.map((id, index) => [id, index]));
-const RF_CLASS_DISPLAY_ORDER_BY_USE_CASE: Record<TerminalUseCase, TerminalRFClassId[]> = {
-  fixed: [
-    'c_standard_vsat',
-    'ku_standard_vsat',
-    'ku_highpower_vsat',
-    'ku_enterprise_vsat',
-    'ka_consumer_terminal',
-    'ka_enterprise_vsat',
-  ],
-  mobile: [
-    'c_compact_vsat',
-    'ku_compact_vsat',
-    'ka_consumer_terminal_mobile',
-    'ka_mobility_terminal',
-    'maritime_vsat_compact',
-  ],
-  aviation: [
-    'aviation_esim',
-    'ka_aviation_esim',
-  ],
-  maritime: [
-    'c_compact_vsat',
-    'maritime_vsat_compact',
-    'maritime_vsat_large',
-    'ka_mobility_terminal',
-  ],
-};
 
 // ─── Terminal use-case control ────────────────────────────────────────────────
 
@@ -397,20 +320,7 @@ export const TerminalRFClassControl = memo<TerminalRFClassControlProps>(({
     try { return resolveTerminalRFParams(rfBand, rfClassId); } catch { return null; }
   }, [rfClassId, band]);
 
-  const availableClasses = useMemo(() =>
-    {
-      const rank = useCase
-        ? new Map(RF_CLASS_DISPLAY_ORDER_BY_USE_CASE[useCase].map((id, index) => [id, index]))
-        : RF_CLASS_DISPLAY_RANK;
-      return GEO_TERMINAL_RF_CATALOGUE.filter((spec) =>
-        !useCase || spec.typicalUseCases.includes(useCase),
-      ).sort((a, b) => (
-        (rank.get(a.id) ?? 999) - (rank.get(b.id) ?? 999) ||
-        a.label.localeCompare(b.label)
-      ));
-    },
-    [useCase],
-  );
+  const availableClasses = useMemo(() => getRFClassOptionsForUseCase(useCase), [useCase]);
 
   if (isCustom) {
     return (

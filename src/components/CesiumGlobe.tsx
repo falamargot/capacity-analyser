@@ -75,11 +75,6 @@ import { usePositionCallbacks } from './cesium-globe/hooks';
 
 // UI components
 import GlobeIntelligenceRail from './cesium-globe/GlobeIntelligenceRail';
-import ActiveScenarioContext from './cesium-globe/ActiveScenarioContext';
-import {
-    deriveGeoActiveScenarioContext,
-    deriveLeoActiveScenarioContext,
-} from '../utils/activeScenarioContextModel';
 import InspectionCard, { type HoveredEntity } from './cesium-globe/InspectionCard';
 import CountryOverlayLegend from './cesium-globe/CountryOverlayLegend';
 import SiteScreenLabel from './cesium-globe/SiteScreenLabel';
@@ -905,8 +900,6 @@ export interface SelectionAnalysisProps {
     selectedCoverage: CandidateCoverage | null;
     selectedUplinkCoverage: CandidateCoverage | null;
     selectedDownlinkCoverage: CandidateCoverage | null;
-    activeScenarioUplinkCoverage: CandidateCoverage | null;
-    activeScenarioDownlinkCoverage: CandidateCoverage | null;
     selectedSNP: { lat: number; lng: number; name: string } | null;
     selectedGateway: GeoGatewayData | null;
     inspectedSNP: SNPData | null;
@@ -1090,8 +1083,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         selectedCoverage,
         selectedUplinkCoverage,
         selectedDownlinkCoverage,
-        activeScenarioUplinkCoverage,
-        activeScenarioDownlinkCoverage,
         selectedSNP,
         selectedGateway,
         inspectedSNP,
@@ -2582,10 +2573,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         && !!selectedRegulatoryResult
         && !selectedRegulatoryResult.isOcean
         && !!selectedRegulatoryResult.countryName;
-    const hasActiveScenario = !!(selectedPosition || selectedAircraft || selectedVessel);
-    // Reuse the existing left-rail spacing contract: the active context takes the
-    // same compact slot previously occupied by the satellite indicator.
-    const hasSatelliteIndicator = hasActiveScenario;
     const commercialGeoCoverageVisible =
         commercialMode
         && satelliteScope !== 'LEO'
@@ -2618,35 +2605,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         countryOverlayMode: effectiveCountryOverlayMode,
         commercialMode,
     });
-    const geoActiveScenarioContext = deriveGeoActiveScenarioContext({
-        included: satelliteScope !== 'LEO',
-        hasScenario: hasActiveScenario,
-        status: geoPointStatus,
-        satellite: autoSelectedGEOSatellite,
-        uplinkCoverage: activeScenarioUplinkCoverage,
-        downlinkCoverage: activeScenarioDownlinkCoverage,
-    });
-    const leoActiveScenarioContext = deriveLeoActiveScenarioContext({
-        included: satelliteScope !== 'GEO',
-        hasScenario: hasActiveScenario,
-        siteToSite: !!pointBLeo,
-        result: leoSiteToSiteResult,
-        viewModel: leoServiceViewModel,
-        satelliteA: autoSelectedLEOSatellite ?? null,
-    });
-
     return (
         <div className="relative w-full h-full">
             {/* UI Overlays */}
-            {!commercialMode && (
-                <ActiveScenarioContext
-                    geo={geoActiveScenarioContext}
-                    leo={leoActiveScenarioContext}
-                    isPhone={isPhone}
-                    isFullscreen={isFullscreen}
-                />
-            )}
-
             {!commercialMode && (
                 <CountryOverlayLegend
                     mode={effectiveCountryOverlayMode}
@@ -2708,7 +2669,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     onSelect={onCoverageSwitcherSelect}
                     isPhone={!!isPhone}
                     isFullscreen={isFullscreen}
-                    hasSatelliteIndicator={hasSatelliteIndicator}
                 />
             )}
 

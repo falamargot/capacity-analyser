@@ -25,18 +25,20 @@ import {
 import { formatMbps, formatMs, commServiceStatusLabel } from './commercialDisplayUtils';
 import {
   SignalQualityBar,
-  qualityFromText,
   ForecastConfidenceGauge,
-  confidenceLevelFromPrediction,
   EndToEndPathDiagram,
   UseCaseFitGrid,
   CommercialKpiTile,
-  downloadSpeedTier,
-  uploadSpeedTier,
-  responseTimeTier,
-  reliabilityTier,
   type PathNode,
 } from './CommercialVisuals';
+import {
+  confidenceLevelFromPrediction,
+  downloadSpeedTier,
+  qualityFromText,
+  reliabilityTier,
+  responseTimeTier,
+  uploadSpeedTier,
+} from './commercialTiers';
 
 export interface CommercialNarrativePanelProps {
   viewModel: CommercialScenarioViewModel;

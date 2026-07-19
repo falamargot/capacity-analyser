@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
-let pickBeamFootprintPoints: typeof import('../AggregatedCoverageVolumeLayer').pickBeamFootprintPoints;
+let pickBeamFootprintPoints: typeof import('../utils').pickBeamFootprintPoints;
 
 beforeAll(async () => {
   vi.stubGlobal('window', {
@@ -53,7 +53,7 @@ beforeAll(async () => {
       };
     },
   });
-  ({ pickBeamFootprintPoints } = await import('../AggregatedCoverageVolumeLayer'));
+  ({ pickBeamFootprintPoints } = await import('../utils'));
 });
 
 afterAll(() => {

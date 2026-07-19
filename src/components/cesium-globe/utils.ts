@@ -3,6 +3,7 @@
  */
 import { Cartesian3, JulianDate, Math as CesiumMath } from 'cesium';
 import * as satellite from 'satellite.js';
+import type { Feature, Geometry as GeoJsonGeometry, GeoJsonProperties } from 'geojson';
 import type { SatelliteData } from '../../types/satellites';
 import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
 
@@ -73,6 +74,29 @@ export const sanitizeCartesianRing = (
 /**
  * Propagate satellite position using SGP4
  */
+export function pickBeamFootprintPoints(
+    beamFeature: Feature<GeoJsonGeometry, GeoJsonProperties> | null
+): Cartesian3[] {
+    if (beamFeature?.geometry?.type !== 'Polygon') return [];
+    const coords = (beamFeature.geometry.coordinates?.[0] ?? []) as unknown as number[][];
+    const pts: Cartesian3[] = [];
+    for (const coord of coords) {
+        const lng = coord[0];
+        const lat = coord[1];
+        if (!isFinite(lat) || !isFinite(lng)) continue;
+        pts.push(Cartesian3.fromDegrees(lng, lat, 0));
+    }
+    // Some polygons repeat the first coordinate as last - remove duplicate to avoid degenerate triangle
+    if (pts.length >= 2) {
+        const a = pts[0];
+        const b = pts[pts.length - 1];
+        if (Cartesian3.equalsEpsilon(a, b, 0, 1e-6)) {
+            pts.pop();
+        }
+    }
+    return sanitizeCartesianRing(pts);
+}
+
 export const propagateSatellite = (
     sat: SatelliteData,
     time: JulianDate

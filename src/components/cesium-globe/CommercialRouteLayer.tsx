@@ -251,7 +251,7 @@ const GroundNode = React.memo<GroundNodeProps>(({
     const dyn       = calculateDynamicScale(cameraMetricsRef.current.height, DPR_FACTOR);
     const focusMult = animRef.current.focusedIdx === segIdx ? 1.35 : 1.0;
     return dyn * 3_000_000 / Math.max(dist, 8_000_000) * 18 * sizeScale * focusMult;
-  }, false), [position, cameraMetricsRef, sizeScale, segIdx, animRef]);
+  }, false), [position, cameraMetricsRef, sizeScale, segIdx, animRef, viewerRef]);
 
   const isPulsed   = node.segmentId !== 'summary';
   const baseColor  = useMemo(() => statusColor(node.status), [node.status]);
@@ -325,7 +325,7 @@ const PortalNode = React.memo<GroundNodeProps>(({
     const dyn       = calculateDynamicScale(cameraMetricsRef.current.height, DPR_FACTOR);
     const focusMult = animRef.current.focusedIdx === segIdx ? 1.35 : 1.0;
     return dyn * 3_000_000 / Math.max(dist, 8_000_000) * 0.9 * sizeScale * focusMult;
-  }, false), [position, cameraMetricsRef, sizeScale, segIdx, animRef]);
+  }, false), [position, cameraMetricsRef, sizeScale, segIdx, animRef, viewerRef]);
 
   const billboardColorCallback = useMemo(() => new CallbackProperty(() => {
     const alpha = getSegmentAlpha(animRef.current, segIdx, animRef.current.focusedIdx === segIdx);
@@ -391,7 +391,7 @@ const HubNode = React.memo<GroundNodeProps>(({
     const dyn       = calculateDynamicScale(cameraMetricsRef.current.height, DPR_FACTOR);
     const focusMult = animRef.current.focusedIdx === segIdx ? 1.35 : 1.0;
     return dyn * 3_000_000 / Math.max(dist, 8_000_000) * 12 * sizeScale * focusMult;
-  }, false), [position, cameraMetricsRef, sizeScale, segIdx, animRef]);
+  }, false), [position, cameraMetricsRef, sizeScale, segIdx, animRef, viewerRef]);
 
   const colorCallback = useMemo(() => new CallbackProperty(() => {
     const alpha = getSegmentAlpha(animRef.current, segIdx, animRef.current.focusedIdx === segIdx);

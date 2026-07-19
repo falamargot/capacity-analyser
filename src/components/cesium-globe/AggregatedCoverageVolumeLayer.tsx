@@ -15,7 +15,7 @@ import { TERMINAL_RF_RADIUS_KM } from '../../utils/leoFootprint';
 import { isOperationalSatellite } from '../../utils/satelliteStatus';
 import { useCombGeometry } from './hooks';
 import { useSimulation } from '../../contexts/SimulationContext';
-import { calculateDeadReckoning, propagateSatellite, sanitizeCartesianRing, isFiniteCartesian3 } from './utils';
+import { calculateDeadReckoning, pickBeamFootprintPoints, propagateSatellite, sanitizeCartesianRing, isFiniteCartesian3 } from './utils';
 
 interface Props {
     selectedSatellite: SatelliteData | null;
@@ -243,29 +243,6 @@ function buildTerminalRfFootprintRing(subSat: { lat: number; lng: number }, segm
     return sanitizeCartesianRing(ring);
 }
 
-export function pickBeamFootprintPoints(
-    beamFeature: Feature<GeoJsonGeometry, GeoJsonProperties> | null
-): Cartesian3[] {
-    if (beamFeature?.geometry?.type !== 'Polygon') return [];
-    const coords = (beamFeature.geometry.coordinates?.[0] ?? []) as unknown as number[][];
-    const pts: Cartesian3[] = [];
-    for (const coord of coords) {
-        const lng = coord[0];
-        const lat = coord[1];
-        if (!isFinite(lat) || !isFinite(lng)) continue;
-        pts.push(Cartesian3.fromDegrees(lng, lat, 0));
-    }
-    // Some polygons repeat the first coordinate as last - remove duplicate to avoid degenerate triangle
-    if (pts.length >= 2) {
-        const a = pts[0];
-        const b = pts[pts.length - 1];
-        if (Cartesian3.equalsEpsilon(a, b, 0, 1e-6)) {
-            pts.pop();
-        }
-    }
-    return sanitizeCartesianRing(pts);
-}
-
 function pickCoverageFootprintRings(
     coverageFeatures: Feature<GeoJsonGeometry, GeoJsonProperties>[]
 ) : Cartesian3[][] {
@@ -362,7 +339,7 @@ const AggregatedCoverageVolumeLayer: React.FC<Props> = ({
         const typeForColor = (selectedBeamFeature as any)?.properties?.type ?? satForColor.type;
         const colorHex = getCoverageColor(typeForColor, 1, satForColor);
         return Color.fromCssColorString(colorHex);
-    }, [selectedSatellite, beamSatellite, autoSelectedSatellite, selectedBeamFeature, satellites]);
+    }, [selectedSatellite, beamSatellite, autoSelectedSatellite, selectedBeamFeature, satellites, selectedCoverageFeatures.length, selectedCoverageGroups]);
     const baseColorRef = useRef<Color | null>(null);
 
     // Direct ref assignments — safe because these refs are read only inside the

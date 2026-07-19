@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fillRateGradientCss, fillRateToColor } from '../FillRateLayer';
+import { fillRateGradientCss, fillRateToColor } from '../fillRateColorScale';
 
 describe('fillRateToColor', () => {
   it('maps low fill rate toward blue and high fill rate toward red', () => {

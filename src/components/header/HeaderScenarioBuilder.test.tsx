@@ -95,8 +95,8 @@ const configureBaseline: EngineeringConfigureDraft = {
   },
 };
 
-describe('HeaderScenarioBuilder transactional Configure workflow', () => {
-  it('preserves horizontal endpoint assumptions and owns the Phase 2 transaction actions', () => {
+describe('HeaderScenarioBuilder engineering Configure workflow', () => {
+  it('preserves horizontal endpoint assumptions as an instant-apply editor', () => {
     const markup = renderToStaticMarkup(
       <HeaderScenarioBuilder
         siteA={site('Origin', 'Paris')}
@@ -118,9 +118,11 @@ describe('HeaderScenarioBuilder transactional Configure workflow', () => {
     expect(markup).toContain('Dakar');
     expect(markup).toContain('Weather condition');
     expect(markup).toContain('RF</span>');
-    expect(markup).toContain('No pending changes');
-    expect(markup).toContain('Discard');
-    expect(markup).toContain('Apply engineering changes');
+    // M5: instant apply — no staged-changes machinery remains in the header.
+    expect(markup).toContain('Edits apply immediately');
+    expect(markup).not.toContain('No pending changes');
+    expect(markup).not.toContain('Discard');
+    expect(markup).not.toContain('Apply engineering changes');
     expect(markup).toContain('<select');
   });
 

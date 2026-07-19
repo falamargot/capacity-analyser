@@ -40,7 +40,12 @@ import type { CameraMetricsSnapshot } from './utils';
 import type { CommercialRouteSegmentType } from '../commercial/commercialViewModel';
 import { GROUND_POINT_ALTITUDE_KM } from './layerHeights';
 import { useEngineeringFocus } from '../../contexts/EngineeringFocusContext';
-import { getEngineeringPathVisualState, type EngineeringPathVisualState } from '../../utils/engineeringFocusModel';
+import {
+    getEngineeringPathVisualState,
+    getEngineeringSegmentAnnotation,
+    type EngineeringPathVisualState,
+    type EngineeringRouteSegment,
+} from '../../utils/engineeringFocusModel';
 
 interface TransmissionLinksProps {
     satellites: SatelliteData[];
@@ -487,6 +492,46 @@ S2SBackboneSegment.displayName = 'S2SBackboneSegment';
 const EMPTY_POSITIONS_CALLBACK = new CallbackProperty(() => [], true);
 const HIDDEN_ENTITY_POSITION = Cartesian3.ZERO;
 
+const ANNOTATION_PIXEL_OFFSET = new Cartesian2(0, -14);
+const ANNOTATION_OUTLINE_COLOR = Color.fromCssColorString('#0f172a');
+
+/**
+ * Midpoint label surfacing the focused cause stage's verdict on its mapped
+ * route segment (text comes from getEngineeringSegmentAnnotation). Rendered
+ * only while an analytical focus selects the segment, so mount churn tracks
+ * user interaction, not orbital handoffs.
+ */
+const EngineeringSegmentAnnotation: React.FC<{
+    entityId: string;
+    text: string | null;
+    positions: CallbackProperty;
+    show?: boolean;
+}> = ({ entityId, text, positions, show = true }) => {
+    const midpointPosition = useMemo(() => new CallbackPositionProperty((time, result) => {
+        const values = positions.getValue(time);
+        if (!Array.isArray(values) || values.length < 2) return undefined;
+        return Cartesian3.midpoint(values[0], values[values.length - 1], result ?? new Cartesian3());
+    }, false), [positions]);
+
+    if (!text) return null;
+    return (
+        <Entity key={entityId} id={entityId} name={text} position={midpointPosition} show={show}>
+            <LabelGraphics
+                text={text}
+                font="600 11px sans-serif"
+                fillColor={Color.WHITE}
+                outlineColor={ANNOTATION_OUTLINE_COLOR}
+                outlineWidth={4}
+                style={LabelStyle.FILL_AND_OUTLINE}
+                pixelOffset={ANNOTATION_PIXEL_OFFSET}
+                verticalOrigin={VerticalOrigin.BOTTOM}
+                horizontalOrigin={HorizontalOrigin.CENTER}
+                disableDepthTestDistance={Number.POSITIVE_INFINITY}
+            />
+        </Entity>
+    );
+};
+
 const createStaticPathCallback = (positions: Cartesian3[]) => (
     new CallbackProperty(() => positions, true)
 );
@@ -540,6 +585,14 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         segment,
         focus: engineeringFocus,
     }), [commercialMode, engineeringFocus, engineeringTruths]);
+    const segmentAnnotation = React.useCallback((
+        segment: EngineeringRouteSegment,
+        technology: 'GEO' | 'LEO',
+    ) => commercialMode ? null : getEngineeringSegmentAnnotation(
+        engineeringTruths[technology],
+        segment,
+        engineeringFocus,
+    ), [commercialMode, engineeringFocus, engineeringTruths]);
 
     // Live refs let stable callbacks read the latest selected satellites while still
     // propagating LEO links against Cesium time so they stay visually aligned with beams.
@@ -1096,55 +1149,83 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         <>
             {/* LEO Uplink/Downlink - User to Satellite */}
             {showLeoCommercialRoute && leoUplinkCallback && satelliteScope !== 'GEO' && !isSiteToSiteActive && (
-                <HighlightedRouteSegment
-                    name="LEO Uplink/Downlink"
-                    positions={leoUplinkCallback}
-                    width={commercialWidth('access', leoLinkWidth, 'LEO')}
-                    material={commercialLeoUserMaterial}
-                    entityIdBase={routeEntityIds.leoUplink}
-                    subdued={s2sIsSecondary}
-                    visualState={engineeringVisualState('access', 'LEO')}
-                />
+                <>
+                    <HighlightedRouteSegment
+                        name="LEO Uplink/Downlink"
+                        positions={leoUplinkCallback}
+                        width={commercialWidth('access', leoLinkWidth, 'LEO')}
+                        material={commercialLeoUserMaterial}
+                        entityIdBase={routeEntityIds.leoUplink}
+                        subdued={s2sIsSecondary}
+                        visualState={engineeringVisualState('access', 'LEO')}
+                    />
+                    <EngineeringSegmentAnnotation
+                        entityId={`${routeEntityIds.leoUplink}-annotation`}
+                        text={segmentAnnotation('access', 'LEO')}
+                        positions={leoUplinkCallback}
+                    />
+                </>
             )}
 
             {/* LEO Backhaul to SNP - Satellite to Gateway */}
             {showLeoCommercialRoute && leoBackhaulCallback && satelliteScope !== 'GEO' && selectedSNP && !isSiteToSiteActive && (
-                <HighlightedRouteSegment
-                    name="LEO Backhaul"
-                    positions={leoBackhaulCallback}
-                    width={commercialWidth('backhaul', leoLinkWidth, 'LEO')}
-                    material={commercialLeoFeederMaterial}
-                    entityIdBase={routeEntityIds.leoBackhaul}
-                    clampToGround={false}
-                    subdued={s2sIsSecondary}
-                    visualState={engineeringVisualState('backhaul', 'LEO')}
-                />
+                <>
+                    <HighlightedRouteSegment
+                        name="LEO Backhaul"
+                        positions={leoBackhaulCallback}
+                        width={commercialWidth('backhaul', leoLinkWidth, 'LEO')}
+                        material={commercialLeoFeederMaterial}
+                        entityIdBase={routeEntityIds.leoBackhaul}
+                        clampToGround={false}
+                        subdued={s2sIsSecondary}
+                        visualState={engineeringVisualState('backhaul', 'LEO')}
+                    />
+                    <EngineeringSegmentAnnotation
+                        entityId={`${routeEntityIds.leoBackhaul}-annotation`}
+                        text={segmentAnnotation('backhaul', 'LEO')}
+                        positions={leoBackhaulCallback}
+                    />
+                </>
             )}
 
             {/* GEO User → Satellite (STAR modes only; MESH uses directional callbacks below) */}
             {showGeoCommercialRoute && geoUserLinkCallback && satelliteScope !== 'LEO' && !isMeshOrP2P && (
-                <Entity key={routeEntityIds.geoUser} id={routeEntityIds.geoUser} name="GEO User Link">
-                    <PolylineGraphics
+                <>
+                    <Entity key={routeEntityIds.geoUser} id={routeEntityIds.geoUser} name="GEO User Link">
+                        <PolylineGraphics
+                            positions={geoUserLinkCallback}
+                            width={widthForEngineeringState(engineeringVisualState('access', 'GEO'), commercialWidth('access', 2.5, 'GEO'))}
+                            material={materialForEngineeringState(engineeringVisualState('access', 'GEO'), commercialGeoUserMaterial)}
+                            depthFailMaterial={materialForEngineeringState(engineeringVisualState('access', 'GEO'), commercialGeoUserMaterial)}
+                            arcType={ArcType.NONE}
+                        />
+                    </Entity>
+                    <EngineeringSegmentAnnotation
+                        entityId={`${routeEntityIds.geoUser}-annotation`}
+                        text={segmentAnnotation('access', 'GEO')}
                         positions={geoUserLinkCallback}
-                        width={widthForEngineeringState(engineeringVisualState('access', 'GEO'), commercialWidth('access', 2.5, 'GEO'))}
-                        material={materialForEngineeringState(engineeringVisualState('access', 'GEO'), commercialGeoUserMaterial)}
-                        depthFailMaterial={materialForEngineeringState(engineeringVisualState('access', 'GEO'), commercialGeoUserMaterial)}
-                        arcType={ArcType.NONE}
                     />
-                </Entity>
+                </>
             )}
 
             {/* GEO Satellite -> Gateway — hidden in MESH/P2P (gateway not in the path) */}
             {showGeoCommercialRoute && geoFeederLinkCallback && satelliteScope !== 'LEO' && !isMeshOrP2P && (
-                <Entity key={routeEntityIds.geoFeeder} id={routeEntityIds.geoFeeder} name="GEO Feeder Link">
-                    <PolylineGraphics
+                <>
+                    <Entity key={routeEntityIds.geoFeeder} id={routeEntityIds.geoFeeder} name="GEO Feeder Link">
+                        <PolylineGraphics
+                            positions={geoFeederLinkCallback}
+                            width={widthForEngineeringState(engineeringVisualState('backhaul', 'GEO'), commercialWidth('backhaul', 2.5, 'GEO'))}
+                            material={materialForEngineeringState(engineeringVisualState('backhaul', 'GEO'), commercialGeoFeederMaterial)}
+                            depthFailMaterial={materialForEngineeringState(engineeringVisualState('backhaul', 'GEO'), commercialGeoFeederMaterial)}
+                            arcType={ArcType.NONE}
+                        />
+                    </Entity>
+                    <EngineeringSegmentAnnotation
+                        entityId={`${routeEntityIds.geoFeeder}-annotation`}
+                        text={segmentAnnotation('backhaul', 'GEO')}
                         positions={geoFeederLinkCallback}
-                        width={widthForEngineeringState(engineeringVisualState('backhaul', 'GEO'), commercialWidth('backhaul', 2.5, 'GEO'))}
-                        material={materialForEngineeringState(engineeringVisualState('backhaul', 'GEO'), commercialGeoFeederMaterial)}
-                        depthFailMaterial={materialForEngineeringState(engineeringVisualState('backhaul', 'GEO'), commercialGeoFeederMaterial)}
-                        arcType={ArcType.NONE}
                     />
-                </Entity>
+                </>
             )}
 
             {/* GEO Gateway -> Internet — hidden in MESH/P2P */}
@@ -1176,6 +1257,20 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                             <PolylineGraphics positions={meshSatToBCallback} width={widthForEngineeringState(engineeringVisualState('destination', 'GEO'), commercialWidth('destination', 5, 'GEO'))} material={materialForEngineeringState(engineeringVisualState('destination', 'GEO'), commercialMeshReceiveMaterial)} depthFailMaterial={materialForEngineeringState(engineeringVisualState('destination', 'GEO'), commercialMeshReceiveMaterial)} clampToGround={false} arcType={ArcType.NONE} />
                         </Entity>
                     )}
+                    {geoUserLinkCallback && (
+                        <EngineeringSegmentAnnotation
+                            entityId={`${routeEntityIds.geoMeshASat}-annotation`}
+                            text={segmentAnnotation('access', 'GEO')}
+                            positions={geoUserLinkCallback}
+                        />
+                    )}
+                    {meshSatToBCallback && (
+                        <EngineeringSegmentAnnotation
+                            entityId={`${routeEntityIds.geoMeshSatB}-annotation`}
+                            text={segmentAnnotation('destination', 'GEO')}
+                            positions={meshSatToBCallback}
+                        />
+                    )}
                 </>
             )}
             {showGeoCommercialRoute && isMeshOrP2P && satelliteScope !== 'LEO' && activeMeshTab === 'reverse' && (
@@ -1189,6 +1284,20 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                         <Entity key={routeEntityIds.geoMeshSatA} id={routeEntityIds.geoMeshSatA} name="Satellite → A (receive)">
                             <PolylineGraphics positions={meshSatToACallback} width={widthForEngineeringState(engineeringVisualState('access', 'GEO'), commercialWidth('access', 5, 'GEO'))} material={materialForEngineeringState(engineeringVisualState('access', 'GEO'), commercialMeshReceiveMaterial)} depthFailMaterial={materialForEngineeringState(engineeringVisualState('access', 'GEO'), commercialMeshReceiveMaterial)} arcType={ArcType.NONE} />
                         </Entity>
+                    )}
+                    {meshSatToACallback && (
+                        <EngineeringSegmentAnnotation
+                            entityId={`${routeEntityIds.geoMeshSatA}-annotation`}
+                            text={segmentAnnotation('access', 'GEO')}
+                            positions={meshSatToACallback}
+                        />
+                    )}
+                    {meshBtoSatCallback && (
+                        <EngineeringSegmentAnnotation
+                            entityId={`${routeEntityIds.geoMeshBSat}-annotation`}
+                            text={segmentAnnotation('destination', 'GEO')}
+                            positions={meshBtoSatCallback}
+                        />
                     )}
                 </>
             )}
@@ -1346,6 +1455,26 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                         subdued={s2sIsSecondary}
                         show={!!leoS2SLinks}
                         visualState={engineeringVisualState('destination', 'LEO')}
+                    />
+
+                    {/* Focused-stage annotations (one per mapped segment) */}
+                    <EngineeringSegmentAnnotation
+                        entityId={`${routeEntityIds.leoS2SASat}-annotation`}
+                        text={segmentAnnotation('access', 'LEO')}
+                        positions={leoS2SLinks?.satACallback ?? EMPTY_POSITIONS_CALLBACK}
+                        show={!!leoS2SLinks}
+                    />
+                    <EngineeringSegmentAnnotation
+                        entityId={`${routeEntityIds.leoS2SSatASnpA}-annotation`}
+                        text={segmentAnnotation('backhaul', 'LEO')}
+                        positions={leoS2SLinks?.satAToSnpACallback ?? EMPTY_POSITIONS_CALLBACK}
+                        show={!!leoS2SLinks?.satAToSnpACallback}
+                    />
+                    <EngineeringSegmentAnnotation
+                        entityId={`${routeEntityIds.leoS2SSatBB}-annotation`}
+                        text={segmentAnnotation('destination', 'LEO')}
+                        positions={leoS2SLinks?.satBCallback ?? EMPTY_POSITIONS_CALLBACK}
+                        show={!!leoS2SLinks}
                     />
 
                     {/* ── Ground-node markers ─────────────────────────────────────── */}

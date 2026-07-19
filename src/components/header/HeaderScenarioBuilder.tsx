@@ -1,18 +1,17 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
-import { ArrowDown, ArrowLeftRight, ArrowUp, Check, CloudSun, MapPin, Radio, Satellite, Star, Timer, Undo2 } from 'lucide-react';
+import { ArrowDown, ArrowLeftRight, ArrowUp, CloudSun, MapPin, Radio, Satellite, Star, Timer } from 'lucide-react';
 import { useLocationSearch, type LocationResult } from '../../hooks/useLocationSearch';
-import { useEngineeringConfigureDraft } from '../../hooks/useEngineeringConfigureDraft';
 import type { ConnectivityEndpoint } from '../commercial/commercialTypes';
-import { getDefaultRFClassForUseCase, TerminalRFSettingsPanel, TERMINAL_PROFILES, WEATHER_PROFILES, type TerminalType, type WeatherType } from '../capacity/TerminalConfig';
+import { TerminalRFSettingsPanel, type TerminalType, type WeatherType } from '../capacity/TerminalConfig';
+import { getDefaultRFClassForUseCase, getRFClassOptionsForUseCase, TERMINAL_PROFILES, WEATHER_PROFILES, weatherIcon } from '../capacity/terminalAssumptions';
 import type { TerminalRFClassId, TerminalRFCustomParams, TerminalUseCase } from '../../utils/geoTerminalRFModel';
-import { GEO_TERMINAL_RF_CATALOGUE } from '../../utils/geoTerminalRFModel';
 import { getEnabledLeoTerminalCatalogEntries, getLeoTerminalProfile } from '../../config/leoTerminals';
 import type { CandidateCoverage } from '../../types/analysis';
 import type { EngineeringConfigureCandidates, EngineeringConfigureDraft, EngineeringConfigureSite } from '../../types/engineeringConfigure';
-import type { EngineeringTruthSet } from '../../utils/engineeringAnalysisViewModel';
+import type { EngineeringTruthSet, EngineeringVerdictTone } from '../../utils/engineeringAnalysisViewModel';
 import { getCandidateCoverageDisplayName, getCandidateCoverageKey } from '../../utils/geoCoverageSelection';
-import { getEngineeringGeoManualSelectionKeys, isEngineeringConfigureDraftComplete } from '../../utils/engineeringConfigureModel';
+import { getEngineeringGeoManualSelectionKeys } from '../../utils/engineeringConfigureModel';
 import { handleRadioGroupKeyDown } from '../capacity/shared/radioGroupKeyboard';
 import InlineLocationSearchInput from '../commercial/InlineLocationSearchInput';
 import InlineSearchResultsPopover from '../commercial/InlineSearchResultsPopover';
@@ -70,7 +69,9 @@ export interface HeaderEngineeringConfigure {
 }
 
 export type HeaderRouteTechnology = 'GEO' | 'LEO';
-export type HeaderRouteStatusTone = 'ok' | 'degraded' | 'blocked' | 'unknown' | 'marginal';
+// Engineering rows carry the shared verdict tone; 'marginal' is produced only by
+// the commercial status mapper.
+export type HeaderRouteStatusTone = EngineeringVerdictTone | 'marginal';
 
 export interface HeaderRouteStatusItem {
   technology: HeaderRouteTechnology;
@@ -130,13 +131,6 @@ const routeTechnologyAccentClass: Record<HeaderRouteTechnology, string> = {
   LEO: 'text-pink-500 dark:text-pink-300',
 };
 
-const weatherIcon = (key: WeatherType): string => {
-  if (key === 'clear') return '☀️';
-  if (key === 'light_rain') return '☁️';
-  if (key === 'heavy_rain') return '🌧️';
-  return '⛈️';
-};
-
 const TerminalTypeSelect = memo(function TerminalTypeSelect({
   terminalType,
   onTerminalTypeChange,
@@ -172,11 +166,10 @@ const GeoTerminalSelect = memo(function GeoTerminalSelect({
   onGeoRFClassChange: (id: TerminalRFClassId) => void;
   disabled?: boolean;
 }) {
-  const options = useMemo(() => (
-    GEO_TERMINAL_RF_CATALOGUE
-      .filter(spec => spec.typicalUseCases.includes(geoTerminalType as TerminalUseCase))
-      .sort((a, b) => a.band.localeCompare(b.band) || a.label.localeCompare(b.label))
-  ), [geoTerminalType]);
+  const options = useMemo(
+    () => getRFClassOptionsForUseCase(geoTerminalType as TerminalUseCase),
+    [geoTerminalType],
+  );
 
   const effectiveId = options.some(o => o.id === rfClassId) ? rfClassId : (options[0]?.id ?? rfClassId);
 
@@ -676,14 +669,6 @@ export function HeaderRouteStatusPanel({
   );
 }
 
-const HEADER_STAGE_LABELS = {
-  scenario: 'Scenario',
-  path: 'Path',
-  rf: 'RF',
-  service: 'Service',
-  delivery: 'Delivery',
-} as const;
-
 function HeaderCandidateSelect({
   label,
   candidates,
@@ -717,7 +702,7 @@ function HeaderCandidateSelect({
   );
 }
 
-function TransactionalHeaderScenarioBuilder({
+function EngineeringHeaderScenarioBuilder({
   siteA,
   siteB,
   analysisSource,
@@ -727,7 +712,12 @@ function TransactionalHeaderScenarioBuilder({
   engineeringConfigure: HeaderEngineeringConfigure;
 }) {
   const { baseline, truths, candidates, onApply } = engineeringConfigure;
-  const { draft, setDraft, changes, affectedStages, discard } = useEngineeringConfigureDraft(baseline);
+  // Instant apply: the header edits the published scenario directly — every
+  // change goes through onApply immediately and the recomputed baseline flows back.
+  const draft = baseline;
+  const apply = (mutate: (current: EngineeringConfigureDraft) => EngineeringConfigureDraft) => {
+    onApply(mutate(baseline));
+  };
   const configureRef = useRef<HTMLFieldSetElement>(null);
   const isGeo = draft.technology === 'GEO';
   const isSiteToSite = isGeo
@@ -735,7 +725,6 @@ function TransactionalHeaderScenarioBuilder({
     : draft.leoTopologyMode === 'SITE_TO_SITE';
   const activeTruth = truths[draft.technology];
   const canSwap = Boolean(draft.siteA.location && draft.siteB.location);
-  const canApply = changes.length > 0 && isEngineeringConfigureDraftComplete(draft);
 
   useEffect(() => {
     if (!engineeringConfigure.focusSignal) return;
@@ -746,7 +735,7 @@ function TransactionalHeaderScenarioBuilder({
     key: 'siteA' | 'siteB',
     update: Partial<EngineeringConfigureSite> | ((site: EngineeringConfigureSite) => EngineeringConfigureSite),
   ) => {
-    setDraft((current) => ({
+    apply((current) => ({
       ...current,
       [key]: typeof update === 'function' ? update(current[key]) : { ...current[key], ...update },
     }));
@@ -792,7 +781,7 @@ function TransactionalHeaderScenarioBuilder({
 
   const swapDraftEndpoints = () => {
     if (!canSwap) return;
-    setDraft((current) => ({
+    apply((current) => ({
       ...current,
       direction: current.direction === 'forward' ? 'reverse' : 'forward',
       geoUplinkKeyA: current.geoUplinkKeyB,
@@ -805,7 +794,7 @@ function TransactionalHeaderScenarioBuilder({
   };
 
   const setSelectionPolicy = (selectionPolicy: EngineeringConfigureDraft['selectionPolicy']) => {
-    setDraft((current) => ({
+    apply((current) => ({
       ...current,
       selectionPolicy,
       ...(selectionPolicy === 'auto' ? {
@@ -856,7 +845,7 @@ function TransactionalHeaderScenarioBuilder({
             onClick={swapDraftEndpoints}
             disabled={!canSwap}
             className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-200/90 bg-white/70 text-sky-600 transition-colors hover:border-sky-300 hover:bg-white disabled:cursor-not-allowed disabled:opacity-30 dark:border-slate-700/80 dark:bg-slate-800/45 dark:text-sky-200 dark:hover:border-sky-500/50 dark:hover:bg-slate-800"
-            aria-label="Swap draft origin and destination"
+            aria-label="Swap origin and destination"
           >
             <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden="true" />
           </button>
@@ -865,24 +854,24 @@ function TransactionalHeaderScenarioBuilder({
         <SiteColumn eyebrow="Destination" config={buildDraftSiteConfig('siteB', siteB)} analysisSource={analysisSource} role="destination" activeTechnology={draft.technology} />
       </div>
 
-      <div className="grid min-w-0 grid-cols-[auto_auto_minmax(7rem,0.8fr)_minmax(8rem,1fr)_auto] items-center gap-2 rounded-lg border border-slate-200/65 bg-white/55 px-2 py-1 dark:border-white/[0.07] dark:bg-slate-950/24">
+      <div className="grid min-w-0 grid-cols-[auto_auto_minmax(7rem,0.8fr)_minmax(8rem,1fr)] items-center gap-2 rounded-lg border border-slate-200/65 bg-white/55 px-2 py-1 dark:border-white/[0.07] dark:bg-slate-950/24">
         <div className="flex items-center gap-0.5 rounded-md bg-slate-200/45 p-0.5 dark:bg-white/[0.055]">
           {(['GEO', 'LEO'] as const).map((technology) => (
-            <button key={technology} type="button" onClick={() => setDraft((current) => ({ ...current, technology }))} aria-pressed={draft.technology === technology} className={`h-6 rounded px-2 text-[9px] font-bold transition-colors ${draft.technology === technology ? 'bg-white text-sky-700 shadow-sm dark:bg-sky-400/15 dark:text-sky-200 dark:shadow-none' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'}`}>{technology}</button>
+            <button key={technology} type="button" onClick={() => apply((current) => ({ ...current, technology }))} aria-pressed={draft.technology === technology} className={`h-6 rounded px-2 text-[9px] font-bold transition-colors ${draft.technology === technology ? 'bg-white text-sky-700 shadow-sm dark:bg-sky-400/15 dark:text-sky-200 dark:shadow-none' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'}`}>{technology}</button>
           ))}
         </div>
 
         <label className="grid grid-cols-[auto_minmax(7rem,1fr)] items-center gap-1">
           <span className="text-[8px] font-black uppercase tracking-[0.1em] text-slate-500">Path</span>
           {isGeo ? (
-            <select value={draft.geoLinkMode} onChange={(event) => setDraft((current) => ({ ...current, geoLinkMode: event.target.value as EngineeringConfigureDraft['geoLinkMode'] }))} className={darkSelectClass} style={darkSelectStyle}>
+            <select value={draft.geoLinkMode} onChange={(event) => apply((current) => ({ ...current, geoLinkMode: event.target.value as EngineeringConfigureDraft['geoLinkMode'] }))} className={darkSelectClass} style={darkSelectStyle}>
               <option value="STAR_FORWARD">Star Forward</option>
               <option value="STAR_RETURN">Star Return</option>
               <option value="MESH">Mesh</option>
               <option value="POINT_TO_POINT">Point-to-Point</option>
             </select>
           ) : (
-            <select value={draft.leoTopologyMode} onChange={(event) => setDraft((current) => ({ ...current, leoTopologyMode: event.target.value as EngineeringConfigureDraft['leoTopologyMode'] }))} className={darkSelectClass} style={darkSelectStyle}>
+            <select value={draft.leoTopologyMode} onChange={(event) => apply((current) => ({ ...current, leoTopologyMode: event.target.value as EngineeringConfigureDraft['leoTopologyMode'] }))} className={darkSelectClass} style={darkSelectStyle}>
               <option value="SINGLE_SITE">Single Site</option>
               <option value="SITE_TO_SITE">Site-to-Site</option>
             </select>
@@ -891,7 +880,7 @@ function TransactionalHeaderScenarioBuilder({
 
         <div className="flex min-w-0 items-center gap-1">
           {isSiteToSite && (
-            <select value={draft.direction} onChange={(event) => setDraft((current) => ({ ...current, direction: event.target.value as EngineeringConfigureDraft['direction'] }))} className={darkSelectClass} style={darkSelectStyle} aria-label="Active direction">
+            <select value={draft.direction} onChange={(event) => apply((current) => ({ ...current, direction: event.target.value as EngineeringConfigureDraft['direction'] }))} className={darkSelectClass} style={darkSelectStyle} aria-label="Active direction">
               <option value="forward">Site A → Site B</option>
               <option value="reverse">Site B → Site A</option>
             </select>
@@ -917,19 +906,7 @@ function TransactionalHeaderScenarioBuilder({
 
         <div className="min-w-0">
           <div className="truncate text-[9px] font-semibold text-slate-600 dark:text-slate-300" title={activeTruth?.headline}>Review · {activeTruth?.headline ?? 'No published result'}</div>
-          <div
-            className="mt-0.5 truncate text-[8px] text-slate-500 dark:text-slate-400"
-            title={changes.length > 0 ? 'Impact preview only. The current result remains visible until changes are applied.' : undefined}
-          >
-            {changes.length === 0
-              ? 'No pending changes'
-              : `Impact · ${changes.length} ${changes.length === 1 ? 'change' : 'changes'} · ${affectedStages.length > 0 ? affectedStages.map((stage) => HEADER_STAGE_LABELS[stage]).join(' → ') : 'View focus only'}`}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1.5">
-          <button type="button" onClick={discard} disabled={changes.length === 0} className="inline-flex h-7 items-center gap-1 rounded-md border border-slate-200/80 bg-white/55 px-2 text-[9px] font-semibold text-slate-600 transition-colors hover:bg-white disabled:border-transparent disabled:bg-transparent disabled:text-slate-400 disabled:opacity-55 dark:border-slate-700/80 dark:bg-slate-800/35 dark:text-slate-300 dark:hover:bg-slate-800 dark:disabled:border-transparent dark:disabled:bg-transparent dark:disabled:text-slate-600"><Undo2 className="h-3 w-3" />Discard</button>
-          <button type="button" onClick={() => onApply(draft)} disabled={!canApply} aria-label="Apply engineering changes" className="inline-flex h-7 items-center gap-1 whitespace-nowrap rounded-md border border-slate-900 bg-slate-900 px-2.5 text-[9px] font-bold text-white transition-colors hover:bg-slate-800 disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-70 dark:border-white dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200 dark:disabled:border-slate-700 dark:disabled:bg-slate-800/35 dark:disabled:text-slate-600"><Check className="h-3 w-3" /><span>Apply</span></button>
+          <div className="mt-0.5 truncate text-[8px] text-slate-500 dark:text-slate-400">Edits apply immediately</div>
         </div>
       </div>
 
@@ -942,10 +919,10 @@ function TransactionalHeaderScenarioBuilder({
               candidates={candidates[selector.site]}
               uplink={selector.uplink}
               selectedKey={draft[selector.key]}
-              onChange={(key) => setDraft((current) => ({ ...current, [selector.key]: key }))}
+              onChange={(key) => apply((current) => ({ ...current, [selector.key]: key }))}
             />
           ))}
-          <span className="sr-only">The current result remains visible until changes are applied.</span>
+          <span className="sr-only">Coverage selections apply immediately.</span>
         </div>
       )}
     </fieldset>
@@ -1000,7 +977,7 @@ function HeaderScenarioBuilder({
   }, [canSwap, onSwap]);
 
   if (engineeringConfigure) return (
-    <TransactionalHeaderScenarioBuilder
+    <EngineeringHeaderScenarioBuilder
       siteA={siteA}
       siteB={siteB}
       analysisSource={analysisSource}

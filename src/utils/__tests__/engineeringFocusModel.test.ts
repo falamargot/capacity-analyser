@@ -6,6 +6,7 @@ import {
   createEngineeringFocus,
   EMPTY_ENGINEERING_FOCUS,
   getEngineeringPathVisualState,
+  getEngineeringSegmentAnnotation,
   parseEngineeringRouteEntityFocus,
   spatialTargetForCauseStage,
 } from '../engineeringFocusModel';
@@ -82,5 +83,25 @@ describe('engineering analytical focus mapping', () => {
     expect(getEngineeringPathVisualState({ truth: constrained, segment: 'destination', focus: EMPTY_ENGINEERING_FOCUS })).toBe('limiting');
     expect(getEngineeringPathVisualState({ truth: blocked, segment: 'access', focus: EMPTY_ENGINEERING_FOCUS })).toBe('diagnostic');
     expect(getEngineeringPathVisualState({ truth: constrained, segment: 'access', focus: EMPTY_ENGINEERING_FOCUS, candidate: true })).toBe('candidate');
+  });
+
+  it('annotates exactly the focused segment with the published stage verdict', () => {
+    const truth = makeTruth({
+      causeChain: makeTruth().causeChain.map((stage) => (
+        stage.id === 'service' ? { ...stage, detail: 'Traffic gateway Rambouillet serves this beam' } : stage
+      )),
+    });
+
+    // No focus, wrong technology, or a different stage → no annotation.
+    expect(getEngineeringSegmentAnnotation(truth, 'backhaul', EMPTY_ENGINEERING_FOCUS)).toBeNull();
+    expect(getEngineeringSegmentAnnotation(truth, 'backhaul', createEngineeringFocus('locked', 'LEO', 'service', 'lens'))).toBeNull();
+    expect(getEngineeringSegmentAnnotation(truth, 'access', createEngineeringFocus('locked', 'GEO', 'service', 'lens'))).toBeNull();
+    expect(getEngineeringSegmentAnnotation(null, 'backhaul', createEngineeringFocus('locked', 'GEO', 'service', 'lens'))).toBeNull();
+
+    // Focus on the mapped stage → label plus detail (falls back to summary).
+    expect(getEngineeringSegmentAnnotation(truth, 'backhaul', createEngineeringFocus('locked', 'GEO', 'service', 'lens')))
+      .toBe('Service gates · Traffic gateway Rambouillet serves this beam');
+    expect(getEngineeringSegmentAnnotation(truth, 'access', createEngineeringFocus('preview', 'GEO', 'rf', 'globe')))
+      .toBe('RF · Closes');
   });
 });

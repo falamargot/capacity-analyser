@@ -150,7 +150,7 @@ export function installMemoryMonitor(): void {
         // stutter. Reserve the full Cesium snapshot for explicit window.__memStats() calls
         // and the HUD (both user-triggered, not automatic).
         const m = (performance as unknown as { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }).memory;
-        // eslint-disable-next-line no-console
+         
         console.log('[mem]', {
             heap: m
                 ? `${Math.round(m.usedJSHeapSize / 1048576)}/${Math.round(m.totalJSHeapSize / 1048576)} MB (lim ${Math.round(m.jsHeapSizeLimit / 1048576)})`

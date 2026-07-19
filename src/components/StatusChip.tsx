@@ -2,7 +2,7 @@ import { memo } from 'react';
 
 export type StatusLevel = 'ok' | 'marginal' | 'degraded' | 'blocked' | 'info';
 
-export const STATUS_CONFIG: Record<StatusLevel, {
+const STATUS_CONFIG: Record<StatusLevel, {
   dot: string;
   text: string;
   bg: string;

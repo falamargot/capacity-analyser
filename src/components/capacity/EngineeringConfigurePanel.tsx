@@ -18,7 +18,8 @@ import { useLocationSearch, type LocationResult } from '../../hooks/useLocationS
 import InlineLocationSearchInput from '../commercial/InlineLocationSearchInput';
 import InlineSearchResultsPopover from '../commercial/InlineSearchResultsPopover';
 import LinkModeSelector from './LinkModeSelector';
-import TerminalConfig, { getDefaultRFClassForUseCase, type TerminalType } from './TerminalConfig';
+import TerminalConfig, { type TerminalType } from './TerminalConfig';
+import { getDefaultRFClassForUseCase } from './terminalAssumptions';
 import { handleRadioGroupKeyDown } from './shared/radioGroupKeyboard';
 
 function truthMetricSummary(truth: EngineeringTruth | undefined): string {

@@ -191,6 +191,9 @@ const FlightCoverageRibbon = memo(function FlightCoverageRibbon({
     if (leoSats.length === 0) return [];
 
     return buildSegments(aircraft, leoSats);
+    // Keyed on the aircraft fields that change the ribbon; depending on the
+    // object identity would rebuild segments on every live-traffic tick.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     show,
     aircraft?.icao24,

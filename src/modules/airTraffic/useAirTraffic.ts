@@ -56,6 +56,9 @@ export function useAirTraffic(
       ...DEFAULT_CONFIG,
       ...config
     }
+    // Keyed on the config fields that matter; callers pass fresh object
+    // literals every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   ), [
     config.enabled,
     config.updateInterval,

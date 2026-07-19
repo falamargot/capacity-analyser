@@ -19,7 +19,6 @@ interface CoverageSwitcherVerticalProps {
   onSelect: (id: string) => void;
   isPhone?: boolean;
   isFullscreen?: boolean;
-  hasSatelliteIndicator?: boolean;
 }
 
 const formatThroughput = (throughput: number) => {
@@ -51,7 +50,6 @@ const CoverageSwitcherVertical = memo<CoverageSwitcherVerticalProps>(({
   onSelect,
   isPhone = false,
   isFullscreen = false,
-  hasSatelliteIndicator = false,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -133,15 +131,9 @@ const CoverageSwitcherVertical = memo<CoverageSwitcherVerticalProps>(({
     return null;
   }
 
-  const positionClassName = hasSatelliteIndicator
-    ? (isPhone
-        ? (isFullscreen
-            ? 'left-0.5 top-[calc(env(safe-area-inset-top)+3.2rem)]'
-            : 'left-0.5 top-[calc(env(safe-area-inset-top)+8.1rem)]')
-        : 'left-0.5 top-24')
-    : isPhone
-      ? (isFullscreen ? 'left-0.5 top-[calc(env(safe-area-inset-top)+0.75rem)]' : 'left-0.5 top-[calc(env(safe-area-inset-top)+5.75rem)]')
-      : 'left-0.5 top-12';
+  const positionClassName = isPhone
+    ? (isFullscreen ? 'left-0.5 top-[calc(env(safe-area-inset-top)+0.75rem)]' : 'left-0.5 top-[calc(env(safe-area-inset-top)+5.75rem)]')
+    : 'left-0.5 top-12';
 
   return (
     <div className={`pointer-events-none absolute ${isExpanded ? 'z-[1220]' : 'z-20'} flex max-w-[calc(100vw-0.25rem)] justify-start ${positionClassName}`}>

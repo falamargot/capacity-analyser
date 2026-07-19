@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useTransition } from 'react';
+import { useCallback, useState, useTransition } from 'react';
 import type { SatelliteScope } from '../components/SatelliteScopeFilter';
 
 export type UiMode = 'engineering' | 'commercial';
@@ -13,22 +13,23 @@ export const useUiModeState = () => {
   // rAF loop is not blocked by the expensive computation during the switch frame.
   const [isUiModeTransitionPending, startUiModeTransition] = useTransition();
 
-  useEffect(() => {
-    if (satelliteScope === 'LEO' || satelliteScope === 'GEO') {
-      setActiveConnectivityTab(satelliteScope);
-    }
-  }, [satelliteScope]);
-
   const handleUiModeChange = useCallback((mode: UiMode) => {
     startUiModeTransition(() => setUiMode(mode));
   }, []);
 
+  // Scope and technology focus are coupled: scope is either ALL or equal to the
+  // active technology. Both handlers maintain the invariant synchronously so no
+  // render ever observes scope and focus disagreeing.
   const handleTechnologyChange = useCallback((technology: ActiveTechnology) => {
     setActiveConnectivityTab(technology);
+    setSatelliteScope((current) => (current === 'ALL' ? current : technology));
   }, []);
 
   const handleTechnologyScopeChange = useCallback((scope: SatelliteScope) => {
     setSatelliteScope(scope);
+    if (scope === 'LEO' || scope === 'GEO') {
+      setActiveConnectivityTab(scope);
+    }
   }, []);
 
   return {

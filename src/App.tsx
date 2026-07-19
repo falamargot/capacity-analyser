@@ -148,7 +148,6 @@ import { engineeringVerdictLabel, engineeringVerdictTone } from './utils/enginee
 import type { EngineeringConfigureDraft } from './types/engineeringConfigure';
 import {
   getEngineeringConfigureChanges,
-  getResolvedEngineeringGeoCoverageKeys,
   sameEngineeringConfigureLocation,
 } from './utils/engineeringConfigureModel';
 import EngineeringConfigurePanel from './components/capacity/EngineeringConfigurePanel';
@@ -548,11 +547,11 @@ const App: React.FC = () => {
   const handleLeoTerminalTypeChange = useCallback((type: TerminalType) => {
     setLeoTerminalType(type);
     setLeoTerminalModelId(getLeoTerminalProfile(type).id);
-  }, []);
+  }, [setLeoTerminalModelId, setLeoTerminalType]);
   const handleLeoTerminalTypeBChange = useCallback((type: TerminalType) => {
     setLeoTerminalTypeB(type);
     setLeoTerminalModelIdB(getLeoTerminalProfile(type).id);
-  }, []);
+  }, [setLeoTerminalModelIdB, setLeoTerminalTypeB]);
   const handleGeoTerminalTypeChange = useCallback((type: TerminalType) => {
     setGeoTerminalType(type);
     if (!isRFClassCompatibleWithUseCase(geoRFClassIdA, type)) {
@@ -560,7 +559,7 @@ const App: React.FC = () => {
       setGeoRFClassIdA(USE_CASE_DEFAULT_RF_CLASS[type]?.[band] ?? USE_CASE_DEFAULT_RF_CLASS[type]?.Ku ?? 'ku_standard_vsat');
       setGeoRFCustomParamsA(null);
     }
-  }, [geoRFClassIdA]);
+  }, [geoRFClassIdA, setGeoRFClassIdA, setGeoRFCustomParamsA, setGeoTerminalType]);
   const handleGeoTerminalTypeBChange = useCallback((type: TerminalType) => {
     setGeoTerminalTypeB(type);
     if (!isRFClassCompatibleWithUseCase(geoRFClassIdB, type)) {
@@ -568,7 +567,7 @@ const App: React.FC = () => {
       setGeoRFClassIdB(USE_CASE_DEFAULT_RF_CLASS[type]?.[band] ?? USE_CASE_DEFAULT_RF_CLASS[type]?.Ku ?? 'ku_standard_vsat');
       setGeoRFCustomParamsB(null);
     }
-  }, [geoRFClassIdB]);
+  }, [geoRFClassIdB, setGeoRFClassIdB, setGeoRFCustomParamsB, setGeoTerminalTypeB]);
   const engineeringOriginTerminalCapabilities = useMemo(() => buildEngineeringEndpointTerminalCapabilities({
     geoRFClassId: geoRFClassIdA,
     geoTerminalType,
@@ -633,7 +632,7 @@ const App: React.FC = () => {
       return;
     }
     setActiveMeshTab('forward');
-  }, [linkMode]);
+  }, [linkMode, setActiveMeshTab]);
 
   const [autoSelectedLEOId, setAutoSelectedLEOId] = useState<string | null>(null);
   // L-O1: the resolver's LeoServingAssignment is the single source of the
@@ -709,18 +708,18 @@ const App: React.FC = () => {
       dispatchConnectivityScenario(connectivityScenarioActions.setTrafficIntent(undefined));
     }
     setLinkMode(mode);
-  }, [siteB]);
+  }, [setLinkMode, siteB]);
 
   const handleLeoTopologyModeChange = useCallback((mode: 'SINGLE_SITE' | 'SITE_TO_SITE') => {
     dispatchConnectivityScenario(connectivityScenarioActions.setServicePattern(mode === 'SITE_TO_SITE' ? 'site-to-site' : 'single-endpoint'));
     dispatchConnectivityScenario(connectivityScenarioActions.setTrafficIntent(mode === 'SITE_TO_SITE' ? 'bidirectional' : undefined));
     setLeoTopologyMode(mode);
-  }, []);
+  }, [setLeoTopologyMode]);
 
   const handleActiveMeshTabChange = useCallback((tab: 'forward' | 'reverse') => {
     dispatchConnectivityScenario(connectivityScenarioActions.setTrafficIntent(tab === 'reverse' ? 'b-to-a' : 'a-to-b'));
     setActiveMeshTab(tab);
-  }, []);
+  }, [setActiveMeshTab]);
 
   useEffect(() => {
     if (LINK_MODE_REQUIRES_POINT_B.has(linkMode) || siteB) {
@@ -986,7 +985,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (toWeatherCondition(weatherType) === weatherCondition) return;
     setWeatherType(weatherTypeFromCondition(weatherCondition));
-  }, [weatherCondition, weatherType]);
+  }, [setWeatherType, weatherCondition, weatherType]);
 
   useEffect(() => {
     if (activeAnalysisSource === 'aircraft') {
@@ -1016,7 +1015,12 @@ const App: React.FC = () => {
     handleLeoTerminalTypeChange,
     leoTerminalType,
     previousAnalysisSource,
+    setAutoWeatherEnabled,
+    setGeoRFClassIdA,
+    setGeoRFCustomParamsA,
+    setGeoTerminalType,
     setWeatherCondition,
+    setWeatherType,
     weatherType,
   ]);
 
@@ -1059,13 +1063,13 @@ const App: React.FC = () => {
       cancelled = true;
       if (interval) clearInterval(interval);
     };
-  }, [activeAnalysisPoint, activeAnalysisSource, autoWeatherEnabled, setWeatherCondition]);
+  }, [activeAnalysisPoint, activeAnalysisSource, autoWeatherEnabled, setWeatherCondition, setWeatherType]);
 
   const handleWeatherTypeChange = useCallback((nextType: WeatherType) => {
     setWeatherType(nextType);
     setWeatherCondition(toWeatherCondition(nextType));
     setAutoWeatherEnabled(false);
-  }, [setWeatherCondition]);
+  }, [setAutoWeatherEnabled, setWeatherCondition, setWeatherType]);
 
   // Auto-weather detection for Site B — same logic as Site A but independent state.
   // weatherTypeB is passed to CapacityDetails and used for Site B RF chain (GEO and LEO S2S).
@@ -1096,12 +1100,12 @@ const App: React.FC = () => {
     fetchWeather();
 
     return () => { cancelled = true; };
-  }, [siteB, autoWeatherEnabledB]);
+  }, [siteB, autoWeatherEnabledB, setWeatherTypeB]);
 
   const handleWeatherTypeBChange = useCallback((nextType: WeatherType) => {
     setWeatherTypeB(nextType);
     setAutoWeatherEnabledB(false);
-  }, []);
+  }, [setAutoWeatherEnabledB, setWeatherTypeB]);
 
   // Helper functions (isPointInGEOCoverage, isPointInPolygon) are now centralized in utils/geoUtils.ts
   // resolveAutoSelectedSatellites is centralized in utils/satelliteResolution.ts
@@ -2210,6 +2214,8 @@ const App: React.FC = () => {
     selectedUplinkCoverageB,
     selectedDownlinkCoverageB,
     candidateCoveragesB,
+    uplinkAtBForGlobe,
+    downlinkAtBForGlobe,
     linkMode,
     activeMeshTab,
     pointB,
@@ -2912,7 +2918,7 @@ const App: React.FC = () => {
     }
     setLeoTopologyMode(m => m === 'SITE_TO_SITE' ? 'SINGLE_SITE' : m);
     handleLinkModeChange(LINK_MODE_REQUIRES_POINT_B.has(linkMode) ? 'STAR_FORWARD' : linkMode);
-  }, [clearSelection, handleLinkModeChange, linkMode, selectTarget]);
+  }, [clearSelection, handleLinkModeChange, linkMode, selectTarget, setLeoTopologyMode]);
 
   // Per-site clear buttons in the S2S hero card.
   // Clearing Site A removes both sites (no safe "promote B to A" convention exists).
@@ -2933,7 +2939,7 @@ const App: React.FC = () => {
     setIsSiteBArmed(false);
     setLeoTopologyMode(m => m === 'SITE_TO_SITE' ? 'SINGLE_SITE' : m);
     handleLinkModeChange(LINK_MODE_REQUIRES_POINT_B.has(linkMode) ? 'STAR_FORWARD' : linkMode);
-  }, [handleLinkModeChange, linkMode]);
+  }, [handleLinkModeChange, linkMode, setLeoTopologyMode]);
 
   // Handle aircraft selection (aircraft-based analyzis)
   const handleAircraftSelect = useCallback((aircraft: Aircraft | null, fromComboBox: boolean = false) => {
@@ -3195,6 +3201,23 @@ const App: React.FC = () => {
     selectedDownlinkKeyB,
     selectedUplinkKey,
     selectedUplinkKeyB,
+    setActiveMeshTab,
+    setAutoWeatherEnabled,
+    setAutoWeatherEnabledB,
+    setGeoRFClassIdA,
+    setGeoRFClassIdB,
+    setGeoRFCustomParamsA,
+    setGeoRFCustomParamsB,
+    setGeoTerminalType,
+    setGeoTerminalTypeB,
+    setLeoTerminalModelId,
+    setLeoTerminalModelIdB,
+    setLeoTerminalType,
+    setLeoTerminalTypeB,
+    setLeoTopologyMode,
+    setLinkMode,
+    setWeatherType,
+    setWeatherTypeB,
     siteB,
     weatherType,
     weatherTypeB,
@@ -3674,8 +3697,6 @@ const App: React.FC = () => {
     selectedCoverage,
     selectedUplinkCoverage: globeUplinkCoverage,
     selectedDownlinkCoverage: globeDownlinkCoverage,
-    activeScenarioUplinkCoverage: globeUplinkCoverage ?? selectedUplinkCoverage,
-    activeScenarioDownlinkCoverage: globeDownlinkCoverage ?? selectedDownlinkCoverage,
     selectedSNP,
     selectedGateway,
     inspectedSNP,
@@ -3707,10 +3728,8 @@ const App: React.FC = () => {
     selectedMoon,
     selectedSNP,
     selectedSatellite,
-    selectedDownlinkCoverage,
     selectedSelection,
     selectedPosition,
-    selectedUplinkCoverage,
     endpointSelectionMotion,
     visibleManualGeoCoverageKeys,
   ]);
@@ -4307,12 +4326,8 @@ const App: React.FC = () => {
 
   const activeCommercialTechnology = activeConnectivityTab;
 
-  const handleCommercialTechnologySelect = useCallback((technology: 'GEO' | 'LEO') => {
-    handleTechnologyChange(technology);
-    if (satelliteScope !== 'ALL' && satelliteScope !== technology) {
-      handleTechnologyScopeChange(technology);
-    }
-  }, [handleTechnologyChange, handleTechnologyScopeChange, satelliteScope]);
+  // handleTechnologyChange already pulls a narrowed scope along with the focus.
+  const handleCommercialTechnologySelect = handleTechnologyChange;
 
   // Memoized so buildCommercialScenarioViewModel only runs when its inputs actually change,
   // not on every satellite-tick render that leaves these values untouched.
@@ -4596,15 +4611,7 @@ const App: React.FC = () => {
     siteB,
   ]);
 
-  const resolvedEngineeringGeoCoverageKeys = useMemo(() => getResolvedEngineeringGeoCoverageKeys({
-    siteA: { uplink: selectedUplinkCoverage, downlink: selectedDownlinkCoverage },
-    siteB: { uplink: uplinkAtBForGlobe, downlink: downlinkAtBForGlobe },
-  }), [
-    downlinkAtBForGlobe,
-    selectedDownlinkCoverage,
-    selectedUplinkCoverage,
-    uplinkAtBForGlobe,
-  ]);
+  const resolvedEngineeringGeoCoverageKeys = engineeringAnalysis.resolvedGeoCoverageKeys;
 
   const engineeringConfigureBaseline = useMemo<EngineeringConfigureDraft>(() => ({
     technology: satelliteScope === 'ALL' ? activeConnectivityTab : satelliteScope,
@@ -4693,7 +4700,6 @@ const App: React.FC = () => {
 
     if (draft.technology !== engineeringConfigureBaseline.technology) {
       handleTechnologyChange(draft.technology);
-      if (satelliteScope !== 'ALL') handleTechnologyScopeChange(draft.technology);
     }
     if (draft.technology === 'GEO') {
       if (draft.geoLinkMode !== engineeringConfigureBaseline.geoLinkMode || !sameEngineeringConfigureLocation(engineeringConfigureBaseline.siteB.location, draft.siteB.location)) {
@@ -4771,11 +4777,9 @@ const App: React.FC = () => {
     handleSelectUplinkCoverage,
     handleSelectUplinkCoverageB,
     handleTechnologyChange,
-    handleTechnologyScopeChange,
     handleWeatherTypeBChange,
     handleWeatherTypeChange,
     patchScenario,
-    satelliteScope,
   ]);
 
   const mapCommercialState = useMemo<CommercialStateProps>(() => ({
@@ -4869,7 +4873,7 @@ const App: React.FC = () => {
         flyToEngineeringCameraSnapshot(viewer, cameraSnapshot, MODE_SWITCH_CAMERA_ANIMATION_SECONDS);
       });
     }
-  }, [handleLeoTopologyModeChange, handleLinkModeChange, handleTechnologyChange, handleTechnologyScopeChange, linkMode]);
+  }, [handleLeoTopologyModeChange, handleLinkModeChange, handleTechnologyChange, handleTechnologyScopeChange, linkMode, setActiveMeshTab]);
 
   const handleModeSwitch = useCallback((mode: 'engineering' | 'commercial') => {
     if (mode === uiMode) return;
@@ -5018,14 +5022,7 @@ const App: React.FC = () => {
     },
   };
 
-  const engineeringConfigureCandidates = {
-    siteA: eligibleCandidateCoverages,
-    siteB: candidateCoveragesB,
-    resolved: {
-      siteA: { uplink: selectedUplinkCoverage, downlink: selectedDownlinkCoverage },
-      siteB: { uplink: uplinkAtBForGlobe, downlink: downlinkAtBForGlobe },
-    },
-  };
+  const engineeringConfigureCandidates = engineeringAnalysis.engineeringConfigureCandidates;
   const engineeringHeaderConfigure = {
     baseline: engineeringConfigureBaseline,
     truths: engineeringTruths,

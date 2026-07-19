@@ -98,6 +98,8 @@ const LEO_NARRATIVE_ALT_KM  = 2_000;
 
 const PRIMARY_LABEL_OFFSET   = new Cartesian2(0, -38);
 const SECONDARY_LABEL_OFFSET = new Cartesian2(0, -20);
+const SECONDARY_LABEL_BASE_COLOR = Color.fromCssColorString('#64748b');
+const LABEL_OUTLINE_BASE_COLOR   = Color.fromCssColorString('#0f172a');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -271,8 +273,6 @@ const SkyBridgeEntity = React.memo<SkyBridgeEntityProps>(({
 
   const primaryLabelHex   = node.status === 'blocked' ? '#ef4444' : (isGeo ? '#93c5fd' : '#f9a8d4');
   const primaryBase       = useMemo(() => Color.fromCssColorString(primaryLabelHex), [primaryLabelHex]);
-  const secondaryBase     = Color.fromCssColorString('#64748b');
-  const outlineBase       = Color.fromCssColorString('#0f172a');
 
   const primaryFillCallback = useMemo(() => new CallbackProperty(() => {
     const alpha = getSegmentAlpha(animRef.current, SAT_IDX);
@@ -281,12 +281,12 @@ const SkyBridgeEntity = React.memo<SkyBridgeEntityProps>(({
 
   const secondaryFillCallback = useMemo(() => new CallbackProperty(() => {
     const alpha = getSegmentAlpha(animRef.current, SAT_IDX);
-    return secondaryBase.withAlpha(alpha * 0.75);
+    return SECONDARY_LABEL_BASE_COLOR.withAlpha(alpha * 0.75);
   }, false), [animRef, SAT_IDX]);
 
   const labelOutlineCallback = useMemo(() => new CallbackProperty(() => {
     const alpha = getSegmentAlpha(animRef.current, SAT_IDX);
-    return outlineBase.withAlpha(alpha * 0.9);
+    return LABEL_OUTLINE_BASE_COLOR.withAlpha(alpha * 0.9);
   }, false), [animRef, SAT_IDX]);
 
   const entityName = isGeo ? `GEO Relay · ${node.label}` : `LEO Relay · ${node.label}`;

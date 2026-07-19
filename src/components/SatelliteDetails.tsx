@@ -354,12 +354,11 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
     satelliteId: string | null;
     keys: string[];
   }>({ satelliteId: null, keys: [] });
-  const effectiveExpandedGeoCoverageKeys = expandedGeoCoverageState.satelliteId === selectedSatellite.id
-    ? expandedGeoCoverageState.keys
-    : [];
   const expandedGeoCoverageKeySet = useMemo(
-    () => new Set(effectiveExpandedGeoCoverageKeys),
-    [effectiveExpandedGeoCoverageKeys]
+    () => new Set(expandedGeoCoverageState.satelliteId === selectedSatellite.id
+      ? expandedGeoCoverageState.keys
+      : []),
+    [expandedGeoCoverageState, selectedSatellite.id]
   );
 
   const updateVisibleGeoCoverageKeys = (keys: string[]) => {

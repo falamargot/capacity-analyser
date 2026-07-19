@@ -14,11 +14,13 @@ import { formatMbps, formatMs, commServiceStatusLabel, serviceStatusChipClassNam
 import {
   CommercialKpiTile,
   SignalQualityBar,
+} from './CommercialVisuals';
+import {
   downloadSpeedTier,
   qualityFromText,
   responseTimeTier,
   uploadSpeedTier,
-} from './CommercialVisuals';
+} from './commercialTiers';
 
 // ── Airline → aircraft-type lookup ──────────────────────────────────────────
 

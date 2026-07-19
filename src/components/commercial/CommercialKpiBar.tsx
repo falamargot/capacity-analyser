@@ -10,13 +10,15 @@ import {
 import {
   CommercialKpiTile,
   ForecastConfidenceGauge,
+} from './CommercialVisuals';
+import {
+  commercialInterpretation,
   confidenceLevelFromPrediction,
   downloadSpeedTier,
-  uploadSpeedTier,
-  responseTimeTier,
   reliabilityTier,
-  commercialInterpretation,
-} from './CommercialVisuals';
+  responseTimeTier,
+  uploadSpeedTier,
+} from './commercialTiers';
 
 // ─── Plain-English reason helpers ────────────────────────────────────────────
 

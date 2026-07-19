@@ -144,3 +144,25 @@ export const getEngineeringPathVisualState = ({
     truth.state,
   );
 };
+
+/**
+ * Focus-driven globe annotation: when the analytical focus selects exactly the
+ * cause stage a route segment maps to, surface that stage's published verdict
+ * as a short label at the segment. Pure projection of EngineeringTruth — the
+ * globe never re-derives an engineering outcome.
+ */
+export const getEngineeringSegmentAnnotation = (
+  truth: EngineeringTruth | null | undefined,
+  segment: EngineeringRouteSegment,
+  focus: EngineeringAnalyticalFocus,
+): string | null => {
+  if (!truth) return null;
+  if (focus.kind !== 'preview' && focus.kind !== 'locked') return null;
+  if (focus.technology !== truth.technology) return null;
+  const stageId = causeStageForRouteSegment(segment);
+  if (focus.stageId !== stageId) return null;
+  const stage = truth.causeChain.find((item) => item.id === stageId);
+  if (!stage) return null;
+  const body = stage.detail ?? stage.summary;
+  return body ? `${stage.label} · ${body}` : stage.label;
+};
