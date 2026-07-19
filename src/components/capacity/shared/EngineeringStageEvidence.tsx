@@ -61,12 +61,12 @@ export const EngineeringRfDecisionEvidence = ({ viewModel }: { viewModel: Engine
     <section className="engineering-rf-decision" aria-label="Link budget decision evidence">
       <div className="mb-3 flex items-start justify-between gap-4">
         <div>
-          <h4 className="text-[12px] font-bold text-slate-100">Decisive RF evidence</h4>
-          <p className="mt-1 text-[10px] leading-4 text-slate-400">
+          <h4 className="text-[12px] font-bold text-slate-900 dark:text-slate-100">Decisive RF evidence</h4>
+          <p className="mt-1 text-[10px] leading-4 text-slate-600 dark:text-slate-400">
             {rfStage?.detail ?? viewModel.why.explanation}
           </p>
         </div>
-        <span className="shrink-0 text-[9px] font-bold uppercase tracking-[0.12em] text-slate-500">Before detail</span>
+        <span className="shrink-0 text-[9px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Before detail</span>
       </div>
       <dl className="engineering-rf-decision__metrics">
         {facts.map((fact, index) => (
@@ -90,8 +90,8 @@ export const EngineeringDeliveryEvidence = ({
   <div className="engineering-delivery-workspace">
     <section className="engineering-delivery-transformation" aria-label={viewModel.closure.title}>
       <div className="mb-4">
-        <h4 className="text-[12px] font-bold text-slate-100">Throughput transformation</h4>
-        <p className="mt-1 text-[10px] leading-4 text-slate-400">How RF potential becomes the final delivered service.</p>
+        <h4 className="text-[12px] font-bold text-slate-900 dark:text-slate-100">Throughput transformation</h4>
+        <p className="mt-1 text-[10px] leading-4 text-slate-600 dark:text-slate-400">How RF potential becomes the final delivered service.</p>
       </div>
       <EngineeringClosurePipeline
         layout={viewModel.closure.layout}

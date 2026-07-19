@@ -59,13 +59,9 @@ import {
 } from './utils/geoCoverageSelection';
 import { pickStarGatewayReferenceCoverage } from './utils/geoStarGatewaySelection';
 import {
-  BoundingSphere,
   Cartesian3,
   EasingFunction,
-  HeadingPitchRange,
   JulianDate,
-  Math as CesiumMath,
-  SceneTransforms,
   Viewer as CesiumViewerType,
 } from 'cesium';
 import { useAirTraffic, useAirTrafficInterpolation } from './modules/airTraffic';
@@ -143,7 +139,10 @@ import {
   connectivityScenarioTypeFromDestinationType,
   scenarioToConnectivityScenarioCard,
 } from './utils/connectivityScenarioCardProjection';
-import { shouldApplyEngineeringCameraFocus } from './utils/engineeringCameraCompensation';
+import {
+  engineeringHeroCameraTargetIsEquivalent,
+  resolveEngineeringHeroCameraTarget,
+} from './utils/engineeringHeroCamera';
 import { engineeringVerdictLabel, engineeringVerdictTone } from './utils/engineeringAnalysisViewModel';
 import type { EngineeringConfigureDraft } from './types/engineeringConfigure';
 import {
@@ -268,86 +267,6 @@ const flyToEngineeringCameraSnapshot = (
   });
 };
 
-
-interface EngineeringSemanticCameraView {
-  destination: Cartesian3;
-  direction: Cartesian3;
-  up: Cartesian3;
-}
-
-/** Presentation-only GEO composition: preserve the route plane, Earth context,
- * ground endpoints and serving spacecraft without maximizing the link line. */
-const createSemanticGeoPathCameraView = (
-  positions: Cartesian3[],
-  currentCameraPosition: Cartesian3,
-): EngineeringSemanticCameraView | null => {
-  if (positions.length < 3) return null;
-
-  let satelliteIndex = 0;
-  for (let index = 1; index < positions.length; index += 1) {
-    if (Cartesian3.magnitudeSquared(positions[index]) > Cartesian3.magnitudeSquared(positions[satelliteIndex])) {
-      satelliteIndex = index;
-    }
-  }
-  const satellite = positions[satelliteIndex];
-  const groundPositions = positions.filter((_, index) => index !== satelliteIndex);
-  if (groundPositions.length < 2) return null;
-  const groundA = groundPositions[0];
-  const groundB = groundPositions[groundPositions.length - 1];
-  const earthRadius = (Cartesian3.magnitude(groundA) + Cartesian3.magnitude(groundB)) / 2;
-  const groundMidpoint = Cartesian3.midpoint(groundA, groundB, new Cartesian3());
-  // Keep the visual centre closer to Earth than the satellite. A midpoint-biased
-  // target produces an impressive link line but leaves little geographic context.
-  const target = Cartesian3.lerp(groundMidpoint, satellite, 0.06, new Cartesian3());
-
-  const firstLeg = Cartesian3.subtract(satellite, groundA, new Cartesian3());
-  const secondLeg = Cartesian3.subtract(groundB, satellite, new Cartesian3());
-  let lateral = Cartesian3.cross(firstLeg, secondLeg, new Cartesian3());
-  if (Cartesian3.magnitudeSquared(lateral) < 1) {
-    lateral = Cartesian3.cross(satellite, groundA, lateral);
-  }
-  if (Cartesian3.magnitudeSquared(lateral) < 1) return null;
-  Cartesian3.normalize(lateral, lateral);
-
-  const currentSide = Cartesian3.subtract(currentCameraPosition, target, new Cartesian3());
-  if (Cartesian3.dot(lateral, currentSide) < 0) Cartesian3.negate(lateral, lateral);
-  const earthwardUp = Cartesian3.normalize(groundMidpoint, new Cartesian3());
-  const longestLeg = Math.max(Cartesian3.magnitude(firstLeg), Cartesian3.magnitude(secondLeg));
-  const lateralDistance = Math.min(earthRadius * 4.6, Math.max(earthRadius * 3.8, longestLeg * 0.72));
-  const destination = Cartesian3.add(
-    target,
-    Cartesian3.multiplyByScalar(lateral, lateralDistance, new Cartesian3()),
-    new Cartesian3(),
-  );
-  Cartesian3.add(
-    destination,
-    Cartesian3.multiplyByScalar(earthwardUp, earthRadius * 0.25, new Cartesian3()),
-    destination,
-  );
-  const initialDirection = Cartesian3.normalize(Cartesian3.subtract(target, destination, new Cartesian3()), new Cartesian3());
-  const routeAxis = Cartesian3.normalize(Cartesian3.subtract(satellite, groundMidpoint, new Cartesian3()), new Cartesian3());
-  const initialUpProjection = Cartesian3.multiplyByScalar(initialDirection, Cartesian3.dot(routeAxis, initialDirection), new Cartesian3());
-  let initialUp = Cartesian3.subtract(routeAxis, initialUpProjection, new Cartesian3());
-  if (Cartesian3.magnitudeSquared(initialUp) < 0.01) {
-    const earthUpProjection = Cartesian3.multiplyByScalar(initialDirection, Cartesian3.dot(earthwardUp, initialDirection), new Cartesian3());
-    initialUp = Cartesian3.subtract(earthwardUp, earthUpProjection, initialUp);
-  }
-  Cartesian3.normalize(initialUp, initialUp);
-  const screenRight = Cartesian3.normalize(Cartesian3.cross(initialDirection, initialUp, new Cartesian3()), new Cartesian3());
-  // The Inspector covers the right of the globe. Aim slightly beyond the route
-  // so the Earth/link composition settles into the unobscured left-hand area.
-  const biasedTarget = Cartesian3.add(
-    target,
-    Cartesian3.multiplyByScalar(screenRight, earthRadius * 1.15, new Cartesian3()),
-    new Cartesian3(),
-  );
-  const direction = Cartesian3.normalize(Cartesian3.subtract(biasedTarget, destination, new Cartesian3()), new Cartesian3());
-  const upProjection = Cartesian3.multiplyByScalar(direction, Cartesian3.dot(routeAxis, direction), new Cartesian3());
-  let up = Cartesian3.subtract(routeAxis, upProjection, new Cartesian3());
-  if (Cartesian3.magnitudeSquared(up) < 0.01) up = Cartesian3.cross(lateral, direction, up);
-  Cartesian3.normalize(up, up);
-  return { destination, direction, up };
-};
 
 const getCandidateLinkMargin = (candidate: CandidateCoverage): number => (
   Number.isFinite(candidate.linkMarginDb) ? candidate.linkMarginDb! : -Infinity
@@ -4117,36 +4036,35 @@ const App: React.FC = () => {
       ].filter(Boolean).join(' / ')
     : null;
 
-  const engineeringContextRoutePositions = useMemo(() => {
-    const positions: Cartesian3[] = [];
-    const add = (position: Cartesian3 | null) => {
-      if (position) positions.push(position);
-    };
-
-    add(groundPointToCartesian(activeAnalysisPoint));
+  const engineeringHeroFrameGeometry = useMemo(() => {
+    const groundNodes: Array<Cartesian3 | null> = [groundPointToCartesian(activeAnalysisPoint)];
+    const servingSatellites: Array<Cartesian3 | null> = [];
 
     if (activeConnectivityTab === 'LEO') {
-      add(satelliteToCartesian(activeLeoSiteToSiteResult?.servingSatelliteA ?? resolvedAutoLEO));
-      add(snpToCartesian(activeLeoSiteToSiteResult?.selectedSnpA ?? selectedSNP));
+      servingSatellites.push(
+        satelliteToCartesian(activeLeoSiteToSiteResult?.servingSatelliteA ?? resolvedAutoLEO),
+      );
+      groundNodes.push(snpToCartesian(activeLeoSiteToSiteResult?.selectedSnpA ?? selectedSNP));
 
       if (leoTopologyMode === 'SITE_TO_SITE') {
-        add(snpToCartesian(activeLeoSiteToSiteResult?.selectedSnpB ?? selectedSNPB));
-        add(satelliteToCartesian(activeLeoSiteToSiteResult?.servingSatelliteB ?? resolvedAutoLEOB));
-        add(groundPointToCartesian(pointBLeo ?? siteB));
+        groundNodes.push(
+          snpToCartesian(activeLeoSiteToSiteResult?.selectedSnpB ?? selectedSNPB),
+          groundPointToCartesian(pointBLeo ?? siteB),
+        );
+        servingSatellites.push(
+          satelliteToCartesian(activeLeoSiteToSiteResult?.servingSatelliteB ?? resolvedAutoLEOB),
+        );
       }
     } else {
-      add(satelliteToCartesian(activeGeoSatellite));
-
-      if (siteB && (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT')) {
-        add(groundPointToCartesian(siteB));
-      } else {
-        // Frame the traffic gateway the route actually draws to (null in MESH,
-        // where the gateway is not in the path).
-        add(geoGatewayToCartesian(activeCommercialTrafficGeoGateway));
-      }
+      servingSatellites.push(satelliteToCartesian(activeGeoSatellite));
+      groundNodes.push(
+        linkMode === 'MESH' || linkMode === 'POINT_TO_POINT'
+          ? groundPointToCartesian(siteB)
+          : geoGatewayToCartesian(activeCommercialTrafficGeoGateway),
+      );
     }
 
-    return positions;
+    return { groundNodes, servingSatellites };
   }, [
     activeAnalysisPoint,
     activeCommercialTrafficGeoGateway,
@@ -4162,58 +4080,6 @@ const App: React.FC = () => {
     selectedSNPB,
     siteB,
   ]);
-
-  const engineeringFocusedRoutePositions = useMemo(() => {
-    const focus = engineeringFocusController.focus;
-    if (focus.kind === 'none' || focus.technology !== activeConnectivityTab || !focus.stageId) return [];
-    if (focus.stageId === 'path') return engineeringContextRoutePositions;
-
-    const positions: Cartesian3[] = [];
-    const add = (position: Cartesian3 | null) => {
-      if (position) positions.push(position);
-    };
-
-    if (focus.stageId === 'scenario') {
-      add(groundPointToCartesian(activeAnalysisPoint));
-      if (activeConnectivityTab === 'LEO' && leoTopologyMode === 'SITE_TO_SITE') add(groundPointToCartesian(pointBLeo ?? siteB));
-      if (activeConnectivityTab === 'GEO' && (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT')) add(groundPointToCartesian(siteB));
-      return positions;
-    }
-
-    if (focus.stageId === 'rf') {
-      if (activeConnectivityTab === 'GEO') return engineeringContextRoutePositions;
-      add(groundPointToCartesian(activeAnalysisPoint));
-      add(satelliteToCartesian(activeLeoSiteToSiteResult?.servingSatelliteA ?? resolvedAutoLEO));
-      if (leoTopologyMode === 'SITE_TO_SITE') {
-        add(satelliteToCartesian(activeLeoSiteToSiteResult?.servingSatelliteB ?? resolvedAutoLEOB));
-        add(groundPointToCartesian(pointBLeo ?? siteB));
-      }
-      return positions;
-    }
-
-    if (focus.stageId === 'service') {
-      if (activeConnectivityTab === 'GEO') return engineeringContextRoutePositions;
-      if (activeConnectivityTab === 'LEO') {
-        add(satelliteToCartesian(activeLeoSiteToSiteResult?.servingSatelliteA ?? resolvedAutoLEO));
-        add(snpToCartesian(activeLeoSiteToSiteResult?.selectedSnpA ?? selectedSNP));
-        if (leoTopologyMode === 'SITE_TO_SITE') add(snpToCartesian(activeLeoSiteToSiteResult?.selectedSnpB ?? selectedSNPB));
-      }
-      return positions;
-    }
-
-    // Delivery is grounded in the serving spacecraft/beam and delivered endpoint(s).
-    add(satelliteToCartesian(activeConnectivityTab === 'LEO'
-      ? activeLeoSiteToSiteResult?.servingSatelliteA ?? resolvedAutoLEO
-      : activeGeoSatellite));
-    add(groundPointToCartesian(activeAnalysisPoint));
-    if (activeConnectivityTab === 'LEO' && leoTopologyMode === 'SITE_TO_SITE') {
-      add(satelliteToCartesian(activeLeoSiteToSiteResult?.servingSatelliteB ?? resolvedAutoLEOB));
-      add(groundPointToCartesian(pointBLeo ?? siteB));
-    } else if (activeConnectivityTab === 'GEO' && (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT')) {
-      add(groundPointToCartesian(siteB));
-    }
-    return positions;
-  }, [activeAnalysisPoint, activeConnectivityTab, activeGeoSatellite, activeLeoSiteToSiteResult, engineeringContextRoutePositions, engineeringFocusController.focus, leoTopologyMode, linkMode, pointBLeo, resolvedAutoLEO, resolvedAutoLEOB, selectedSNP, selectedSNPB, siteB]);
 
   useEffect(() => {
     const focus = engineeringFocusController.focus;
@@ -4245,74 +4111,63 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const focus = engineeringFocusController.focus;
-    const pathStageOwnsRouteView = focus.kind === 'locked' && focus.stageId === 'path';
     if (focus.kind !== 'locked' || !focus.stageId || focus.technology !== activeConnectivityTab) return;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const viewer = viewerRef.current;
+    if (!viewer || viewer.isDestroyed?.()) return;
+    const canvas = viewer.scene.canvas;
+    const inspectorHost = document.querySelector<HTMLElement>('[data-engineering-inspector-host]');
+    const inspectorWidth = isMobile ? 0 : inspectorHost?.getBoundingClientRect().width ?? 0;
+    const target = resolveEngineeringHeroCameraTarget({
+      technology: activeConnectivityTab,
+      topology: activeConnectivityTab === 'GEO' ? linkMode : leoTopologyMode,
+      groundNodes: engineeringHeroFrameGeometry.groundNodes,
+      servingSatellites: engineeringHeroFrameGeometry.servingSatellites,
+      viewport: {
+        width: canvas.clientWidth,
+        height: canvas.clientHeight,
+        inspectorWidth,
+      },
+    });
+    if (!target) return;
 
-    const focusKey = `${focus.technology}:${focus.stageId}:${focus.origin}`;
+    const focusKey = `hero:${target.signature}`;
     if (engineeringFocusCameraKeyRef.current === focusKey) return;
     engineeringFocusCameraKeyRef.current = focusKey;
+    viewer.camera.cancelFlight();
 
-    const positions = engineeringFocusedRoutePositions;
-    if (positions.length === 0) return;
-
-    let timeoutId: number | null = null;
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    const focusCamera = () => {
-      const viewer = viewerRef.current;
-      if (!viewer || viewer.isDestroyed?.()) return;
-      const canvas = viewer.scene.canvas;
-      const marginX = Math.min(120, canvas.clientWidth * 0.12);
-      const marginY = Math.min(100, canvas.clientHeight * 0.14);
-      const allVisible = positions.every((position) => {
-        const screen = SceneTransforms.worldToWindowCoordinates(viewer.scene, position);
-        return !!screen
-          && screen.x >= marginX
-          && screen.x <= canvas.clientWidth - marginX
-          && screen.y >= marginY
-          && screen.y <= canvas.clientHeight - marginY;
+    if (prefersReducedMotion) {
+      viewer.camera.setView({
+        destination: target.destination,
+        orientation: { direction: target.direction, up: target.up },
       });
-      if (!shouldApplyEngineeringCameraFocus({
-        nowMs: performance.now(),
-        lastManualInputMs: lastManualCameraInputRef.current,
-        allTargetsVisible: allVisible,
-        forceRouteView: pathStageOwnsRouteView && !allVisible,
-      })) return;
+      viewer.scene.requestRender();
+      return;
+    }
 
-      if (activeConnectivityTab === 'GEO' && ['path', 'rf', 'service'].includes(focus.stageId)) {
-        const semanticView = createSemanticGeoPathCameraView(positions, viewer.camera.positionWC);
-        if (semanticView) {
-          viewer.camera.cancelFlight();
-          viewer.camera.flyTo({
-            destination: semanticView.destination,
-            orientation: { direction: semanticView.direction, up: semanticView.up },
-            duration: prefersReducedMotion ? 0 : ENGINEERING_CAMERA_ANIMATION_SECONDS,
-            easingFunction: EasingFunction.CUBIC_OUT,
-          });
-          return;
-        }
-      }
+    const materiallyEquivalent = engineeringHeroCameraTargetIsEquivalent({
+      destination: viewer.camera.positionWC,
+      direction: viewer.camera.directionWC,
+      up: viewer.camera.upWC,
+    }, target);
+    if (materiallyEquivalent) return;
 
-      const sphere = BoundingSphere.fromPoints(positions);
-      const isLeo = activeConnectivityTab === 'LEO';
-      const radius = Math.max(sphere.radius * 1.12, isLeo ? 480_000 : 900_000);
-      const range = radius * (isLeo ? 2.8 : 2.55);
-      const heading = Number.isFinite(viewer.camera.heading) ? viewer.camera.heading : 0;
-      const pitch = Number.isFinite(viewer.camera.pitch)
-        ? Math.min(CesiumMath.toRadians(-22), Math.max(CesiumMath.toRadians(-78), viewer.camera.pitch))
-        : CesiumMath.toRadians(isLeo ? -46 : -40);
-      viewer.camera.cancelFlight();
-      viewer.camera.flyToBoundingSphere(new BoundingSphere(sphere.center, radius), {
-        duration: prefersReducedMotion ? 0 : ENGINEERING_CAMERA_ANIMATION_SECONDS,
-        offset: new HeadingPitchRange(heading, pitch, range),
-      });
-    };
-
-    timeoutId = window.setTimeout(focusCamera, 0);
-    return () => {
-      if (timeoutId !== null) window.clearTimeout(timeoutId);
-    };
-  }, [activeConnectivityTab, engineeringFocusController.focus, engineeringFocusedRoutePositions, isMobile, isMobileAnalysisPanelOpen]);
+    viewer.camera.flyTo({
+      destination: target.destination,
+      orientation: { direction: target.direction, up: target.up },
+      duration: ENGINEERING_CAMERA_ANIMATION_SECONDS,
+      easingFunction: EasingFunction.CUBIC_OUT,
+    });
+  }, [
+    activeConnectivityTab,
+    engineeringFocusController.focus,
+    engineeringHeroFrameGeometry,
+    isMobile,
+    leoTopologyMode,
+    linkMode,
+    viewportSnapshot.innerHeight,
+    viewportSnapshot.innerWidth,
+  ]);
 
   useEffect(() => {
     const focus = engineeringFocusController.focus;

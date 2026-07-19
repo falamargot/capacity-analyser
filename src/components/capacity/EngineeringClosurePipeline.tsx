@@ -39,11 +39,11 @@ interface PipelineSegmentModel {
 }
 
 const toneClass: Record<NonNullable<LinkBudgetWorkspaceClosureStep['tone']>, string> = {
-  default: 'text-slate-100',
-  good: 'text-teal-300',
-  warn: 'text-amber-300',
-  danger: 'text-rose-300',
-  accent: 'text-sky-300',
+  default: 'text-slate-900 dark:text-slate-100',
+  good: 'text-teal-700 dark:text-teal-300',
+  warn: 'text-amber-700 dark:text-amber-300',
+  danger: 'text-rose-700 dark:text-rose-300',
+  accent: 'text-sky-700 dark:text-sky-300',
 };
 
 const borderClass: Record<NonNullable<LinkBudgetWorkspaceClosureStep['tone']>, string> = {
@@ -252,7 +252,7 @@ const LeoSinglePipeline = ({ steps }: { steps: LinkBudgetWorkspaceClosureStep[] 
 };
 
 const BranchNode = ({ title, step }: { title: string; step: LinkBudgetWorkspaceClosureStep | undefined }) => (
-  <div className={`min-w-0 border-l-2 px-4 py-3 ${borderClass[stepTone(step)]}`}>
+  <div className={`engineering-closure-branch-node min-w-0 border-l-2 px-4 py-3 ${borderClass[stepTone(step)]}`}>
     <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{title}</div>
     <div className={`mt-1 text-base font-black tabular-nums ${toneClass[stepTone(step)]}`}>{outputValue(step)}</div>
     <div className="mt-1 text-[10px] leading-snug text-slate-400">{compactTransformation(step, 'Access constraint')}</div>
@@ -281,7 +281,7 @@ const LeoSiteToSitePipeline = ({ steps }: { steps: LinkBudgetWorkspaceClosureSte
           <span>Compare access legs and select the lower rate</span>
           <span className="text-right text-[9px] font-bold tabular-nums text-slate-500">{selectedLimit}</span>
         </div>
-        <div className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-l-2 px-4 py-4 ${borderClass[stepTone(delivered)]}`}>
+        <div className={`engineering-closure-result grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-l-2 px-4 py-4 ${borderClass[stepTone(delivered)]}`}>
           <div>
             <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Delivered throughput</div>
             <div className="mt-1 text-[10px] leading-snug text-slate-400">Selected lower access rate after final constraints.</div>
@@ -291,7 +291,7 @@ const LeoSiteToSitePipeline = ({ steps }: { steps: LinkBudgetWorkspaceClosureSte
         </div>
       </div>
       {backbone && (
-        <div className="mt-2 rounded-lg border border-slate-800 bg-slate-950/35 px-3 py-2 text-xs text-slate-300">
+        <div className="engineering-closure-context mt-2 rounded-lg border border-slate-800 bg-slate-950/35 px-3 py-2 text-xs text-slate-300">
           <span className="font-bold uppercase tracking-wide text-slate-500">Backbone context: </span>
           {backbone.output ?? backbone.value ?? '--'}
           {backbone.input && <span className="text-slate-500"> via {backbone.input}</span>}

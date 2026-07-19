@@ -1550,8 +1550,8 @@ exports[`M0 golden scenario matrix > GEO > 'geo-star-forward-constrained' 1`] = 
         "value": 548,
       },
       {
-        "detail": undefined,
-        "display": "99.2% indicative",
+        "detail": "Indicative",
+        "display": "99.2%",
         "label": "Availability",
         "provenance": "delivered",
         "value": 99.2,
@@ -2370,8 +2370,8 @@ exports[`M0 golden scenario matrix > LEO > 'leo-single-available' 1`] = `
         "value": 72,
       },
       {
-        "detail": undefined,
-        "display": "98.6% indicative",
+        "detail": "Indicative",
+        "display": "98.6%",
         "label": "Availability",
         "provenance": "delivered",
         "value": 98.6,

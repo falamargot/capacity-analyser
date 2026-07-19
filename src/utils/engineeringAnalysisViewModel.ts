@@ -295,6 +295,14 @@ const metric = (
   detail,
 });
 
+const splitAvailabilityLabel = (label?: string): { display: string; detail?: string } => {
+  if (!label) return { display: '--' };
+  const match = label.match(/^([0-9]+(?:\.[0-9]+)?)\s*%\s*indicative$/i);
+  return match
+    ? { display: `${match[1]}%`, detail: 'Indicative' }
+    : { display: label };
+};
+
 const geoStatusFromMargin = (marginDb: number | null | undefined): EngineeringAnalysisStatus => {
   if (typeof marginDb !== 'number' || !Number.isFinite(marginDb)) return 'no-budget';
   if (marginDb < 0) return 'blocked';
@@ -407,7 +415,10 @@ export function buildGeoEngineeringAnalysisViewModel(input: BuildGeoEngineeringA
           activeNetworkLayer ? 'Final rate after protocol and network constraints' : 'RF-derived end-to-end rate',
         ),
         metric(input.latencyLabel ?? 'Latency', input.latencyMs, fmtMs(input.latencyMs), 'delivered'),
-        metric('Availability', parsePct(input.availabilityLabel), input.availabilityLabel ?? '--', 'delivered'),
+        ...(() => {
+          const availability = splitAvailabilityLabel(input.availabilityLabel);
+          return [metric('Availability', parsePct(input.availabilityLabel), availability.display, 'delivered', availability.detail)];
+        })(),
       ].filter((item) => item.value != null)
     : [];
   const diagnosticMetrics: EngineeringTruthMetric[] = !canDeliver && e2e
@@ -785,7 +796,10 @@ export function buildLeoEngineeringAnalysisViewModel(input: BuildLeoEngineeringA
         ),
         ...(!isS2S ? [metric('Uplink throughput', singleFinalUl, fmtMbps(singleFinalUl), 'delivered')] : []),
         metric(input.latencyLabel ?? (isS2S ? `${s2sDirectionLabel} latency` : 'End-to-end RTT'), displayedLatency, fmtMs(displayedLatency), 'delivered'),
-        metric('Availability', parsePct(input.availabilityLabel), input.availabilityLabel ?? '--', 'delivered'),
+        ...(() => {
+          const availability = splitAvailabilityLabel(input.availabilityLabel);
+          return [metric('Availability', parsePct(input.availabilityLabel), availability.display, 'delivered', availability.detail)];
+        })(),
       ].filter((item) => item.value != null)
     : [];
   const diagnosticMetrics: EngineeringTruthMetric[] = !canDeliver && (sourceDebugInfo || input.debugInfo)

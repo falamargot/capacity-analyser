@@ -1365,8 +1365,8 @@ const GeoInvestigationSection = ({
   <details data-engineering-investigation-section="" className="group group/investigation rounded-xl border border-slate-800 bg-slate-950/60" open={defaultOpen}>
     <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5">
       <div className="min-w-0">
-        <h4 className="text-sm font-semibold text-slate-100">{title}</h4>
-        {subtitle && <p className="mt-0.5 text-xs leading-snug text-slate-500">{subtitle}</p>}
+        <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{title}</h4>
+        {subtitle && <p className="mt-0.5 text-xs leading-snug text-slate-600 dark:text-slate-500">{subtitle}</p>}
       </div>
       <DetailsTogglePill />
     </summary>

@@ -860,7 +860,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
       </div>
   );
   const pathDetailEvidence = (
-    <>
+    <div data-engineering-path-detail="">
         {/* Radio Path */}
         <CollapsibleSection
           storageKey="geo-radio-path"
@@ -998,7 +998,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
             )
           )}
         </CollapsibleSection>
-    </>
+    </div>
   );
   const deliveryDetailEvidence = (
         <div className="space-y-3">

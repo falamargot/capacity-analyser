@@ -526,6 +526,13 @@ h1, h2, h3, h4 {
 .engineering-inspector-workspace {
   container-name: engineering-inspector;
   container-type: inline-size;
+  --engineering-rule: rgb(203 213 225 / 0.72);
+  --engineering-rule-strong: rgb(148 163 184 / 0.72);
+}
+
+.dark .engineering-inspector-workspace {
+  --engineering-rule: rgb(71 85 105 / 0.7);
+  --engineering-rule-strong: rgb(100 116 139 / 0.78);
 }
 
 .engineering-inspector[data-engineering-inspector-variant='desktop'] {
@@ -541,14 +548,14 @@ h1, h2, h3, h4 {
 }
 
 .engineering-stage-conclusion {
-  padding: 1rem 1.125rem 1.125rem;
-  border-left: 3px solid rgb(148 163 184 / 0.8);
-  background: rgb(255 255 255 / 0.58);
+  padding: 0.375rem 0 1.5rem 1.25rem;
+  border-left: 2px solid rgb(148 163 184 / 0.8);
+  background: transparent;
 }
 
 .dark .engineering-stage-conclusion {
   border-left-color: rgb(100 116 139 / 0.88);
-  background: rgb(15 23 42 / 0.54);
+  background: transparent;
 }
 
 .engineering-stage-conclusion__status {
@@ -558,7 +565,7 @@ h1, h2, h3, h4 {
 }
 
 .engineering-stage-composition {
-  margin-top: 1.75rem;
+  margin-top: 2rem;
 }
 
 .engineering-stage-composition--scenario,
@@ -602,7 +609,7 @@ h1, h2, h3, h4 {
 }
 
 .engineering-stage-primary-evidence {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.875rem;
 }
 
 .engineering-stage-section-heading {
@@ -610,13 +617,13 @@ h1, h2, h3, h4 {
   align-items: baseline;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1rem;
-  padding-bottom: 0.625rem;
-  border-bottom: 1px solid rgb(203 213 225 / 0.72);
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--engineering-rule);
 }
 
 .dark .engineering-stage-section-heading {
-  border-bottom-color: rgb(71 85 105 / 0.72);
+  border-bottom-color: var(--engineering-rule);
 }
 
 .engineering-stage-section-heading > span:first-child {
@@ -663,9 +670,9 @@ h1, h2, h3, h4 {
   grid-template-columns: minmax(9rem, 0.62fr) minmax(0, 1.38fr);
   gap: 0.25rem 1.25rem;
   align-items: start;
-  padding: 0.75rem 0;
+  padding: 0.875rem 0;
   border-width: 0;
-  border-top: 1px solid rgb(51 65 85 / 0.55);
+  border-top: 1px solid var(--engineering-rule);
   border-radius: 0;
   background: transparent;
 }
@@ -694,18 +701,18 @@ h1, h2, h3, h4 {
    route before its propagation and direction properties. */
 .engineering-inspector-workspace [data-engineering-evidence-variant='scenario'] {
   grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  border-top: 1px solid rgb(51 65 85 / 0.55);
+  border-top: 1px solid var(--engineering-rule);
 }
 
 .engineering-inspector-workspace [data-engineering-evidence-variant='scenario'] > div {
   display: block;
-  padding: 0.875rem 1rem;
+  padding: 1rem 1.125rem;
   border-top: 0;
-  border-bottom: 1px solid rgb(51 65 85 / 0.55);
+  border-bottom: 1px solid var(--engineering-rule);
 }
 
 .engineering-inspector-workspace [data-engineering-evidence-variant='scenario'] > div:nth-child(odd) {
-  border-right: 1px solid rgb(51 65 85 / 0.55);
+  border-right: 1px solid var(--engineering-rule);
 }
 
 .engineering-inspector-workspace [data-engineering-evidence-variant='scenario'] dd,
@@ -716,7 +723,7 @@ h1, h2, h3, h4 {
 .engineering-inspector-workspace [data-engineering-evidence-variant='path'] > div:first-child {
   display: block;
   padding: 1rem 0 1.125rem;
-  border-bottom: 1px solid rgb(51 65 85 / 0.64);
+  border-bottom: 1px solid var(--engineering-rule-strong);
 }
 
 .engineering-inspector-workspace [data-engineering-evidence-variant='path'] > div:first-child dd {
@@ -730,24 +737,38 @@ h1, h2, h3, h4 {
 }
 
 .engineering-rf-decision {
-  margin-bottom: 1rem;
-  padding: 1rem 1.125rem;
-  border-left: 3px solid rgb(245 158 11 / 0.72);
-  background: rgb(2 6 23 / 0.62);
+  margin-bottom: 1.75rem;
+  padding: 0.375rem 0 0 1.25rem;
+  border-left: 2px solid rgb(245 158 11 / 0.72);
+  background: transparent;
+  color: rgb(15 23 42);
+}
+
+.dark .engineering-rf-decision {
   color: rgb(241 245 249);
 }
 
 .engineering-rf-decision__metrics {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) repeat(2, minmax(0, 1fr));
-  gap: 1px;
-  background: rgb(51 65 85 / 0.72);
+  gap: 0;
+  margin-left: -1.25rem;
+  margin-top: 1rem;
+  border-top: 1px solid var(--engineering-rule-strong);
+  border-bottom: 1px solid var(--engineering-rule);
+  background: transparent;
 }
 
 .engineering-rf-decision__metric {
   min-width: 0;
-  padding: 0.75rem;
-  background: rgb(15 23 42 / 0.98);
+  padding: 1rem;
+  border-left: 1px solid var(--engineering-rule);
+  background: transparent;
+}
+
+.engineering-rf-decision__metric:first-child {
+  padding-left: 0;
+  border-left: 0;
 }
 
 .engineering-rf-decision__metric dt {
@@ -761,9 +782,13 @@ h1, h2, h3, h4 {
 .engineering-rf-decision__metric dd {
   margin-top: 0.375rem;
   overflow-wrap: anywhere;
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 700;
   line-height: 1.125rem;
+  color: rgb(30 41 59);
+}
+
+.dark .engineering-rf-decision__metric dd {
   color: rgb(226 232 240);
 }
 
@@ -772,8 +797,12 @@ h1, h2, h3, h4 {
 }
 
 .engineering-delivery-transformation {
-  padding: 1rem 1.125rem 1.125rem;
-  background: rgb(2 6 23 / 0.92);
+  padding: 0.25rem 0 0;
+  background: transparent;
+  color: rgb(15 23 42);
+}
+
+.dark .engineering-delivery-transformation {
   color: rgb(241 245 249);
 }
 
@@ -783,14 +812,22 @@ h1, h2, h3, h4 {
 
 .engineering-closure-phase--secondary {
   padding-top: 1.25rem;
-  border-top: 1px solid rgb(51 65 85 / 0.74);
+  border-top: 1px solid var(--engineering-rule);
 }
 
 .engineering-closure-node {
+  padding-top: 0.875rem;
+  padding-bottom: 0.875rem;
   border-top-width: 0;
   border-right-width: 0;
   border-bottom-width: 0;
   border-radius: 0;
+  background: transparent;
+}
+
+.engineering-closure-node > span:first-child {
+  border-color: transparent;
+  background: transparent;
 }
 
 .engineering-closure-branch-grid > div,
@@ -798,31 +835,160 @@ h1, h2, h3, h4 {
   box-shadow: none;
 }
 
-/* Investigation topics remain discrete, but the open topic is visually flatter
-   and receives the available workspace width. */
+.engineering-closure-branch-grid > div {
+  background: transparent;
+}
+
+.engineering-closure-branch-node,
+.engineering-closure-result {
+  background: transparent;
+}
+
+.engineering-closure-context {
+  padding: 0.875rem 0;
+  border-right-width: 0;
+  border-left-width: 0;
+  border-radius: 0;
+  border-color: var(--engineering-rule);
+  background: transparent;
+}
+
+.engineering-closure-steps > div + div {
+  border-top: 1px solid var(--engineering-rule);
+}
+
+.engineering-closure-connector {
+  min-height: 2.25rem;
+}
+
+/* Investigation topics read as report sections. Their hierarchy comes from
+   typography and rules rather than nested card surfaces. */
 .engineering-inspector-workspace [data-engineering-investigation-section] {
-  border-color: rgb(51 65 85 / 0.72);
-  background: rgb(2 6 23 / 0.28);
+  border-width: 1px 0 0;
+  border-color: var(--engineering-rule);
+  border-radius: 0;
+  background: transparent;
   box-shadow: none;
 }
 
 .engineering-inspector-workspace [data-engineering-investigation-section] > summary {
-  padding: 0.875rem 1rem;
+  padding: 1.125rem 0;
 }
 
 .engineering-inspector-workspace [data-engineering-investigation-section][open] {
-  background: rgb(2 6 23 / 0.48);
+  background: transparent;
 }
 
 .engineering-inspector-workspace [data-engineering-investigation-section] > div {
-  padding: 1rem;
+  padding: 1.25rem 0 1.75rem;
+  border-color: var(--engineering-rule);
 }
 
 .engineering-inspector-workspace [data-engineering-cockpit-panel] {
-  border-color: rgb(51 65 85 / 0.7);
-  border-radius: 0.625rem;
-  background: rgb(2 6 23 / 0.42);
+  overflow: visible;
+  border-width: 0;
+  border-radius: 0;
+  background: transparent;
   box-shadow: none;
+}
+
+.engineering-inspector-workspace [data-engineering-cockpit-panel] > div:first-child {
+  padding: 0 0 0.75rem;
+  border-color: var(--engineering-rule);
+  background: transparent;
+}
+
+.engineering-inspector-workspace [data-engineering-cockpit-panel] > div:not(:first-child) {
+  padding-right: 0;
+  padding-left: 0;
+}
+
+/* Neutral sub-containers inside a technical section become passages in the
+   report. Warning and failure callouts retain their semantic surfaces. */
+.engineering-inspector-workspace [data-engineering-cockpit-panel] [class*='border-slate-'][class*='rounded-'],
+.engineering-inspector-workspace [data-engineering-analysis-panel] [class*='border-slate-'][class*='rounded-'] {
+  border-right-width: 0;
+  border-left-width: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.engineering-inspector-workspace [data-engineering-analysis-panel] {
+  overflow: visible;
+  border-width: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.engineering-inspector-workspace [data-engineering-analysis-panel] > div:first-child {
+  padding-right: 0;
+  padding-left: 0;
+  border-color: var(--engineering-rule);
+  background: transparent;
+}
+
+.engineering-inspector-workspace [data-engineering-path-detail] > div {
+  overflow: visible;
+  border-width: 1px 0 0;
+  border-color: var(--engineering-rule);
+  border-radius: 0;
+  background: transparent;
+}
+
+.engineering-inspector-workspace [data-engineering-path-detail] > div > div:first-child {
+  padding: 1rem 0;
+}
+
+.engineering-inspector-workspace [data-engineering-path-detail] > div > div:last-child {
+  padding: 1.25rem 0;
+  border-color: var(--engineering-rule);
+}
+
+/* The technical cockpit primitives were originally authored for filled dark
+   cards. Once flattened, their neutral and accent text must remain legible on
+   the Inspector's light report surface as well. */
+:root:not(.dark) .engineering-inspector-workspace [data-engineering-cockpit-panel] .text-slate-100,
+:root:not(.dark) .engineering-inspector-workspace [data-engineering-analysis-panel] .text-slate-100 {
+  color: rgb(15 23 42);
+}
+
+:root:not(.dark) .engineering-inspector-workspace [data-engineering-cockpit-panel] .text-slate-200,
+:root:not(.dark) .engineering-inspector-workspace [data-engineering-analysis-panel] .text-slate-200,
+:root:not(.dark) .engineering-inspector-workspace [data-engineering-cockpit-panel] .text-slate-300,
+:root:not(.dark) .engineering-inspector-workspace [data-engineering-analysis-panel] .text-slate-300 {
+  color: rgb(51 65 85);
+}
+
+:root:not(.dark) .engineering-inspector-workspace [data-engineering-cockpit-panel] .text-slate-400,
+:root:not(.dark) .engineering-inspector-workspace [data-engineering-analysis-panel] .text-slate-400 {
+  color: rgb(71 85 105);
+}
+
+:root:not(.dark) .engineering-inspector-workspace [data-engineering-cockpit-panel] .text-sky-300,
+:root:not(.dark) .engineering-inspector-workspace [data-engineering-analysis-panel] .text-sky-300 {
+  color: rgb(3 105 161);
+}
+
+:root:not(.dark) .engineering-inspector-workspace [data-engineering-cockpit-panel] .text-teal-300,
+:root:not(.dark) .engineering-inspector-workspace [data-engineering-analysis-panel] .text-teal-300 {
+  color: rgb(15 118 110);
+}
+
+:root:not(.dark) .engineering-inspector-workspace [data-engineering-cockpit-panel] .text-amber-300,
+:root:not(.dark) .engineering-inspector-workspace [data-engineering-analysis-panel] .text-amber-300 {
+  color: rgb(180 83 9);
+}
+
+:root:not(.dark) .engineering-inspector-workspace [data-engineering-cockpit-panel] .text-rose-300,
+:root:not(.dark) .engineering-inspector-workspace [data-engineering-analysis-panel] .text-rose-300 {
+  color: rgb(190 18 60);
+}
+
+:root:not(.dark) .engineering-inspector-workspace [data-engineering-cockpit-panel] .text-indigo-300,
+:root:not(.dark) .engineering-inspector-workspace [data-engineering-analysis-panel] .text-indigo-300 {
+  color: rgb(67 56 202);
 }
 
 /* Cockpit tiles choose columns from the Inspector container, not the viewport.
@@ -830,7 +996,9 @@ h1, h2, h3, h4 {
    500–600 px investigation surface. */
 .engineering-inspector-workspace .grid:has(> [data-engineering-metric-tile]) {
   grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  gap: 0.5rem !important;
+  gap: 0 !important;
+  border-top: 1px solid var(--engineering-rule);
+  border-bottom: 1px solid var(--engineering-rule);
 }
 
 .engineering-inspector-workspace .grid:has(> [data-engineering-metric-tile]) > [class*='col-span-'] {
@@ -838,11 +1006,20 @@ h1, h2, h3, h4 {
 }
 
 .engineering-inspector-workspace [data-engineering-metric-tile] {
-  min-height: 3.5rem;
-  padding: 0.625rem 0.75rem;
-  border-color: rgb(51 65 85 / 0.62);
-  background: rgb(15 23 42 / 0.58);
+  min-height: 3.75rem;
+  padding: 0.75rem;
+  border-width: 0;
+  border-radius: 0;
+  background: transparent;
   box-shadow: none;
+}
+
+.engineering-inspector-workspace .grid:has(> [data-engineering-metric-tile]) > [data-engineering-metric-tile]:not(:nth-child(3n + 1)) {
+  border-left: 1px solid var(--engineering-rule);
+}
+
+.engineering-inspector-workspace .grid:has(> [data-engineering-metric-tile]) > [data-engineering-metric-tile]:nth-child(n + 4) {
+  border-top: 1px solid var(--engineering-rule);
 }
 
 .engineering-inspector-workspace [data-engineering-metric-tile] > div:first-child {
@@ -855,8 +1032,9 @@ h1, h2, h3, h4 {
 .engineering-inspector-workspace [data-engineering-metric-tile] > div:nth-child(2) {
   overflow: visible;
   white-space: normal;
-  font-size: 0.8125rem;
-  line-height: 1.05rem;
+  margin-top: 0.375rem;
+  font-size: 0.875rem;
+  line-height: 1.125rem;
 }
 
 .engineering-inspector-workspace [data-engineering-layout='leo-rf-budget'],
@@ -884,6 +1062,30 @@ h1, h2, h3, h4 {
 
   .engineering-rf-decision__metrics {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .engineering-rf-decision__metric,
+  .engineering-rf-decision__metric:first-child {
+    padding: 0.875rem 0;
+    border-top: 1px solid var(--engineering-rule);
+    border-left: 0;
+  }
+
+  .engineering-rf-decision__metric:first-child {
+    border-top: 0;
+  }
+
+  .engineering-inspector-workspace .grid:has(> [data-engineering-metric-tile]) > [data-engineering-metric-tile] {
+    border-top: 0;
+    border-left: 0;
+  }
+
+  .engineering-inspector-workspace .grid:has(> [data-engineering-metric-tile]) > [data-engineering-metric-tile]:nth-child(even) {
+    border-left: 1px solid var(--engineering-rule);
+  }
+
+  .engineering-inspector-workspace .grid:has(> [data-engineering-metric-tile]) > [data-engineering-metric-tile]:nth-child(n + 3) {
+    border-top: 1px solid var(--engineering-rule);
   }
 
   .engineering-inspector-workspace [data-engineering-evidence-variant='scenario'] {
@@ -928,7 +1130,11 @@ h1, h2, h3, h4 {
 }
 
 .engineering-inspector-mobile .engineering-rf-decision {
-  padding: 0.875rem 1rem;
+  padding: 0.875rem 0 0 1rem;
+}
+
+.engineering-inspector-mobile .engineering-rf-decision__metrics {
+  margin-left: 0;
 }
 
 .engineering-inspector-mobile .engineering-rf-decision__metrics,
@@ -939,6 +1145,14 @@ h1, h2, h3, h4 {
 
 .engineering-inspector-mobile [data-engineering-metric-tile] {
   min-height: 0;
+  padding-right: 0;
+  padding-left: 0;
+  border-top: 1px solid var(--engineering-rule) !important;
+  border-left: 0 !important;
+}
+
+.engineering-inspector-mobile .grid:has(> [data-engineering-metric-tile]) > [data-engineering-metric-tile]:first-child {
+  border-top: 0 !important;
 }
 
 .engineering-inspector-mobile .engineering-closure-node {
