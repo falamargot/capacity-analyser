@@ -143,48 +143,59 @@ const StageEvidenceContent = ({
 }) => {
   const primaryEvidence = stage.evidence?.slice(0, 3) ?? [];
   const secondaryEvidence = stage.evidence?.slice(3) ?? [];
-  const renderEvidence = (items: EngineeringCauseStage['evidence'], compactEvidence = false) => items?.map((item) => (
+  const renderEvidence = (items: EngineeringCauseStage['evidence'], secondary = false) => items?.map((item) => (
     <div
       key={`${item.label}:${item.value}`}
-      className={compactEvidence
-        ? 'grid min-w-0 grid-cols-[minmax(5.5rem,0.8fr)_minmax(0,1.2fr)] items-baseline gap-2 border-t border-slate-200/75 py-1.5 first:border-t-0 dark:border-slate-700/75'
-        : 'min-w-0 rounded-lg border border-slate-200 bg-white px-2.5 py-2.5 shadow-[0_8px_20px_-22px_rgba(15,23,42,0.8)] dark:border-slate-700 dark:bg-slate-950/70'}
+      className="grid min-w-0 gap-x-5 gap-y-1 border-t border-slate-200/75 py-3 first:border-t-0 sm:grid-cols-[minmax(9rem,0.62fr)_minmax(0,1.38fr)] sm:items-start dark:border-slate-800"
     >
-      <dt className="text-[8px] font-bold uppercase tracking-[0.09em] text-slate-500 dark:text-slate-400">{item.label}</dt>
+      <dt className="pt-0.5 text-[9px] font-bold uppercase tracking-[0.11em] text-slate-500 dark:text-slate-400">{item.label}</dt>
       <dd
-        className={`${compactEvidence ? 'text-right text-[10px]' : 'mt-1 text-[12px]'} break-words font-bold leading-4 ${stageStyles[item.state].textClass}`}
+        className={`${secondary ? 'text-[12px]' : 'text-[14px]'} break-words font-bold leading-5 ${stageStyles[item.state].textClass}`}
         title={item.detail}
         aria-label={item.detail ? `${item.label}: ${item.value}. ${item.detail}` : undefined}
       >
         {item.value}
       </dd>
-      {!compactEvidence && item.detail && (
-        <p className="mt-1 text-[9px] leading-4 text-slate-500 dark:text-slate-400">{item.detail}</p>
+      {item.detail && (
+        <p className="text-[10px] leading-4 text-slate-500 sm:col-start-2 dark:text-slate-400">{item.detail}</p>
       )}
     </div>
   ));
   const hasPrimaryEvidence = Boolean(summaryEvidence) || primaryEvidence.length > 0;
 
   return (
-    <div data-engineering-stage-evidence={stage.id}>
-      {summaryEvidence && <div className="mb-3">{summaryEvidence}</div>}
+    <div className="engineering-inspector-workspace" data-engineering-stage-evidence={stage.id}>
+      {summaryEvidence && <div className="mb-6" data-engineering-workspace-summary="">{summaryEvidence}</div>}
       {primaryEvidence.length > 0 && (
-        <dl className="grid gap-2 sm:grid-cols-2" aria-label={`${stage.label} primary evidence`}>
+        <section className="mb-6" aria-labelledby={`stage-evidence-${stage.id}`}>
+          <h3 id={`stage-evidence-${stage.id}`} className="mb-1 text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+            Evidence snapshot
+          </h3>
+          <dl aria-label={`${stage.label} primary evidence`}>
           {renderEvidence(primaryEvidence)}
-        </dl>
+          </dl>
+        </section>
       )}
       {stage.id !== 'path' ? (
         <>
-          {secondaryEvidence.length > 0 && <dl className="mt-2">{renderEvidence(secondaryEvidence, true)}</dl>}
-          {evidence && <div className={hasPrimaryEvidence || secondaryEvidence.length > 0 ? 'mt-3' : ''}>{evidence}</div>}
+          {evidence && <div className={hasPrimaryEvidence ? 'mt-6' : ''} data-engineering-primary-investigation="">{evidence}</div>}
+          {secondaryEvidence.length > 0 && (
+            <details className="group mt-6 border-y border-slate-200/80 dark:border-slate-800" data-engineering-secondary-investigation="">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 py-3 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 outline-none focus-visible:ring-2 focus-visible:ring-sky-400 dark:text-slate-400 [&::-webkit-details-marker]:hidden">
+                <span>Additional stage evidence</span>
+                <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" aria-hidden="true" />
+              </summary>
+              <dl className="border-t border-slate-200/80 dark:border-slate-800">{renderEvidence(secondaryEvidence, true)}</dl>
+            </details>
+          )}
         </>
       ) : (
-        <details className={`group rounded-lg border border-slate-200 bg-white/80 open:bg-white dark:border-slate-700 dark:bg-slate-950/45 dark:open:bg-slate-950/70 ${hasPrimaryEvidence ? 'mt-3' : ''}`}>
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-[10px] font-bold text-slate-700 outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-sky-400 dark:text-slate-200 dark:hover:bg-slate-900 [&::-webkit-details-marker]:hidden">
+        <details open className={`group border-y border-slate-200/80 dark:border-slate-800 ${hasPrimaryEvidence ? 'mt-6' : ''}`}>
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 py-3 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-600 outline-none hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-sky-400 dark:text-slate-300 dark:hover:text-white [&::-webkit-details-marker]:hidden">
             <span>Major Hops &amp; Technical Evidence</span>
             <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform group-open:rotate-180" aria-hidden="true" />
           </summary>
-          <div className="border-t border-slate-200 p-3 dark:border-slate-700">
+          <div className="border-t border-slate-200/80 py-4 dark:border-slate-800">
             {secondaryEvidence.length > 0 && <dl className="mb-3">{renderEvidence(secondaryEvidence, true)}</dl>}
             {evidence}
           </div>
@@ -268,6 +279,9 @@ const EngineeringInspector = ({
   summaryEvidence,
   nextAction,
   motionState,
+  variant,
+  stages,
+  onSelectStage,
   onClose,
 }: {
   id: string;
@@ -277,17 +291,22 @@ const EngineeringInspector = ({
   summaryEvidence?: ReactNode;
   nextAction?: string;
   motionState: 'open' | 'closing';
+  variant: 'desktop' | 'mobile';
+  stages: EngineeringCauseStage[];
+  onSelectStage: (stageId: EngineeringCauseStageId) => void;
   onClose: () => void;
 }) => {
   const styles = stageStyles[stage.state];
   const StatusIcon = styles.icon;
-  return (
+  const inspector = (
     <aside
       id={id}
       aria-label={`${technology} ${stage.label} Engineering Inspector`}
       data-engineering-inspector=""
       data-engineering-inspector-state={motionState}
-      className="engineering-inspector pointer-events-auto flex h-full min-h-0 w-full flex-col overflow-hidden rounded-l-[24px] border border-r-0 border-slate-200/90 bg-white/98 shadow-[-24px_24px_60px_-32px_rgba(15,23,42,0.6)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-950/98 dark:shadow-[-28px_24px_70px_-32px_rgba(0,0,0,0.9)]"
+      className={variant === 'desktop'
+        ? 'engineering-inspector pointer-events-auto flex h-full min-h-0 w-full flex-col overflow-hidden rounded-l-[24px] border border-r-0 border-slate-200/90 bg-white/98 shadow-[-24px_24px_60px_-32px_rgba(15,23,42,0.6)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-950/98 dark:shadow-[-28px_24px_70px_-32px_rgba(0,0,0,0.9)]'
+        : 'engineering-inspector engineering-inspector-mobile pointer-events-auto flex max-h-[92dvh] min-h-0 w-full max-w-3xl flex-col overflow-hidden rounded-t-[28px] border border-b-0 border-slate-200/90 bg-white shadow-[0_-18px_60px_-28px_rgba(15,23,42,0.65)] dark:border-slate-700 dark:bg-slate-950 dark:shadow-[0_-22px_70px_-28px_rgba(0,0,0,0.92)]'}
       onKeyDown={(event) => {
         if (event.key !== 'Escape') return;
         event.preventDefault();
@@ -295,7 +314,12 @@ const EngineeringInspector = ({
         onClose();
       }}
     >
-      <header className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200/80 bg-slate-50/90 px-4 py-3.5 dark:border-slate-800 dark:bg-slate-900/85">
+      {variant === 'mobile' && (
+        <div className="flex shrink-0 justify-center bg-slate-50/90 pb-0 pt-2.5 dark:bg-slate-900/85" aria-hidden="true">
+          <div className="h-1.5 w-14 rounded-full bg-slate-300 dark:bg-slate-600" />
+        </div>
+      )}
+      <header className={`flex shrink-0 items-start justify-between gap-4 border-b border-slate-200/80 bg-slate-50/90 dark:border-slate-800 dark:bg-slate-900/85 ${variant === 'desktop' ? 'px-5 py-4' : 'px-4 pb-3 pt-2.5'}`}>
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className={`h-2 w-2 shrink-0 rounded-full ${technology === 'LEO' ? 'bg-pink-500' : 'bg-blue-500'}`} aria-hidden="true" />
@@ -307,7 +331,7 @@ const EngineeringInspector = ({
             </span>
             <div className="min-w-0">
               <div className="text-[9px] font-bold uppercase tracking-[0.13em] text-slate-400 dark:text-slate-500">{technology} · Cause Chain</div>
-              <h2 className="truncate text-[16px] font-bold leading-5 text-slate-950 dark:text-white">{stage.label}</h2>
+              <h2 className={`${variant === 'desktop' ? 'text-[19px] leading-6' : 'text-[17px] leading-5'} truncate font-bold text-slate-950 dark:text-white`}>{stage.label}</h2>
             </div>
           </div>
         </div>
@@ -321,21 +345,57 @@ const EngineeringInspector = ({
         </button>
       </header>
 
+      {variant === 'mobile' && (
+        <nav className="shrink-0 overflow-x-auto border-b border-slate-200/80 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-950" aria-label="Engineering Inspector Cause Chain stages">
+          <div className="flex min-w-max gap-1.5">
+            {stages.map((candidate) => {
+              const candidateStyles = stageStyles[candidate.state];
+              const CandidateIcon = candidateStyles.icon;
+              const active = candidate.id === stage.id;
+              return (
+                <button
+                  key={candidate.id}
+                  type="button"
+                  onClick={() => onSelectStage(candidate.id)}
+                  aria-current={active ? 'step' : undefined}
+                  className={`inline-flex h-9 items-center gap-1.5 rounded-xl border px-3 text-[10px] font-bold uppercase tracking-[0.08em] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-sky-400 ${active ? 'border-sky-400 bg-sky-50 text-sky-800 dark:border-sky-600 dark:bg-sky-950/45 dark:text-sky-200' : 'border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-800 dark:bg-slate-900/65 dark:text-slate-400'}`}
+                >
+                  <CandidateIcon className={`h-3 w-3 ${candidateStyles.textClass}`} aria-hidden="true" />
+                  {candidate.label}
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+      )}
+
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-        <div key={stage.id} className="engineering-inspector-content p-4" aria-live="polite">
-          <div className="mb-4 border-b border-slate-200/80 pb-3 dark:border-slate-800">
-            <div className={`text-[11px] font-semibold leading-4 ${styles.textClass}`}>{stage.summary}</div>
-            {stage.detail && <p className="mt-1 text-[11px] leading-4 text-slate-500 dark:text-slate-400">{stage.detail}</p>}
+        <div key={stage.id} className={`engineering-inspector-content ${variant === 'desktop' ? 'p-6' : 'px-4 pb-6 pt-4 sm:px-5'}`} aria-live="polite">
+          <div className="mb-6 border-l-2 border-slate-300 pl-4 dark:border-slate-700">
+            <div className={`text-[13px] font-semibold leading-5 ${styles.textClass}`}>{stage.summary}</div>
+            {stage.detail && <p className="mt-1 text-[12px] leading-5 text-slate-500 dark:text-slate-400">{stage.detail}</p>}
           </div>
           <StageEvidenceContent stage={stage} evidence={evidence} summaryEvidence={summaryEvidence} />
           {nextAction && (
-            <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-[11px] leading-4 text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+            <div className="mt-7 border-t border-slate-200 pt-4 text-[11px] leading-5 text-slate-600 dark:border-slate-800 dark:text-slate-300">
               <strong className="font-semibold text-slate-800 dark:text-slate-100">Next investigation:</strong> {nextAction}
             </div>
           )}
         </div>
       </div>
     </aside>
+  );
+  if (variant === 'desktop') return inspector;
+  return (
+    <div
+      className="engineering-inspector-mobile-backdrop fixed inset-0 z-[1400] flex items-end justify-center bg-slate-950/35 px-0 backdrop-blur-[2px] sm:px-3"
+      data-engineering-inspector-state={motionState}
+      onPointerDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      {inspector}
+    </div>
   );
 };
 
@@ -360,7 +420,10 @@ const EngineeringResultSummary = ({ technology, truth, stageEvidence, stageSumma
   const [inspectorHost, setInspectorHost] = useState<HTMLElement | null>();
   const [presentedStageId, setPresentedStageId] = useState<EngineeringCauseStageId | null>(expandedStageId);
   const [inspectorMotionState, setInspectorMotionState] = useState<'open' | 'closing'>('open');
-  const useInlineEvidenceFallback = inspectorHost === null || typeof document === 'undefined';
+  const useInlineEvidenceFallback = typeof document === 'undefined';
+  const inspectorPortalTarget = inspectorHost === undefined || typeof document === 'undefined'
+    ? null
+    : inspectorHost ?? document.body;
   const presentedStage = presentedStageId
     ? truth.causeChain.find((stage) => stage.id === presentedStageId) ?? null
     : null;
@@ -561,7 +624,7 @@ const EngineeringResultSummary = ({ technology, truth, stageEvidence, stageSumma
           </div>
         )}
       </div>
-      {inspectorHost && presentedStage && createPortal(
+      {inspectorPortalTarget && presentedStage && createPortal(
         <EngineeringInspector
           id={inspectorId}
           technology={technology}
@@ -570,9 +633,15 @@ const EngineeringResultSummary = ({ technology, truth, stageEvidence, stageSumma
           summaryEvidence={stageSummaries?.[presentedStage.id]}
           nextAction={truth.nextAction}
           motionState={inspectorMotionState}
+          variant={inspectorHost ? 'desktop' : 'mobile'}
+          stages={truth.causeChain}
+          onSelectStage={(stageId) => {
+            if (expandedStageId === stageId) clear();
+            else lock(technology, stageId, 'lens');
+          }}
           onClose={closeInspector}
         />,
-        inspectorHost,
+        inspectorPortalTarget,
       )}
     </section>
   );

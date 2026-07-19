@@ -210,6 +210,7 @@ const GeoCockpitTile = ({
   mono?: boolean;
 }) => (
   <div
+    data-engineering-metric-tile=""
     className="min-w-0 rounded-md border border-slate-800 bg-slate-900/65 px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]"
     title={typeof value === 'string' || typeof value === 'number' ? String(value) : undefined}
   >
@@ -242,7 +243,7 @@ const GeoCockpitPanel = ({
   }[accent];
 
   return (
-    <section className={`min-h-0 overflow-hidden rounded-xl border bg-slate-950/75 ${accentClassName} ${className}`}>
+    <section data-engineering-cockpit-panel="" className={`min-h-0 overflow-hidden rounded-xl border bg-slate-950/75 ${accentClassName} ${className}`}>
       <div className="flex items-baseline justify-between gap-3 border-b border-slate-800 bg-slate-900/75 px-3 py-2">
         <h4 className="truncate text-[11px] font-semibold uppercase tracking-wide">{title}</h4>
         {eyebrow && <span className="shrink-0 text-[8px] font-semibold uppercase tracking-wide text-slate-500">{eyebrow}</span>}
@@ -1111,7 +1112,7 @@ const GeoSegmentCockpitPanel = ({ type, seg, coverageName }: { type: 'uplink' | 
           <GeoCockpitTile label="FSPL" value={fmtDb(c.fsplDb)} tone={accent} />
           <GeoCockpitTile label="Atm. loss" value={fmtDb(c.atmosphericLossDb)} tone={accent} />
         </div>
-        <div className="grid min-h-0 grid-cols-[minmax(0,1fr)_minmax(140px,0.5fr)] gap-2">
+        <div className="grid min-h-0 grid-cols-1 gap-2">
           <div className="rounded-lg border border-slate-800 bg-slate-950/55 px-3 py-2">
             <div className="grid grid-cols-2 gap-1.5">
               <GeoCockpitTile label={isUplink ? 'C/N uplink' : 'C/N downlink'} value={fmtDb(seg.effectiveCNDb)} tone={accent} />
@@ -1195,7 +1196,7 @@ const GeoE2ECockpitPanel = ({ e2e, linkMode, networkLayer }: { e2e: EndToEndBudg
           <GeoCockpitTile label="Spectral efficiency" value={`${e2e.endToEndSpectralEfficiency.toFixed(2)} b/s/Hz`} tone="amber" />
           <GeoCockpitTile label="RF throughput" value={fmtMbps(e2e.endToEndThroughputMbps)} tone="amber" />
         </div>
-        <div className="grid min-h-0 grid-cols-[minmax(0,1fr)_minmax(155px,0.45fr)] gap-2">
+        <div className="grid min-h-0 grid-cols-1 gap-2">
           <div className="rounded-lg border border-slate-700/80 bg-slate-900/55 px-3 py-2">
             <div className="grid grid-cols-3 gap-1.5">
               <div className="min-w-0 rounded-md border border-slate-800 bg-slate-900/70 px-2 py-1">
@@ -1238,7 +1239,7 @@ const GeoNetworkCockpitPanel = ({ nl, linkMode }: { nl?: NetworkLayerResult; lin
 
   return (
     <GeoCockpitPanel title="Network Layer" eyebrow={isP2P ? 'dedicated SCPC' : 'shared service'} accent="violet">
-      <div className="grid grid-cols-[minmax(0,1fr)_minmax(150px,0.35fr)] gap-2 p-2.5">
+      <div className="grid grid-cols-1 gap-2 p-2.5">
         <div className="grid grid-cols-5 gap-1.5">
           <GeoCockpitTile label="Peak RF" value={fmtMbps(nl.peakRfMbps)} tone="violet" />
           <GeoCockpitTile label="Protocol efficiency" value={fmtPct(nl.protocolEfficiency)} tone={isP2P ? 'emerald' : 'amber'} />
@@ -1310,7 +1311,7 @@ const GeoDiagnosticFlowPanel = ({
 
   return (
     <GeoCockpitPanel title="Engineering Diagnostic Flow" eyebrow="RF closure path" accent="blue">
-      <div className="grid h-full min-h-0 gap-2 p-2.5 min-[1500px]:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+      <div className="grid h-full min-h-0 grid-cols-1 gap-2 p-2.5">
         <div className="grid min-h-0 grid-cols-6 gap-1.5">
           <GeoCockpitTile label="Tx EIRP" value={fmtDbw(uplink.source.eirpDbw)} tone="blue" />
           <GeoCockpitTile label="UL C/N" value={fmtDb(uplink.effectiveCNDb)} tone="blue" />
@@ -1361,7 +1362,7 @@ const GeoInvestigationSection = ({
   defaultOpen?: boolean;
   children: ReactNode;
 }) => (
-  <details className="group group/investigation rounded-xl border border-slate-800 bg-slate-950/60" open={defaultOpen}>
+  <details data-engineering-investigation-section="" className="group group/investigation rounded-xl border border-slate-800 bg-slate-950/60" open={defaultOpen}>
     <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5">
       <div className="min-w-0">
         <h4 className="text-sm font-semibold text-slate-100">{title}</h4>
@@ -1394,12 +1395,14 @@ const GeoDirectionCockpit = ({
       <GeoInvestigationSection
         title="Uplink Segment"
         subtitle="Source to satellite RF chain — frequency, EIRP, G/T, C/N and margin."
+        defaultOpen={endToEnd.limitingSegment === 'uplink'}
       >
         <GeoSegmentCockpitPanel type="uplink" seg={uplink} coverageName={uplinkCoverageName} />
       </GeoInvestigationSection>
       <GeoInvestigationSection
         title="Downlink Segment"
         subtitle="Satellite to destination RF chain — EIRP, G/T, C/N and margin."
+        defaultOpen={endToEnd.limitingSegment === 'downlink'}
       >
         <GeoSegmentCockpitPanel type="downlink" seg={downlink} coverageName={downlinkCoverageName} />
       </GeoInvestigationSection>
@@ -1581,7 +1584,7 @@ const DualSegmentPanel = memo<DualSegmentPanelProps>(({
       : resultWithRfContext!.networkLayer?.forward;
 
     return (
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,260px),1fr))] gap-3 text-xs">
+      <div data-engineering-layout="geo-rf-workspace" className="grid grid-cols-1 gap-3 text-xs">
         <div className="flex flex-col gap-3">
           <GeoTopologyCockpitPanel linkMode={linkMode} mode={result.transponderMode} satelliteName={satelliteName} />
           {rfContext && <GeoRfContextCockpitPanel context={rfContext} />}

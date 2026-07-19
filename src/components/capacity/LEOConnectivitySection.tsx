@@ -178,7 +178,7 @@ const CockpitTile = ({
   }[tone];
 
   return (
-    <div className="min-w-0 rounded-md border border-slate-800 bg-slate-900/65 px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+    <div data-engineering-metric-tile="" className="min-w-0 rounded-md border border-slate-800 bg-slate-900/65 px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
       <div className="truncate text-[8px] font-semibold uppercase tracking-wide text-slate-500">{label}</div>
       <div className={`mt-0.5 truncate text-[11px] font-medium ${toneClassName} ${mono ? 'font-mono tabular-nums' : ''}`}>
         {value}
@@ -208,7 +208,7 @@ const CockpitPanel = ({
   }[accent];
 
   return (
-    <section className={`min-h-0 overflow-hidden rounded-xl border bg-slate-950/75 ${accentClassName} ${className}`}>
+    <section data-engineering-cockpit-panel="" className={`min-h-0 overflow-hidden rounded-xl border bg-slate-950/75 ${accentClassName} ${className}`}>
       <div className="flex items-baseline justify-between gap-3 border-b border-slate-800 bg-slate-900/75 px-3 py-2">
         <h4 className="truncate text-[11px] font-semibold uppercase tracking-wide">{title}</h4>
         {eyebrow && <span className="shrink-0 text-[8px] font-semibold uppercase tracking-wide text-slate-500">{eyebrow}</span>}
@@ -321,7 +321,7 @@ const DirectionBudgetSection = ({
           ))}
         </div>
 
-        <div className="grid grid-cols-[minmax(0,1fr)_minmax(150px,0.58fr)] gap-2">
+        <div className="grid grid-cols-1 gap-2">
           <div className="rounded-lg border border-slate-700/80 bg-slate-900/55 px-3 py-2">
             <div className="flex items-center justify-between gap-2">
               <span className="text-[10px] font-semibold text-slate-300 flex items-center gap-0.5">
@@ -606,12 +606,7 @@ const LeoRFLinkBudgetPanel = ({
   const beamPosPercent = Math.round(Math.min(d.normalizedDistance, 1) * 100);
 
   return (
-    <div className={[
-      'grid h-full min-h-0 grid-cols-1 gap-3 text-xs',
-      showTerminal
-        ? 'xl:grid-cols-[minmax(300px,0.82fr)_minmax(0,1fr)_minmax(0,1fr)]'
-        : 'xl:grid-cols-[minmax(260px,0.62fr)_minmax(0,1fr)_minmax(0,1fr)]',
-    ].join(' ')}>
+    <div data-engineering-layout="leo-rf-budget" className="grid h-full min-h-0 grid-cols-1 gap-3 text-xs">
       <div className={showTerminal ? 'grid min-h-0 grid-rows-[minmax(0,0.84fr)_minmax(0,1.16fr)] gap-3' : 'min-h-0'}>
         <CockpitPanel title="Beam Geometry" eyebrow="access layer" accent="emerald" className="h-full">
           <div className="flex h-full min-h-0 flex-col gap-2 p-2.5">
@@ -713,7 +708,7 @@ const InvestigationSection = ({
   defaultOpen?: boolean;
   children: ReactNode;
 }) => (
-  <details className="group group/investigation rounded-xl border border-slate-800 bg-slate-950/60" open={defaultOpen}>
+  <details data-engineering-investigation-section="" className="group group/investigation rounded-xl border border-slate-800 bg-slate-950/60" open={defaultOpen}>
     <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5">
       <div className="min-w-0">
         <h4 className="flex items-center gap-2 text-sm font-semibold text-slate-100">{title}</h4>
@@ -756,6 +751,16 @@ const LeoLinkBudgetEvidence = ({
     ? (debugInfoSiteA ?? debugInfo)
     : (debugInfoSiteB ?? debugInfo);
   const hasS2SAccessBudgets = sourceDebugInfo != null && destinationDebugInfo != null;
+  const s2sFailureSite = siteToSiteResult?.failureReason?.endsWith('_B')
+    ? 'B'
+    : siteToSiteResult?.failureReason?.endsWith('_A') ? 'A' : null;
+  const s2sPrimaryFactor = sourceDebugInfo?.mainBottleneck.factor;
+  const s2sPrimaryInvestigation = s2sFailureSite
+    ? `site-${s2sFailureSite}`
+    : s2sPrimaryFactor === 'feeder' ? 'backbone'
+      : s2sPrimaryFactor === 'terminal' ? 'terminal'
+        : `site-${sourceSiteId}`;
+  const singlePrimaryInvestigation = debugInfo?.mainBottleneck.factor === 'terminal' ? 'terminal' : 'site-A';
   const siteBadgeClass = 'border border-slate-600 bg-slate-800 text-slate-100';
   const viewModel = providedViewModel ?? buildLeoEngineeringAnalysisViewModel({
     debugInfo,
@@ -797,6 +802,7 @@ const LeoLinkBudgetEvidence = ({
         key={siteId}
         title={siteInvestigationTitle(siteId)}
         subtitle={`Beam geometry, uplink and downlink RF budget · ${role} for ${s2sDirectionLabel}.`}
+        defaultOpen={s2sPrimaryInvestigation === `site-${siteId}`}
       >
         <LeoRFLinkBudgetPanel
           d={siteDebugInfo!}
@@ -819,6 +825,7 @@ const LeoLinkBudgetEvidence = ({
             <InvestigationSection
               title="Backbone Investigation"
               subtitle="SNPs, logical PoP and terrestrial backbone latency."
+              defaultOpen={s2sPrimaryInvestigation === 'backbone'}
             >
               <CockpitPanel title="Backbone Network Layer" eyebrow="fiber / IP core" accent="violet">
                 <div className="grid items-stretch gap-2 p-2.5">
@@ -860,6 +867,7 @@ const LeoLinkBudgetEvidence = ({
             <InvestigationSection
               title="Terminal Investigation"
               subtitle="Selected terminal RF profile for each site."
+              defaultOpen={s2sPrimaryInvestigation === 'terminal'}
             >
               <TerminalProfileCockpitPanel siteA={debugInfoSiteA ?? sourceDebugInfo!} siteB={debugInfoSiteB ?? destinationDebugInfo!} />
             </InvestigationSection>
@@ -871,12 +879,14 @@ const LeoLinkBudgetEvidence = ({
             <InvestigationSection
               title={siteInvestigationTitle('A')}
               subtitle="Beam geometry, uplink and downlink RF budget for the active terminal."
+              defaultOpen={singlePrimaryInvestigation === 'site-A'}
             >
               <LeoRFLinkBudgetPanel d={debugInfo} showTerminal={false} />
             </InvestigationSection>
             <InvestigationSection
               title="Terminal Investigation"
               subtitle="Selected terminal RF profile and capability assumptions."
+              defaultOpen={singlePrimaryInvestigation === 'terminal'}
             >
               <TerminalAssumptionsSection d={debugInfo} />
             </InvestigationSection>

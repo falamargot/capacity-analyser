@@ -523,6 +523,150 @@ h1, h2, h3, h4 {
   animation: engineering-inspector-content-enter 180ms 45ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+.engineering-inspector-workspace {
+  container-name: engineering-inspector;
+  container-type: inline-size;
+}
+
+/* Workspace summaries read as property rows instead of nested mini-cards. */
+.engineering-inspector-workspace [data-engineering-evidence-summary] {
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 0 !important;
+}
+
+.engineering-inspector-workspace [data-engineering-evidence-summary] > div {
+  display: grid;
+  grid-template-columns: minmax(9rem, 0.62fr) minmax(0, 1.38fr);
+  gap: 0.25rem 1.25rem;
+  align-items: start;
+  padding: 0.75rem 0;
+  border-width: 0;
+  border-top: 1px solid rgb(51 65 85 / 0.55);
+  border-radius: 0;
+  background: transparent;
+}
+
+.engineering-inspector-workspace [data-engineering-evidence-summary] > div:first-child {
+  border-top: 0;
+}
+
+.engineering-inspector-workspace [data-engineering-evidence-summary] dt {
+  padding-top: 0.125rem;
+  font-size: 0.5625rem;
+}
+
+.engineering-inspector-workspace [data-engineering-evidence-summary] dd,
+.engineering-inspector-workspace [data-engineering-evidence-summary] p {
+  grid-column: 2;
+}
+
+.engineering-inspector-workspace [data-engineering-evidence-summary] dd {
+  margin-top: 0;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+/* Investigation topics remain discrete, but the open topic is visually flatter
+   and receives the available workspace width. */
+.engineering-inspector-workspace [data-engineering-investigation-section] {
+  border-color: rgb(51 65 85 / 0.72);
+  background: rgb(2 6 23 / 0.28);
+  box-shadow: none;
+}
+
+.engineering-inspector-workspace [data-engineering-investigation-section] > summary {
+  padding: 0.875rem 1rem;
+}
+
+.engineering-inspector-workspace [data-engineering-investigation-section][open] {
+  background: rgb(2 6 23 / 0.48);
+}
+
+.engineering-inspector-workspace [data-engineering-investigation-section] > div {
+  padding: 1rem;
+}
+
+.engineering-inspector-workspace [data-engineering-cockpit-panel] {
+  border-color: rgb(51 65 85 / 0.7);
+  border-radius: 0.625rem;
+  background: rgb(2 6 23 / 0.42);
+  box-shadow: none;
+}
+
+/* Cockpit tiles choose columns from the Inspector container, not the viewport.
+   This prevents xl screen breakpoints from squeezing five or six values into a
+   500–600 px investigation surface. */
+.engineering-inspector-workspace .grid:has(> [data-engineering-metric-tile]) {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 0.5rem !important;
+}
+
+.engineering-inspector-workspace .grid:has(> [data-engineering-metric-tile]) > [class*='col-span-'] {
+  grid-column: 1 / -1 !important;
+}
+
+.engineering-inspector-workspace [data-engineering-metric-tile] {
+  min-height: 3.5rem;
+  padding: 0.625rem 0.75rem;
+  border-color: rgb(51 65 85 / 0.62);
+  background: rgb(15 23 42 / 0.58);
+  box-shadow: none;
+}
+
+.engineering-inspector-workspace [data-engineering-metric-tile] > div:first-child {
+  overflow: visible;
+  white-space: normal;
+  font-size: 0.5625rem;
+  line-height: 0.75rem;
+}
+
+.engineering-inspector-workspace [data-engineering-metric-tile] > div:nth-child(2) {
+  overflow: visible;
+  white-space: normal;
+  font-size: 0.8125rem;
+  line-height: 1.05rem;
+}
+
+.engineering-inspector-workspace [data-engineering-layout='leo-rf-budget'],
+.engineering-inspector-workspace [data-engineering-layout='geo-rf-workspace'] {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.engineering-inspector-workspace [data-engineering-cockpit-panel] [class*='grid-cols-[minmax(0,1fr)_minmax('] {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+@container engineering-inspector (max-width: 30rem) {
+  .engineering-inspector-workspace .grid:has(> [data-engineering-metric-tile]) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .engineering-inspector-workspace [data-engineering-evidence-summary] > div {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .engineering-inspector-workspace [data-engineering-evidence-summary] dd,
+  .engineering-inspector-workspace [data-engineering-evidence-summary] p {
+    grid-column: 1;
+  }
+}
+
+.engineering-inspector-mobile[data-engineering-inspector-state='open'] {
+  animation: engineering-inspector-mobile-open 250ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.engineering-inspector-mobile[data-engineering-inspector-state='closing'] {
+  animation: engineering-inspector-mobile-close 250ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.engineering-inspector-mobile-backdrop[data-engineering-inspector-state='open'] {
+  animation: engineering-inspector-backdrop-in 180ms ease-out both;
+}
+
+.engineering-inspector-mobile-backdrop[data-engineering-inspector-state='closing'] {
+  animation: engineering-inspector-backdrop-out 250ms ease-in both;
+}
+
 @keyframes engineering-inspector-open {
   from {
     clip-path: inset(0 0 0 100% round 24px 0 0 24px);
@@ -560,6 +704,24 @@ h1, h2, h3, h4 {
   }
 }
 
+@keyframes engineering-inspector-mobile-open {
+  from { opacity: 0.7; transform: translateY(32px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes engineering-inspector-mobile-close {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0.45; transform: translateY(32px); }
+}
+
+@keyframes engineering-inspector-backdrop-in {
+  from { background-color: rgb(2 6 23 / 0); backdrop-filter: blur(0); }
+}
+
+@keyframes engineering-inspector-backdrop-out {
+  to { background-color: rgb(2 6 23 / 0); backdrop-filter: blur(0); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .commercial-access-title,
   .commercial-recommendation-hero,
@@ -574,6 +736,7 @@ h1, h2, h3, h4 {
   .endpoint-selection-panel-reveal,
   .endpoint-selection-label-settle > div,
   .engineering-inspector,
+  .engineering-inspector-mobile-backdrop,
   .engineering-inspector-content {
     animation: none;
   }
@@ -585,6 +748,7 @@ h1, h2, h3, h4 {
   }
 
   .engineering-inspector,
+  .engineering-inspector-mobile-backdrop,
   .engineering-inspector * {
     scroll-behavior: auto;
     transition-duration: 0.01ms !important;

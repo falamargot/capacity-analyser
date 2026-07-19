@@ -14,7 +14,7 @@ export const EngineeringEvidenceSummary = ({
   facts: EngineeringScenarioFact[];
   ariaLabel: string;
 }) => (
-  <dl className="grid gap-2 sm:grid-cols-2" aria-label={ariaLabel}>
+  <dl data-engineering-evidence-summary="" className="grid gap-2 sm:grid-cols-2" aria-label={ariaLabel}>
     {facts.map((fact) => (
       <div key={fact.label} className="min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2.5 dark:border-slate-700 dark:bg-slate-950/65">
         <dt className="text-[8px] font-bold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400">{fact.label}</dt>

@@ -375,7 +375,7 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
   });
 
   describe('Level 4 detailed investigation drawer', () => {
-    it('SINGLE_SITE: shows Site A and Terminal investigation sections collapsed by default', () => {
+    it('SINGLE_SITE: opens the primary Site A investigation and keeps Terminal secondary', () => {
       const html = renderLeoRfEvidence(
         <LEOConnectivitySection
           {...baseProps}
@@ -398,7 +398,7 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
       expect(html).toContain('Terminal Investigation');
       expect(html).not.toContain('Site B Investigation');
       expect(html).not.toContain('Backbone Investigation');
-      expect(detailsOpenStateBeforeText(html, 'Site A Investigation')).toBe(false);
+      expect(detailsOpenStateBeforeText(html, 'Site A Investigation')).toBe(true);
       expect(detailsOpenStateBeforeText(html, 'Terminal Investigation')).toBe(false);
       expect(html).toContain('Show details');
       expect(html).toContain('Hide details');
@@ -406,7 +406,7 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
       expect(html).not.toContain('>Collapse</span>');
     });
 
-    it('SITE_TO_SITE: shows Site A, Site B, Backbone and Terminal investigation sections collapsed by default', () => {
+    it('SITE_TO_SITE: opens only the source-site investigation by default', () => {
       const html = renderLeoRfEvidence(
         <LEOConnectivitySection
           {...baseProps}
@@ -443,13 +443,13 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
       expect(html).toContain('Site B Investigation');
       expect(html).toContain('Backbone Investigation');
       expect(html).toContain('Terminal Investigation');
-      expect(detailsOpenStateBeforeText(html, 'Site A Investigation')).toBe(false);
+      expect(detailsOpenStateBeforeText(html, 'Site A Investigation')).toBe(true);
       expect(detailsOpenStateBeforeText(html, 'Site B Investigation')).toBe(false);
       expect(detailsOpenStateBeforeText(html, 'Backbone Investigation')).toBe(false);
       expect(detailsOpenStateBeforeText(html, 'Terminal Investigation')).toBe(false);
     });
 
-    it('SINGLE_SITE: keeps Terminal Investigation collapsed when terminal is the detected bottleneck', () => {
+    it('SINGLE_SITE: opens Terminal Investigation when terminal is the detected bottleneck', () => {
       const html = renderLeoRfEvidence(
         <LEOConnectivitySection
           {...baseProps}
@@ -472,10 +472,10 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
       );
 
       expect(detailsOpenStateBeforeText(html, 'Site A Investigation')).toBe(false);
-      expect(detailsOpenStateBeforeText(html, 'Terminal Investigation')).toBe(false);
+      expect(detailsOpenStateBeforeText(html, 'Terminal Investigation')).toBe(true);
     });
 
-    it('SITE_TO_SITE: keeps Site B Investigation collapsed when failureReason ends with _B', () => {
+    it('SITE_TO_SITE: opens Site B Investigation when failureReason ends with _B', () => {
       const html = renderLeoRfEvidence(
         <LEOConnectivitySection
           {...baseProps}
@@ -502,11 +502,11 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
       );
 
       expect(detailsOpenStateBeforeText(html, 'Site A Investigation')).toBe(false);
-      expect(detailsOpenStateBeforeText(html, 'Site B Investigation')).toBe(false);
+      expect(detailsOpenStateBeforeText(html, 'Site B Investigation')).toBe(true);
       expect(detailsOpenStateBeforeText(html, 'Backbone Investigation')).toBe(false);
     });
 
-    it('SITE_TO_SITE: keeps Backbone Investigation collapsed when the feeder is the detected bottleneck', () => {
+    it('SITE_TO_SITE: opens Backbone Investigation when the feeder is the detected bottleneck', () => {
       const feederDebug = {
         ...makeLeoResult(10, 8),
         mainBottleneck: { factor: 'feeder' as const, scope: 'DL' as const, label: 'DL feeder' },
@@ -533,7 +533,7 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
       );
 
       expect(detailsOpenStateBeforeText(html, 'Site A Investigation')).toBe(false);
-      expect(detailsOpenStateBeforeText(html, 'Backbone Investigation')).toBe(false);
+      expect(detailsOpenStateBeforeText(html, 'Backbone Investigation')).toBe(true);
     });
   });
 

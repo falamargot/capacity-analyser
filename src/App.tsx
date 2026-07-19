@@ -6034,7 +6034,7 @@ const App: React.FC = () => {
               >
                 <div
                   data-engineering-inspector-host=""
-                  className="pointer-events-none absolute -bottom-px -top-px right-full z-50 w-[clamp(22rem,32vw,30rem)]"
+                  className="pointer-events-none absolute -bottom-px -top-px right-full z-50 w-[clamp(34rem,42vw,40rem)]"
                 />
                 <>
                   {!showEngineeringRouteStatus && (

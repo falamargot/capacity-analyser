@@ -62,11 +62,12 @@ beforeEach(() => {
   Element.prototype.scrollIntoView = () => undefined;
 });
 
-const renderLens = async (element: ReactElement) => {
+const renderLens = async (element: ReactElement, withInspectorHost = true) => {
   const container = document.createElement('div');
   const inspectorHost = document.createElement('div');
   inspectorHost.setAttribute('data-engineering-inspector-host', '');
-  document.body.append(container, inspectorHost);
+  document.body.append(container);
+  if (withInspectorHost) document.body.append(inspectorHost);
   mountedRoot = createRoot(container);
   await act(async () => { mountedRoot?.render(element); });
   return { container, inspectorHost };
@@ -193,5 +194,22 @@ describe('Engineering Cause Chain investigation', () => {
     expect(closeButton).not.toBeNull();
     await act(async () => { closeButton?.click(); });
     expect(inspectorHost.querySelector('[data-engineering-inspector]')?.getAttribute('data-engineering-inspector-state')).toBe('closing');
+  });
+
+  it('uses a mobile bottom sheet with equivalent Cause Chain stage navigation when no desktop host exists', async () => {
+    const { container } = await renderLens(<StatefulLens />, false);
+    const deliveryButton = Array.from(container.querySelectorAll('button')).find((button) => button.getAttribute('aria-label')?.startsWith('Delivery:'));
+    await act(async () => { deliveryButton?.click(); });
+
+    const sheet = document.querySelector('[data-engineering-inspector].engineering-inspector-mobile');
+    const stageNavigation = document.querySelector('nav[aria-label="Engineering Inspector Cause Chain stages"]');
+    expect(sheet).not.toBeNull();
+    expect(stageNavigation?.querySelectorAll('button')).toHaveLength(5);
+
+    const pathButton = Array.from(stageNavigation?.querySelectorAll('button') ?? []).find((button) => button.textContent?.includes('Path'));
+    await act(async () => { pathButton?.click(); });
+    expect(document.querySelector('[data-engineering-inspector]')).toBe(sheet);
+    expect(document.querySelector('[data-engineering-inspector] h2')?.textContent).toBe('Path');
+    expect(document.querySelector('[data-engineering-stage-evidence="path"] details[open]')).not.toBeNull();
   });
 });

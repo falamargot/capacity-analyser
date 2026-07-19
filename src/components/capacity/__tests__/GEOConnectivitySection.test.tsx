@@ -502,10 +502,10 @@ describe('GEOConnectivitySection topology render smoke tests', () => {
         />
       );
 
-    it('keeps every subsection collapsed by default when uplink is the limiting segment', () => {
+    it('opens only the uplink investigation by default when uplink is limiting', () => {
       const html = renderGeoWithDrawer('STAR_FORWARD', makeStarResult(-2));
 
-      expect(detailsOpenStateBeforeText(html, 'Uplink Segment')).toBe(false);
+      expect(detailsOpenStateBeforeText(html, 'Uplink Segment')).toBe(true);
       expect(detailsOpenStateBeforeText(html, 'Downlink Segment')).toBe(false);
       expect(detailsOpenStateBeforeText(html, 'Satellite / Payload')).toBe(false);
       expect(detailsOpenStateBeforeText(html, 'End-to-End Diagnostic')).toBe(false);
@@ -515,11 +515,11 @@ describe('GEOConnectivitySection topology render smoke tests', () => {
       expect(html).not.toContain('>Collapse</span>');
     });
 
-    it('keeps every subsection collapsed by default when downlink is the limiting segment', () => {
+    it('opens only the downlink investigation by default when downlink is limiting', () => {
       const html = renderGeoWithDrawer('STAR_FORWARD', makeStarResult(4.5));
 
       expect(detailsOpenStateBeforeText(html, 'Uplink Segment')).toBe(false);
-      expect(detailsOpenStateBeforeText(html, 'Downlink Segment')).toBe(false);
+      expect(detailsOpenStateBeforeText(html, 'Downlink Segment')).toBe(true);
       expect(detailsOpenStateBeforeText(html, 'Satellite / Payload')).toBe(false);
       expect(detailsOpenStateBeforeText(html, 'End-to-End Diagnostic')).toBe(false);
     });
