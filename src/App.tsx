@@ -275,8 +275,8 @@ interface EngineeringSemanticCameraView {
   up: Cartesian3;
 }
 
-/** Presentation-only GEO composition: view the route plane from the side while
- * keeping the Earth, both ground nodes, and the serving spacecraft legible. */
+/** Presentation-only GEO composition: preserve the route plane, Earth context,
+ * ground endpoints and serving spacecraft without maximizing the link line. */
 const createSemanticGeoPathCameraView = (
   positions: Cartesian3[],
   currentCameraPosition: Cartesian3,
@@ -296,7 +296,9 @@ const createSemanticGeoPathCameraView = (
   const groundB = groundPositions[groundPositions.length - 1];
   const earthRadius = (Cartesian3.magnitude(groundA) + Cartesian3.magnitude(groundB)) / 2;
   const groundMidpoint = Cartesian3.midpoint(groundA, groundB, new Cartesian3());
-  const target = Cartesian3.lerp(groundMidpoint, satellite, 0.48, new Cartesian3());
+  // Keep the visual centre closer to Earth than the satellite. A midpoint-biased
+  // target produces an impressive link line but leaves little geographic context.
+  const target = Cartesian3.lerp(groundMidpoint, satellite, 0.06, new Cartesian3());
 
   const firstLeg = Cartesian3.subtract(satellite, groundA, new Cartesian3());
   const secondLeg = Cartesian3.subtract(groundB, satellite, new Cartesian3());
@@ -311,7 +313,7 @@ const createSemanticGeoPathCameraView = (
   if (Cartesian3.dot(lateral, currentSide) < 0) Cartesian3.negate(lateral, lateral);
   const earthwardUp = Cartesian3.normalize(groundMidpoint, new Cartesian3());
   const longestLeg = Math.max(Cartesian3.magnitude(firstLeg), Cartesian3.magnitude(secondLeg));
-  const lateralDistance = Math.min(earthRadius * 8.2, Math.max(earthRadius * 6.4, longestLeg * 1.25));
+  const lateralDistance = Math.min(earthRadius * 4.6, Math.max(earthRadius * 3.8, longestLeg * 0.72));
   const destination = Cartesian3.add(
     target,
     Cartesian3.multiplyByScalar(lateral, lateralDistance, new Cartesian3()),
@@ -319,12 +321,29 @@ const createSemanticGeoPathCameraView = (
   );
   Cartesian3.add(
     destination,
-    Cartesian3.multiplyByScalar(earthwardUp, earthRadius * 0.42, new Cartesian3()),
+    Cartesian3.multiplyByScalar(earthwardUp, earthRadius * 0.25, new Cartesian3()),
     destination,
   );
-  const direction = Cartesian3.normalize(Cartesian3.subtract(target, destination, new Cartesian3()), new Cartesian3());
-  const upProjection = Cartesian3.multiplyByScalar(direction, Cartesian3.dot(earthwardUp, direction), new Cartesian3());
-  let up = Cartesian3.subtract(earthwardUp, upProjection, new Cartesian3());
+  const initialDirection = Cartesian3.normalize(Cartesian3.subtract(target, destination, new Cartesian3()), new Cartesian3());
+  const routeAxis = Cartesian3.normalize(Cartesian3.subtract(satellite, groundMidpoint, new Cartesian3()), new Cartesian3());
+  const initialUpProjection = Cartesian3.multiplyByScalar(initialDirection, Cartesian3.dot(routeAxis, initialDirection), new Cartesian3());
+  let initialUp = Cartesian3.subtract(routeAxis, initialUpProjection, new Cartesian3());
+  if (Cartesian3.magnitudeSquared(initialUp) < 0.01) {
+    const earthUpProjection = Cartesian3.multiplyByScalar(initialDirection, Cartesian3.dot(earthwardUp, initialDirection), new Cartesian3());
+    initialUp = Cartesian3.subtract(earthwardUp, earthUpProjection, initialUp);
+  }
+  Cartesian3.normalize(initialUp, initialUp);
+  const screenRight = Cartesian3.normalize(Cartesian3.cross(initialDirection, initialUp, new Cartesian3()), new Cartesian3());
+  // The Inspector covers the right of the globe. Aim slightly beyond the route
+  // so the Earth/link composition settles into the unobscured left-hand area.
+  const biasedTarget = Cartesian3.add(
+    target,
+    Cartesian3.multiplyByScalar(screenRight, earthRadius * 1.15, new Cartesian3()),
+    new Cartesian3(),
+  );
+  const direction = Cartesian3.normalize(Cartesian3.subtract(biasedTarget, destination, new Cartesian3()), new Cartesian3());
+  const upProjection = Cartesian3.multiplyByScalar(direction, Cartesian3.dot(routeAxis, direction), new Cartesian3());
+  let up = Cartesian3.subtract(routeAxis, upProjection, new Cartesian3());
   if (Cartesian3.magnitudeSquared(up) < 0.01) up = Cartesian3.cross(lateral, direction, up);
   Cartesian3.normalize(up, up);
   return { destination, direction, up };
@@ -4162,28 +4181,22 @@ const App: React.FC = () => {
     }
 
     if (focus.stageId === 'rf') {
+      if (activeConnectivityTab === 'GEO') return engineeringContextRoutePositions;
       add(groundPointToCartesian(activeAnalysisPoint));
-      if (activeConnectivityTab === 'LEO') {
-        add(satelliteToCartesian(activeLeoSiteToSiteResult?.servingSatelliteA ?? resolvedAutoLEO));
-        if (leoTopologyMode === 'SITE_TO_SITE') {
-          add(satelliteToCartesian(activeLeoSiteToSiteResult?.servingSatelliteB ?? resolvedAutoLEOB));
-          add(groundPointToCartesian(pointBLeo ?? siteB));
-        }
-      } else {
-        add(satelliteToCartesian(activeGeoSatellite));
-        if (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT') add(groundPointToCartesian(siteB));
+      add(satelliteToCartesian(activeLeoSiteToSiteResult?.servingSatelliteA ?? resolvedAutoLEO));
+      if (leoTopologyMode === 'SITE_TO_SITE') {
+        add(satelliteToCartesian(activeLeoSiteToSiteResult?.servingSatelliteB ?? resolvedAutoLEOB));
+        add(groundPointToCartesian(pointBLeo ?? siteB));
       }
       return positions;
     }
 
     if (focus.stageId === 'service') {
+      if (activeConnectivityTab === 'GEO') return engineeringContextRoutePositions;
       if (activeConnectivityTab === 'LEO') {
         add(satelliteToCartesian(activeLeoSiteToSiteResult?.servingSatelliteA ?? resolvedAutoLEO));
         add(snpToCartesian(activeLeoSiteToSiteResult?.selectedSnpA ?? selectedSNP));
         if (leoTopologyMode === 'SITE_TO_SITE') add(snpToCartesian(activeLeoSiteToSiteResult?.selectedSnpB ?? selectedSNPB));
-      } else {
-        add(satelliteToCartesian(activeGeoSatellite));
-        add(geoGatewayToCartesian(activeCommercialTrafficGeoGateway));
       }
       return positions;
     }
@@ -4200,7 +4213,7 @@ const App: React.FC = () => {
       add(groundPointToCartesian(siteB));
     }
     return positions;
-  }, [activeAnalysisPoint, activeCommercialTrafficGeoGateway, activeConnectivityTab, activeGeoSatellite, activeLeoSiteToSiteResult, engineeringContextRoutePositions, engineeringFocusController.focus, leoTopologyMode, linkMode, pointBLeo, resolvedAutoLEO, resolvedAutoLEOB, selectedSNP, selectedSNPB, siteB]);
+  }, [activeAnalysisPoint, activeConnectivityTab, activeGeoSatellite, activeLeoSiteToSiteResult, engineeringContextRoutePositions, engineeringFocusController.focus, leoTopologyMode, linkMode, pointBLeo, resolvedAutoLEO, resolvedAutoLEOB, selectedSNP, selectedSNPB, siteB]);
 
   useEffect(() => {
     const focus = engineeringFocusController.focus;
@@ -4251,7 +4264,7 @@ const App: React.FC = () => {
       const canvas = viewer.scene.canvas;
       const marginX = Math.min(120, canvas.clientWidth * 0.12);
       const marginY = Math.min(100, canvas.clientHeight * 0.14);
-      const allVisible = !pathStageOwnsRouteView && positions.every((position) => {
+      const allVisible = positions.every((position) => {
         const screen = SceneTransforms.worldToWindowCoordinates(viewer.scene, position);
         return !!screen
           && screen.x >= marginX
@@ -4263,10 +4276,10 @@ const App: React.FC = () => {
         nowMs: performance.now(),
         lastManualInputMs: lastManualCameraInputRef.current,
         allTargetsVisible: allVisible,
-        forceRouteView: pathStageOwnsRouteView,
+        forceRouteView: pathStageOwnsRouteView && !allVisible,
       })) return;
 
-      if (activeConnectivityTab === 'GEO' && focus.stageId === 'path') {
+      if (activeConnectivityTab === 'GEO' && ['path', 'rf', 'service'].includes(focus.stageId)) {
         const semanticView = createSemanticGeoPathCameraView(positions, viewer.camera.positionWC);
         if (semanticView) {
           viewer.camera.cancelFlight();
@@ -6029,7 +6042,7 @@ const App: React.FC = () => {
                 Remounts on switch — intentional; it does not contain the globe. */}
             {uiMode !== 'commercial' && (
               <div
-                className={`relative z-40 flex flex-shrink-0 flex-col overflow-visible rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.96))] shadow-[0_30px_70px_-35px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.98))] ${isFullscreen ? 'hidden' : ''}`}
+                className={`relative z-40 flex flex-shrink-0 flex-col overflow-visible rounded-[24px] border border-slate-200/80 bg-white/97 shadow-[0_30px_70px_-35px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-950/98 ${isFullscreen ? 'hidden' : ''}`}
                 style={{ width: desktopSidebarWidth }}
               >
                 <div

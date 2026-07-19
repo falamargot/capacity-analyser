@@ -1310,7 +1310,7 @@ const GeoDiagnosticFlowPanel = ({
   const networkLimit = networkLayer ? (LIMITING_FACTOR_LABEL[networkLayer.limitingFactor] ?? networkLayer.limitingFactor) : 'RF budget';
 
   return (
-    <GeoCockpitPanel title="Engineering Diagnostic Flow" eyebrow="RF closure path" accent="blue">
+    <GeoCockpitPanel title="Engineering Diagnostic Flow" eyebrow="link budget path" accent="blue">
       <div className="grid h-full min-h-0 grid-cols-1 gap-2 p-2.5">
         <div className="grid min-h-0 grid-cols-6 gap-1.5">
           <GeoCockpitTile label="Tx EIRP" value={fmtDbw(uplink.source.eirpDbw)} tone="blue" />
@@ -1585,10 +1585,15 @@ const DualSegmentPanel = memo<DualSegmentPanelProps>(({
 
     return (
       <div data-engineering-layout="geo-rf-workspace" className="grid grid-cols-1 gap-3 text-xs">
-        <div className="flex flex-col gap-3">
-          <GeoTopologyCockpitPanel linkMode={linkMode} mode={result.transponderMode} satelliteName={satelliteName} />
-          {rfContext && <GeoRfContextCockpitPanel context={rfContext} />}
-        </div>
+        <GeoInvestigationSection
+          title="RF Assumptions & Topology"
+          subtitle="Selected topology, satellite and frequency-plan context supporting the closure calculation."
+        >
+          <div className="flex flex-col gap-3">
+            <GeoTopologyCockpitPanel linkMode={linkMode} mode={result.transponderMode} satelliteName={satelliteName} />
+            {rfContext && <GeoRfContextCockpitPanel context={rfContext} />}
+          </div>
+        </GeoInvestigationSection>
         <div className={isMesh && !directionControlled ? 'flex flex-col gap-3' : undefined}>
           {isMesh && !directionControlled && (
             <MeshDirectionTabs

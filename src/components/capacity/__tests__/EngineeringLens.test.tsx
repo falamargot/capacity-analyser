@@ -170,6 +170,39 @@ describe('Engineering Cause Chain investigation', () => {
     expect(inspectorHost.querySelector('[aria-label="Existing path proof"]')).not.toBeNull();
   });
 
+  it('uses a stage-specific service decision view and progressively discloses secondary gate evidence', async () => {
+    const serviceTruth: EngineeringTruth = {
+      ...truth,
+      causeChain: truth.causeChain.map((stage) => stage.id === 'service' ? {
+        ...stage,
+        detail: 'Traffic gateway capability permits the selected service',
+        evidence: [
+          { label: 'Gateway', value: 'Cagliari', state: 'passed' },
+          { label: 'Capability', value: 'Traffic teleport', state: 'passed' },
+          { label: 'Regulatory', value: 'Allowed', state: 'passed' },
+          { label: 'Network load', value: 'Within plan', state: 'passed' },
+          { label: 'Reference status', value: 'Estimated', state: 'warning' },
+        ],
+      } : stage),
+    };
+    const { inspectorHost } = await renderLens(
+      <EngineeringFocusProvider
+        controller={controller({
+          truths: { LEO: serviceTruth },
+          focus: createEngineeringFocus('locked', 'LEO', 'service', 'lens'),
+        })}
+        truths={{ LEO: serviceTruth }}
+      >
+        <EngineeringResultSummary technology="LEO" truth={serviceTruth} />
+      </EngineeringFocusProvider>,
+    );
+
+    expect(inspectorHost.querySelector('.engineering-stage-composition--service')).not.toBeNull();
+    expect(inspectorHost.textContent).toContain('Decision basis');
+    expect(inspectorHost.textContent).toContain('Traffic gateway capability permits the selected service');
+    expect(inspectorHost.querySelector('[data-engineering-secondary-investigation]:not([open])')).not.toBeNull();
+  });
+
   it('keeps one Inspector mounted while switching stages and supports both close paths', async () => {
     const { container, inspectorHost } = await renderLens(<StatefulLens />);
     const deliveryButton = Array.from(container.querySelectorAll('button')).find((button) => button.getAttribute('aria-label')?.startsWith('Delivery:'));

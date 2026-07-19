@@ -528,6 +528,130 @@ h1, h2, h3, h4 {
   container-type: inline-size;
 }
 
+.engineering-inspector[data-engineering-inspector-variant='desktop'] {
+  border-right-color: rgb(148 163 184 / 0.58);
+}
+
+.dark .engineering-inspector[data-engineering-inspector-variant='desktop'] {
+  border-right-color: rgb(100 116 139 / 0.86);
+}
+
+.engineering-inspector-header {
+  box-shadow: 0 10px 24px -24px rgb(15 23 42 / 0.85);
+}
+
+.engineering-stage-conclusion {
+  padding: 1rem 1.125rem 1.125rem;
+  border-left: 3px solid rgb(148 163 184 / 0.8);
+  background: rgb(255 255 255 / 0.58);
+}
+
+.dark .engineering-stage-conclusion {
+  border-left-color: rgb(100 116 139 / 0.88);
+  background: rgb(15 23 42 / 0.54);
+}
+
+.engineering-stage-conclusion__status {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+.engineering-stage-composition {
+  margin-top: 1.75rem;
+}
+
+.engineering-stage-composition--scenario,
+.engineering-stage-composition--service {
+  padding-top: 0.25rem;
+}
+
+.engineering-stage-composition--service .engineering-stage-primary-evidence dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid rgb(203 213 225 / 0.72);
+  border-bottom: 1px solid rgb(203 213 225 / 0.72);
+}
+
+.dark .engineering-stage-composition--service .engineering-stage-primary-evidence dl {
+  border-color: rgb(71 85 105 / 0.72);
+}
+
+.engineering-stage-composition--service .engineering-stage-primary-evidence dl > div {
+  display: block;
+  min-height: 5.25rem;
+  padding: 1rem;
+  border-top: 0;
+}
+
+.engineering-stage-composition--service .engineering-stage-primary-evidence dl > div:nth-child(odd) {
+  border-right: 1px solid rgb(203 213 225 / 0.72);
+}
+
+.dark .engineering-stage-composition--service .engineering-stage-primary-evidence dl > div:nth-child(odd) {
+  border-right-color: rgb(71 85 105 / 0.72);
+}
+
+.engineering-stage-composition--service .engineering-stage-primary-evidence dl dd,
+.engineering-stage-composition--service .engineering-stage-primary-evidence dl p {
+  margin-top: 0.5rem;
+}
+
+.engineering-stage-composition--path [data-engineering-workspace-summary] {
+  margin-bottom: 1.5rem;
+}
+
+.engineering-stage-primary-evidence {
+  margin-bottom: 1.5rem;
+}
+
+.engineering-stage-section-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.625rem;
+  border-bottom: 1px solid rgb(203 213 225 / 0.72);
+}
+
+.dark .engineering-stage-section-heading {
+  border-bottom-color: rgb(71 85 105 / 0.72);
+}
+
+.engineering-stage-section-heading > span:first-child {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgb(30 41 59);
+}
+
+.dark .engineering-stage-section-heading > span:first-child {
+  color: rgb(226 232 240);
+}
+
+.engineering-stage-section-heading > span:last-child {
+  font-size: 0.625rem;
+  color: rgb(100 116 139);
+}
+
+.engineering-primary-disclosure,
+.engineering-delivery-supporting {
+  border-top: 1px solid rgb(203 213 225 / 0.8);
+  border-bottom: 1px solid rgb(203 213 225 / 0.8);
+}
+
+.dark .engineering-primary-disclosure,
+.dark .engineering-delivery-supporting {
+  border-color: rgb(71 85 105 / 0.76);
+}
+
+.engineering-stage-empty-evidence {
+  padding: 1rem 0;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  color: rgb(100 116 139);
+}
+
 /* Workspace summaries read as property rows instead of nested mini-cards. */
 .engineering-inspector-workspace [data-engineering-evidence-summary] {
   grid-template-columns: minmax(0, 1fr) !important;
@@ -564,6 +688,114 @@ h1, h2, h3, h4 {
   margin-top: 0;
   font-size: 0.875rem;
   line-height: 1.25rem;
+}
+
+/* Scenario uses a structured assumption matrix; Path promotes the resolved
+   route before its propagation and direction properties. */
+.engineering-inspector-workspace [data-engineering-evidence-variant='scenario'] {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  border-top: 1px solid rgb(51 65 85 / 0.55);
+}
+
+.engineering-inspector-workspace [data-engineering-evidence-variant='scenario'] > div {
+  display: block;
+  padding: 0.875rem 1rem;
+  border-top: 0;
+  border-bottom: 1px solid rgb(51 65 85 / 0.55);
+}
+
+.engineering-inspector-workspace [data-engineering-evidence-variant='scenario'] > div:nth-child(odd) {
+  border-right: 1px solid rgb(51 65 85 / 0.55);
+}
+
+.engineering-inspector-workspace [data-engineering-evidence-variant='scenario'] dd,
+.engineering-inspector-workspace [data-engineering-evidence-variant='scenario'] p {
+  margin-top: 0.375rem;
+}
+
+.engineering-inspector-workspace [data-engineering-evidence-variant='path'] > div:first-child {
+  display: block;
+  padding: 1rem 0 1.125rem;
+  border-bottom: 1px solid rgb(51 65 85 / 0.64);
+}
+
+.engineering-inspector-workspace [data-engineering-evidence-variant='path'] > div:first-child dd {
+  margin-top: 0.5rem;
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+
+.engineering-inspector-workspace [data-engineering-evidence-variant='path'] > div:first-child p {
+  margin-top: 0.25rem;
+}
+
+.engineering-rf-decision {
+  margin-bottom: 1rem;
+  padding: 1rem 1.125rem;
+  border-left: 3px solid rgb(245 158 11 / 0.72);
+  background: rgb(2 6 23 / 0.62);
+  color: rgb(241 245 249);
+}
+
+.engineering-rf-decision__metrics {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  background: rgb(51 65 85 / 0.72);
+}
+
+.engineering-rf-decision__metric {
+  min-width: 0;
+  padding: 0.75rem;
+  background: rgb(15 23 42 / 0.98);
+}
+
+.engineering-rf-decision__metric dt {
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgb(100 116 139);
+}
+
+.engineering-rf-decision__metric dd {
+  margin-top: 0.375rem;
+  overflow-wrap: anywhere;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.125rem;
+  color: rgb(226 232 240);
+}
+
+.engineering-rf-decision__metric--primary dd {
+  color: rgb(253 230 138);
+}
+
+.engineering-delivery-transformation {
+  padding: 1rem 1.125rem 1.125rem;
+  background: rgb(2 6 23 / 0.92);
+  color: rgb(241 245 249);
+}
+
+.engineering-delivery-supporting {
+  margin-top: 1.25rem;
+}
+
+.engineering-closure-phase--secondary {
+  padding-top: 1.25rem;
+  border-top: 1px solid rgb(51 65 85 / 0.74);
+}
+
+.engineering-closure-node {
+  border-top-width: 0;
+  border-right-width: 0;
+  border-bottom-width: 0;
+  border-radius: 0;
+}
+
+.engineering-closure-branch-grid > div,
+.engineering-closure-node {
+  box-shadow: none;
 }
 
 /* Investigation topics remain discrete, but the open topic is visually flatter
@@ -649,6 +881,87 @@ h1, h2, h3, h4 {
   .engineering-inspector-workspace [data-engineering-evidence-summary] p {
     grid-column: 1;
   }
+
+  .engineering-rf-decision__metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .engineering-inspector-workspace [data-engineering-evidence-variant='scenario'] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .engineering-inspector-workspace [data-engineering-evidence-variant='scenario'] > div:nth-child(odd) {
+    border-right: 0;
+  }
+
+  .engineering-stage-composition--service .engineering-stage-primary-evidence dl {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .engineering-stage-composition--service .engineering-stage-primary-evidence dl > div:nth-child(odd) {
+    border-right: 0;
+  }
+}
+
+/* The mobile Inspector is a vertical investigation surface, not a wrapped
+   desktop panel. Every metric group and comparison becomes a readable stack. */
+.engineering-inspector-mobile .engineering-inspector-content {
+  overflow-x: hidden;
+}
+
+.engineering-inspector-mobile .engineering-stage-conclusion {
+  padding: 0.875rem 1rem 1rem;
+}
+
+.engineering-inspector-mobile .engineering-stage-conclusion h3 {
+  font-size: 1.125rem;
+  line-height: 1.4rem;
+}
+
+.engineering-inspector-mobile .engineering-stage-composition {
+  margin-top: 1.25rem;
+}
+
+.engineering-inspector-mobile .engineering-stage-section-heading > span:last-child,
+.engineering-inspector-mobile .engineering-rf-decision > div:first-child > span {
+  display: none;
+}
+
+.engineering-inspector-mobile .engineering-rf-decision {
+  padding: 0.875rem 1rem;
+}
+
+.engineering-inspector-mobile .engineering-rf-decision__metrics,
+.engineering-inspector-mobile .engineering-closure-branch-grid,
+.engineering-inspector-mobile .grid:has(> [data-engineering-metric-tile]) {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.engineering-inspector-mobile [data-engineering-metric-tile] {
+  min-height: 0;
+}
+
+.engineering-inspector-mobile .engineering-closure-node {
+  grid-template-columns: 1.75rem minmax(0, 1fr);
+}
+
+.engineering-inspector-mobile .engineering-closure-node > div:last-child {
+  grid-column: 2;
+  max-width: none;
+  text-align: left;
+}
+
+.engineering-inspector-mobile .engineering-closure-connector {
+  grid-template-columns: 1.75rem minmax(0, 1fr);
+}
+
+.engineering-inspector-mobile .engineering-closure-connector > div:last-child {
+  grid-column: 2;
+  text-align: left;
+}
+
+.engineering-inspector-mobile [data-engineering-cockpit-panel] .grid {
+  max-width: 100%;
 }
 
 .engineering-inspector-mobile[data-engineering-inspector-state='open'] {
@@ -738,7 +1051,7 @@ h1, h2, h3, h4 {
   .engineering-inspector,
   .engineering-inspector-mobile-backdrop,
   .engineering-inspector-content {
-    animation: none;
+    animation: none !important;
   }
 
   .engineering-lens,

@@ -24,7 +24,7 @@ import { fmtMbps, fmtMs } from '../../utils/engineeringFormat';
 import LatencyBreakdownCard from './shared/LatencyBreakdownCard';
 import LayerHeading from './shared/LayerHeading';
 import EngineeringResultSummary from './shared/EngineeringResultSummary';
-import { EngineeringDeliveryEvidence, EngineeringEvidenceSummary, EngineeringScenarioEvidence } from './shared/EngineeringStageEvidence';
+import { EngineeringDeliveryEvidence, EngineeringEvidenceSummary, EngineeringRfDecisionEvidence, EngineeringScenarioEvidence } from './shared/EngineeringStageEvidence';
 import DetailsTogglePill from './shared/DetailsTogglePill';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -816,6 +816,7 @@ const LeoLinkBudgetEvidence = ({
 
   return (
     <div className="min-w-0 space-y-3" data-engineering-embedded-evidence={viewModel.mode}>
+      <EngineeringRfDecisionEvidence viewModel={viewModel} />
       {isS2S ? (
         hasS2SAccessBudgets ? (
           <div className="flex flex-col gap-2">
@@ -1162,6 +1163,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   const pathSummaryEvidence = (
     <EngineeringEvidenceSummary
       ariaLabel="LEO route summary"
+      variant="path"
       facts={[
         { label: 'Route', value: leoRouteLabel },
         { label: answerLatencyLabel, value: answerLatencyMs != null ? `${answerLatencyMs.toFixed(1)} ms` : '--' },
@@ -1720,7 +1722,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
             />
           ),
           path: pathDetailEvidence,
-          delivery: <><EngineeringDeliveryEvidence viewModel={engineeringAnalysisViewModel} />{deliveryDetailEvidence}</>,
+          delivery: <EngineeringDeliveryEvidence viewModel={engineeringAnalysisViewModel}>{deliveryDetailEvidence}</EngineeringDeliveryEvidence>,
         }}
       />
 

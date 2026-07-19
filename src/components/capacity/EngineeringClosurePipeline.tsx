@@ -145,47 +145,44 @@ const screenReaderText = (title: string, segments: PipelineSegmentModel[]) =>
     return `${segment.node.label} ${segment.node.value}${transition}`;
   }).join('; ')}`;
 
-const PipelineNode = ({ node }: { node: PipelineNodeModel }) => (
-  <div className={`min-w-[8rem] max-w-[9.5rem] rounded-md border px-2.5 py-1.5 ${borderClass[node.tone ?? 'default']}`}>
-    <div className="text-[8px] font-bold uppercase tracking-wide text-slate-600">{node.label}</div>
-    <div className={`mt-0.5 break-words text-[15px] font-black leading-tight tabular-nums ${toneClass[node.tone ?? 'default']}`}>{node.value}</div>
-    {node.detail && <div className="mt-0.5 text-[9px] leading-snug text-slate-600">{node.detail}</div>}
+const PipelineNode = ({ node, index }: { node: PipelineNodeModel; index: number }) => (
+  <div className={`engineering-closure-node grid min-w-0 grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-3 border-l-2 px-3 py-3 ${borderClass[node.tone ?? 'default']}`}>
+    <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-[10px] font-bold tabular-nums text-slate-400" aria-hidden="true">
+      {String(index + 1).padStart(2, '0')}
+    </span>
+    <div className="min-w-0">
+      <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-500">{node.label}</div>
+      {node.detail && <div className="mt-1 text-[10px] leading-4 text-slate-400">{node.detail}</div>}
+    </div>
+    <div className={`max-w-[12rem] break-words text-right text-[17px] font-black leading-tight tabular-nums ${toneClass[node.tone ?? 'default']}`}>{node.value}</div>
   </div>
 );
 
 const PipelineConnector = ({ transition }: { transition: PipelineTransitionModel }) => (
-  <div className="flex w-[6.75rem] shrink-0 flex-col items-center justify-center gap-1 px-1 text-center" aria-hidden="true">
-    <div className="flex w-full items-center gap-1.5">
-      <div className="h-[2px] flex-1 bg-slate-500/80" />
-      <div className="text-base leading-none text-slate-300">→</div>
-      <div className="h-[2px] flex-1 bg-slate-500/80" />
+  <div className="engineering-closure-connector grid min-h-9 grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-3 px-3" aria-hidden="true">
+    <div className="flex h-full justify-center">
+      <div className="w-px bg-slate-700" />
     </div>
-    <div className="w-full text-[10px] font-bold leading-tight text-slate-200">{transition.label}</div>
+    <div className="py-1 text-[10px] font-semibold leading-4 text-slate-400">{transition.label}</div>
     {transition.loss && transition.loss !== '0 Mbps' && transition.loss !== 'no loss' && (
-      <div className="flex items-center gap-1 text-[10px] font-bold tabular-nums text-amber-300/90">
-        <span className="h-px w-3 bg-amber-400/40" />
-        {transition.loss}
-        <span className="h-px w-3 bg-amber-400/40" />
-      </div>
+      <div className="text-right text-[10px] font-bold tabular-nums text-amber-300/90">{transition.loss}</div>
     )}
   </div>
 );
 
 const LinearPhase = ({ title, segments, subtle = false }: { title: string; segments: PipelineSegmentModel[]; subtle?: boolean }) => (
-  <div className={`min-w-0 ${subtle ? 'border-t-2 border-slate-700/60 pt-2' : ''}`}>
-    <div className="mb-1 text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500">{title}</div>
-    <div className="overflow-x-auto">
-      <div className="flex min-w-max items-stretch">
-        {segments.map((segment, index) => (
-          <div key={`${segment.node.label}-${index}`} className="flex items-stretch">
-            <PipelineNode node={segment.node} />
-            {segment.transition && <PipelineConnector transition={segment.transition} />}
-          </div>
-        ))}
-      </div>
+  <section className={`engineering-closure-phase min-w-0 ${subtle ? 'engineering-closure-phase--secondary' : ''}`}>
+    <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500">{title}</div>
+    <div className="engineering-closure-steps">
+      {segments.map((segment, index) => (
+        <div key={`${segment.node.label}-${index}`}>
+          <PipelineNode node={segment.node} index={index} />
+          {segment.transition && <PipelineConnector transition={segment.transition} />}
+        </div>
+      ))}
     </div>
     <p className="sr-only">{screenReaderText(title, segments)}</p>
-  </div>
+  </section>
 );
 
 const GeoPipeline = ({ steps, blocked }: { steps: LinkBudgetWorkspaceClosureStep[]; blocked?: boolean }) => {
@@ -218,7 +215,7 @@ const GeoPipeline = ({ steps, blocked }: { steps: LinkBudgetWorkspaceClosureStep
         },
       ]
     );
-    return <LinearPhase title="RF closure" segments={blockedSegments} />;
+    return <LinearPhase title="Link budget" segments={blockedSegments} />;
   }
 
   const rfSegments = phaseFromSteps(
@@ -229,8 +226,8 @@ const GeoPipeline = ({ steps, blocked }: { steps: LinkBudgetWorkspaceClosureStep
   );
 
   return (
-    <div className="grid gap-2">
-      <LinearPhase title="RF closure" segments={rfSegments} />
+    <div className="grid gap-5">
+      <LinearPhase title="Link budget" segments={rfSegments} />
       {(protocol || delivered) && <LinearPhase title="Network shaping" segments={networkSegments} subtle />}
     </div>
   );
@@ -255,7 +252,7 @@ const LeoSinglePipeline = ({ steps }: { steps: LinkBudgetWorkspaceClosureStep[] 
 };
 
 const BranchNode = ({ title, step }: { title: string; step: LinkBudgetWorkspaceClosureStep | undefined }) => (
-  <div className={`min-w-0 rounded-lg border px-3 py-2 ${borderClass[stepTone(step)]}`}>
+  <div className={`min-w-0 border-l-2 px-4 py-3 ${borderClass[stepTone(step)]}`}>
     <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{title}</div>
     <div className={`mt-1 text-base font-black tabular-nums ${toneClass[stepTone(step)]}`}>{outputValue(step)}</div>
     <div className="mt-1 text-[10px] leading-snug text-slate-400">{compactTransformation(step, 'Access constraint')}</div>
@@ -273,30 +270,23 @@ const LeoSiteToSitePipeline = ({ steps }: { steps: LinkBudgetWorkspaceClosureSte
   return (
     <div>
       <div className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-500">Branch / merge access closure</div>
-      <div className="grid min-w-0 items-stretch gap-2 lg:grid-cols-[minmax(0,2fr)_10rem_minmax(0,1fr)]">
-        <div className="min-w-0">
-          <div className="mb-1 rounded-md border border-slate-800/80 bg-slate-950/25 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-slate-500">
-            Parallel access comparison
-          </div>
-          <div className="grid min-w-0 gap-2 sm:grid-cols-2">
-            <BranchNode title="Source access" step={source} />
-            <BranchNode title="Destination access" step={destination} />
-          </div>
+      <div className="min-w-0">
+        <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500">Parallel access comparison</div>
+        <div className="engineering-closure-branch-grid grid min-w-0 gap-3 sm:grid-cols-2">
+          <BranchNode title="Source access" step={source} />
+          <BranchNode title="Destination access" step={destination} />
         </div>
-        <div className="flex flex-col items-center justify-center gap-1 text-center text-[10px] font-semibold text-slate-300" aria-hidden="true">
-          <span>Compare access legs</span>
-          <div className="flex w-full items-center gap-1.5">
-            <div className="h-[2px] flex-1 bg-slate-500/80" />
-            <span className="text-base leading-none text-slate-300">→</span>
-            <div className="h-[2px] flex-1 bg-slate-500/80" />
-          </div>
-          <span>Select lower rate</span>
-          <span className="text-[9px] font-bold tabular-nums text-slate-500">{selectedLimit}</span>
+        <div className="my-2 grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-3 px-3 text-[10px] font-semibold text-slate-400" aria-hidden="true">
+          <div className="mx-auto h-8 w-px bg-slate-700" />
+          <span>Compare access legs and select the lower rate</span>
+          <span className="text-right text-[9px] font-bold tabular-nums text-slate-500">{selectedLimit}</span>
         </div>
-        <div className={`rounded-lg border px-3 py-2 ${borderClass[stepTone(delivered)]}`}>
-          <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Delivered throughput</div>
-          <div className={`mt-1 text-base font-black tabular-nums ${toneClass[stepTone(delivered)]}`}>{outputValue(delivered)}</div>
-          <div className="mt-1 text-[10px] leading-snug text-slate-400">Delivered = selected lower access rate after final constraints.</div>
+        <div className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-l-2 px-4 py-4 ${borderClass[stepTone(delivered)]}`}>
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Delivered throughput</div>
+            <div className="mt-1 text-[10px] leading-snug text-slate-400">Selected lower access rate after final constraints.</div>
+          </div>
+          <div className={`text-right text-xl font-black tabular-nums ${toneClass[stepTone(delivered)]}`}>{outputValue(delivered)}</div>
           {delivered?.loss && <div className="mt-1 text-[10px] font-bold tabular-nums text-amber-300">{delivered.loss}</div>}
         </div>
       </div>

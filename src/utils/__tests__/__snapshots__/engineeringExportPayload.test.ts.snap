@@ -78,7 +78,7 @@ exports[`M2 export payload golden > freezes the GEO-scope star-return payload di
     "confidenceReasons": [
       "Scenario: Inputs ready",
       "Path: GEO route resolved",
-      "RF closure: 4.5 dB · closes",
+      "Link Budget: 4.5 dB · closes",
       "Service gates: Not evaluated",
       "Delivery: Shared capacity limiting",
     ],
@@ -280,7 +280,7 @@ exports[`M2 export payload golden > freezes the full export payload for an ALL-s
     "confidenceReasons": [
       "Scenario: Inputs ready",
       "Path: Satellite and ground path resolved",
-      "RF closure: Access link closes",
+      "Link Budget: Access link closes",
       "Service gates: Allowed",
       "Delivery: 18 Mbps delivered",
     ],

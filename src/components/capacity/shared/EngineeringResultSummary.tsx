@@ -132,6 +132,58 @@ const pathStateLabel: Record<EngineeringPathVisualState, string> = {
   unresolved: 'unresolved path',
 };
 
+const stageWorkspaceCopy: Record<EngineeringCauseStageId, { eyebrow: string; title: string; explanation: string }> = {
+  scenario: {
+    eyebrow: 'Scenario definition',
+    title: 'Analysis frame',
+    explanation: 'These selected assets and assumptions establish the engineering context used by every downstream stage.',
+  },
+  path: {
+    eyebrow: 'Resolved path',
+    title: 'Route resolution',
+    explanation: 'The resolved route is shown first; hop geometry and lower-level path proof remain available directly below it.',
+  },
+  rf: {
+    eyebrow: 'RF verdict',
+    title: 'Closure decision',
+    explanation: 'Closure, the limiting segment and decisive margin take priority over the supporting link-budget calculations.',
+  },
+  service: {
+    eyebrow: 'Service decision',
+    title: 'Gate evaluation',
+    explanation: 'The service verdict and the rule or capability that determines it are presented before secondary evidence.',
+  },
+  delivery: {
+    eyebrow: 'Delivered outcome',
+    title: 'Service transformation',
+    explanation: 'The delivered result and limiting transformation lead; latency composition and supporting proof follow on demand.',
+  },
+};
+
+const StageConclusion = ({ stage }: { stage: EngineeringCauseStage }) => {
+  const styles = stageStyles[stage.state];
+  const StatusIcon = styles.icon;
+  const copy = stageWorkspaceCopy[stage.id];
+
+  return (
+    <section className="engineering-stage-conclusion" aria-labelledby={`stage-conclusion-${stage.id}`}>
+      <div className="engineering-stage-conclusion__status">
+        <span className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${styles.iconClass}`}>
+          <StatusIcon className="h-4 w-4" aria-hidden="true" />
+        </span>
+        <div className="min-w-0">
+          <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">{copy.eyebrow}</div>
+          <h3 id={`stage-conclusion-${stage.id}`} className={`mt-1 break-words text-[22px] font-black leading-7 tracking-tight ${styles.textClass}`}>
+            {stage.summary}
+          </h3>
+        </div>
+      </div>
+      {stage.detail && <p className="mt-3 text-[13px] font-semibold leading-5 text-slate-700 dark:text-slate-200">{stage.detail}</p>}
+      <p className="mt-2 max-w-[52rem] text-[11px] leading-5 text-slate-500 dark:text-slate-400">{copy.explanation}</p>
+    </section>
+  );
+};
+
 const StageEvidenceContent = ({
   stage,
   evidence,
@@ -141,8 +193,9 @@ const StageEvidenceContent = ({
   evidence?: ReactNode;
   summaryEvidence?: ReactNode;
 }) => {
-  const primaryEvidence = stage.evidence?.slice(0, 3) ?? [];
-  const secondaryEvidence = stage.evidence?.slice(3) ?? [];
+  const visibleEvidenceCount = stage.id === 'service' ? 4 : 3;
+  const primaryEvidence = stage.evidence?.slice(0, visibleEvidenceCount) ?? [];
+  const secondaryEvidence = stage.evidence?.slice(visibleEvidenceCount) ?? [];
   const renderEvidence = (items: EngineeringCauseStage['evidence'], secondary = false) => items?.map((item) => (
     <div
       key={`${item.label}:${item.value}`}
@@ -161,45 +214,95 @@ const StageEvidenceContent = ({
       )}
     </div>
   ));
-  const hasPrimaryEvidence = Boolean(summaryEvidence) || primaryEvidence.length > 0;
+  const EvidenceList = ({ items, secondary = false }: { items: EngineeringCauseStage['evidence']; secondary?: boolean }) => (
+    <dl aria-label={`${stage.label} ${secondary ? 'supporting' : 'primary'} evidence`}>
+      {renderEvidence(items, secondary)}
+    </dl>
+  );
+
+  const SecondaryEvidence = () => secondaryEvidence.length > 0 ? (
+    <details className="group mt-6 border-y border-slate-200/80 dark:border-slate-700/80" data-engineering-secondary-investigation="">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 py-3 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 outline-none focus-visible:ring-2 focus-visible:ring-sky-400 dark:text-slate-400 [&::-webkit-details-marker]:hidden">
+        <span>Supporting engineering evidence</span>
+        <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" aria-hidden="true" />
+      </summary>
+      <div className="border-t border-slate-200/80 dark:border-slate-700/80">
+        <EvidenceList items={secondaryEvidence} secondary />
+      </div>
+    </details>
+  ) : null;
+
+  const PrimaryEvidence = ({ title }: { title: string }) => primaryEvidence.length > 0 ? (
+    <section className="engineering-stage-primary-evidence" aria-labelledby={`stage-evidence-${stage.id}`}>
+      <h3 id={`stage-evidence-${stage.id}`} className="mb-1 text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+        {title}
+      </h3>
+      <EvidenceList items={primaryEvidence} />
+    </section>
+  ) : null;
 
   return (
     <div className="engineering-inspector-workspace" data-engineering-stage-evidence={stage.id}>
-      {summaryEvidence && <div className="mb-6" data-engineering-workspace-summary="">{summaryEvidence}</div>}
-      {primaryEvidence.length > 0 && (
-        <section className="mb-6" aria-labelledby={`stage-evidence-${stage.id}`}>
-          <h3 id={`stage-evidence-${stage.id}`} className="mb-1 text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
-            Evidence snapshot
-          </h3>
-          <dl aria-label={`${stage.label} primary evidence`}>
-          {renderEvidence(primaryEvidence)}
-          </dl>
-        </section>
-      )}
-      {stage.id !== 'path' ? (
-        <>
-          {evidence && <div className={hasPrimaryEvidence ? 'mt-6' : ''} data-engineering-primary-investigation="">{evidence}</div>}
-          {secondaryEvidence.length > 0 && (
-            <details className="group mt-6 border-y border-slate-200/80 dark:border-slate-800" data-engineering-secondary-investigation="">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 py-3 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 outline-none focus-visible:ring-2 focus-visible:ring-sky-400 dark:text-slate-400 [&::-webkit-details-marker]:hidden">
-                <span>Additional stage evidence</span>
-                <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" aria-hidden="true" />
-              </summary>
-              <dl className="border-t border-slate-200/80 dark:border-slate-800">{renderEvidence(secondaryEvidence, true)}</dl>
-            </details>
-          )}
-        </>
-      ) : (
-        <details open className={`group border-y border-slate-200/80 dark:border-slate-800 ${hasPrimaryEvidence ? 'mt-6' : ''}`}>
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 py-3 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-600 outline-none hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-sky-400 dark:text-slate-300 dark:hover:text-white [&::-webkit-details-marker]:hidden">
-            <span>Major Hops &amp; Technical Evidence</span>
-            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform group-open:rotate-180" aria-hidden="true" />
-          </summary>
-          <div className="border-t border-slate-200/80 py-4 dark:border-slate-800">
-            {secondaryEvidence.length > 0 && <dl className="mb-3">{renderEvidence(secondaryEvidence, true)}</dl>}
-            {evidence}
+      <StageConclusion stage={stage} />
+
+      {stage.id === 'scenario' && (
+        <div className="engineering-stage-composition engineering-stage-composition--scenario">
+          <div className="engineering-stage-section-heading">
+            <span>Scenario overview</span>
+            <span>Inputs carried into the analysis</span>
           </div>
-        </details>
+          {evidence && <div data-engineering-primary-investigation="">{evidence}</div>}
+          <PrimaryEvidence title="Scenario readiness" />
+          <SecondaryEvidence />
+        </div>
+      )}
+
+      {stage.id === 'path' && (
+        <div className="engineering-stage-composition engineering-stage-composition--path">
+          {summaryEvidence && <div data-engineering-workspace-summary="">{summaryEvidence}</div>}
+          <PrimaryEvidence title="Path validity" />
+          <details open className="group engineering-primary-disclosure">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 py-3 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-600 outline-none hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-sky-400 dark:text-slate-300 dark:hover:text-white [&::-webkit-details-marker]:hidden">
+              <span>Major Hops &amp; Technical Evidence</span>
+              <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform group-open:rotate-180" aria-hidden="true" />
+            </summary>
+            <div className="border-t border-slate-200/80 py-4 dark:border-slate-700/80">
+              {secondaryEvidence.length > 0 && <EvidenceList items={secondaryEvidence} secondary />}
+              {evidence && <div className={secondaryEvidence.length > 0 ? 'mt-4' : ''} data-engineering-primary-investigation="">{evidence}</div>}
+            </div>
+          </details>
+        </div>
+      )}
+
+      {stage.id === 'rf' && (
+        <div className="engineering-stage-composition engineering-stage-composition--rf">
+          <PrimaryEvidence title="Decisive RF evidence" />
+          {evidence && <div data-engineering-primary-investigation="">{evidence}</div>}
+          <SecondaryEvidence />
+        </div>
+      )}
+
+      {stage.id === 'service' && (
+        <div className="engineering-stage-composition engineering-stage-composition--service">
+          <div className="engineering-stage-section-heading">
+            <span>Decision basis</span>
+            <span>Rules and capabilities evaluated</span>
+          </div>
+          <PrimaryEvidence title="Evaluated service conditions" />
+          {evidence && <div data-engineering-primary-investigation="">{evidence}</div>}
+          {!evidence && primaryEvidence.length === 0 && (
+            <p className="engineering-stage-empty-evidence">No additional gate evidence is available for this result.</p>
+          )}
+          <SecondaryEvidence />
+        </div>
+      )}
+
+      {stage.id === 'delivery' && (
+        <div className="engineering-stage-composition engineering-stage-composition--delivery">
+          <PrimaryEvidence title="Delivered service evidence" />
+          {evidence && <div data-engineering-primary-investigation="">{evidence}</div>}
+          <SecondaryEvidence />
+        </div>
       )}
     </div>
   );
@@ -303,9 +406,10 @@ const EngineeringInspector = ({
       id={id}
       aria-label={`${technology} ${stage.label} Engineering Inspector`}
       data-engineering-inspector=""
+      data-engineering-inspector-variant={variant}
       data-engineering-inspector-state={motionState}
       className={variant === 'desktop'
-        ? 'engineering-inspector pointer-events-auto flex h-full min-h-0 w-full flex-col overflow-hidden rounded-l-[24px] border border-r-0 border-slate-200/90 bg-white/98 shadow-[-24px_24px_60px_-32px_rgba(15,23,42,0.6)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-950/98 dark:shadow-[-28px_24px_70px_-32px_rgba(0,0,0,0.9)]'
+        ? 'engineering-inspector pointer-events-auto flex h-full min-h-0 w-full flex-col overflow-hidden rounded-l-[24px] border border-slate-200/90 bg-slate-50/98 shadow-[-10px_12px_34px_-28px_rgba(15,23,42,0.7)] backdrop-blur-xl dark:border-slate-600/90 dark:bg-slate-900/98 dark:shadow-[-12px_12px_38px_-28px_rgba(0,0,0,0.95)]'
         : 'engineering-inspector engineering-inspector-mobile pointer-events-auto flex max-h-[92dvh] min-h-0 w-full max-w-3xl flex-col overflow-hidden rounded-t-[28px] border border-b-0 border-slate-200/90 bg-white shadow-[0_-18px_60px_-28px_rgba(15,23,42,0.65)] dark:border-slate-700 dark:bg-slate-950 dark:shadow-[0_-22px_70px_-28px_rgba(0,0,0,0.92)]'}
       onKeyDown={(event) => {
         if (event.key !== 'Escape') return;
@@ -319,7 +423,7 @@ const EngineeringInspector = ({
           <div className="h-1.5 w-14 rounded-full bg-slate-300 dark:bg-slate-600" />
         </div>
       )}
-      <header className={`flex shrink-0 items-start justify-between gap-4 border-b border-slate-200/80 bg-slate-50/90 dark:border-slate-800 dark:bg-slate-900/85 ${variant === 'desktop' ? 'px-5 py-4' : 'px-4 pb-3 pt-2.5'}`}>
+      <header className={`engineering-inspector-header flex shrink-0 items-start justify-between gap-4 border-b border-slate-200/80 bg-white/90 dark:border-slate-700/80 dark:bg-slate-900 ${variant === 'desktop' ? 'px-6 py-5' : 'px-4 pb-3 pt-2.5'}`}>
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className={`h-2 w-2 shrink-0 rounded-full ${technology === 'LEO' ? 'bg-pink-500' : 'bg-blue-500'}`} aria-hidden="true" />
@@ -371,10 +475,6 @@ const EngineeringInspector = ({
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <div key={stage.id} className={`engineering-inspector-content ${variant === 'desktop' ? 'p-6' : 'px-4 pb-6 pt-4 sm:px-5'}`} aria-live="polite">
-          <div className="mb-6 border-l-2 border-slate-300 pl-4 dark:border-slate-700">
-            <div className={`text-[13px] font-semibold leading-5 ${styles.textClass}`}>{stage.summary}</div>
-            {stage.detail && <p className="mt-1 text-[12px] leading-5 text-slate-500 dark:text-slate-400">{stage.detail}</p>}
-          </div>
           <StageEvidenceContent stage={stage} evidence={evidence} summaryEvidence={summaryEvidence} />
           {nextAction && (
             <div className="mt-7 border-t border-slate-200 pt-4 text-[11px] leading-5 text-slate-600 dark:border-slate-800 dark:text-slate-300">

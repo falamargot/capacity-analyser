@@ -23,7 +23,7 @@ import { ENGINEERING_TERMS } from '../../constants/engineeringTerminology';
 import LatencyBreakdownCard from './shared/LatencyBreakdownCard';
 import LayerHeading from './shared/LayerHeading';
 import EngineeringResultSummary from './shared/EngineeringResultSummary';
-import { EngineeringDeliveryEvidence, EngineeringEvidenceSummary, EngineeringScenarioEvidence } from './shared/EngineeringStageEvidence';
+import { EngineeringDeliveryEvidence, EngineeringEvidenceSummary, EngineeringRfDecisionEvidence, EngineeringScenarioEvidence } from './shared/EngineeringStageEvidence';
 
 // ─── Sub-component: Link budget cockpit + detail drawer ──────────────────────
 
@@ -103,6 +103,7 @@ const GeoLinkBudgetEvidence = ({
 
   return (
     <div className="min-w-0 space-y-3" data-engineering-embedded-evidence={viewModel.mode}>
+      <EngineeringRfDecisionEvidence viewModel={viewModel} />
       <DualSegmentPanel
         linkMode={linkMode}
         result={result}
@@ -611,6 +612,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   const pathSummaryEvidence = (
     <EngineeringEvidenceSummary
       ariaLabel="GEO route summary"
+      variant="path"
       facts={[
         { label: 'Route', value: geoPathRouteLabel },
         { label: 'Propagation', value: radioPathSummary },
@@ -1142,7 +1144,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
             />
           ),
           path: pathDetailEvidence,
-          delivery: <><EngineeringDeliveryEvidence viewModel={engineeringAnalysisViewModel} />{deliveryDetailEvidence}</>,
+          delivery: <EngineeringDeliveryEvidence viewModel={engineeringAnalysisViewModel}>{deliveryDetailEvidence}</EngineeringDeliveryEvidence>,
         }}
       />
 
