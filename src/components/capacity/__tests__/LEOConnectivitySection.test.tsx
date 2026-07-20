@@ -198,6 +198,8 @@ const rfFocusController: EngineeringFocusController = {
   lock: noop,
   clearPreview: noop,
   clear: noop,
+  autoFocusCamera: true,
+  setAutoFocusCamera: noop,
 };
 
 const renderLeoRfEvidence = (content: ReactNode) => renderToStaticMarkup(

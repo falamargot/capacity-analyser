@@ -4090,6 +4090,7 @@ const App: React.FC = () => {
   ]);
 
   useEffect(() => {
+    if (!engineeringFocusController.autoFocusCamera) return;
     const focus = engineeringFocusController.focus;
     const viewer = viewerRef.current;
     if (!viewer || viewer.isDestroyed?.()) return;
@@ -4115,9 +4116,10 @@ const App: React.FC = () => {
       orientation: { direction: snapshot.direction, up: snapshot.up },
     });
     engineeringAnalyticalCameraSnapshotRef.current = null;
-  }, [activeConnectivityTab, engineeringFocusController.focus, viewportSnapshot.innerHeight]);
+  }, [activeConnectivityTab, engineeringFocusController.autoFocusCamera, engineeringFocusController.focus, viewportSnapshot.innerHeight]);
 
   useEffect(() => {
+    if (!engineeringFocusController.autoFocusCamera) return;
     const focus = engineeringFocusController.focus;
     if (focus.kind !== 'locked' || !focus.stageId || focus.technology !== activeConnectivityTab) return;
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -4172,6 +4174,7 @@ const App: React.FC = () => {
     activeConnectivityTab,
     activeMeshTab,
     engineeringCameraScene,
+    engineeringFocusController.autoFocusCamera,
     engineeringFocusController.focus,
     engineeringTruths,
     isMobile,

@@ -15,6 +15,9 @@ export interface EngineeringFocusController {
   lock: (technology: 'GEO' | 'LEO', stageId: EngineeringCauseStageId, origin: EngineeringFocusOrigin) => void;
   clearPreview: () => void;
   clear: () => void;
+  /** Whether selecting a cause-chain stage flies the globe camera to its evidence. */
+  autoFocusCamera: boolean;
+  setAutoFocusCamera: (value: boolean) => void;
 }
 
 const noop = () => {};
@@ -25,6 +28,8 @@ const defaultController: EngineeringFocusController = {
   lock: noop,
   clearPreview: noop,
   clear: noop,
+  autoFocusCamera: true,
+  setAutoFocusCamera: noop,
 };
 
 const EngineeringFocusContext = createContext<EngineeringFocusController>(defaultController);
@@ -34,6 +39,7 @@ const EngineeringFocusContext = createContext<EngineeringFocusController>(defaul
 // eslint-disable-next-line react-refresh/only-export-components
 export const useEngineeringFocusController = (): EngineeringFocusController => {
   const [focus, setFocus] = useState<EngineeringAnalyticalFocus>(EMPTY_ENGINEERING_FOCUS);
+  const [autoFocusCamera, setAutoFocusCamera] = useState(true);
 
   const preview = useCallback((technology: 'GEO' | 'LEO', stageId: EngineeringCauseStageId, origin: EngineeringFocusOrigin) => {
     setFocus((current) => {
@@ -58,7 +64,9 @@ export const useEngineeringFocusController = (): EngineeringFocusController => {
     lock,
     clearPreview,
     clear,
-  }), [clear, clearPreview, focus, lock, preview]);
+    autoFocusCamera,
+    setAutoFocusCamera,
+  }), [autoFocusCamera, clear, clearPreview, focus, lock, preview]);
 };
 
 export const EngineeringFocusProvider = ({

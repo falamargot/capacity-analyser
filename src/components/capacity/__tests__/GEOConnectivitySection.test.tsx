@@ -145,6 +145,8 @@ const rfFocusController: EngineeringFocusController = {
   lock: noop,
   clearPreview: noop,
   clear: noop,
+  autoFocusCamera: true,
+  setAutoFocusCamera: noop,
 };
 
 const renderGeoRfEvidence = (content: ReactNode) => renderToStaticMarkup(

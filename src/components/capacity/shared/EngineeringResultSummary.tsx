@@ -1,6 +1,6 @@
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertTriangle, Check, ChevronDown, ChevronLeft, CircleDashed, LocateFixed, Minus, ShieldX, X } from 'lucide-react';
+import { AlertTriangle, Check, ChevronDown, ChevronLeft, CircleDashed, Minus, ShieldX, X } from 'lucide-react';
 import type {
   EngineeringCauseStageId,
   EngineeringCauseStage,
@@ -10,11 +10,7 @@ import type {
 } from '../../../utils/engineeringAnalysisViewModel';
 import { useEngineeringFocus } from '../../../contexts/EngineeringFocusContext';
 import ConfidenceBreakdown from '../ConfidenceBreakdown';
-import {
-  ENGINEERING_CAUSE_STAGE_ORDER,
-  getEngineeringPathVisualState,
-  type EngineeringPathVisualState,
-} from '../../../utils/engineeringFocusModel';
+import { ENGINEERING_CAUSE_STAGE_ORDER } from '../../../utils/engineeringFocusModel';
 
 interface EngineeringResultSummaryProps {
   technology: 'GEO' | 'LEO';
@@ -120,17 +116,6 @@ const MetricTile = ({ metric, diagnostic = false }: { metric: EngineeringTruthMe
     {metric.detail && <p className="mt-1 text-[10px] leading-4 text-slate-500 dark:text-slate-400" title={metric.detail}>{metric.detail}</p>}
   </div>
 );
-
-const pathStateLabel: Record<EngineeringPathVisualState, string> = {
-  delivered: 'delivered route',
-  selected: 'selected focus',
-  secondary: 'secondary context',
-  limiting: 'limiting segment',
-  diagnostic: 'resolved diagnostic path',
-  candidate: 'candidate path',
-  unavailable: 'unavailable segment',
-  unresolved: 'unresolved path',
-};
 
 const stageWorkspaceCopy: Record<EngineeringCauseStageId, { eyebrow: string; title: string; explanation: string }> = {
   scenario: {
@@ -505,6 +490,8 @@ const EngineeringResultSummary = ({ technology, truth, stageEvidence, stageSumma
     focus,
     lock,
     clear,
+    autoFocusCamera,
+    setAutoFocusCamera,
   } = useEngineeringFocus();
   const stageButtonRefs = useRef<Partial<Record<EngineeringCauseStage['id'], HTMLButtonElement | null>>>({});
   const inspectorCloseTimerRef = useRef<number | null>(null);
@@ -527,19 +514,6 @@ const EngineeringResultSummary = ({ technology, truth, stageEvidence, stageSumma
   const presentedStage = presentedStageId
     ? truth.causeChain.find((stage) => stage.id === presentedStageId) ?? null
     : null;
-  const spatialState = useMemo(() => {
-    const states = (['access', 'backhaul', 'destination'] as const).map((segment) => (
-      getEngineeringPathVisualState({ truth, segment, focus })
-    ));
-    return states.includes('selected') ? 'selected'
-      : states.includes('unavailable') ? 'unavailable'
-        : states.includes('unresolved') ? 'unresolved'
-          : states.includes('limiting') ? 'limiting'
-            : states.includes('diagnostic') ? 'diagnostic'
-              : states.includes('secondary') ? 'secondary'
-              : 'delivered';
-  }, [focus, truth]);
-
   useEffect(() => {
     if (previousTruthStateRef.current === truth.state) return;
     previousTruthStateRef.current = truth.state;
@@ -684,11 +658,15 @@ const EngineeringResultSummary = ({ technology, truth, stageEvidence, stageSumma
       <div className="p-3 [@media(max-height:700px)]:p-2.5">
         <div className="mb-2 flex items-center justify-between gap-2">
           <h4 className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-600 dark:text-slate-300">Why this result</h4>
-          <span className="text-[9px] text-slate-400 dark:text-slate-500">evaluated in order</span>
-        </div>
-        <div className="mb-2 flex items-center gap-1.5 rounded-md bg-slate-50 px-2 py-1.5 text-[9px] text-slate-500 dark:bg-slate-900/70 dark:text-slate-400" aria-live="polite">
-          <LocateFixed className="h-3 w-3 shrink-0" aria-hidden="true" />
-          Globe path: {pathStateLabel[spatialState]}. Select a stage to locate its evidence.
+          <label className="flex items-center gap-1.5 text-[9px] text-slate-400 dark:text-slate-500">
+            <input
+              type="checkbox"
+              checked={autoFocusCamera}
+              onChange={(event) => setAutoFocusCamera(event.target.checked)}
+              className="h-3 w-3 rounded border-slate-300 text-blue-600 accent-blue-600 focus:ring-blue-500 dark:border-slate-600"
+            />
+            Auto-focus globe camera
+          </label>
         </div>
         <ol aria-label="Engineering cause chain" aria-orientation="vertical">
           {truth.causeChain.map((stage, index) => (
