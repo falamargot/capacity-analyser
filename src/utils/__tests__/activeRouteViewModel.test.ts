@@ -27,6 +27,10 @@ const leoS2S = {
   serviceAvailable: true,
   finalThroughputAtoBMbps: 31.6,
   finalThroughputBtoAMbps: 12.8,
+  // Symmetric by construction (same physical path either direction) — rttMs
+  // is both legs summed (95.8), kept only as the diagnostic round-trip figure.
+  oneWayLatencyAtoBMs: 47.9,
+  oneWayLatencyBtoAMs: 47.9,
   rttMs: 95.8,
 } as LeoSiteToSiteResult;
 
@@ -51,20 +55,24 @@ describe('activeRouteViewModel', () => {
     expect(view.summary).toBe('DL 120 Mbps · One-way 76 ms');
   });
 
-  it('builds LEO S2S A-to-B selected values', () => {
+  it('builds LEO S2S A-to-B selected values with one-way latency (was double-counting both legs)', () => {
     const view = buildLeoRouteViewModel({ topologyMode: 'SITE_TO_SITE', direction: 'A_TO_B', siteToSiteResult: leoS2S });
     expect(view.routeValue).toBe('Site A→B');
     expect(view.throughputMbps).toBe(31.6);
     expect(view.latencyLabel).toBe('A→B latency');
-    expect(view.summary).toBe('A→B 32 Mbps · latency 96 ms');
+    expect(view.latencyIsRtt).toBe(false);
+    expect(view.latencyMs).toBe(47.9);
+    expect(view.summary).toBe('A→B 32 Mbps · latency 48 ms');
   });
 
-  it('builds LEO S2S B-to-A selected values', () => {
+  it('builds LEO S2S B-to-A selected values with one-way latency (was double-counting both legs)', () => {
     const view = buildLeoRouteViewModel({ topologyMode: 'SITE_TO_SITE', direction: 'B_TO_A', siteToSiteResult: leoS2S });
     expect(view.routeValue).toBe('Site B→A');
     expect(view.throughputMbps).toBe(12.8);
     expect(view.latencyLabel).toBe('B→A latency');
-    expect(view.summary).toBe('B→A 13 Mbps · latency 96 ms');
+    expect(view.latencyIsRtt).toBe(false);
+    expect(view.latencyMs).toBe(47.9);
+    expect(view.summary).toBe('B→A 13 Mbps · latency 48 ms');
   });
 
   it('builds GEO Forward one-way semantics', () => {

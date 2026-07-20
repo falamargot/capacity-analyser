@@ -48,6 +48,16 @@ type BoundingBox = {
 let cachedToken: string | null = null;
 let cachedTokenExpiresAt = 0;
 
+// SEC-1: short-TTL snapshot cache + in-flight coalescing. Without this, every
+// client tab/poll (every 10s per useAirTraffic's default) triggered its own
+// fresh OpenSky fetch — a handful of concurrent clients (or a trivial script
+// hitting /api/air-traffic in a loop) could exhaust the account's shared
+// authenticated rate limit. 8s keeps every request inside a poll cycle fresh
+// while coalescing bursts; well under the route's own 30s Cache-Control.
+const SNAPSHOT_CACHE_TTL_MS = 8_000;
+let cachedSnapshot: { data: AirTrafficSnapshot; expiresAt: number } | null = null;
+let inFlightFetch: Promise<AirTrafficSnapshot> | null = null;
+
 // All commercial aviation above FL164 (~5 km) worldwide — excludes polar regions
 // where traffic is sparse enough to not warrant the latency cost.
 const GLOBAL_BBOX: BoundingBox = { lamin: -80, lamax: 80, lomin: -180, lomax: 180 };
@@ -170,7 +180,7 @@ const getAccessToken = async (): Promise<string | null> => {
   return cachedToken;
 };
 
-export async function fetchAirTrafficSnapshot(): Promise<AirTrafficSnapshot> {
+async function fetchAirTrafficSnapshotUncached(): Promise<AirTrafficSnapshot> {
   const bbox = GLOBAL_BBOX;
   let authenticated = false;
 
@@ -227,4 +237,35 @@ export async function fetchAirTrafficSnapshot(): Promise<AirTrafficSnapshot> {
       },
     };
   }
+}
+
+export async function fetchAirTrafficSnapshot(): Promise<AirTrafficSnapshot> {
+  const now = Date.now();
+  if (cachedSnapshot && now < cachedSnapshot.expiresAt) {
+    return cachedSnapshot.data;
+  }
+
+  // Coalesce concurrent cache-miss callers into a single upstream request
+  // instead of each triggering its own fetch (a burst of simultaneous
+  // requests right after the cache expires would otherwise all miss).
+  if (inFlightFetch) {
+    return inFlightFetch;
+  }
+
+  inFlightFetch = fetchAirTrafficSnapshotUncached()
+    .then((data) => {
+      cachedSnapshot = { data, expiresAt: Date.now() + SNAPSHOT_CACHE_TTL_MS };
+      return data;
+    })
+    .finally(() => {
+      inFlightFetch = null;
+    });
+
+  return inFlightFetch;
+}
+
+/** Test-only: clears the snapshot cache so each test starts from a clean state. */
+export function resetAirTrafficCacheForTests(): void {
+  cachedSnapshot = null;
+  inFlightFetch = null;
 }

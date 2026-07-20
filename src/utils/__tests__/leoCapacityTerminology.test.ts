@@ -9,6 +9,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { JulianDate } from 'cesium';
 
 import {
   NOMINAL_TERMINAL_PEAK_MBPS,
@@ -21,8 +22,8 @@ import {
 } from '../leoNetworkLayer';
 
 import {
-  calculateRealTimeCapacity,
-} from '../capacityCalculator';
+  computeServiceAwareRealTimeCapacity,
+} from '../../hooks/useEngineeringAnalysis';
 
 import {
   estimateBeamLoad,
@@ -32,6 +33,10 @@ import {
 import {
   calculatePosition,
 } from '../../services/satelliteService';
+
+import { buildSimulationStateSnapshot } from '../../types/simulation';
+import { DEFAULT_BEAM_HEALTH } from '../realisticSimulation';
+import { buildOrbitFixture, makeOneWebSatellite } from './helpers/leoOrbitFixture';
 
 import type { SatelliteData } from '../../types/satellites';
 import type { FillRateLookupResult } from '../../types/fillRate';
@@ -57,8 +62,26 @@ describe('OneWeb capacity constants — terminology', () => {
 });
 
 // ─── 2. No per-point LEO capacity equals satellite aggregate ─────────────────
+//
+// TS-2: calculateRealTimeCapacity (capacityCalculator.ts) was dead code — its
+// geometry-only "coverage" check had drifted from the live, service-aware
+// implementation actually wired to the UI. That live implementation has been
+// extracted to computeServiceAwareRealTimeCapacity (useEngineeringAnalysis.ts)
+// so it's directly testable here instead of only exercising a since-deleted
+// duplicate. Its LEO check requires real RF connectivity (SGP4 propagation +
+// active beam) AND a reachable SNP from the real global catalog — not just
+// point-in-polygon coverage — so these tests use a real orbit fixture rather
+// than a bare { lat: 0, lng: 0 } satellite.
 
-describe('calculateRealTimeCapacity — LEO must not return satellite aggregate', () => {
+const emptySimulationState = buildSimulationStateSnapshot({
+  coveragePolicy: { type: 'DB_THRESHOLD', thresholdDb: -10 },
+  weatherCondition: 'CLEAR',
+  beamHealthFactors: DEFAULT_BEAM_HEALTH,
+  hsBeams: new Set<number>(),
+});
+const noFailedSnps = new Set<string>();
+
+describe('computeServiceAwareRealTimeCapacity — LEO must not return satellite aggregate', () => {
   const makeOneweb = (id: string): SatelliteData => ({
     id,
     name: `ONEWEB-${id}`,
@@ -80,44 +103,65 @@ describe('calculateRealTimeCapacity — LEO must not return satellite aggregate'
     coverages: [],
   });
 
-  it('returns totalCapacity well below 1 Gbps when LEO is in coverage (not 6–7.2 Gbps)', () => {
-    // Point directly under the satellite at (0, 0) — guaranteed coverage at the sub-sat point.
-    const sat = makeOneweb('TEST-1');
-    const point = { lat: 0, lng: 0 };
-    const result = calculateRealTimeCapacity([sat], point, null);
-
-    // If any OneWeb satellite is in coverage, totalCapacity should be terminal peak (0.2 Gbps)
-    // not the satellite aggregate (6–7.2 Gbps).
-    if (result.hasLeoCoverage) {
-      expect(result.totalCapacity).toBeLessThan(1); // < 1 Gbps
-      expect(result.totalCapacity).toBeCloseTo(NOMINAL_TERMINAL_PEAK_MBPS / 1000, 3); // ≈ 0.2 Gbps
-    }
-  });
-
-  it('leoCapacityIsTerminalPeak is true when a point is selected and LEO is in scope', () => {
-    const sat = makeOneweb('TEST-2');
-    const point = { lat: 0, lng: 0 };
-    const result = calculateRealTimeCapacity([sat], point, null);
-    expect(result.leoCapacityIsTerminalPeak).toBe(true);
-  });
-
-  it('satellite with isPositionValid=false contributes 0 capacity', () => {
+  it('satellite with isPositionValid=false contributes 0 capacity (no real satrec/RF needed — excluded before propagation)', () => {
     const sat = makeOneweb('TEST-3');
     sat.position.isPositionValid = false;
     const point = { lat: 0, lng: 0 };
-    const result = calculateRealTimeCapacity([sat], point, null);
+    const result = computeServiceAwareRealTimeCapacity(
+      [sat], point, null, JulianDate.now(), noFailedSnps, emptySimulationState,
+    );
     // An invalid-position satellite must be excluded entirely.
     expect(result.totalCapacity).toBe(0);
     expect(result.hasLeoCoverage).toBe(false);
     expect(result.coveredSatellites).toHaveLength(0);
   });
 
-  it('no-point query with selected satellite uses satellite aggregate (context display)', () => {
-    const sat = makeOneweb('TEST-4');
-    // When no point is selected, we show satellite aggregate as context — not terminal peak.
-    const result = calculateRealTimeCapacity([sat], null, sat);
+  it('a non-operational focused satellite contributes 0 capacity regardless of point', () => {
+    const sat = makeOneweb('TEST-5');
+    sat.opsStatus = 'decommissioned' as SatelliteData['opsStatus'];
+    const point = { lat: 0, lng: 0 };
+    const result = computeServiceAwareRealTimeCapacity(
+      [], point, sat, JulianDate.now(), noFailedSnps, emptySimulationState,
+    );
+    expect(result.totalCapacity).toBe(0);
+    expect(result.hasLeoCoverage).toBe(false);
     expect(result.leoCapacityIsTerminalPeak).toBe(false);
-    expect(result.totalCapacity).toBe(SATELLITE_AGGREGATE_CAPACITY_GBPS);
+    expect(result.coveredSatellites).toHaveLength(0);
+  });
+
+  it('a focused LEO satellite with no point selected shows terminal peak, not satellite aggregate', () => {
+    // computeServiceAwareRealTimeCapacity always uses the terminal-peak model
+    // for LEO (never the satellite-aggregate maxThroughput) — this branch
+    // doesn't call hasRFConnectivity at all, so no real satrec is needed.
+    const sat = makeOneweb('TEST-4');
+    const result = computeServiceAwareRealTimeCapacity(
+      [sat], null, sat, JulianDate.now(), noFailedSnps, emptySimulationState,
+    );
+    expect(result.leoCapacityIsTerminalPeak).toBe(true);
+    expect(result.hasLeoCoverage).toBe(true);
+    expect(result.totalCapacity).toBeCloseTo(NOMINAL_TERMINAL_PEAK_MBPS / 1000, 3);
+    expect(result.totalCapacity).toBeLessThan(1); // well below the 7.2 Gbps aggregate
+  });
+
+  it('a serviceable LEO satellite (real RF, real global SNP catalog) reports terminal-peak capacity, not the aggregate', () => {
+    // Real satrec + a point directly under the sub-satellite point (elevation
+    // 90°, guaranteed RF-eligible). getBestConnectedGateway searches the real
+    // global SNP catalog (not a custom fixture list), so whether a real SNP
+    // is also reachable depends on this synthetic orbit's uncontrollable
+    // longitude — the assertion is conditional on that for the same reason.
+    const orbit = buildOrbitFixture();
+    const sat = makeOneWebSatellite(orbit, 'TS2-LIVE-RF');
+    const point = { lat: orbit.subLatDeg, lng: orbit.subLngDeg };
+    const result = computeServiceAwareRealTimeCapacity(
+      [sat], point, null, JulianDate.fromDate(orbit.time), noFailedSnps, emptySimulationState,
+    );
+
+    if (result.hasLeoCoverage) {
+      expect(result.totalCapacity).toBeLessThan(1);
+      expect(result.totalCapacity).toBeCloseTo(NOMINAL_TERMINAL_PEAK_MBPS / 1000, 3);
+      expect(result.leoCapacityIsTerminalPeak).toBe(true);
+      expect(result.coveredSatellites).toHaveLength(1);
+    }
   });
 });
 

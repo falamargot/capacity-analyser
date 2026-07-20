@@ -683,7 +683,12 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
 
         const s2sLeoMetrics: MobileLinkMetrics | null = leoTopologyMode === 'SITE_TO_SITE' && leoSiteToSiteResult
             ? {
-                rtt: leoSiteToSiteResult.rttMs,
+                // One-way, not rttMs (both legs summed — a genuine round trip,
+                // exactly 2x too high here). Matches the desktop drawer's
+                // s2sPrimaryLatency and activeRouteViewModel's identical fix.
+                rtt: activeMeshTab === 'reverse'
+                    ? leoSiteToSiteResult.oneWayLatencyBtoAMs
+                    : leoSiteToSiteResult.oneWayLatencyAtoBMs,
                 downlinkGbps: activeMeshTab === 'reverse'
                     ? (leoSiteToSiteResult.finalThroughputBtoAMbps != null
                         ? leoSiteToSiteResult.finalThroughputBtoAMbps / 1000

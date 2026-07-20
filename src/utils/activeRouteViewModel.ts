@@ -134,7 +134,17 @@ export function buildLeoRouteViewModel({
       return noRoute('LEO', 'LEO_SITE_TO_SITE', 'Route', selectedRouteValue(direction), `No ${directionLabel(direction)} LEO throughput available.`, direction);
     }
 
-    const latencyMs = siteToSiteResult.rttMs;
+    // GEO-2/LEO-1 follow-on: this was reading siteToSiteResult.rttMs (both legs
+    // summed — a genuine round trip, exactly 2x too high) under a directional
+    // "A→B latency"/"B→A latency" label with latencyIsRtt: true. The one-way
+    // legs are symmetric by construction (oneWayLatencyBtoAMs === oneWayLatencyAtoBMs
+    // — same physical path either direction), so this fix doesn't change the
+    // number by direction, only halves it and corrects latencyIsRtt, matching
+    // the one-way convention used everywhere else (LEOConnectivitySection's
+    // s2sPrimaryLatency, the single-site branch below, GEO's mesh branch).
+    const latencyMs = direction === 'B_TO_A'
+      ? siteToSiteResult.oneWayLatencyBtoAMs
+      : siteToSiteResult.oneWayLatencyAtoBMs;
     return {
       selectedTechnology: 'LEO',
       selectedTopology: 'LEO_SITE_TO_SITE',
@@ -147,7 +157,7 @@ export function buildLeoRouteViewModel({
       throughputLabel: directionLabel(direction),
       latencyMs,
       latencyLabel: getDirectionalLatencyLabel('LEO_SITE_TO_SITE', direction),
-      latencyIsRtt: true,
+      latencyIsRtt: false,
       summary: `${directionLabel(direction)} ${formatRouteMbps(throughputMbps)} · latency ${formatRouteMs(latencyMs)}`,
       sourceLabel: direction === 'B_TO_A' ? 'Site B' : 'Site A',
       destinationLabel: direction === 'B_TO_A' ? 'Site A' : 'Site B',

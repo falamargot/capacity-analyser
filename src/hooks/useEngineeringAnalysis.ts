@@ -32,7 +32,7 @@ import type {
 import { analyzeLeoConnectivity } from '../utils/leoConnectivityModel';
 import { computeGeoConnectivity, findCandidateCoverages } from '../utils/geoCoverageSelection';
 import { useSimulation } from '../contexts/SimulationContext';
-import { buildSimulationStateSnapshot } from '../types/simulation';
+import { buildSimulationStateSnapshot, type SimulationStateSnapshot } from '../types/simulation';
 import type { PDFConnectionDetails } from '../utils/pdfExport';
 import type { LeoConnectivityViewModel } from '../utils/leoServiceViewModel';
 import { formatCoordinates } from '../utils/formatters';
@@ -68,7 +68,6 @@ import type { EngineeringConfigureCandidates } from '../types/engineeringConfigu
 import { buildGeoConfidence, buildLeoSingleSiteConfidence } from '../utils/predictionConfidence';
 import { estimateGeoSatelliteCapacity } from '../utils/geoCapacityModel';
 import { buildLinkAvailabilityContext } from '../utils/linkAvailabilityContext';
-import { estimateSnpToPopFiberOneWayMs } from '../utils/leoSiteToSiteModel';
 import type { ActiveLeoRouteEvidence } from '../utils/activeLeoRouteEvidence';
 import {
   buildGeoEngineeringAnalysisViewModel,
@@ -239,6 +238,111 @@ function buildResolvedLeoConnectivityType() {
     snpLEODistance: number | null;
     connectedBeamIndex: number | null;
     candidateBeamCount: number;
+  };
+}
+
+/**
+ * TS-2: the single, tested, service-aware real-time-capacity calculator.
+ * Extracted to module scope (pure — no closures/refs) so it's directly
+ * unit-testable, and exported so it is the ONE implementation of this
+ * contract. capacityCalculator.ts previously held a second, dead
+ * implementation (calculateRealTimeCapacity, zero production callers) that
+ * used a looser geometry-only "coverage" check instead of this function's
+ * service-aware check (RF connectivity + a reachable, non-failed SNP for
+ * LEO) — that duplicate has been deleted, not left to silently diverge.
+ *
+ * leoCapacityIsTerminalPeak/hasLeoCoverage: LEO's contribution to
+ * totalCapacity is always the terminal-peak model (never the satellite
+ * aggregate), so leoCapacityIsTerminalPeak is simply "is any covered
+ * satellite LEO" — kept in lockstep with hasLeoCoverage.
+ */
+export function computeServiceAwareRealTimeCapacity(
+  availableSatellites: SatelliteData[],
+  point: { lat: number; lng: number } | null,
+  focusedSatellite: SatelliteData | null,
+  currentTime: JulianDate,
+  failedSnps: ReadonlySet<string>,
+  simulationState: SimulationStateSnapshot,
+): RealTimeCapacityData {
+  const isServiceableAtPoint = (satellite: SatelliteData): boolean => {
+    if (satellite.opsStatus !== 'operational' || !point) {
+      return false;
+    }
+
+    if (satellite.orbitType === 'LEO') {
+      return hasRFConnectivity(point, satellite, currentTime, simulationState)
+        && getBestConnectedGateway(satellite, MIN_SNP_GATEWAY_ELEVATION_DEG, failedSnps) !== null;
+    }
+
+    return isPointInCoverage(point, satellite, null).includes('user');
+  };
+
+  const getNominalCapacityGbps = (satellite: SatelliteData): number => {
+    if (satellite.orbitType === 'LEO') {
+      return NOMINAL_TERMINAL_PEAK_MBPS / 1000;
+    }
+    return Math.max(0, satellite.capacity.maxThroughput);
+  };
+
+  const leoCoverageFlags = (covered: SatelliteData[]) => {
+    const hasLeoCoverage = covered.some((satellite) => satellite.orbitType === 'LEO');
+    return { leoCapacityIsTerminalPeak: hasLeoCoverage, hasLeoCoverage };
+  };
+
+  if (focusedSatellite) {
+    if (focusedSatellite.opsStatus !== 'operational') {
+      return {
+        totalCapacity: 0,
+        coveredSatellites: [],
+        elevationAngle: point ? calculateElevationAngle(point, focusedSatellite) : undefined,
+        ...leoCoverageFlags([]),
+      };
+    }
+
+    if (!point) {
+      return {
+        totalCapacity: getNominalCapacityGbps(focusedSatellite),
+        coveredSatellites: [focusedSatellite],
+        ...leoCoverageFlags([focusedSatellite]),
+      };
+    }
+
+    const elevationAngle = calculateElevationAngle(point, focusedSatellite);
+    if (!isServiceableAtPoint(focusedSatellite)) {
+      return {
+        totalCapacity: 0,
+        coveredSatellites: [],
+        elevationAngle,
+        ...leoCoverageFlags([]),
+      };
+    }
+
+    return {
+      totalCapacity: getNominalCapacityGbps(focusedSatellite),
+      coveredSatellites: [focusedSatellite],
+      elevationAngle,
+      ...leoCoverageFlags([focusedSatellite]),
+    };
+  }
+
+  if (!point || !availableSatellites) {
+    return {
+      totalCapacity: 0,
+      coveredSatellites: [],
+      ...leoCoverageFlags([]),
+    };
+  }
+
+  const coveredSatellites = availableSatellites.filter(isServiceableAtPoint);
+  const totalCapacity = coveredSatellites.reduce(
+    (sum, satellite) => sum + getNominalCapacityGbps(satellite),
+    0
+  );
+
+  return {
+    totalCapacity,
+    coveredSatellites,
+    ...leoCoverageFlags(coveredSatellites),
   };
 }
 
@@ -451,17 +555,12 @@ export function useEngineeringAnalysis({
     };
   }, [activePoint, autoSelectedLEOSatellite, propSelectedSNP, simulationState, nowTime]);
 
-  const leoGeometry = useMemo(() => {
-    if (!resolvedLEOConnectivity || !resolvedLEOConnectivity.snp) return null;
-
-    return analyzeLeoConnectivity({
-      userToSatelliteDistanceKm: resolvedLEOConnectivity.userLEODistance,
-      satelliteToGatewayDistanceKm: resolvedLEOConnectivity.snpLEODistance || 0,
-      userToSatelliteElevationDeg: resolvedLEOConnectivity.userLEOElevation,
-      gatewayToSatelliteElevationDeg: resolvedLEOConnectivity.snpLEOElevation || 0,
-      snpToPopFiberDelayMs: estimateSnpToPopFiberOneWayMs(resolvedLEOConnectivity.snp),
-    });
-  }, [resolvedLEOConnectivity]);
+  // LEO-2: single-site geometry/latency comes exclusively from the App-level
+  // evidence pipeline (activeLeoRouteEvidence.geometry, computed once inside
+  // buildSingleSitePerformance) — this hook no longer runs its own independent
+  // analyzeLeoConnectivity call, which could silently diverge from the
+  // canonical evidence on a future change to either call site.
+  const leoGeometry = activeLeoRouteEvidence?.geometry ?? null;
 
   // ── Regulatory lookup (async, via API server) ────────────────────────────
   const [computedRegulatoryResult, setComputedRegulatoryResult] = useState<RegulatoryResult | null>(null);
@@ -1249,81 +1348,14 @@ export function useEngineeringAnalysis({
     availableSatellites: SatelliteData[],
     point: { lat: number; lng: number } | null,
     focusedSatellite: SatelliteData | null,
-  ): RealTimeCapacityData => {
-    const currentTime = JulianDate.fromDate(new Date());
-    const currentFailedSnps = failedSnpsRef.current;
-    const currentSimulationState = simulationStateRef.current;
-
-    const isServiceableAtPoint = (satellite: SatelliteData): boolean => {
-      if (satellite.opsStatus !== 'operational' || !point) {
-        return false;
-      }
-
-      if (satellite.orbitType === 'LEO') {
-        return hasRFConnectivity(point, satellite, currentTime, currentSimulationState)
-          && getBestConnectedGateway(satellite, MIN_SNP_GATEWAY_ELEVATION_DEG, currentFailedSnps) !== null;
-      }
-
-      return isPointInCoverage(point, satellite, null).includes('user');
-    };
-
-    const getNominalCapacityGbps = (satellite: SatelliteData): number => {
-      if (satellite.orbitType === 'LEO') {
-        return NOMINAL_TERMINAL_PEAK_MBPS / 1000;
-      }
-      return Math.max(0, satellite.capacity.maxThroughput);
-    };
-
-    if (focusedSatellite) {
-      if (focusedSatellite.opsStatus !== 'operational') {
-        return {
-          totalCapacity: 0,
-          coveredSatellites: [],
-          elevationAngle: point ? calculateElevationAngle(point, focusedSatellite) : undefined,
-        };
-      }
-
-      if (!point) {
-        return {
-          totalCapacity: getNominalCapacityGbps(focusedSatellite),
-          coveredSatellites: [focusedSatellite],
-        };
-      }
-
-      const elevationAngle = calculateElevationAngle(point, focusedSatellite);
-      if (!isServiceableAtPoint(focusedSatellite)) {
-        return {
-          totalCapacity: 0,
-          coveredSatellites: [],
-          elevationAngle,
-        };
-      }
-
-      return {
-        totalCapacity: getNominalCapacityGbps(focusedSatellite),
-        coveredSatellites: [focusedSatellite],
-        elevationAngle,
-      };
-    }
-
-    if (!point || !availableSatellites) {
-      return {
-        totalCapacity: 0,
-        coveredSatellites: [],
-      };
-    }
-
-    const coveredSatellites = availableSatellites.filter(isServiceableAtPoint);
-    const totalCapacity = coveredSatellites.reduce(
-      (sum, satellite) => sum + getNominalCapacityGbps(satellite),
-      0
-    );
-
-    return {
-      totalCapacity,
-      coveredSatellites,
-    };
-  }, []);
+  ): RealTimeCapacityData => computeServiceAwareRealTimeCapacity(
+    availableSatellites,
+    point,
+    focusedSatellite,
+    JulianDate.fromDate(new Date()),
+    failedSnpsRef.current,
+    simulationStateRef.current,
+  ), []);
 
   useEffect(() => {
     const updateRealTimeData = () => {

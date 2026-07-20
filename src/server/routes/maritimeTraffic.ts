@@ -1,9 +1,20 @@
 import type { FastifyInstance } from 'fastify';
+import { isAllowedOrigin } from '../services/corsPolicy.js';
+import { createConcurrencyLimiter } from '../services/rateLimiter.js';
 
 type SseClient = {
   reply: any;
   heartbeat: NodeJS.Timeout;
 };
+
+// SEC-2: this route bypasses the app's CORS plugin (raw SSE headers via
+// reply.hijack()), so it needs its own origin check — previously a hardcoded
+// wildcard let any third-party origin open the stream and consume the
+// shared, rate-limited AISStream.io upstream for free. Also caps concurrent
+// connections per IP so one client can't hold an unbounded number open
+// (the only close trigger was clients.size === 0, i.e. nothing per-IP).
+const MAX_SSE_CONNECTIONS_PER_IP = 3;
+const sseConcurrencyLimiter = createConcurrencyLimiter(MAX_SSE_CONNECTIONS_PER_IP);
 
 const AISSTREAM_URL = 'wss://stream.aisstream.io/v0/stream';
 const RECONNECT_DELAY_MS = 3000;
@@ -123,11 +134,19 @@ const connectUpstream = () => {
 
 export async function maritimeTrafficRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/ais/stream', async (request, reply) => {
+    const clientIp = request.ip;
+    if (!sseConcurrencyLimiter.tryAcquire(clientIp)) {
+      reply.code(429).send({ error: 'Too many concurrent AIS stream connections from this client' });
+      return;
+    }
+
+    const origin = request.headers.origin;
+    const corsHeader = isAllowedOrigin(origin) ? { 'Access-Control-Allow-Origin': origin as string } : {};
     reply.raw.writeHead(200, {
       'Content-Type': 'text/event-stream; charset=utf-8',
       'Cache-Control': 'no-cache, no-transform',
       Connection: 'keep-alive',
-      'Access-Control-Allow-Origin': '*',
+      ...corsHeader,
     });
 
     const client: SseClient = {
@@ -152,6 +171,7 @@ export async function maritimeTrafficRoutes(app: FastifyInstance): Promise<void>
     request.raw.on('close', () => {
       clearInterval(client.heartbeat);
       clients.delete(client);
+      sseConcurrencyLimiter.release(clientIp);
       if (clients.size === 0) {
         closeUpstream();
       }

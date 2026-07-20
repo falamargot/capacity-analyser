@@ -9,7 +9,7 @@ import type { SimulationStateSnapshot } from '../types/simulation';
 import type { BeamLoadResult } from './capacityLayer';
 import type { LeoServingAssignment } from '../data/leoGroundSegment';
 import { calculateElevationAngle, compute3DDistanceKm, SPEED_OF_LIGHT_RADIO_KM_S } from './capacityCalculator';
-import { analyzeLeoConnectivity } from './leoConnectivityModel';
+import { analyzeLeoConnectivity, type LeoConnectivityResult } from './leoConnectivityModel';
 import { MIN_SNP_GATEWAY_ELEVATION_DEG, MIN_USER_TERMINAL_ELEVATION_DEG, STANDARD_SERVICE_ELEVATION_DEG } from './leoFootprint';
 import {
   applyBeamCapacitySharing,
@@ -94,6 +94,14 @@ export interface ActiveLeoRouteEvidence {
   routeResult: LeoSiteToSiteResult | null;
   metrics: MobileLinkMetrics | null;
   leoPerformance: ActiveLeoPerformance | null;
+  /**
+   * SINGLE_SITE only — the full one-way/RTT propagation+overhead breakdown
+   * behind leoPerformance.rtt (LEO-2: this is the ONE place analyzeLeoConnectivity
+   * is called for single-site LEO; consumers must read this instead of running
+   * their own copy, or the two can silently diverge). Null for SITE_TO_SITE,
+   * which has its own equivalent breakdown via routeResult's per-site debug info.
+   */
+  geometry: LeoConnectivityResult | null;
   resolvedConnectivityA: ResolvedLeoConnectivity | null;
   resolvedConnectivityB: ResolvedLeoConnectivity | null;
   servingSatelliteA: SatelliteData | null;
@@ -107,6 +115,13 @@ export interface ActiveLeoRouteEvidence {
   throughputBtoAMbps?: number;
   downloadMbps?: number;
   uploadMbps?: number;
+  /**
+   * One-way user latency (GEO-2: matches GEO's rttMs in the same commercial
+   * cross-technology comparison — NOT a round trip despite the field name,
+   * which is kept for the shared MobileLinkMetrics/commercial-option contract).
+   * The only consumer is commercialViewModel.ts. For a genuine LEO round trip,
+   * use leoPerformance.rtt (SINGLE_SITE) or routeResult.rttMs (SITE_TO_SITE).
+   */
   rttMs?: number;
   bottleneck: string | null;
   rfLimitation: string | null;
@@ -685,7 +700,7 @@ function buildSingleSitePerformance(args: {
   simulationState: SimulationStateSnapshot;
   now: JulianDate;
   state: ActiveLeoRouteEvidenceState;
-}): ActiveLeoPerformance | null {
+}): { performance: ActiveLeoPerformance; geometry: LeoConnectivityResult } | null {
   if (!args.point || !args.connectivity || !args.connectivity.snp) return null;
   const geometry = analyzeLeoConnectivity({
     userToSatelliteDistanceKm: args.connectivity.userLEODistance,
@@ -744,34 +759,40 @@ function buildSingleSitePerformance(args: {
       endpointDebug.debugInfo.mainBottleneck = chooseMainBottleneck(dl, ul);
 
       return {
-        ...calculateBeamAwareSummary({
-          deliveredDownlinkMbps: finalDlMbps,
-          limitingElevation: endpointDebug.debugInfo.limitingElevationDeg ?? args.connectivity.userLEOElevation,
-          normalizedDistance: endpointDebug.debugInfo.normalizedDistance ?? 1,
-          estimatedRttMs: geometry.rttTotalMs,
-          fallbackPropagationRttMs,
-          terminalType: args.terminalType,
-          terminalModelId: args.terminalModelId,
-          weatherType: args.weatherType,
-        }),
-        downlinkGbps: finalDlMbps / 1000,
-        uplinkGbps: finalUlMbps / 1000,
-        throughput: endpointDebug.debugInfo,
-        debugInfo: endpointDebug.debugInfo,
-        wasTerminalLimited: endpointDebug.terminalLimited,
+        performance: {
+          ...calculateBeamAwareSummary({
+            deliveredDownlinkMbps: finalDlMbps,
+            limitingElevation: endpointDebug.debugInfo.limitingElevationDeg ?? args.connectivity.userLEOElevation,
+            normalizedDistance: endpointDebug.debugInfo.normalizedDistance ?? 1,
+            estimatedRttMs: geometry.rttTotalMs,
+            fallbackPropagationRttMs,
+            terminalType: args.terminalType,
+            terminalModelId: args.terminalModelId,
+            weatherType: args.weatherType,
+          }),
+          downlinkGbps: finalDlMbps / 1000,
+          uplinkGbps: finalUlMbps / 1000,
+          throughput: endpointDebug.debugInfo,
+          debugInfo: endpointDebug.debugInfo,
+          wasTerminalLimited: endpointDebug.terminalLimited,
+        },
+        geometry,
       };
     }
   }
 
   args.state.smoothedDownlinkThroughputMbps = null;
   args.state.smoothedUplinkThroughputMbps = null;
-  return calculateApproximatePerformance({
-    connectivity: args.connectivity,
-    terminalType: args.terminalType,
-    terminalModelId: args.terminalModelId,
-    weatherType: args.weatherType,
-    estimatedRttMs: geometry.rttTotalMs,
-  });
+  return {
+    performance: calculateApproximatePerformance({
+      connectivity: args.connectivity,
+      terminalType: args.terminalType,
+      terminalModelId: args.terminalModelId,
+      weatherType: args.weatherType,
+      estimatedRttMs: geometry.rttTotalMs,
+    }),
+    geometry,
+  };
 }
 
 function buildEmptyEvidence(input: BuildActiveLeoRouteEvidenceInput, inputSignature: string, reason: string): ActiveLeoRouteEvidence {
@@ -787,6 +808,7 @@ function buildEmptyEvidence(input: BuildActiveLeoRouteEvidenceInput, inputSignat
     routeResult: null,
     metrics: null,
     leoPerformance: null,
+    geometry: null,
     resolvedConnectivityA: null,
     resolvedConnectivityB: null,
     servingSatelliteA: input.servingSatelliteA,
@@ -906,7 +928,7 @@ export function buildActiveLeoRouteEvidence(
     now: input.now,
   });
   const _tPrePerf = import.meta.env.DEV ? _devMark('② connA (beam find)', _tPreConn) : 0;
-  const leoPerformance = buildSingleSitePerformance({
+  const singleSitePerformance = buildSingleSitePerformance({
     point: input.activePoint,
     connectivity: connectivityA,
     beamLoad: input.beamLoadA,
@@ -917,6 +939,8 @@ export function buildActiveLeoRouteEvidence(
     now: input.now,
     state,
   });
+  const leoPerformance = singleSitePerformance?.performance ?? null;
+  const leoGeometry = singleSitePerformance?.geometry ?? null;
   const _tPreRfA = import.meta.env.DEV ? _devMark('③ perfA (RF chain)', _tPrePerf) : 0;
   const rfAvailableA = input.servingSatelliteA
     ? hasRFConnectivity(input.activePoint, input.servingSatelliteA, input.now, input.simulationStateA)
@@ -926,7 +950,13 @@ export function buildActiveLeoRouteEvidence(
   if (input.topology === 'SINGLE_SITE') {
     const downloadMbps = finitePositive(leoPerformance?.downlinkGbps != null ? leoPerformance.downlinkGbps * 1000 : null);
     const uploadMbps = finitePositive(leoPerformance?.uplinkGbps != null ? leoPerformance.uplinkGbps * 1000 : null);
-    const rttMs = finitePositive(leoPerformance?.rtt);
+    // GEO-2: this evidence.rttMs/metrics.rtt field feeds ONLY the commercial
+    // view model's cross-technology comparison (leoRttMs in commercialViewModel.ts,
+    // consumed nowhere else) — kept as one-way latency, matching GEO's rttMs in
+    // the same comparison, so "N× lower latency" and the hybrid tie-break compare
+    // like units. leoPerformance.rtt (a genuine RTT) remains available separately
+    // for anything that needs the true round trip.
+    const rttMs = finitePositive(leoGeometry?.oneWayLatencyMs);
     // Canonical gate chain shared with serviceLayer and the S2S model (L-Mo1).
     const decision = deriveLeoServiceDecision({
       regulatoryStatus: input.regulatoryResultA?.status ?? null,
@@ -981,6 +1011,7 @@ export function buildActiveLeoRouteEvidence(
           }
         : null,
       leoPerformance,
+      geometry: leoGeometry,
       resolvedConnectivityA: connectivityA,
       resolvedConnectivityB: null,
       servingSatelliteA: input.servingSatelliteA,
@@ -1105,7 +1136,10 @@ export function buildActiveLeoRouteEvidence(
 
   const throughputAtoB = finitePositive(routeResult.finalThroughputAtoBMbps);
   const throughputBtoA = finitePositive(routeResult.finalThroughputBtoAMbps);
-  const rttMs = finitePositive(routeResult.rttMs);
+  // GEO-2: one-way, not routeResult.rttMs (both legs summed) — see the
+  // SINGLE_SITE branch's identical rationale above. oneWayLatencyAtoBMs is
+  // symmetric by construction (same physical path either direction).
+  const rttMs = finitePositive(routeResult.oneWayLatencyAtoBMs);
   const metricsComplete = routeResult.serviceAvailable && (throughputAtoB != null || throughputBtoA != null) && rttMs != null;
   const bottleneck = routeResult.debugSiteA?.mainBottleneck.label && routeResult.debugSiteA.mainBottleneck.label !== 'None'
     ? routeResult.debugSiteA.mainBottleneck.label
@@ -1134,6 +1168,9 @@ export function buildActiveLeoRouteEvidence(
         }
       : null,
     leoPerformance,
+    // SITE_TO_SITE has its own equivalent breakdown via routeResult's per-site
+    // debug info — see the geometry field's own doc comment on the interface.
+    geometry: null,
     resolvedConnectivityA: connectivityA,
     resolvedConnectivityB: connectivityB,
     servingSatelliteA: routeResult.servingSatelliteA,

@@ -14,6 +14,7 @@ import Fastify from 'fastify';
 import fastifyCors from '@fastify/cors';
 import fastifyCompress from '@fastify/compress';
 import { loadAndIndex } from './services/regulatoryIndex.js';
+import { ALLOWED_ORIGIN_PATTERNS } from './services/corsPolicy.js';
 import { regulatoryRoutes } from './routes/regulatory.js';
 import { airTrafficRoutes } from './routes/airTraffic.js';
 import { maritimeTrafficRoutes } from './routes/maritimeTraffic.js';
@@ -31,10 +32,7 @@ const app = Fastify({ logger: false });
 
 async function start() {
   await app.register(fastifyCors, {
-    origin: [
-      /^http:\/\/localhost:\d+$/,
-      /^http:\/\/127\.0\.0\.1:\d+$/,
-    ],
+    origin: ALLOWED_ORIGIN_PATTERNS,
   });
 
   await app.register(fastifyCompress);

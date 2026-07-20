@@ -248,3 +248,70 @@ describe('L-B1 — site-to-site Site B throughput derives from Site B\'s own RF 
     expect(Math.abs(debugB!.downlink.rf.slantRangeKm - connectivityB!.userLEODistance)).toBeLessThan(1);
   });
 });
+
+// ── LEO-2 — single canonical geometry/latency source ─────────────────────────
+
+describe('LEO-2 — geometry is the ONE canonical single-site latency computation', () => {
+  it('exposes geometry whose rttTotalMs matches leoPerformance.rtt exactly (same underlying computation)', () => {
+    const evidence = buildActiveLeoRouteEvidence(buildEvidenceInput(), createActiveLeoRouteEvidenceState());
+
+    expect(evidence.geometry).toBeTruthy();
+    expect(evidence.leoPerformance?.rtt).toBeCloseTo(evidence.geometry!.rttTotalMs, 6);
+  });
+
+  it('geometry.oneWayLatencyMs is a genuine one-way figure, strictly between half and the full RTT', () => {
+    const evidence = buildActiveLeoRouteEvidence(buildEvidenceInput(), createActiveLeoRouteEvidenceState());
+
+    expect(evidence.geometry).toBeTruthy();
+    const { oneWayLatencyMs, rttTotalMs } = evidence.geometry!;
+    expect(oneWayLatencyMs).toBeGreaterThan(rttTotalMs / 2);
+    expect(oneWayLatencyMs).toBeLessThan(rttTotalMs);
+  });
+
+  it('is null for SITE_TO_SITE, which has its own equivalent breakdown via routeResult', () => {
+    const sat = makeSatellite();
+    const evidence = buildActiveLeoRouteEvidence(buildEvidenceInput({
+      topology: 'SITE_TO_SITE' as const,
+      activePoint: pointEastOfSubpoint(0),
+      pointB: pointEastOfSubpoint(334),
+      servingSatelliteB: sat,
+      selectedSnpB: snp,
+      regulatoryResultB: regulatoryAllowed,
+      beamLoadB: beamLoadWithUsers(1),
+    }), createActiveLeoRouteEvidenceState());
+
+    expect(evidence.geometry).toBeNull();
+  });
+});
+
+// ── GEO-2 — evidence.rttMs/metrics.rtt are one-way, matching GEO's comparison ─
+
+describe('GEO-2 — evidence.rttMs is one-way, not a round trip (commercial cross-tech comparison)', () => {
+  it('SINGLE_SITE: evidence.rttMs equals geometry.oneWayLatencyMs, not leoPerformance.rtt (a true RTT)', () => {
+    const evidence = buildActiveLeoRouteEvidence(buildEvidenceInput(), createActiveLeoRouteEvidenceState());
+
+    expect(evidence.geometry).toBeTruthy();
+    expect(evidence.rttMs).toBeCloseTo(evidence.geometry!.oneWayLatencyMs, 6);
+    expect(evidence.metrics?.rtt).toBeCloseTo(evidence.geometry!.oneWayLatencyMs, 6);
+    // Would have been ~2x this value before the fix (leoPerformance.rtt is a
+    // genuine round trip) — assert it's meaningfully less, not just close.
+    expect(evidence.rttMs).toBeLessThan(evidence.leoPerformance!.rtt! * 0.75);
+  });
+
+  it('SITE_TO_SITE: evidence.rttMs equals routeResult.oneWayLatencyAtoBMs, not routeResult.rttMs (both legs summed)', () => {
+    const sat = makeSatellite();
+    const evidence = buildActiveLeoRouteEvidence(buildEvidenceInput({
+      topology: 'SITE_TO_SITE' as const,
+      activePoint: pointEastOfSubpoint(0),
+      pointB: pointEastOfSubpoint(334),
+      servingSatelliteB: sat,
+      selectedSnpB: snp,
+      regulatoryResultB: regulatoryAllowed,
+      beamLoadB: beamLoadWithUsers(1),
+    }), createActiveLeoRouteEvidenceState());
+
+    expect(evidence.routeResult).toBeTruthy();
+    expect(evidence.rttMs).toBeCloseTo(evidence.routeResult!.oneWayLatencyAtoBMs, 6);
+    expect(evidence.rttMs).toBeLessThan(evidence.routeResult!.rttMs * 0.75);
+  });
+});
