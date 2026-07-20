@@ -69,7 +69,7 @@ describe('L-M4 — comb geometry cache', () => {
 describe('L-Mo5 — canonical SNP selector', () => {
   it('selects the maximum-feeder-elevation SNP above the 15° mask', () => {
     const sat = makeOneWebSatellite(orbit);
-    const selected = selectSnpForSatellite(sat, new Set(), orbit.time);
+    const selected = selectSnpForSatellite(sat, new Set());
 
     expect(selected).not.toBeNull();
     expect(selected!.elevationDeg).toBeGreaterThanOrEqual(MIN_SNP_GATEWAY_ELEVATION_DEG);
@@ -86,11 +86,11 @@ describe('L-Mo5 — canonical SNP selector', () => {
 
   it('skips failed SNPs', () => {
     const sat = makeOneWebSatellite(orbit);
-    const nominal = selectSnpForSatellite(sat, new Set(), orbit.time);
+    const nominal = selectSnpForSatellite(sat, new Set());
     expect(nominal).not.toBeNull();
 
     const failed = new Set([nominal!.snp.name]);
-    const fallback = selectSnpForSatellite(sat, failed, orbit.time);
+    const fallback = selectSnpForSatellite(sat, failed);
     if (fallback) {
       expect(fallback.snp.name).not.toBe(nominal!.snp.name);
       expect(fallback.elevationDeg).toBeLessThanOrEqual(nominal!.elevationDeg + 1e-9);
@@ -103,7 +103,7 @@ describe('L-Mo5 — canonical SNP selector', () => {
     // node, so its Ka feeder relationship stays valid.
     const equatorial = buildOrbitFixture(0, 4);
     const sat = makeOneWebSatellite(equatorial, 'LEO-NODE');
-    const feeder = selectSnpForSatellite(sat, new Set(), equatorial.time);
+    const feeder = selectSnpForSatellite(sat, new Set());
     expect(feeder).not.toBeNull();
     expect(feeder!.elevationDeg).toBeGreaterThanOrEqual(MIN_SNP_GATEWAY_ELEVATION_DEG);
   });

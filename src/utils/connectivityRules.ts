@@ -1,9 +1,7 @@
-import { JulianDate } from 'cesium';
 import { SatelliteData } from '../types/satellites';
 import { SNPData, SNPS_DATA } from '../components/globe/GlobeConfig';
 import { calculateElevationAngle, compute3DDistanceKm, SPEED_OF_LIGHT_RADIO_KM_S } from './capacityCalculator';
 import { MIN_SNP_GATEWAY_ELEVATION_DEG } from './leoFootprint';
-import { calculateGSOAvoidanceAngle } from './oneWebComb';
 import type { LeoFeederLink } from '../data/leoGroundSegment';
 
 /**
@@ -73,21 +71,8 @@ export function buildLeoFeederLink(
 export function selectSnpForSatellite(
   satellite: SatelliteData,
   failedSnps: ReadonlySet<string> = new Set(),
-  /** Evaluation time for the GSO gate — pass the render/simulation snapshot when available. */
-  now: Date = new Date(),
 ): LeoFeederLink | null {
   if (satellite.type !== 'ONEWEB') return null;
-
-  // A blanked satellite (GSO exclusion zone) serves no feeder link.
-  if (satellite.satrec) {
-    try {
-      const { isBlankingZone } = calculateGSOAvoidanceAngle(satellite.satrec, JulianDate.fromDate(now));
-      if (isBlankingZone) return null;
-    } catch (error) {
-      console.warn('Error checking GSO exclusion zone:', error);
-      // Continue with normal processing if the GSO check fails.
-    }
-  }
 
   const best = getBestConnectedGateway(satellite, MIN_SNP_GATEWAY_ELEVATION_DEG, failedSnps);
   if (!best) return null;

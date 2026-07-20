@@ -22,7 +22,7 @@ import * as satelliteJs from 'satellite.js';
 import { JulianDate } from 'cesium';
 import type { SatelliteData } from '../types/satellites';
 import type { WeatherCondition } from '../utils/realisticSimulation';
-import { calculateGSOAvoidanceAngle, getGsoMutedBeamSet } from '../utils/oneWebComb';
+import { getGsoMutedBeamSet } from '../utils/oneWebComb';
 import { estimateCurrentLeoBeamLink, findConnectedBeamIndex } from '../utils/rfConnectivity';
 import { calculateElevationAngle } from '../utils/capacityCalculator';
 import {
@@ -155,8 +155,7 @@ const PassBeamTimeline: React.FC<PassBeamTimelineProps> = ({
       const mockSat = { ...satellite, position: satPos } as SatelliteData;
       const elevation = calculateElevationAngle(userPosition, mockSat);
 
-      // 3. GSO state at this time (geometry-derived keep-out set, cached per instant)
-      const gsoState = calculateGSOAvoidanceAngle(satellite.satrec, julianDate);
+      // 3. Active beam count at this time (geometry-derived keep-out set, cached per instant)
       const activeBeamCount = countActiveBeams(16, getGsoMutedBeamSet(satellite.satrec, julianDate), hsBeams);
 
       // 4. Beam index covering user (using real Cesium polygon geometry)
@@ -177,7 +176,7 @@ const PassBeamTimeline: React.FC<PassBeamTimelineProps> = ({
       // 5. SNP backhaul availability at this time
       let snpAvailable = false;
       let nearestSnpName: string | null = null;
-      if (activeBeamCount > 0 && !gsoState.isBlankingZone) {
+      if (activeBeamCount > 0) {
         let minDist = Infinity;
         for (const snp of SNPS_DATA) {
           if (failedSnps.has(snp.name)) continue;

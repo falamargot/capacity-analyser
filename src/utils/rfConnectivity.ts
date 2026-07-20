@@ -20,9 +20,6 @@ import {
 import { NOMINAL_BEAM_SEMI_MAJOR_KM, NOMINAL_BEAM_SEMI_MINOR_KM, TOTAL_BEAMS } from '../config/oneweb';
 import type { SimulationStateSnapshot } from '../types/simulation';
 
-// Type alias for the GSO state returned by calculateGSOAvoidanceAngle
-type GSOState = ReturnType<typeof calculateGSOAvoidanceAngle>;
-
 /**
  * Checks if a user position has RF connectivity to a LEO satellite
  * RF connectivity requires user to be inside an ACTIVE beam polygon
@@ -57,16 +54,8 @@ export function hasRFConnectivity(
             return false;
         }
 
-        // C-02: Single SGP4 propagation — compute gsoState once and reuse in isUserInActiveBeam.
-        const gsoState = calculateGSOAvoidanceAngle(satellite.satrec, time);
-
-        // All beams blanked (GSO exclusion zone, ±GSO_EXCLUSION_HALF_ANGLE_DEG latitude): no connectivity
-        if (gsoState.isBlankingZone) {
-            return false;
-        }
-
-        // Check if user is within any active beam polygon (gsoState already computed)
-        return isUserInActiveBeam(userPosition, satellite, time, simulationState, gsoState);
+        // Check if user is within any active beam polygon
+        return isUserInActiveBeam(userPosition, satellite, time, simulationState);
     } catch (error) {
         console.warn('Error checking RF connectivity:', error);
         return false;
@@ -75,26 +64,18 @@ export function hasRFConnectivity(
 
 /**
  * Checks if a user position is within any active beam polygon of a LEO satellite.
- *
- * C-02 fix: accepts pre-computed gsoState to avoid redundant SGP4 propagation.
- * When called from hasRFConnectivity, getConnectivityStatus or findConnectedBeamIndex,
- * the caller computes gsoState once and passes it here.
  */
 function isUserInActiveBeam(
     userPosition: { lat: number; lng: number },
     satellite: SatelliteData,
     time: JulianDate,
     simulationState: SimulationStateSnapshot,
-    gsoState: GSOState,
 ): boolean {
     try {
-        const { isBlankingZone } = gsoState;
         const { coveragePolicy, hsBeams } = simulationState;
 
         // For SERVICE_ZONE, use centralized circular coverage check instead of beam polygons
         if (coveragePolicy.type === "SERVICE_ZONE") {
-            if (isBlankingZone) return false;
-
             return isRfCoverageSatisfied(
                 userPosition,
                 { lat: satellite.position.lat, lng: satellite.position.lng },
@@ -197,7 +178,6 @@ export function getConnectivityStatus(
     hasRFConnectivity: boolean;
     elevation: number;
     activeBeamCount: number;
-    isBlankingZone: boolean;
     isGSOAvoidance: boolean;
 } {
     if (!satellite || satellite.type !== 'ONEWEB') {
@@ -206,7 +186,6 @@ export function getConnectivityStatus(
             hasRFConnectivity: false,
             elevation: 0,
             activeBeamCount: 0,
-            isBlankingZone: false,
             isGSOAvoidance: false
         };
     }
@@ -216,26 +195,21 @@ export function getConnectivityStatus(
         const elevation = calculateElevationAngle(userPosition, satellite);
         const hasGeometricVisibility = elevation >= MIN_USER_TERMINAL_ELEVATION_DEG;
 
-        // C-02: Single propagation for all RF state — gsoState reused for both
-        // active beam count derivation and isUserInActiveBeam call below.
-        const gsoState = calculateGSOAvoidanceAngle(satellite.satrec, time);
-        const { isBlankingZone, isGSOAvoidance } = gsoState;
+        const { isGSOAvoidance } = calculateGSOAvoidanceAngle(satellite.satrec, time);
         const { hsBeams } = simulationState;
 
         // Derive active beam count from the shared GSO keep-out set + HS beam state.
         const activeBeamCount = countActiveBeams(TOTAL_BEAMS, getGsoMutedBeamSet(satellite.satrec, time), hsBeams);
 
-        // RF connectivity check — reuses gsoState (no third propagation)
         const hasRF = hasGeometricVisibility &&
             activeBeamCount > 0 &&
-            isUserInActiveBeam(userPosition, satellite, time, simulationState, gsoState);
+            isUserInActiveBeam(userPosition, satellite, time, simulationState);
 
         return {
             hasGeometricVisibility,
             hasRFConnectivity: hasRF,
             elevation,
             activeBeamCount,
-            isBlankingZone,
             isGSOAvoidance
         };
     } catch (error) {
@@ -245,7 +219,6 @@ export function getConnectivityStatus(
             hasRFConnectivity: false,
             elevation: 0,
             activeBeamCount: 0,
-            isBlankingZone: false,
             isGSOAvoidance: false
         };
     }
@@ -450,8 +423,6 @@ export function estimateCurrentLeoBeamLink(args: {
     if (!Number.isInteger(beamIndex) || beamIndex < 0 || beamIndex >= TOTAL_BEAMS) return null;
 
     try {
-        const gsoState = calculateGSOAvoidanceAngle(satellite.satrec, time);
-        if (gsoState.isBlankingZone) return null;
         const gsoMutedBeams = getGsoMutedBeamSet(satellite.satrec, time);
         if (!isBeamActive(beamIndex, gsoMutedBeams, simulationState.hsBeams)) {
             return null;
@@ -639,10 +610,6 @@ export function findBestConnectedBeamInfo(
         const elevation = calculateElevationAngle(userPosition, satellite);
         if (elevation < 0) return null;
 
-        // C-02: single SGP4 propagation
-        const gsoState = calculateGSOAvoidanceAngle(satellite.satrec, time);
-
-        if (gsoState.isBlankingZone) return null;
         if (simulationState.coveragePolicy.type === 'SERVICE_ZONE') return null;
 
         const beamPolygons = calculateCombGeometry(satellite.satrec, time, simulationState);

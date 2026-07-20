@@ -129,7 +129,6 @@ function propagateOrbit(satrec: object, timeMs: number): OrbitState | null {
 interface GSOState {
     pitchAngleRad: number;
     isGSOAvoidance: boolean;
-    isBlankingZone: boolean;
     satLatDeg: number;
     isMovingNorth: boolean;
 }

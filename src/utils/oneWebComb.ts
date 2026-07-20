@@ -38,7 +38,6 @@ interface PropagatedOrbitState {
 type GsoAvoidanceState = {
     pitchAngleRad: number;
     isGSOAvoidance: boolean;
-    isBlankingZone: boolean;
     satLatDeg: number;
     isMovingNorth: boolean;
 };
@@ -204,8 +203,8 @@ function calculateCombGroundCenter(
 export function calculateGSOAvoidanceAngle(
     satrec: any,
     time: JulianDate
-): { pitchAngleRad: number; isGSOAvoidance: boolean; isBlankingZone: boolean; satLatDeg: number; isMovingNorth: boolean } {
-    if (!satrec) return { pitchAngleRad: 0, isGSOAvoidance: false, isBlankingZone: false, satLatDeg: 0, isMovingNorth: false };
+): { pitchAngleRad: number; isGSOAvoidance: boolean; satLatDeg: number; isMovingNorth: boolean } {
+    if (!satrec) return { pitchAngleRad: 0, isGSOAvoidance: false, satLatDeg: 0, isMovingNorth: false };
 
     const timeMs = getTimeMs(time);
     const cached = gsoAvoidanceCache.get(satrec);
@@ -215,7 +214,7 @@ export function calculateGSOAvoidanceAngle(
 
     const orbitState = getPropagatedOrbitState(satrec, time);
     if (!orbitState) {
-        return { pitchAngleRad: 0, isGSOAvoidance: false, isBlankingZone: false, satLatDeg: 0, isMovingNorth: false };
+        return { pitchAngleRad: 0, isGSOAvoidance: false, satLatDeg: 0, isMovingNorth: false };
     }
 
     const { satLatDeg, forward } = orbitState;

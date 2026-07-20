@@ -9,6 +9,7 @@ import {
   projectGroundSiteToLegacyGeoGateway,
   resolveBeamGatewayRoute,
   type BeamGatewayResolutionFailureReason,
+  type GeoTrafficServiceClass,
   type ResolvedBeamGatewayRoute,
   type TrafficTeleportCapability,
 } from './geoGroundInfrastructure';
@@ -245,7 +246,7 @@ interface AnalyzeGeoConnectivityArgs {
    * per-satellite selection applies, so geometry/latency and the RF chain
    * would be computed against different physical sites for beam-routed beams.
    */
-  coverage?: Pick<CandidateCoverage, 'beamId' | 'beamName'> | null;
+  coverage?: Pick<CandidateCoverage, 'beamId' | 'beamName' | 'isUplink'> | null;
   /** See GroundSegmentSelectionOptions.failedGatewaySiteIds. */
   failedGatewaySiteIds?: ReadonlySet<string>;
 }
@@ -907,7 +908,7 @@ export function selectTrafficGeoGateway(
 
 export function resolveStarTrafficGatewayForCoverage(
   satellite: SatelliteData,
-  coverage: Pick<CandidateCoverage, 'beamId' | 'beamName'> | null | undefined,
+  coverage: Pick<CandidateCoverage, 'beamId' | 'beamName' | 'isUplink'> | null | undefined,
   gateways: GeoGatewayData[],
   options: GroundSegmentSelectionOptions = {}
 ): StarTrafficGatewayResolution | null {
@@ -915,6 +916,14 @@ export function resolveStarTrafficGatewayForCoverage(
   const canonicalSatelliteId = canonicalStarTrafficTopologySatelliteId(satellite);
   const canonicalBeamSatelliteId = canonicalBeamGatewaySatelliteId(satellite);
   const beamToken = coverage ? extractNumericBeamToken(coverage) : null;
+  // GEO-3: the reference coverage passed in here is already direction-resolved
+  // by every caller (pickStarGatewayReferenceCoverage's contract — downlink for
+  // STAR_FORWARD, uplink for STAR_RETURN), so coverage.isUplink reliably tells
+  // us which traffic direction this resolution is for, without requiring every
+  // call site to separately thread a service-class parameter through.
+  const serviceClass: GeoTrafficServiceClass | undefined = coverage
+    ? (coverage.isUplink ? 'STAR_RETURN' : 'STAR_FORWARD')
+    : undefined;
   const fallback = (
     reason: StarTrafficGatewayDiagnostic['reason'],
     message: string
@@ -947,7 +956,7 @@ export function resolveStarTrafficGatewayForCoverage(
     return fallback('BEAM_TOKEN_NOT_FOUND', `No numeric beam token found for ${satellite.name}.`);
   }
 
-  const beamRouteResult = resolveBeamGatewayRoute(canonicalBeamSatelliteId, beamToken);
+  const beamRouteResult = resolveBeamGatewayRoute(canonicalBeamSatelliteId, beamToken, { serviceClass });
   if (!beamRouteResult.route) {
     return fallback(
       beamRouteResult.reason,
@@ -962,6 +971,7 @@ export function resolveStarTrafficGatewayForCoverage(
     const nominalSiteName = beamRoute.site.name;
     const failoverResult = resolveBeamGatewayRoute(canonicalBeamSatelliteId, beamToken, {
       routingMode: 'FAILOVER',
+      serviceClass,
     });
     if (!failoverResult.route || failedSiteIds.has(failoverResult.route.site.siteId)) {
       // A curated beam plan binds the beam to specific physical sites. With the

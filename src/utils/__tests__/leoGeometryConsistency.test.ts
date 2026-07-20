@@ -141,11 +141,15 @@ describe('isPointInFootprint — high latitude robustness', () => {
 // covered in gsoKeepOut.test.ts; here we pin the structural invariants.
 
 describe('GSO protection — blackout retired, keep-out configured', () => {
-  it('isBlankingZone is structurally false at every latitude (no total blackout)', () => {
-    for (const lat of [-60, -45, -10, -5, -0.1, 0, 0.1, 5, 10, 45, 60]) {
-      expect(computeGsoProtectionAngles(lat, true).isBlankingZone).toBe(false);
-      expect(computeGsoProtectionAngles(lat, false).isBlankingZone).toBe(false);
-    }
+  // LEO-4: isBlankingZone itself has been removed (not just forced false) —
+  // computeGsoProtectionAngles's return type no longer has the field, and
+  // every dormant reader across rfConnectivity/connectivityRules/
+  // coverageCalculator/coverageService/PassBeamTimeline/useGSOAvoidance/
+  // App.tsx has been deleted, so the "no total blackout" invariant is now
+  // enforced by the type system rather than a runtime assertion.
+  it('GsoProtectionAngles has no isBlankingZone field', () => {
+    const angles = computeGsoProtectionAngles(0, true);
+    expect(angles).not.toHaveProperty('isBlankingZone');
   });
 
   it('keep-out threshold is the tagged public-literature default (11.5°)', () => {

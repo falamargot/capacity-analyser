@@ -216,8 +216,22 @@ export default function EngineeringConfigurePanel({
   // edit publishes immediately through onApply and flows back as the next
   // baseline. No draft, no staged changes, no Apply gate.
   const draft = baseline;
+  const latestDraftRef = useRef(baseline);
+
+  // ARCH-5: apply() reads through this ref (resynced to the fresh baseline
+  // prop on every render) rather than closing over `baseline` directly, so
+  // that if a future control ever calls apply()/updateSite() more than once
+  // synchronously within the same event handler, the second call composes
+  // onto the first call's result instead of silently reading the pre-first-call
+  // baseline and clobbering it (React batches same-handler state updates, so
+  // no re-render — and no fresh `baseline` prop — happens between such calls).
+  // Every current control only ever calls apply() once per event, so this is
+  // currently a no-op guard, not a behavior change.
+  latestDraftRef.current = baseline;
   const apply = (mutate: (current: EngineeringConfigureDraft) => EngineeringConfigureDraft) => {
-    onApply(mutate(baseline));
+    const next = mutate(latestDraftRef.current);
+    latestDraftRef.current = next;
+    onApply(next);
   };
   const isGeo = draft.technology === 'GEO';
   const isSiteToSite = isGeo

@@ -691,17 +691,13 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
                     {/* Mode Indicator Badge */}
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-600 dark:text-gray-300">Payload mode:</span>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${gsoAvoidanceData.isBlankingZone
-                        ? 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200 border border-red-200 dark:border-red-800 animate-pulse'
-                        : gsoAvoidanceData.isGSOAvoidance
-                          ? 'bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-200 border border-orange-200 dark:border-orange-800'
-                          : 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-800'
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${gsoAvoidanceData.isGSOAvoidance
+                        ? 'bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-200 border border-orange-200 dark:border-orange-800'
+                        : 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-800'
                         }`}>
-                        {gsoAvoidanceData.isBlankingZone
-                          ? 'OFF (EXCLUSION ZONE)'
-                          : gsoAvoidanceData.isGSOAvoidance
-                            ? 'GSO Protection'
-                            : 'Nadir Pointing'
+                        {gsoAvoidanceData.isGSOAvoidance
+                          ? 'GSO Protection'
+                          : 'Nadir Pointing'
                         }
                       </span>
                     </div>
@@ -746,7 +742,6 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
                       <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg p-3">
                         <BeamStatusGrid
                           activeBeams={gsoAvoidanceData.activeBeamCount}
-                          isBlankingZone={gsoAvoidanceData.isBlankingZone}
                           isGSOAvoidance={gsoAvoidanceData.isGSOAvoidance}
                           gsoMutedBeams={gsoAvoidanceData.gsoMutedBeams}
                           beamHealthFactors={beamHealthFactors}

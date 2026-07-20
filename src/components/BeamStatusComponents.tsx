@@ -39,7 +39,6 @@ const getPolarizationDisplay = (polarization: string): string => {
 
 interface BeamStatusGridProps {
   activeBeams: number;
-  isBlankingZone: boolean;
   isGSOAvoidance: boolean;
   /** Geometry-derived GSO keep-out set (Lot 3 Item 4). */
   gsoMutedBeams: ReadonlySet<number>;
@@ -57,7 +56,6 @@ interface BeamStatusGridProps {
 
 export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
   activeBeams,
-  isBlankingZone,
   isGSOAvoidance,
   gsoMutedBeams,
   beamHealthFactors,
@@ -178,11 +176,7 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
             {/* Exclusive status messages - only one should display.
                 Item 4b: the count comes from the canonical production active
                 count (activeBeams prop) — no hardcoded 8-beam assumption. */}
-            {isBlankingZone ? (
-              <span className="text-xs text-red-600 dark:text-red-400 font-medium">
-                All beams off (Exclusion zone)
-              </span>
-            ) : gsoMutedBeams.size > 0 ? (
+            {gsoMutedBeams.size > 0 ? (
               <span className="text-xs text-orange-600 dark:text-orange-400 font-medium">
                 {activeBeams} beams active (GSO Protection)
               </span>

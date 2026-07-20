@@ -68,13 +68,6 @@ export function gsoPitchMagnitudeDeg(satLatDeg: number): number {
 export interface GsoProtectionAngles {
   pitchAngleRad: number;
   isGSOAvoidance: boolean;
-  /**
-   * RETIRED as a physical state (Lot 3 Item 4): with per-beam keep-out there
-   * is no total blackout — the pitched comb always keeps beams clear of the
-   * in-line geometry. Kept structurally `false` for API compatibility; the
-   * dormant early-returns that read it are removed in Lot 4.
-   */
-  isBlankingZone: boolean;
 }
 
 /**
@@ -99,10 +92,14 @@ export function computeGsoProtectionAngles(satLatDeg: number, isMovingNorth: boo
     ? (isMovingNorth ? toRad(-magnitudeDeg) : toRad(magnitudeDeg))
     : 0;
 
+  // LEO-4: isBlankingZone (a total-blackout state, RETIRED at Lot 3 Item 4 —
+  // per-beam keep-out means there is no total blackout) was kept structurally
+  // `false` here for API compatibility while its dormant readers were swept
+  // in Lot 4. All of those readers have now been removed; this field no
+  // longer exists.
   return {
     pitchAngleRad,
     isGSOAvoidance: Math.abs(pitchAngleRad) > GSO_AVOIDANCE_PITCH_THRESHOLD_RAD,
-    isBlankingZone: false,
   };
 }
 

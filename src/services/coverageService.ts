@@ -5,8 +5,6 @@ import { SatelliteData } from '../types/satellites';
 import { haversineDistanceKm, MIN_SNP_GATEWAY_ELEVATION_DEG } from '../utils/leoFootprint';
 import { EARTH_RADIUS_KM, SPEED_OF_LIGHT_RADIO_KM_S, calculateElevationAngle, compute3DDistanceKm } from '../utils/capacityCalculator';
 import type { SNPData } from '../components/globe/GlobeConfig';
-import { calculateGSOAvoidanceAngle } from '../utils/oneWebComb';
-import { JulianDate } from 'cesium';
 import { log } from '../utils/logger';
 
 const POINTS_IN_CIRCLE = 16; // Increased number of points for smoother circles
@@ -318,28 +316,10 @@ export const getCoverageColor = (
 export const hasSNPInCoverage = (
   satellite: SatelliteData,
   failedSnps: ReadonlySet<string> = new Set(),
-  /** Evaluation time — pass the render/simulation snapshot when available. */
-  now: Date = new Date()
 ): boolean => {
   // Only check for LEO satellites (ONEWEB)
   if (satellite.type !== 'ONEWEB') {
     return false;
-  }
-
-  // Check if satellite is in GSO exclusion zone (blanking zone)
-  // If in blanking zone, satellite cannot provide any connectivity
-  if (satellite.satrec) {
-    try {
-      const time = JulianDate.fromDate(now);
-      const { isBlankingZone } = calculateGSOAvoidanceAngle(satellite.satrec, time);
-
-      if (isBlankingZone) {
-        return false; // Satellite in exclusion zone, no connectivity available
-      }
-    } catch (error) {
-      console.warn('Error checking GSO exclusion zone:', error);
-      // Continue with normal processing if error occurs
-    }
   }
 
   // Check if any non-failed SNP is in the satellite's coverage

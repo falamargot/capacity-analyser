@@ -2,8 +2,9 @@
  * Lot-3 Item 2 (L-O2) regression tests — Ka feeder link budget.
  *
  *  1. Design calibration: the feeder closes with comfortable margin at ≥30°
- *     elevation in clear sky and is NOT the bottleneck (isLimiting=false, user
- *     numbers identical to a run without a feeder bound).
+ *     elevation in clear sky and is NOT the bottleneck (capacity above the
+ *     shared beam aggregate, user numbers identical to a run without a
+ *     feeder bound).
  *  2. At the low-elevation mask under Ka rain fade the feeder capacity drops
  *     below the shared beam aggregate and genuinely bounds the pool.
  *  3. The old artefact is gone: user throughput is NOT scaled by feeder
@@ -40,7 +41,6 @@ describe('computeFeederBudget — calibration', () => {
   it('closes with >10 dB margin at ~30° elevation (slant ~2000 km) in clear sky and is not limiting', () => {
     const budget = computeFeederBudget(feederAt(2000), 'CLEAR');
     expect(budget.weakestMarginDb).toBeGreaterThan(10);
-    expect(budget.isLimiting).toBe(false);
     expect(budget.up.modcod).not.toBeNull();
     expect(budget.down.modcod).not.toBeNull();
     // Top-MODCOD carrier ≈ 930 Mbps in both directions — above the beam aggregate.
@@ -50,7 +50,6 @@ describe('computeFeederBudget — calibration', () => {
 
   it('collapses below the beam aggregate near the 15° mask under Ka rain fade', () => {
     const budget = computeFeederBudget(feederAt(2760), 'RAIN'); // ≈15° elevation slant range
-    expect(budget.isLimiting).toBe(true);
     expect(Math.min(budget.up.capacityMbps, budget.down.capacityMbps))
       .toBeLessThan(SHARED_BEAM_AGGREGATE_CAPACITY_MBPS);
   });

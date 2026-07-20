@@ -15,7 +15,6 @@ export interface GSOAvoidanceData {
   pitchAngleDeg: number;
   isGSOAvoidance: boolean;
   latitude: number;
-  isBlankingZone: boolean;
   activeBeamCount: number;
   /** Geometry-derived GSO keep-out set (Lot 3 Item 4). */
   gsoMutedBeams: ReadonlySet<number>;
@@ -55,7 +54,7 @@ export function useGSOAvoidance(sat: SatelliteData | null): GSOAvoidanceData | n
       const positionGd = satellite.eciToGeodetic(positionAndVelocity.position, gmst);
       const latitude = satellite.degreesLat(positionGd.latitude);
 
-      const { pitchAngleRad, isGSOAvoidance, isBlankingZone, isMovingNorth } =
+      const { pitchAngleRad, isGSOAvoidance, isMovingNorth } =
         calculateGSOAvoidanceAngle(satrec, julianDate);
 
       const activeBeamCount = getActiveBeamCount(satrec, julianDate);
@@ -65,7 +64,6 @@ export function useGSOAvoidance(sat: SatelliteData | null): GSOAvoidanceData | n
         pitchAngleDeg: CesiumMath.toDegrees(pitchAngleRad),
         isGSOAvoidance,
         latitude,
-        isBlankingZone,
         activeBeamCount,
         gsoMutedBeams,
         isMovingNorth,

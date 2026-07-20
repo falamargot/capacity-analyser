@@ -93,7 +93,6 @@ interface DeriveLeoConnectivityViewModelInput {
   hasRF: boolean;
   hasSNP: boolean;
   activeBeamCount?: number;
-  isBlankingZone?: boolean;
 }
 
 const toneFromStatus = (status: ServiceStatus): LeoStatusTone => {
@@ -186,7 +185,6 @@ export function deriveLeoConnectivityViewModel(
     hasRF,
     hasSNP,
     activeBeamCount = 0,
-    isBlankingZone = false,
   } = input;
 
   const serviceStatus = serviceLayerResult?.status ?? 'BLOCKED';
@@ -199,7 +197,7 @@ export function deriveLeoConnectivityViewModel(
       : null;
 
   const satelliteActive = !!satellite && satellite.opsStatus === 'operational';
-  const beamActive = satelliteActive && !isBlankingZone && activeBeamCount > 0;
+  const beamActive = satelliteActive && activeBeamCount > 0;
   const payloadActive = beamActive;
   const regulatoryStatus = regulatoryResult?.status ?? 'UNKNOWN';
   const loadCategory = getLoadCategory(beamLoadResult);

@@ -256,6 +256,7 @@ export type BeamGatewayRoutingMode = 'NOMINAL' | 'FAILOVER';
 export type BeamGatewayResolutionFailureReason =
   | 'UNSUPPORTED_SATELLITE'
   | 'BEAM_ASSIGNMENT_NOT_FOUND'
+  | 'BEAM_ASSIGNMENT_DIRECTION_MISMATCH'
   | 'LOGICAL_GATEWAY_ASSIGNMENT_NOT_FOUND'
   | 'DEPLOYMENT_STATUS_NOT_ROUTABLE'
   | 'FAILOVER_POLICY_NOT_FOUND'
@@ -1492,11 +1493,26 @@ const findFailoverLogicalGatewayAssignment = (
   return { assignment, policy };
 };
 
+/** True when a beam assignment's declared direction covers the requested service class. */
+const SERVICE_CLASS_TO_BEAM_DIRECTION: Record<GeoTrafficServiceClass, 'FORWARD' | 'RETURN'> = {
+  STAR_FORWARD: 'FORWARD',
+  STAR_RETURN: 'RETURN',
+};
+
+const beamAssignmentCoversServiceClass = (
+  assignment: BeamGatewayAssignment,
+  serviceClass: GeoTrafficServiceClass | undefined,
+): boolean => {
+  if (!serviceClass || !assignment.direction || assignment.direction === 'BIDIRECTIONAL') return true;
+  return assignment.direction === SERVICE_CLASS_TO_BEAM_DIRECTION[serviceClass];
+};
+
 export const resolveBeamGatewayRoute = (
   satelliteId: string,
   beamId: string | number,
   {
     routingMode = 'NOMINAL',
+    serviceClass,
     sites = GEO_GROUND_SITES,
     beamAssignments = GEO_BEAM_GATEWAY_ASSIGNMENTS,
     logicalGatewayAssignments = GEO_LOGICAL_GATEWAY_ASSIGNMENTS,
@@ -1504,6 +1520,15 @@ export const resolveBeamGatewayRoute = (
     minimumConfidence = 'PUBLICLY_LIKELY',
   }: {
     routingMode?: BeamGatewayRoutingMode;
+    /**
+     * GEO-3: when provided, restricts matching to assignments whose `direction`
+     * covers this traffic direction ('FORWARD'/'RETURN'/undefined/'BIDIRECTIONAL'
+     * all match either class). All current seed data is BIDIRECTIONAL, so this
+     * is a no-op today — it exists so a future directional assignment (serving
+     * FORWARD and RETURN from different sites) is routed correctly instead of
+     * silently matching whichever entry happens to be first in the array.
+     */
+    serviceClass?: GeoTrafficServiceClass;
     sites?: GroundSite[];
     beamAssignments?: BeamGatewayAssignment[];
     logicalGatewayAssignments?: LogicalGatewayAssignment[];
@@ -1524,9 +1549,21 @@ export const resolveBeamGatewayRoute = (
 
   const beamAssignment = beamAssignments.find((assignment) => (
     assignment.satelliteId === normalizedSatelliteId &&
-    assignment.beamIds.includes(normalizedBeamId)
+    assignment.beamIds.includes(normalizedBeamId) &&
+    beamAssignmentCoversServiceClass(assignment, serviceClass)
   ));
   if (!beamAssignment) {
+    const beamExistsForOtherDirection = serviceClass != null && beamAssignments.some((assignment) => (
+      assignment.satelliteId === normalizedSatelliteId &&
+      assignment.beamIds.includes(normalizedBeamId)
+    ));
+    if (beamExistsForOtherDirection) {
+      return {
+        route: null,
+        reason: 'BEAM_ASSIGNMENT_DIRECTION_MISMATCH',
+        diagnostic: `Beam gateway assignment found for ${normalizedSatelliteId} beam ${normalizedBeamId}, but not for ${serviceClass}.`,
+      };
+    }
     return {
       route: null,
       reason: 'BEAM_ASSIGNMENT_NOT_FOUND',

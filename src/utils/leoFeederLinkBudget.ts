@@ -24,7 +24,6 @@ import {
   computeDirectionalRfChainThroughput,
   ENGINEERING_MODCOD_TABLE,
 } from './leoLinkBudget';
-import { SHARED_BEAM_AGGREGATE_CAPACITY_MBPS } from '../config/oneweb';
 
 // ── Ka feeder constants — ESTIMATED DEFAULTS unless noted ────────────────────
 
@@ -84,8 +83,6 @@ export interface FeederBudgetResult {
   down: FeederDirectionBudget;
   /** Weakest-direction margin (dB) — the drawer's headline feeder figure. */
   weakestMarginDb: number;
-  /** True when the weakest direction cannot carry the shared beam aggregate. */
-  isLimiting: boolean;
 }
 
 function directionBudget(input: {
@@ -143,12 +140,17 @@ export function computeFeederBudget(
   });
 
   const weakest = Math.min(up.marginDb, down.marginDb);
-  const weakestCapacity = Math.min(up.capacityMbps, down.capacityMbps);
 
+  // LEO-5: this used to also return isLimiting (weakestCapacity vs the DL-scale
+  // SHARED_BEAM_AGGREGATE_CAPACITY_MBPS applied to BOTH directions, even though
+  // the real UL aggregate is ~0.4x the DL default) — it had zero readers
+  // anywhere (confirmed dead) and would have misjudged the uplink direction
+  // if ever wired up. Removed rather than fixed: the actual throughput-bounding
+  // math already uses the correct per-direction feederCapacityMbps
+  // (applyBeamCapacitySharing), this field was a diagnostic-only duplicate.
   return {
     up,
     down,
     weakestMarginDb: weakest,
-    isLimiting: weakestCapacity < SHARED_BEAM_AGGREGATE_CAPACITY_MBPS,
   };
 }

@@ -2046,13 +2046,11 @@ const App: React.FC = () => {
       hasRF: leoHasCurrentRF,
       hasSNP: leoHasGatewayPath,
       activeBeamCount: leoConnectivityStatus?.activeBeamCount ?? 0,
-      isBlankingZone: leoConnectivityStatus?.isBlankingZone ?? false,
     });
   }, [
     activeAnalysisPoint,
     leoBeamLoadResult,
     leoConnectivityStatus?.activeBeamCount,
-    leoConnectivityStatus?.isBlankingZone,
     leoHasCurrentRF,
     leoHasGatewayPath,
     leoRegulatoryResult,

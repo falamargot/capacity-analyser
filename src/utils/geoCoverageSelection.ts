@@ -778,7 +778,7 @@ export const computeGeoConnectivity = (
      * STAR_RETURN resolves from the uplink beam). Candidate/satellite resolution
      * still uses `selectedCoverage`.
      */
-    gatewayReferenceCoverage?: Pick<CandidateCoverage, 'beamId' | 'beamName'> | null;
+    gatewayReferenceCoverage?: Pick<CandidateCoverage, 'beamId' | 'beamName' | 'isUplink'> | null;
   } = {}
 ): GeoConnectivitySelectionResult | null => {
   const resolved = resolveCandidateCoverage(selectedCoverage, satellites);

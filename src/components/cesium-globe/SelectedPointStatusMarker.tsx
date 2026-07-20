@@ -129,38 +129,46 @@ export const SelectionPulseMarker: React.FC<SelectionPulseMarkerProps> = ({
               },
             })}
       />
-      {showPoint && pointPixelSize && (
-        <Entity
-          id={entityId}
-          position={position}
-          point={{
-            pixelSize: pointPixelSize,
-            color: baseColor,
-            outlineColor: baseColor.withAlpha(0.9),
-            outlineWidth: 2,
-            disableDepthTestDistance: Number.POSITIVE_INFINITY,
-          }}
-          name={name}
-        >
-          {labelText && (
-            <LabelGraphics
-              text={labelText}
-              font="600 13px Inter, sans-serif"
-              fillColor={Color.WHITE}
-              outlineWidth={3}
-              style={2}
-              showBackground={true}
-              backgroundColor={baseColor.withAlpha(0.78)}
-              backgroundPadding={new Cartesian2(8, 5)}
-              pixelOffset={new Cartesian2(0, -26)}
-              verticalOrigin={VerticalOrigin.BOTTOM}
-              horizontalOrigin={HorizontalOrigin.CENTER}
-              eyeOffset={LABEL_EYE_OFFSET}
-              disableDepthTestDistance={Number.POSITIVE_INFINITY}
-            />
-          )}
-        </Entity>
-      )}
+      {/* PERF-3: always mounted with a stable `show` prop instead of a
+          conditional-JSX-presence Entity — matches the fix already applied to
+          the LEO S2S entities (see TransmissionLinks.tsx) for the same
+          underlying reason: Resium's Entity add()/remove() is async, so
+          toggling JSX presence on/off risks racing that lifecycle if `showPoint`
+          or `pointPixelSize` ever change while mounted. Today they're per-instance
+          configuration (constant for a given marker's lifetime, not something
+          that flips at the 1 Hz simulation tick), so this is a hardening, not a
+          fix for an observed bug. */}
+      <Entity
+        id={entityId}
+        show={showPoint && !!pointPixelSize}
+        position={position}
+        point={{
+          pixelSize: pointPixelSize ?? 0,
+          color: baseColor,
+          outlineColor: baseColor.withAlpha(0.9),
+          outlineWidth: 2,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        }}
+        name={name}
+      >
+        {labelText && (
+          <LabelGraphics
+            text={labelText}
+            font="600 13px Inter, sans-serif"
+            fillColor={Color.WHITE}
+            outlineWidth={3}
+            style={2}
+            showBackground={true}
+            backgroundColor={baseColor.withAlpha(0.78)}
+            backgroundPadding={new Cartesian2(8, 5)}
+            pixelOffset={new Cartesian2(0, -26)}
+            verticalOrigin={VerticalOrigin.BOTTOM}
+            horizontalOrigin={HorizontalOrigin.CENTER}
+            eyeOffset={LABEL_EYE_OFFSET}
+            disableDepthTestDistance={Number.POSITIVE_INFINITY}
+          />
+        )}
+      </Entity>
     </>
   );
 };

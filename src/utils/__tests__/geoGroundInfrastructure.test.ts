@@ -666,6 +666,61 @@ describe('GEO ground infrastructure canonical model', () => {
     }));
   });
 
+  it('GEO-3: a directional beam assignment is only matched for its own service class, not any direction', () => {
+    const directionalAssignments: BeamGatewayAssignment[] = [
+      {
+        assignmentId: 'test-fwd-only',
+        satelliteId: 'KVHTS',
+        logicalGatewayId: 'test-logical-gw-fwd',
+        beamIds: ['132'],
+        direction: 'FORWARD',
+      },
+    ];
+
+    // Requesting the covered direction reaches past the beam-assignment stage
+    // (fails later, at LOGICAL_GATEWAY_ASSIGNMENT_NOT_FOUND, only because this
+    // fixture doesn't also provide a matching logicalGatewayAssignments entry
+    // — proving the FORWARD-tagged assignment itself was accepted).
+    const forwardResult = resolveBeamGatewayRoute('KVHTS', 132, {
+      beamAssignments: directionalAssignments,
+      serviceClass: 'STAR_FORWARD',
+    });
+    expect(forwardResult.reason).toBe('LOGICAL_GATEWAY_ASSIGNMENT_NOT_FOUND');
+
+    // Requesting the uncovered direction must NOT silently match the
+    // FORWARD-only assignment — this is the exact bug GEO-3 flagged as
+    // dormant (a directional assignment would previously have matched any
+    // service class, since resolveBeamGatewayRoute never read .direction).
+    const returnResult = resolveBeamGatewayRoute('KVHTS', 132, {
+      beamAssignments: directionalAssignments,
+      serviceClass: 'STAR_RETURN',
+    });
+    expect(returnResult.reason).toBe('BEAM_ASSIGNMENT_DIRECTION_MISMATCH');
+    expect(returnResult.route).toBeNull();
+  });
+
+  it('GEO-3: a BIDIRECTIONAL (or unset) beam assignment still matches either service class', () => {
+    const bidirectional: BeamGatewayAssignment[] = [
+      {
+        assignmentId: 'test-bidi',
+        satelliteId: 'KVHTS',
+        logicalGatewayId: 'test-logical-gw-bidi',
+        beamIds: ['132'],
+        direction: 'BIDIRECTIONAL',
+      },
+    ];
+    const noDirectionField: BeamGatewayAssignment[] = [
+      { ...bidirectional[0]!, direction: undefined },
+    ];
+
+    for (const fixture of [bidirectional, noDirectionField]) {
+      for (const serviceClass of ['STAR_FORWARD', 'STAR_RETURN'] as const) {
+        const result = resolveBeamGatewayRoute('KVHTS', 132, { beamAssignments: fixture, serviceClass });
+        expect(result.reason).toBe('LOGICAL_GATEWAY_ASSIGNMENT_NOT_FOUND');
+      }
+    }
+  });
+
   it('resolves E10B beam 66 to Cagliari', () => {
     const result = resolveBeamGatewayRoute('E10B', 66);
 

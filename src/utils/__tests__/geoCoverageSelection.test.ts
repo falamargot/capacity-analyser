@@ -381,7 +381,7 @@ describe('computeGeoConnectivity gateway reference coverage (direction-aware geo
 
   it('resolves the geometry gateway from gatewayReferenceCoverage when it carries a different beam token', () => {
     const result = computeGeoConnectivity(downlinkBeam29, paris, [kvhts], GEO_GATEWAYS, {
-      gatewayReferenceCoverage: { beamId: '132', beamName: '132' },
+      gatewayReferenceCoverage: { beamId: '132', beamName: '132', isUplink: true },
     });
     // Same selectedCoverage (beam 29), but the gateway follows the reference
     // beam (132 → Rambouillet) — the STAR_RETURN uplink-beam scenario.
