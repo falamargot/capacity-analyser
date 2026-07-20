@@ -24,11 +24,13 @@ import { matchPublicTransponders } from '../../services/frequencyPlan/publicTran
 import { applyPublicFrequencyMatchToContext, buildGeoRfContext } from '../../services/geo/rfContextService';
 import type { UplinkRequirement } from '../../utils/geoTerminalRFModel';
 import DetailsTogglePill from './shared/DetailsTogglePill';
+import { fmtDb, fmtMbps } from '../../utils/engineeringFormat';
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
-
-const fmtDb = (v: number | undefined | null, d = 1) =>
-  typeof v === 'number' && isFinite(v) ? `${v.toFixed(d)} dB` : '--';
+// fmtDb/fmtMbps come from the canonical engineeringFormat module so the same
+// throughput/margin value renders with identical precision here and in the
+// Review card / Cause Chain summaries — this file previously carried its own
+// copies that drifted (1-decimal Mbps here vs 0-decimal in the Review card).
 
 const fmtDbk = (v: number | undefined | null) =>
   typeof v === 'number' && isFinite(v) ? `${v.toFixed(1)} dB/K` : '--';
@@ -46,12 +48,6 @@ const fmtMhz = (v: number | undefined | null) =>
   typeof v === 'number' && isFinite(v) ? `${v.toFixed(0)} MHz` : '--';
 
 const fmtPol = (v: string | undefined | null) => v && v !== 'UNKNOWN' ? v : '--';
-
-const fmtMbps = (v: number | undefined | null) => {
-  if (typeof v !== 'number' || !isFinite(v)) return '--';
-  if (v >= 1000) return `${(v / 1000).toFixed(2)} Gbps`;
-  return `${v.toFixed(1)} Mbps`;
-};
 
 const coverageLabel = (seg: LinkSegment) => {
   const c = seg.candidate;
@@ -972,7 +968,13 @@ const MeshDirectionTabs = ({
 
 // ─── Cockpit mode ─────────────────────────────────────────────────────────────
 
-const GeoTopologyCockpitPanel = ({ linkMode, mode, satelliteName }: { linkMode: LinkMode; mode?: TransponderMode; satelliteName?: string }) => {
+/**
+ * Topology / transponder cross-connect classification (loopback, cross-connect,
+ * HTS double-hop). Exported for use by GEOConnectivitySection's Path stage —
+ * this is routing information (hop count, whether a double-hop applies), not
+ * RF evidence, so it belongs in Path rather than the Link Budget stage.
+ */
+export const GeoTopologyCockpitPanel = ({ linkMode, mode, satelliteName }: { linkMode: LinkMode; mode?: TransponderMode; satelliteName?: string }) => {
   const description = LINK_MODE_DESCRIPTIONS[linkMode];
   const isP2P = linkMode === 'POINT_TO_POINT';
   const isMesh = linkMode === 'MESH';
@@ -1586,13 +1588,10 @@ const DualSegmentPanel = memo<DualSegmentPanelProps>(({
     return (
       <div data-engineering-layout="geo-rf-workspace" className="grid grid-cols-1 gap-3 text-xs">
         <GeoInvestigationSection
-          title="RF Assumptions & Topology"
-          subtitle="Selected topology, satellite and frequency-plan context supporting the closure calculation."
+          title="RF Assumptions"
+          subtitle="Frequency-plan context supporting the closure calculation. Topology and transponder routing are shown in the Path stage."
         >
-          <div className="flex flex-col gap-3">
-            <GeoTopologyCockpitPanel linkMode={linkMode} mode={result.transponderMode} satelliteName={satelliteName} />
-            {rfContext && <GeoRfContextCockpitPanel context={rfContext} />}
-          </div>
+          {rfContext && <GeoRfContextCockpitPanel context={rfContext} />}
         </GeoInvestigationSection>
         <div className={isMesh && !directionControlled ? 'flex flex-col gap-3' : undefined}>
           {isMesh && !directionControlled && (

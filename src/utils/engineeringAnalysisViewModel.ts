@@ -703,6 +703,12 @@ export function buildLeoEngineeringAnalysisViewModel(input: BuildLeoEngineeringA
   const singleMinMargin = input.debugInfo
     ? Math.min(deriveLegLinkMarginDb(input.debugInfo.downlink), deriveLegLinkMarginDb(input.debugInfo.uplink))
     : null;
+  // Single margin figure for the Link Budget cause-stage summary line, so LEO
+  // states a number the same way GEO's `${fmtDb(marginDb)} · closes` does
+  // instead of a number-free qualitative phrase.
+  const rfMarginDbForSummary = isS2S
+    ? (bottleneckLeg ? deriveLegLinkMarginDb(bottleneckLeg) : null)
+    : singleMinMargin;
   const singleFinalDl = input.debugInfo?.downlink.network.finalUserMbps ?? null;
   const singleFinalUl = input.debugInfo?.uplink.network.finalUserMbps ?? null;
   const s2sFailureReason = input.siteToSiteResult?.failureReason ?? null;
@@ -870,7 +876,7 @@ export function buildLeoEngineeringAnalysisViewModel(input: BuildLeoEngineeringA
     causeChain: [
       causeStage('scenario', 'Scenario', scenarioComplete ? 'passed' : 'blocked', scenarioComplete ? 'Inputs ready' : 'Incomplete', input.scenarioIncompleteReason),
       causeStage('path', 'Path', !scenarioComplete ? 'not-evaluated' : pathResolved ? 'passed' : 'blocked', !scenarioComplete ? 'Not evaluated' : pathResolved ? 'Satellite and ground path resolved' : 'Unavailable', input.pathReason),
-      causeStage('rf', 'Link Budget', !scenarioComplete || !pathResolved ? 'not-evaluated' : !budgetAvailable || inferredRfStatus === 'unavailable' ? 'pending' : rfBlocked ? 'blocked' : rfMarginal ? 'warning' : 'passed', !scenarioComplete || !pathResolved ? 'Not evaluated' : !budgetAvailable || inferredRfStatus === 'unavailable' ? 'Budget unavailable' : rfBlocked ? `${rfBlockReason} does not close` : rfMarginal ? 'Closes with low margin' : 'Access link closes'),
+      causeStage('rf', 'Link Budget', !scenarioComplete || !pathResolved ? 'not-evaluated' : !budgetAvailable || inferredRfStatus === 'unavailable' ? 'pending' : rfBlocked ? 'blocked' : rfMarginal ? 'warning' : 'passed', !scenarioComplete || !pathResolved ? 'Not evaluated' : !budgetAvailable || inferredRfStatus === 'unavailable' ? 'Budget unavailable' : rfBlocked ? `${fmtDb(rfMarginDbForSummary)} · ${rfBlockReason} does not close` : rfMarginal ? `${fmtDb(rfMarginDbForSummary)} · low margin` : `${fmtDb(rfMarginDbForSummary)} · closes`),
       causeStage('service', 'Service gates', !scenarioComplete || !pathResolved || !budgetAvailable || rfBlocked ? 'not-evaluated' : serviceBlocked ? 'blocked' : serviceDegraded ? 'warning' : 'passed', !scenarioComplete || !pathResolved || !budgetAvailable || rfBlocked ? 'Not evaluated' : serviceBlocked ? `${serviceReason} blocks service` : serviceDegraded ? `${serviceReason} degrades service` : 'Allowed', input.serviceReason, input.serviceEvidence),
       causeStage('delivery', 'Delivery', !scenarioComplete || !pathResolved || !budgetAvailable || rfBlocked || serviceBlocked ? 'not-evaluated' : deliveryUnavailable ? 'blocked' : deliveryConstrained || serviceDegraded ? 'warning' : evidenceUncertain ? 'pending' : 'passed', !scenarioComplete || !pathResolved || !budgetAvailable || rfBlocked || serviceBlocked ? 'Not available' : deliveryUnavailable ? 'No delivered throughput' : deliveryConstrained ? `${decisiveFactor ?? 'Constraint'} limiting` : evidenceUncertain ? 'Evidence uncertain' : `${fmtMbps(deliveredThroughput)} delivered`),
     ],

@@ -20,7 +20,8 @@ import type { LeoBottleneckFactor, LeoThroughputLeg, LeoThroughputResult } from 
 import { buildLeoSingleSiteConfidence, type PredictionConfidence } from '../../utils/predictionConfidence';
 import { buildLinkAvailabilityContext, formatLinkAvailabilityContext } from '../../utils/linkAvailabilityContext';
 import { isEngineeringDeliveryState, type EngineeringAnalysisViewModel } from '../../utils/engineeringAnalysisViewModel';
-import { fmtMbps, fmtMs } from '../../utils/engineeringFormat';
+import { fmtDb, fmtMs } from '../../utils/engineeringFormat';
+import { deriveLegLinkMarginDb } from '../../utils/leoBottleneck';
 import LatencyBreakdownCard from './shared/LatencyBreakdownCard';
 import LayerHeading from './shared/LayerHeading';
 import EngineeringResultSummary from './shared/EngineeringResultSummary';
@@ -189,6 +190,30 @@ const CockpitTile = ({
   );
 };
 
+/**
+ * Colour-coded per-leg margin badge — the LEO analogue of GEO's
+ * `GeoMarginPill` in DualSegmentPanel.tsx. Previously the LEO C/N tile carried
+ * no headroom indicator at all, so an engineer had to do the MODCOD-threshold
+ * subtraction mentally to judge how close a leg was to blocking.
+ */
+const LeoMarginPill = ({ value }: { value: number | undefined | null }) => {
+  const tone = typeof value === 'number' && Number.isFinite(value)
+    ? value < 0 ? 'red' : value < 2 ? 'amber' : 'emerald'
+    : 'default';
+  const className = {
+    default: 'border-slate-700 bg-slate-900 text-slate-300',
+    red: 'border-rose-500/45 bg-rose-950/20 text-rose-200',
+    amber: 'border-amber-500/45 bg-amber-950/20 text-amber-200',
+    emerald: 'border-teal-500/45 bg-teal-950/20 text-teal-200',
+  }[tone];
+
+  return (
+    <span className={`inline-flex w-fit shrink-0 items-center rounded-md border px-1.5 py-0.5 font-mono text-[9px] font-semibold tabular-nums ${className}`}>
+      {fmtDb(value)}
+    </span>
+  );
+};
+
 const CockpitPanel = ({
   title,
   eyebrow,
@@ -253,6 +278,7 @@ const DirectionBudgetSection = ({
 }) => {
   const limitingFactor = detectLegLimitingFactor(leg);
   const badge = limitingFactor ? LIMITING_FACTOR_BADGE[limitingFactor] : null;
+  const legMarginDb = deriveLegLinkMarginDb(leg);
   const sharingLimiting = leg.network.beamSharingMbps < leg.network.peakRfMbps * 0.99;
   const feederLimiting = leg.network.feederLimited;
   const handoverLimiting = leg.network.handoverMbps < leg.network.beamSharingMbps * 0.99;
@@ -319,7 +345,17 @@ const DirectionBudgetSection = ({
       ].join(' ')}>
         <div className="grid grid-cols-5 gap-1.5">
           {[...rfMetrics, ...sharedRfMetrics].map(([label, value], index) => (
-            <CockpitTile key={`${label}-${index}`} label={label} value={value} tone={label === 'C/N' ? 'blue' : 'default'} />
+            label === 'C/N' ? (
+              <div key={`${label}-${index}`} data-engineering-metric-tile="" className="min-w-0 rounded-md border border-slate-800 bg-slate-900/65 px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+                <div className="flex items-center justify-between gap-1">
+                  <span className="truncate text-[8px] font-semibold uppercase tracking-wide text-slate-500">{label}</span>
+                  <LeoMarginPill value={legMarginDb} />
+                </div>
+                <div className="mt-0.5 truncate font-mono text-[11px] font-medium tabular-nums text-sky-300">{value}</div>
+              </div>
+            ) : (
+              <CockpitTile key={`${label}-${index}`} label={label} value={value} tone="default" />
+            )
           ))}
         </div>
 
@@ -949,12 +985,9 @@ interface LEOConnectivitySectionProps {
 }
 
 // ─── Site-to-Site sub-components ─────────────────────────────────────────────
-
-const fmtMbpsSafe = (v: number | null | undefined) => {
-  if (typeof v !== 'number' || !isFinite(v) || v <= 0) return '--';
-  if (v >= 1000) return `${(v / 1000).toFixed(2)} Gbps`;
-  return `${v.toFixed(0)} Mbps`;
-};
+// Dead duplicate `fmtMbpsSafe` (0-decimal, but "--" for v<=0 instead of "0 Mbps"
+// like the canonical fmtMbps) removed — it had no callers and was a second,
+// disagreeing Mbps formatter alongside engineeringFormat.ts's canonical one.
 
 const fmtDeg = (v: number | null | undefined) =>
   typeof v === 'number' && isFinite(v) ? `${v.toFixed(1)}°` : '--';
@@ -1149,17 +1182,18 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   // instead of the previous rttTotalMs (a round trip).
   const answerLatencyMs = isS2S ? s2sPrimaryLatency : (mobileLeoMetrics?.rtt ?? leoGeometry?.oneWayLatencyMs ?? null);
   const answerLatencyLabel = isS2S ? `${s2sPrimaryLabel} latency` : 'One-way latency';
+  // Only true input assumptions belong here — satellite, serving beam and SNP
+  // identity are resolved Path outputs and are shown once, in the Path
+  // stage, instead of being duplicated here a stage early.
   const scenarioEvidence = (
     <EngineeringScenarioEvidence facts={[
       { label: 'Topology', value: isS2S ? 'SITE TO SITE' : 'SINGLE SITE' },
-      { label: 'Selected satellite', value: answerDebugInfo?.satelliteId ?? resolvedLEOConnectivity?.satellite.name ?? '--' },
       { label: 'Site A terminal', value: terminalModelId ?? terminalType },
       ...(isS2S ? [{ label: 'Site B terminal', value: terminalModelIdB ?? terminalTypeB ?? '--' }] : []),
-      { label: 'Weather', value: `${weatherType}${autoWeatherEnabled ? ' · automatic' : ' · manual'}` },
+      { label: 'Weather condition', value: weatherType },
+      { label: 'Weather mode', value: autoWeatherEnabled ? 'Automatic' : 'Manual' },
       { label: 'Site A', value: siteACoordinatesLabel },
       ...(isS2S ? [{ label: 'Site B', value: siteBCoordinatesLabel }] : []),
-      { label: 'Serving beam', value: resolvedLEOConnectivity?.connectedBeamIndex != null ? `Beam ${resolvedLEOConnectivity.connectedBeamIndex}` : '--' },
-      { label: 'SNP', value: resolvedLEOConnectivity?.snp?.name ?? s2sSnpAName ?? '--' },
     ]} />
   );
   const leoRouteLabel = isS2S
@@ -1309,6 +1343,25 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   const pathDetailEvidence = (
     <>
         <div data-engineering-path-detail="" className="space-y-2.5">
+        <LayerHeading title="Routing Resolution" detail="Selected satellite, beam and SNP — the routing decision behind this path." />
+        <EngineeringEvidenceSummary
+          ariaLabel="LEO routing resolution"
+          variant="path"
+          facts={[
+            { label: 'Selected satellite', value: answerDebugInfo?.satelliteId ?? resolvedLEOConnectivity?.satellite.name ?? '--' },
+            ...(!isS2S ? [{ label: 'Serving beam', value: resolvedLEOConnectivity?.connectedBeamIndex != null ? `Beam ${resolvedLEOConnectivity.connectedBeamIndex}` : '--' }] : []),
+            {
+              label: isS2S ? 'SNP · Site A' : 'SNP',
+              value: (isS2S ? s2sSnpAName : resolvedLEOConnectivity?.snp?.name) ?? '--',
+              detail: 'Selected by maximum feeder elevation among SNPs above the minimum gateway elevation.',
+            },
+            ...(isS2S ? [{
+              label: 'SNP · Site B',
+              value: s2sSnpBName ?? '--',
+              detail: 'Selected by maximum feeder elevation among SNPs above the minimum gateway elevation.',
+            }] : []),
+          ]}
+        />
         <LayerHeading title="Ground Segment" detail="SNP, PoP/backbone and feeder path details." />
         {/* Radio Path */}
         <CollapsibleSection
@@ -1676,6 +1729,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
           stageSummaries={{ path: pathSummaryEvidence }}
           stageEvidence={showRfEvidence ? {
             scenario: <>{scenarioEvidence}{scenarioTopologyCompactEvidence}</>,
+            path: pathDetailEvidence,
             rf: (
             <LeoLinkBudgetEvidence
               debugInfo={leoPerformance?.debugInfo ?? null}

@@ -2307,7 +2307,7 @@ exports[`M0 golden scenario matrix > LEO > 'leo-single-available' 1`] = `
         "id": "rf",
         "label": "Link Budget",
         "state": "passed",
-        "summary": "Access link closes",
+        "summary": "19.0 dB · closes",
       },
       {
         "detail": undefined,
@@ -2551,7 +2551,7 @@ exports[`M0 golden scenario matrix > LEO > 'leo-single-constrained-beam-sharing'
         "id": "rf",
         "label": "Link Budget",
         "state": "passed",
-        "summary": "Access link closes",
+        "summary": "19.0 dB · closes",
       },
       {
         "detail": undefined,
@@ -2762,7 +2762,7 @@ exports[`M0 golden scenario matrix > LEO > 'leo-single-rf-blocked' 1`] = `
         "id": "rf",
         "label": "Link Budget",
         "state": "blocked",
-        "summary": "No active RF beam at Site A does not close",
+        "summary": "19.0 dB · No active RF beam at Site A does not close",
       },
       {
         "detail": undefined,
@@ -2966,7 +2966,7 @@ exports[`M0 golden scenario matrix > LEO > 'leo-single-service-blocked-regulator
         "id": "rf",
         "label": "Link Budget",
         "state": "passed",
-        "summary": "Access link closes",
+        "summary": "19.0 dB · closes",
       },
       {
         "detail": "Regulatory restriction",
@@ -3167,7 +3167,7 @@ exports[`M0 golden scenario matrix > LEO > 'leo-site-to-site-a-to-b' 1`] = `
         "id": "rf",
         "label": "Link Budget",
         "state": "passed",
-        "summary": "Access link closes",
+        "summary": "19.0 dB · closes",
       },
       {
         "detail": undefined,
@@ -3362,7 +3362,7 @@ exports[`M0 golden scenario matrix > LEO > 'leo-site-to-site-b-to-a' 1`] = `
         "id": "rf",
         "label": "Link Budget",
         "state": "passed",
-        "summary": "Access link closes",
+        "summary": "19.0 dB · closes",
       },
       {
         "detail": undefined,

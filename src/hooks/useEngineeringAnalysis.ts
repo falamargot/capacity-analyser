@@ -1266,10 +1266,19 @@ export function useEngineeringAnalysis({
       elevationDeg: resolvedLEOConnectivity?.userLEOElevation ?? null,
     });
     const leoAvailability = buildLinkAvailabilityContext({ architecture: 'LEO', weatherType, lat: activePoint?.lat });
+    // Row order matches the single-site whyRows category convention below
+    // (RF → Load/Capacity → SNP → Regulatory) so the Service Gates stage scans
+    // the same way regardless of topology — A/B pairs stay adjacent within
+    // each category rather than grouping by site.
     const serviceEvidence: EngineeringEvidenceItem[] = isLeoSiteToSite && leoSiteToSiteResult
       ? [
           { label: 'RF · Site A', value: leoSiteToSiteResult.rfAvailableA ? 'Available' : 'Unavailable', state: leoSiteToSiteResult.rfAvailableA ? 'passed' : 'blocked' },
           { label: 'RF · Site B', value: leoSiteToSiteResult.rfAvailableB ? 'Available' : 'Unavailable', state: leoSiteToSiteResult.rfAvailableB ? 'passed' : 'blocked' },
+          {
+            label: 'Capacity',
+            value: leoSiteToSiteResult.failureReason?.startsWith('CAPACITY_') ? leoSiteToSiteResult.failureReason.replace(/_/g, ' ') : 'No blocking constraint',
+            state: leoSiteToSiteResult.failureReason?.startsWith('CAPACITY_SATURATED') ? 'blocked' : leoSiteToSiteResult.failureReason?.startsWith('CAPACITY_DEGRADED') ? 'warning' : 'passed',
+          },
           { label: 'SNP · Site A', value: leoSiteToSiteResult.selectedSnpA?.name ?? 'Unavailable', state: leoSiteToSiteResult.selectedSnpA ? 'passed' : 'blocked' },
           { label: 'SNP · Site B', value: leoSiteToSiteResult.selectedSnpB?.name ?? 'Unavailable', state: leoSiteToSiteResult.selectedSnpB ? 'passed' : 'blocked' },
           {
@@ -1281,11 +1290,6 @@ export function useEngineeringAnalysis({
             label: 'Regulatory · Site B',
             value: leoSiteToSiteResult.regulatoryResultB?.status ?? 'Not evaluated',
             state: leoSiteToSiteResult.failureReason?.startsWith('REGULATORY_') && leoSiteToSiteResult.failureReason.endsWith('_B') ? 'blocked' : leoSiteToSiteResult.regulatoryResultB ? 'passed' : 'pending',
-          },
-          {
-            label: 'Capacity',
-            value: leoSiteToSiteResult.failureReason?.startsWith('CAPACITY_') ? leoSiteToSiteResult.failureReason.replace(/_/g, ' ') : 'No blocking constraint',
-            state: leoSiteToSiteResult.failureReason?.startsWith('CAPACITY_SATURATED') ? 'blocked' : leoSiteToSiteResult.failureReason?.startsWith('CAPACITY_DEGRADED') ? 'warning' : 'passed',
           },
         ]
       : (leoServiceViewModel?.whyRows ?? []).map((row) => ({

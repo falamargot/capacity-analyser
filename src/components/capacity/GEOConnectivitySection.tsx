@@ -8,7 +8,7 @@ import type { SatelliteData } from '../../types/satellites';
 import type { CandidateCoverage } from '../../types/analysis';
 import type { TerminalType, TerminalRFClassId, TerminalRFCustomParams } from './TerminalConfig';
 import type { LinkMode } from '../../types/linkMode';
-import DualSegmentPanel from './DualSegmentPanel';
+import DualSegmentPanel, { GeoTopologyCockpitPanel } from './DualSegmentPanel';
 import type { DualSegmentResult } from '../../utils/geoDualSegmentBudget';
 import LinkModeSelector from './LinkModeSelector';
 import type { ResolvedGeoGateway, StarTrafficGatewayResolution } from '../../utils/geoConnectivityModel';
@@ -599,16 +599,18 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
     ? (meshGeometry ? (activeMeshTab === 'reverse' ? meshGeometry.rvTotalMs : meshGeometry.fwTotalMs) : null)
     : geoStarOneWayTotalMs;
   const headlineLatencyLabel = isMeshOrP2P ? `${meshDirectionLabel} latency` : `${starDirectionLabel} latency`;
+  // Only true input assumptions belong here — satellite, gateway/beam
+  // identity are resolved Path outputs and are shown once, in the Path
+  // stage, instead of being duplicated here a stage early.
   const scenarioEvidence = (
     <EngineeringScenarioEvidence facts={[
       { label: 'Topology', value: linkMode.replaceAll('_', ' ') },
-      { label: 'Selected satellite', value: drawerSatelliteName ?? '--' },
       { label: 'Site A terminal', value: rfPresetDisplayLabelA ?? terminalType },
       ...(isMeshOrP2P ? [{ label: 'Site B terminal', value: rfPresetDisplayLabelB ?? terminalTypeB ?? '--' }] : []),
-      { label: 'Weather', value: `${weatherType}${autoWeatherEnabled ? ' · automatic' : ' · manual'}` },
+      { label: 'Weather condition', value: weatherType },
+      { label: 'Weather mode', value: autoWeatherEnabled ? 'Automatic' : 'Manual' },
       { label: 'Uplink coverage', value: formatCoverageName(selectedUplinkCoverage) ?? '--' },
       { label: 'Downlink coverage', value: formatCoverageName(selectedDownlinkCoverage) ?? '--' },
-      ...(!isMeshOrP2P ? [{ label: ENGINEERING_TERMS.GEO.gateway, value: gatewayName }] : []),
     ]} />
   );
   const geoPathRouteLabel = isMeshOrP2P
@@ -630,6 +632,160 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
       <LinkModeSelector linkMode={linkMode} onChange={onLinkModeChange} />
     </div>
   ) : null;
+  const pathDetailEvidence = (
+    <div data-engineering-path-detail="" className="space-y-2.5">
+        {!isMeshOrP2P && (
+          <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-900/60">
+            <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">Resolved traffic path</div>
+            <div className="mt-1 font-semibold text-slate-900 dark:text-slate-100">{gatewaySideLabel}</div>
+            <div className="mt-0.5 text-[10px] leading-4 text-slate-500 dark:text-slate-400">{gatewayStatusTitle}</div>
+            {starTrafficGateway?.trafficCapability?.capabilityId && (
+              <div className="mt-0.5 font-mono text-[10px] leading-4 text-slate-500 dark:text-slate-400">{starTrafficGateway.trafficCapability.capabilityId}</div>
+            )}
+            {gatewayTrafficStatusNote && <div className="mt-0.5 text-[10px] leading-4 text-slate-500 dark:text-slate-400">{gatewayTrafficStatusNote}</div>}
+          </div>
+        )}
+        <GeoTopologyCockpitPanel linkMode={linkMode} mode={dualSegmentResult?.transponderMode} satelliteName={drawerSatelliteName} />
+        {/* Radio Path */}
+        <CollapsibleSection
+          storageKey="geo-radio-path"
+          title={
+            isMeshOrP2P
+              ? <> Radio Path <DirectionPill dir={meshDirectionLabel} /><SectionTooltip content="Terminal-to-terminal signal route follows the active MESH/P2P direction through the GEO satellite. No traffic gateway is in the RF path. Shows elevation, slant range and propagation delay for each hop." /></>
+              : <> Radio Path <DirectionPill dir={starDirectionLabel} /><SectionTooltip content="Active one-way STAR signal route. Forward mode is Traffic Gateway → GEO Satellite → User; Return mode is User → GEO Satellite → Traffic Gateway. Round-trip reference details are shown in the latency breakdown below." /></>
+          }
+          subtitle={radioPathSummary}
+          accentColor="#2563eb"
+          collapsible={false}
+        >
+          {isMeshOrP2P ? (
+            // ── MESH/P2P: A → Sat → B (no traffic gateway) ─────────────────
+            meshGeometry ? (() => {
+              const isForward = activeMeshTab === 'forward';
+              const srcLabel  = isForward ? meshGeometry.pointALabel : meshGeometry.pointBLabel;
+              const dstLabel  = isForward ? meshGeometry.pointBLabel : meshGeometry.pointALabel;
+              const srcBeam   = isForward ? meshGeometry.beamNameAtA : meshGeometry.beamNameAtB;
+              const dstBeam   = isForward ? meshGeometry.beamNameAtB : meshGeometry.beamNameAtA;
+              const srcElev   = isForward ? meshGeometry.elevA : meshGeometry.elevB;
+              const dstElev   = isForward ? meshGeometry.elevB : meshGeometry.elevA;
+              const txKm      = isForward ? meshGeometry.aToSatKm : meshGeometry.bToSatKm;
+              const txMs      = isForward ? meshGeometry.aToSatMs : meshGeometry.bToSatMs;
+              const rxKm      = isForward ? meshGeometry.satToBKm : meshGeometry.satToAKm;
+              const rxMs      = isForward ? meshGeometry.satToBMs : meshGeometry.satToAMs;
+              const oneWayKm  = isForward ? meshGeometry.fwOneWayKm : meshGeometry.rvOneWayKm;
+              const oneWayMs  = isForward ? meshGeometry.fwOneWayMs : meshGeometry.rvOneWayMs;
+              const srcShort  = isForward ? 'A' : 'B';
+              const dstShort  = isForward ? 'B' : 'A';
+              return (
+                <div className="text-sm text-gray-700 dark:text-gray-300 text-center space-y-2.5 min-w-0">
+                  <div className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
+                    <Route className="h-4 w-4 shrink-0 text-blue-500" />
+                    <div className="min-w-0 break-words leading-relaxed">
+                      <span className="font-medium">{srcLabel}</span>
+                      {' → '}
+                      <button onClick={() => onSatelliteClick?.(resolvedGEOConnectivity?.satellite ?? null)} className="underline hover:no-underline text-blue-600 dark:text-blue-400 font-medium cursor-pointer">
+                        {meshGeometry.satelliteName}
+                      </button>
+                      {' → '}
+                      <span className="font-medium">{dstLabel}</span>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 space-y-2 text-left">
+                    <div>
+                      <div className="break-words font-medium text-gray-600 dark:text-gray-300">Point {srcShort} → {srcBeam}</div>
+                      <div className="pl-3 break-words">→ Elevation: {srcElev.toFixed(1)}° | Slant Range: {txKm.toFixed(0)} km ({txMs.toFixed(1)} ms)</div>
+                    </div>
+                    <div>
+                      <div className="break-words font-medium text-gray-600 dark:text-gray-300">{meshGeometry.satelliteName} → Point {dstShort} ({dstBeam})</div>
+                      <div className="pl-3 break-words">→ Elevation: {dstElev.toFixed(1)}° | Slant Range: {rxKm.toFixed(0)} km ({rxMs.toFixed(1)} ms)</div>
+                    </div>
+                    <div className="border-t border-gray-200/70 dark:border-slate-700/70 pt-1.5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between font-semibold text-gray-700 dark:text-gray-200">
+                      <span>One-way {srcShort}→{dstShort}</span>
+                      <span>{oneWayKm.toFixed(0)} km ({oneWayMs.toFixed(1)} ms)</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })() : (
+              <div className="text-sm text-gray-500 dark:text-gray-400 text-center italic">
+                {meshUnavailableMessage}
+              </div>
+            )
+          ) : (
+            // ── STAR Forward/Return: active one-way traffic route ────────────
+            resolvedGEOConnectivity && geoGeometry ? (
+              (() => {
+                const gwName = gatewayName === 'Gateway' ? `No eligible ${ENGINEERING_TERMS.GEO.gateway}` : gatewayName;
+                const gwDisplayName = gatewayName === 'Gateway' ? gwName : gatewayDisplayName;
+                const satelliteName = resolvedGEOConnectivity.satellite.name;
+                const primarySource = isStarReturn ? userLabel : gwDisplayName;
+                const primaryDestination = isStarReturn ? gwDisplayName : userLabel;
+                const firstHopLabel = isStarReturn
+                  ? `${userLabel} → ${formatCoverageName(selectedUplinkCoverage ?? selectedCoverage) ?? resolvedGEOConnectivity.candidate.coverageName}`
+                  : `${gwDisplayName} → ${satelliteName}`;
+                const secondHopLabel = isStarReturn
+                  ? `${satelliteName} → ${gwDisplayName}`
+                  : `${satelliteName} → ${formatCoverageName(selectedDownlinkCoverage ?? selectedCoverage) ?? resolvedGEOConnectivity.candidate.coverageName}`;
+                const firstHopDistanceKm = isStarReturn
+                  ? geoGeometry.userToSatellite.slantRangeKm
+                  : geoGeometry.satelliteToGateway.slantRangeKm;
+                const firstHopLatencyMs = isStarReturn
+                  ? geoGeometry.userToSatellite.latencyMs
+                  : geoGeometry.satelliteToGateway.latencyMs;
+                const secondHopDistanceKm = isStarReturn
+                  ? geoGeometry.satelliteToGateway.slantRangeKm
+                  : geoGeometry.userToSatellite.slantRangeKm;
+                const secondHopLatencyMs = isStarReturn
+                  ? geoGeometry.satelliteToGateway.latencyMs
+                  : geoGeometry.userToSatellite.latencyMs;
+                const oneWayDistanceKm = geoGeometry.satelliteToGateway.slantRangeKm != null
+                  ? geoGeometry.userToSatellite.slantRangeKm + geoGeometry.satelliteToGateway.slantRangeKm
+                  : null;
+                return (
+                  <div className="text-sm text-gray-700 dark:text-gray-300 text-center space-y-2.5 min-w-0">
+                    <div className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
+                      <Route className="h-4 w-4 shrink-0 text-blue-500" />
+                      <div className="min-w-0 break-words leading-relaxed">
+                        {primarySource}
+                        {' → '}
+                        <button onClick={() => onSatelliteClick?.(resolvedGEOConnectivity.satellite)} className="underline hover:no-underline text-blue-600 dark:text-blue-400 font-medium cursor-pointer break-all">{satelliteName}</button>
+                        {' → '}
+                        {primaryDestination}
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 space-y-2 text-left">
+                      <div>
+                        <div className="break-words">{firstHopLabel}</div>
+                        <div className="pl-3 sm:pl-4 break-words">
+                          → Slant Range: {formatHopDistance(firstHopDistanceKm, firstHopLatencyMs)}
+                          {isStarReturn ? ` | Elevation: ${geoGeometry.userToSatellite.elevationDeg.toFixed(1)}°` : ''}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="break-words">{secondHopLabel}</div>
+                        <div className="pl-3 sm:pl-4 break-words">
+                          → Slant Range: {formatHopDistance(secondHopDistanceKm, secondHopLatencyMs)}
+                          {isStarForward ? ` | Elevation: ${geoGeometry.userToSatellite.elevationDeg.toFixed(1)}°` : ''}
+                        </div>
+                      </div>
+                      <div className="border-t border-gray-200/70 dark:border-slate-700/70 pt-1.5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between font-semibold text-gray-700 dark:text-gray-200">
+                        <span>{isStarReturn ? 'Return' : 'Forward'} one-way propagation</span>
+                        <span className="break-words">{oneWayDistanceKm != null && geoGeometry.oneWayRadioMs != null ? `${oneWayDistanceKm.toFixed(0)} km (${geoGeometry.oneWayRadioMs.toFixed(1)} ms)` : '--'}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()
+            ) : (
+              <div className="text-sm text-gray-700 dark:text-gray-300 text-center">
+                <div>No GEO visibility or beam coverage.</div>
+              </div>
+            )
+          )}
+        </CollapsibleSection>
+    </div>
+  );
+
   if (!isEngineeringDeliveryState(engineeringAnalysisViewModel.truth.state)) {
     const showRfEvidence = engineeringAnalysisViewModel.truth.state === 'blocked'
       || engineeringAnalysisViewModel.truth.state === 'budget-unavailable';
@@ -641,6 +797,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           stageSummaries={{ path: pathSummaryEvidence }}
           stageEvidence={showRfEvidence ? {
             scenario: <>{scenarioEvidence}{scenarioConfigureEvidence}</>,
+            path: pathDetailEvidence,
             rf: (
             <GeoLinkBudgetEvidence
               linkMode={linkMode}
@@ -822,19 +979,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   ) : null;
   const scenarioSpaceEvidence = (
       <div className="space-y-2.5">
-      <LayerHeading title="Coverage & Path Selection" detail="Resolved path plus manual coverage overrides." />
-
-      {!isMeshOrP2P && (
-        <div className="mb-3 mt-1.5 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-900/60">
-          <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">Resolved traffic path</div>
-          <div className="mt-1 font-semibold text-slate-900 dark:text-slate-100">{gatewaySideLabel}</div>
-          <div className="mt-0.5 text-[10px] leading-4 text-slate-500 dark:text-slate-400">{gatewayStatusTitle}</div>
-          {starTrafficGateway?.trafficCapability?.capabilityId && (
-            <div className="mt-0.5 font-mono text-[10px] leading-4 text-slate-500 dark:text-slate-400">{starTrafficGateway.trafficCapability.capabilityId}</div>
-          )}
-          {gatewayTrafficStatusNote && <div className="mt-0.5 text-[10px] leading-4 text-slate-500 dark:text-slate-400">{gatewayTrafficStatusNote}</div>}
-        </div>
-      )}
+      <LayerHeading title="Coverage Selection" detail="Manual coverage overrides. The resolved route and gateway/topology are shown in the Path stage." />
 
       {showConfigurationControls && candidateCoverages.length > 0 && (!isMeshOrP2P || candidateCoveragesB.length > 0) && (() => {
         // In MESH/P2P the uplink and downlink candidates swap with the active direction:
@@ -863,147 +1008,6 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
         );
       })()}
       </div>
-  );
-  const pathDetailEvidence = (
-    <div data-engineering-path-detail="">
-        {/* Radio Path */}
-        <CollapsibleSection
-          storageKey="geo-radio-path"
-          title={
-            isMeshOrP2P
-              ? <> Radio Path <DirectionPill dir={meshDirectionLabel} /><SectionTooltip content="Terminal-to-terminal signal route follows the active MESH/P2P direction through the GEO satellite. No traffic gateway is in the RF path. Shows elevation, slant range and propagation delay for each hop." /></>
-              : <> Radio Path <DirectionPill dir={starDirectionLabel} /><SectionTooltip content="Active one-way STAR signal route. Forward mode is Traffic Gateway → GEO Satellite → User; Return mode is User → GEO Satellite → Traffic Gateway. Round-trip reference details are shown in the latency breakdown below." /></>
-          }
-          subtitle={radioPathSummary}
-          accentColor="#2563eb"
-          collapsible={false}
-        >
-          {isMeshOrP2P ? (
-            // ── MESH/P2P: A → Sat → B (no traffic gateway) ─────────────────
-            meshGeometry ? (() => {
-              const isForward = activeMeshTab === 'forward';
-              const srcLabel  = isForward ? meshGeometry.pointALabel : meshGeometry.pointBLabel;
-              const dstLabel  = isForward ? meshGeometry.pointBLabel : meshGeometry.pointALabel;
-              const srcBeam   = isForward ? meshGeometry.beamNameAtA : meshGeometry.beamNameAtB;
-              const dstBeam   = isForward ? meshGeometry.beamNameAtB : meshGeometry.beamNameAtA;
-              const srcElev   = isForward ? meshGeometry.elevA : meshGeometry.elevB;
-              const dstElev   = isForward ? meshGeometry.elevB : meshGeometry.elevA;
-              const txKm      = isForward ? meshGeometry.aToSatKm : meshGeometry.bToSatKm;
-              const txMs      = isForward ? meshGeometry.aToSatMs : meshGeometry.bToSatMs;
-              const rxKm      = isForward ? meshGeometry.satToBKm : meshGeometry.satToAKm;
-              const rxMs      = isForward ? meshGeometry.satToBMs : meshGeometry.satToAMs;
-              const oneWayKm  = isForward ? meshGeometry.fwOneWayKm : meshGeometry.rvOneWayKm;
-              const oneWayMs  = isForward ? meshGeometry.fwOneWayMs : meshGeometry.rvOneWayMs;
-              const srcShort  = isForward ? 'A' : 'B';
-              const dstShort  = isForward ? 'B' : 'A';
-              return (
-                <div className="text-sm text-gray-700 dark:text-gray-300 text-center space-y-2.5 min-w-0">
-                  <div className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
-                    <Route className="h-4 w-4 shrink-0 text-blue-500" />
-                    <div className="min-w-0 break-words leading-relaxed">
-                      <span className="font-medium">{srcLabel}</span>
-                      {' → '}
-                      <button onClick={() => onSatelliteClick?.(resolvedGEOConnectivity?.satellite ?? null)} className="underline hover:no-underline text-blue-600 dark:text-blue-400 font-medium cursor-pointer">
-                        {meshGeometry.satelliteName}
-                      </button>
-                      {' → '}
-                      <span className="font-medium">{dstLabel}</span>
-                    </div>
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 space-y-2 text-left">
-                    <div>
-                      <div className="break-words font-medium text-gray-600 dark:text-gray-300">Point {srcShort} → {srcBeam}</div>
-                      <div className="pl-3 break-words">→ Elevation: {srcElev.toFixed(1)}° | Slant Range: {txKm.toFixed(0)} km ({txMs.toFixed(1)} ms)</div>
-                    </div>
-                    <div>
-                      <div className="break-words font-medium text-gray-600 dark:text-gray-300">{meshGeometry.satelliteName} → Point {dstShort} ({dstBeam})</div>
-                      <div className="pl-3 break-words">→ Elevation: {dstElev.toFixed(1)}° | Slant Range: {rxKm.toFixed(0)} km ({rxMs.toFixed(1)} ms)</div>
-                    </div>
-                    <div className="border-t border-gray-200/70 dark:border-slate-700/70 pt-1.5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between font-semibold text-gray-700 dark:text-gray-200">
-                      <span>One-way {srcShort}→{dstShort}</span>
-                      <span>{oneWayKm.toFixed(0)} km ({oneWayMs.toFixed(1)} ms)</span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })() : (
-              <div className="text-sm text-gray-500 dark:text-gray-400 text-center italic">
-                {meshUnavailableMessage}
-              </div>
-            )
-          ) : (
-            // ── STAR Forward/Return: active one-way traffic route ────────────
-            resolvedGEOConnectivity && geoGeometry ? (
-              (() => {
-                const gwName = gatewayName === 'Gateway' ? `No eligible ${ENGINEERING_TERMS.GEO.gateway}` : gatewayName;
-                const gwDisplayName = gatewayName === 'Gateway' ? gwName : gatewayDisplayName;
-                const satelliteName = resolvedGEOConnectivity.satellite.name;
-                const primarySource = isStarReturn ? userLabel : gwDisplayName;
-                const primaryDestination = isStarReturn ? gwDisplayName : userLabel;
-                const firstHopLabel = isStarReturn
-                  ? `${userLabel} → ${formatCoverageName(selectedUplinkCoverage ?? selectedCoverage) ?? resolvedGEOConnectivity.candidate.coverageName}`
-                  : `${gwDisplayName} → ${satelliteName}`;
-                const secondHopLabel = isStarReturn
-                  ? `${satelliteName} → ${gwDisplayName}`
-                  : `${satelliteName} → ${formatCoverageName(selectedDownlinkCoverage ?? selectedCoverage) ?? resolvedGEOConnectivity.candidate.coverageName}`;
-                const firstHopDistanceKm = isStarReturn
-                  ? geoGeometry.userToSatellite.slantRangeKm
-                  : geoGeometry.satelliteToGateway.slantRangeKm;
-                const firstHopLatencyMs = isStarReturn
-                  ? geoGeometry.userToSatellite.latencyMs
-                  : geoGeometry.satelliteToGateway.latencyMs;
-                const secondHopDistanceKm = isStarReturn
-                  ? geoGeometry.satelliteToGateway.slantRangeKm
-                  : geoGeometry.userToSatellite.slantRangeKm;
-                const secondHopLatencyMs = isStarReturn
-                  ? geoGeometry.satelliteToGateway.latencyMs
-                  : geoGeometry.userToSatellite.latencyMs;
-                const oneWayDistanceKm = geoGeometry.satelliteToGateway.slantRangeKm != null
-                  ? geoGeometry.userToSatellite.slantRangeKm + geoGeometry.satelliteToGateway.slantRangeKm
-                  : null;
-                return (
-                  <div className="text-sm text-gray-700 dark:text-gray-300 text-center space-y-2.5 min-w-0">
-                    <div className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
-                      <Route className="h-4 w-4 shrink-0 text-blue-500" />
-                      <div className="min-w-0 break-words leading-relaxed">
-                        {primarySource}
-                        {' → '}
-                        <button onClick={() => onSatelliteClick?.(resolvedGEOConnectivity.satellite)} className="underline hover:no-underline text-blue-600 dark:text-blue-400 font-medium cursor-pointer break-all">{satelliteName}</button>
-                        {' → '}
-                        {primaryDestination}
-                      </div>
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 space-y-2 text-left">
-                      <div>
-                        <div className="break-words">{firstHopLabel}</div>
-                        <div className="pl-3 sm:pl-4 break-words">
-                          → Slant Range: {formatHopDistance(firstHopDistanceKm, firstHopLatencyMs)}
-                          {isStarReturn ? ` | Elevation: ${geoGeometry.userToSatellite.elevationDeg.toFixed(1)}°` : ''}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="break-words">{secondHopLabel}</div>
-                        <div className="pl-3 sm:pl-4 break-words">
-                          → Slant Range: {formatHopDistance(secondHopDistanceKm, secondHopLatencyMs)}
-                          {isStarForward ? ` | Elevation: ${geoGeometry.userToSatellite.elevationDeg.toFixed(1)}°` : ''}
-                        </div>
-                      </div>
-                      <div className="border-t border-gray-200/70 dark:border-slate-700/70 pt-1.5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between font-semibold text-gray-700 dark:text-gray-200">
-                        <span>{isStarReturn ? 'Return' : 'Forward'} one-way propagation</span>
-                        <span className="break-words">{oneWayDistanceKm != null && geoGeometry.oneWayRadioMs != null ? `${oneWayDistanceKm.toFixed(0)} km (${geoGeometry.oneWayRadioMs.toFixed(1)} ms)` : '--'}</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()
-            ) : (
-              <div className="text-sm text-gray-700 dark:text-gray-300 text-center">
-                <div>No GEO visibility or beam coverage.</div>
-              </div>
-            )
-          )}
-        </CollapsibleSection>
-    </div>
   );
   const deliveryDetailEvidence = (
         <div className="space-y-2.5">
