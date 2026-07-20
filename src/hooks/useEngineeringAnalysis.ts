@@ -575,6 +575,21 @@ export function useEngineeringAnalysis({
   }, [activePoint]);
   const regulatoryResult = regulatoryResultOverride ?? computedRegulatoryResult;
 
+  // Point B regulatory lookup — only relevant for GEO MESH/POINT_TO_POINT,
+  // where Site B is a second real user terminal subject to the same
+  // location-based regulatory gating as Site A. `regulatoryLookup` is a pure
+  // lat/lng service, not LEO-specific, so this mirrors the Point A effect
+  // above rather than introducing a new concept.
+  const [computedRegulatoryResultB, setComputedRegulatoryResultB] = useState<RegulatoryResult | null>(null);
+  useEffect(() => {
+    if (!pointB) { setComputedRegulatoryResultB(null); return; }
+    let cancelled = false;
+    regulatoryLookup(pointB.lat, pointB.lng).then((result) => {
+      if (!cancelled) setComputedRegulatoryResultB(result);
+    });
+    return () => { cancelled = true; };
+  }, [pointB]);
+
   // ── Capacity layer (beam load estimation) ────────────────────────────────
   const computedBeamLoadResult = useMemo(() => {
     if (!activePoint || !computedRegulatoryResult) return null;
@@ -1115,6 +1130,27 @@ export function useEngineeringAnalysis({
     const geoCapacityEstimate = resolvedGEOConnectivity?.satellite
       ? estimateGeoSatelliteCapacity(resolvedGEOConnectivity.satellite)
       : null;
+
+    // GEO regulatory gating — the same location-based regulatory service used
+    // for LEO (regulatoryLookup is a pure lat/lng lookup, not LEO-specific).
+    // Site A reuses the hook's shared `regulatoryResult`; Site B (MESH/P2P
+    // only) uses its own lookup above. This is the actual Service Gates
+    // content for GEO — previously the stage could only ever report
+    // ALLOWED/NOT_EVALUATED regardless of regulatory status.
+    const geoRegulatoryA = regulatoryResult;
+    const geoRegulatoryB = isGeoSiteToSite ? computedRegulatoryResultB : null;
+    const geoRegulatoryPending = (activePoint != null && geoRegulatoryA == null)
+      || (isGeoSiteToSite && pointB != null && geoRegulatoryB == null);
+    const geoRegulatoryBlockedA = geoRegulatoryA?.status === 'BLOCKED';
+    const geoRegulatoryBlockedB = geoRegulatoryB?.status === 'BLOCKED';
+    const geoRegulatoryRestrictedA = geoRegulatoryA?.status === 'RESTRICTED';
+    const geoRegulatoryRestrictedB = geoRegulatoryB?.status === 'RESTRICTED';
+    const geoRegulatoryBlocked = geoRegulatoryBlockedA || geoRegulatoryBlockedB;
+    const geoRegulatoryRestricted = !geoRegulatoryBlocked && (geoRegulatoryRestrictedA || geoRegulatoryRestrictedB);
+    const geoRegulatoryKnown = isGeoSiteToSite
+      ? geoRegulatoryA != null && (pointB == null || geoRegulatoryB != null)
+      : geoRegulatoryA != null;
+
     const geoConfidence = buildGeoConfidence({
       mode: 'ENG',
       topology: isGeoSiteToSite ? 'Site-to-Site' : 'Single Site',
@@ -1123,7 +1159,7 @@ export function useEngineeringAnalysis({
       publicFrequencyEvidence: !!(activeCoverageForGeo?.band ?? activeCoverageForGeo?.frequencyGhz ?? activeCoverageForGeo?.level),
       gatewayResolved: isGeoSiteToSite || isServedStarGatewaySelection(trafficGatewaySelection),
       capacityClassKnown: !!geoCapacityEstimate,
-      regulatoryKnown: true,
+      regulatoryKnown: geoRegulatoryKnown,
       routePending: false,
     });
     const geoLatencyMs = isGeoSiteToSite
@@ -1134,6 +1170,50 @@ export function useEngineeringAnalysis({
     const geoServedGateway = !isGeoSiteToSite && isServedStarGatewaySelection(trafficGatewaySelection)
       ? trafficGatewaySelection
       : null;
+    const geoBlockingSite: 'A' | 'B' = geoRegulatoryBlockedA ? 'A' : 'B';
+    const geoRestrictedSite: 'A' | 'B' = geoRegulatoryRestrictedA ? 'A' : 'B';
+    const geoServiceStatus: 'ALLOWED' | 'DEGRADED' | 'BLOCKED' | 'NOT_EVALUATED' = geoRegulatoryPending
+      ? 'NOT_EVALUATED'
+      : geoRegulatoryBlocked
+        ? 'BLOCKED'
+        : geoRegulatoryRestricted
+          ? 'DEGRADED'
+          : (isGeoSiteToSite || geoServedGateway)
+            ? 'ALLOWED'
+            : 'NOT_EVALUATED';
+    const geoServiceReason = geoRegulatoryPending
+      ? 'Regulatory status pending'
+      : geoRegulatoryBlocked
+        ? ((geoBlockingSite === 'A' ? geoRegulatoryA?.reason : geoRegulatoryB?.reason) ?? `Regulatory restriction at Site ${geoBlockingSite}`)
+        : geoRegulatoryRestricted
+          ? ((geoRestrictedSite === 'A' ? geoRegulatoryA?.reason : geoRegulatoryB?.reason) ?? `Regulatory restriction at Site ${geoRestrictedSite}`)
+          : geoServedGateway
+            ? `Traffic gateway ${geoServedGateway.gateway.name} serves this beam`
+            : isGeoSiteToSite
+              ? 'No regulatory restriction at either site'
+              : 'No serving traffic gateway resolved';
+    const geoServiceEvidence: EngineeringEvidenceItem[] = [
+      {
+        label: isGeoSiteToSite ? 'Regulatory · Site A' : 'Regulatory',
+        value: geoRegulatoryA?.status ?? 'Not evaluated',
+        state: geoRegulatoryBlockedA ? 'blocked' : geoRegulatoryRestrictedA ? 'warning' : geoRegulatoryA ? 'passed' : 'pending',
+        detail: geoRegulatoryA?.reason,
+      },
+      ...(isGeoSiteToSite ? [{
+        label: 'Regulatory · Site B',
+        value: geoRegulatoryB?.status ?? 'Not evaluated',
+        state: (geoRegulatoryBlockedB ? 'blocked' : geoRegulatoryRestrictedB ? 'warning' : geoRegulatoryB ? 'passed' : 'pending') as EngineeringEvidenceItem['state'],
+        detail: geoRegulatoryB?.reason,
+      }] : []),
+      ...(geoServedGateway
+        ? [
+            { label: 'Traffic gateway', value: geoServedGateway.gateway.name, state: 'passed' as const },
+            ...(geoServedGateway.trafficCapability?.capabilityId
+              ? [{ label: 'Capability', value: geoServedGateway.trafficCapability.capabilityId, state: 'passed' as const }]
+              : []),
+          ]
+        : []),
+    ];
     const geoViewModel = buildGeoEngineeringAnalysisViewModel({
       linkMode,
       result: dualSegmentResult,
@@ -1151,20 +1231,9 @@ export function useEngineeringAnalysis({
       pathReason: geoScenarioComplete && !geoPathResolved
         ? isGeoSiteToSite ? 'No complete directional GEO path' : !resolvedGEOConnectivity ? 'No eligible GEO coverage candidate' : 'No eligible traffic gateway path'
         : undefined,
-      serviceStatus: geoServedGateway ? 'ALLOWED' : 'NOT_EVALUATED',
-      serviceReason: geoServedGateway
-        ? `Traffic gateway ${geoServedGateway.gateway.name} serves this beam`
-        : isGeoSiteToSite
-          ? 'Site-to-site GEO uses no shared service gate'
-          : 'No serving traffic gateway resolved',
-      serviceEvidence: geoServedGateway
-        ? [
-            { label: 'Traffic gateway', value: geoServedGateway.gateway.name, state: 'passed' as const },
-            ...(geoServedGateway.trafficCapability?.capabilityId
-              ? [{ label: 'Capability', value: geoServedGateway.trafficCapability.capabilityId, state: 'passed' as const }]
-              : []),
-          ]
-        : undefined,
+      serviceStatus: geoServiceStatus,
+      serviceReason: geoServiceReason,
+      serviceEvidence: geoServiceEvidence,
     });
 
     const isLeoSiteToSite = leoTopologyMode === 'SITE_TO_SITE';
@@ -1264,7 +1333,7 @@ export function useEngineeringAnalysis({
     });
 
     return { GEO: geoViewModel, LEO: leoViewModel };
-  }, [activeCoverageForGeo, activeMeshTab, activePoint, beamLoadResult?.loadSource, downlinkAtB, downlinkAtUser, dualSegmentResult, geoGeometry, hasCurrentLEORF, leoGeometry, leoPerformance, leoServiceViewModel, leoSiteToSiteResult, leoTopologyMode, linkMode, meshMetrics, mobileLeoMetrics?.rtt, pointB, pointBLeo, regulatoryResult?.status, resolvedGEOConnectivity, resolvedLEOConnectivity, trafficGatewaySelection, uplinkAtB, uplinkAtUser, weatherType]);
+  }, [activeCoverageForGeo, activeMeshTab, activePoint, beamLoadResult?.loadSource, computedRegulatoryResultB, downlinkAtB, downlinkAtUser, dualSegmentResult, geoGeometry, hasCurrentLEORF, leoGeometry, leoPerformance, leoServiceViewModel, leoSiteToSiteResult, leoTopologyMode, linkMode, meshMetrics, mobileLeoMetrics?.rtt, pointB, pointBLeo, regulatoryResult, resolvedGEOConnectivity, resolvedLEOConnectivity, trafficGatewaySelection, uplinkAtB, uplinkAtUser, weatherType]);
 
   const resolvedGeoCoverageKeys = useMemo(() => getResolvedEngineeringGeoCoverageKeys({
     siteA: { uplink: selectedUplinkCoverage, downlink: selectedDownlinkCoverage },

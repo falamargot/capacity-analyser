@@ -334,7 +334,12 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
         ? !!starTrafficGatewaySelection?.gateway
         : !!geoGeometry?.satelliteToGateway.resolvedGateway),
     capacityClassKnown: !!geoCapacityEstimate,
-    regulatoryKnown: true,
+    // No regulatory result is plumbed into this component — the real GEO
+    // regulatory check runs in useEngineeringAnalysis.ts and its confidence
+    // score is what's actually displayed; this local confidence build is a
+    // fallback input for GeoLinkBudgetEvidence only, so don't claim evidence
+    // that isn't available here.
+    regulatoryKnown: false,
     routePending: false,
   });
   const availabilityContext = buildLinkAvailabilityContext({

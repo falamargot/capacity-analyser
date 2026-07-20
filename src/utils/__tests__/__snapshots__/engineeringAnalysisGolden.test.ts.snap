@@ -1911,7 +1911,7 @@ exports[`M0 golden scenario matrix > LEO > 'leo-incomplete-site-b-required' 1`] 
     "confidenceBreakdown": undefined,
     "latencyLabel": undefined,
     "latencyMs": undefined,
-    "marginLabel": "Access margin 14.0 dB",
+    "marginLabel": "Access margin 19.0 dB",
     "supportingMetrics": [
       {
         "label": "Return direction",
@@ -2269,7 +2269,7 @@ exports[`M0 golden scenario matrix > LEO > 'leo-single-available' 1`] = `
     "confidenceBreakdown": undefined,
     "latencyLabel": "End-to-end RTT",
     "latencyMs": 72,
-    "marginLabel": "DL 14.0 dB / UL 14.0 dB",
+    "marginLabel": "DL 19.0 dB / UL 19.0 dB",
     "supportingMetrics": [
       {
         "label": "Final uplink",
@@ -2513,7 +2513,7 @@ exports[`M0 golden scenario matrix > LEO > 'leo-single-constrained-beam-sharing'
     "confidenceBreakdown": undefined,
     "latencyLabel": "End-to-end RTT",
     "latencyMs": 74,
-    "marginLabel": "DL 14.0 dB / UL 14.0 dB",
+    "marginLabel": "DL 19.0 dB / UL 19.0 dB",
     "supportingMetrics": [
       {
         "label": "Final uplink",
@@ -2724,7 +2724,7 @@ exports[`M0 golden scenario matrix > LEO > 'leo-single-rf-blocked' 1`] = `
     "confidenceBreakdown": undefined,
     "latencyLabel": undefined,
     "latencyMs": undefined,
-    "marginLabel": "DL 14.0 dB / UL 14.0 dB",
+    "marginLabel": "DL 19.0 dB / UL 19.0 dB",
     "supportingMetrics": [
       {
         "label": "Final uplink",
@@ -2928,7 +2928,7 @@ exports[`M0 golden scenario matrix > LEO > 'leo-single-service-blocked-regulator
     "confidenceBreakdown": undefined,
     "latencyLabel": undefined,
     "latencyMs": 72,
-    "marginLabel": "DL 14.0 dB / UL 14.0 dB",
+    "marginLabel": "DL 19.0 dB / UL 19.0 dB",
     "supportingMetrics": [
       {
         "label": "Final uplink",
@@ -3130,7 +3130,7 @@ exports[`M0 golden scenario matrix > LEO > 'leo-site-to-site-a-to-b' 1`] = `
     "confidenceBreakdown": undefined,
     "latencyLabel": "A → B latency",
     "latencyMs": 60,
-    "marginLabel": "Access margin 14.0 dB",
+    "marginLabel": "Access margin 19.0 dB",
     "supportingMetrics": [
       {
         "label": "Return direction",
@@ -3325,7 +3325,7 @@ exports[`M0 golden scenario matrix > LEO > 'leo-site-to-site-b-to-a' 1`] = `
     "confidenceBreakdown": undefined,
     "latencyLabel": "B → A latency",
     "latencyMs": 62,
-    "marginLabel": "Access margin 14.0 dB",
+    "marginLabel": "Access margin 19.0 dB",
     "supportingMetrics": [
       {
         "label": "Return direction",

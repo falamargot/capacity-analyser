@@ -29,13 +29,17 @@ export interface ModcodBottleneckThresholds {
   rfLimitedBelowDb: number;
   /** Below this C/N the top MODCOD cannot be selected (dB). */
   topModcodThresholdDb: number;
+  /** Below this C/N even the lowest MODCOD can't close — throughput is zero (dB). */
+  closingBelowDb: number;
 }
 
 /**
  * Derive attribution thresholds from a MODCOD table:
  * rfLimitedBelowDb = threshold of the first entry in the upper half of the
  * table (for the current 6-entry DVB-S2X-like table: 16APSK 3/4 at 14.5 dB);
- * topModcodThresholdDb = threshold of the highest entry (18.5 dB).
+ * topModcodThresholdDb = threshold of the highest entry (18.5 dB);
+ * closingBelowDb = threshold of the lowest entry (5.0 dB) — the actual point
+ * below which rfChainThroughputMbps drops to zero.
  */
 export function deriveModcodBottleneckThresholds(table: ModcodTableConfig): ModcodBottleneckThresholds {
   const entries = table.entries;
@@ -43,7 +47,21 @@ export function deriveModcodBottleneckThresholds(table: ModcodTableConfig): Modc
   return {
     rfLimitedBelowDb: entries[upperHalfIndex]?.cnThresholdDb ?? 0,
     topModcodThresholdDb: entries[entries.length - 1]?.cnThresholdDb ?? 0,
+    closingBelowDb: entries[0]?.cnThresholdDb ?? 0,
   };
+}
+
+/**
+ * Link margin above the lowest closing MODCOD threshold for a single leg —
+ * the LEO analogue of GEO's endToEndLinkMarginDb. Below 0 the leg is at or
+ * under the point where rfChainThroughputMbps drops to zero. Single owner so
+ * every UI surface (verdict gating, "Decisive margin" evidence, per-leg
+ * margin badges) reads the same physically-meaningful quantity instead of a
+ * hardcoded, MODCOD-agnostic C/N offset.
+ */
+export function deriveLegLinkMarginDb(leg: LeoThroughputLeg): number {
+  const thresholds = deriveModcodBottleneckThresholds(resolveModcodTableById(leg.rf.modcodTableId));
+  return leg.rf.cnDb - thresholds.closingBelowDb;
 }
 
 export function detectThroughputBottleneck(leg: LeoThroughputLeg): LeoBottleneckFactor {

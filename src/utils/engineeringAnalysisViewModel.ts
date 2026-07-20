@@ -4,6 +4,7 @@ import type { LeoSiteToSiteResult } from './leoSiteToSiteModel';
 import { getDisplayedThroughput, type DualSegmentResult } from './geoDualSegmentBudget';
 import { fmtDb, fmtMbps, fmtMs, fmtThroughputLoss, parsePct, parseConfidence, type PredictionConfidenceSummary } from './engineeringFormat';
 import type { PredictionConfidence } from './predictionConfidence';
+import { deriveLegLinkMarginDb } from './leoBottleneck';
 
 export type EngineeringAnalysisMode = 'GEO' | 'LEO';
 export type EngineeringAnalysisStatus = 'available' | 'marginal' | 'blocked' | 'no-budget';
@@ -700,7 +701,7 @@ export function buildLeoEngineeringAnalysisViewModel(input: BuildLeoEngineeringA
     ? input.debugInfo.mainBottleneck.label
     : null;
   const singleMinMargin = input.debugInfo
-    ? Math.min(input.debugInfo.downlink.rf.cnDb - 10, input.debugInfo.uplink.rf.cnDb - 10)
+    ? Math.min(deriveLegLinkMarginDb(input.debugInfo.downlink), deriveLegLinkMarginDb(input.debugInfo.uplink))
     : null;
   const singleFinalDl = input.debugInfo?.downlink.network.finalUserMbps ?? null;
   const singleFinalUl = input.debugInfo?.uplink.network.finalUserMbps ?? null;
@@ -1024,8 +1025,8 @@ export function buildLeoEngineeringAnalysisViewModel(input: BuildLeoEngineeringA
       confidenceBreakdown: input.confidence,
       bottleneck: isS2S ? bottleneckLabel : (input.debugInfo?.mainBottleneck.label ?? '--'),
       marginLabel: isS2S
-        ? (bottleneckLeg ? `Access margin ${fmtDb(bottleneckLeg.rf.cnDb - 10)}` : undefined)
-        : (input.debugInfo ? `DL ${fmtDb(input.debugInfo.downlink.rf.cnDb - 10)} / UL ${fmtDb(input.debugInfo.uplink.rf.cnDb - 10)}` : undefined),
+        ? (bottleneckLeg ? `Access margin ${fmtDb(deriveLegLinkMarginDb(bottleneckLeg))}` : undefined)
+        : (input.debugInfo ? `DL ${fmtDb(deriveLegLinkMarginDb(input.debugInfo.downlink))} / UL ${fmtDb(deriveLegLinkMarginDb(input.debugInfo.uplink))}` : undefined),
       supportingMetrics: isS2S
         ? [{ label: 'Return direction', value: fmtMbps(s2sIsAtoB ? input.siteToSiteResult?.finalThroughputBtoAMbps : input.siteToSiteResult?.finalThroughputAtoBMbps) }]
         : [{ label: 'Final uplink', value: fmtMbps(singleFinalUl), tone: singleFinalUl ? 'accent' : 'warn' }],
