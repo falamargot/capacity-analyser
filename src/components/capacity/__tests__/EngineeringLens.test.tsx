@@ -166,7 +166,7 @@ describe('Engineering Cause Chain investigation', () => {
       </EngineeringFocusProvider>,
     );
 
-    expect(inspectorHost.innerHTML.indexOf('LEO route summary')).toBeLessThan(inspectorHost.innerHTML.indexOf('Major Hops &amp; Technical Evidence'));
+    expect(inspectorHost.innerHTML.indexOf('LEO route summary')).toBeLessThan(inspectorHost.innerHTML.indexOf('Existing path proof'));
     expect(inspectorHost.textContent).toContain('Site A → Satellite → SNP');
     expect(inspectorHost.querySelector('[aria-label="Existing path proof"]')).not.toBeNull();
   });
@@ -244,6 +244,7 @@ describe('Engineering Cause Chain investigation', () => {
     await act(async () => { pathButton?.click(); });
     expect(document.querySelector('[data-engineering-inspector]')).toBe(sheet);
     expect(document.querySelector('[data-engineering-inspector] h2')?.textContent).toBe('Path');
-    expect(document.querySelector('[data-engineering-stage-evidence="path"] details[open]')).not.toBeNull();
+    // Path evidence is always displayed now — no collapsible disclosure wraps it.
+    expect(document.querySelector('[data-engineering-stage-evidence="path"] details')).toBeNull();
   });
 });

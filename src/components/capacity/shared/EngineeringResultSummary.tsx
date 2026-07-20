@@ -246,16 +246,10 @@ const StageEvidenceContent = ({
         <div className="engineering-stage-composition engineering-stage-composition--path">
           {summaryEvidence && <div data-engineering-workspace-summary="">{summaryEvidence}</div>}
           <PrimaryEvidence title="Path validity" />
-          <details open className="group engineering-primary-disclosure">
-            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 py-3 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-600 outline-none hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-sky-400 dark:text-slate-300 dark:hover:text-white [&::-webkit-details-marker]:hidden">
-              <span>Major Hops &amp; Technical Evidence</span>
-              <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform group-open:rotate-180" aria-hidden="true" />
-            </summary>
-            <div className="border-t border-slate-200/80 py-4 dark:border-slate-700/80">
-              {secondaryEvidence.length > 0 && <EvidenceList items={secondaryEvidence} secondary />}
-              {evidence && <div className={secondaryEvidence.length > 0 ? 'mt-4' : ''} data-engineering-primary-investigation="">{evidence}</div>}
-            </div>
-          </details>
+          <div className="border-t border-slate-200/80 py-4 dark:border-slate-700/80">
+            {secondaryEvidence.length > 0 && <EvidenceList items={secondaryEvidence} secondary />}
+            {evidence && <div className={secondaryEvidence.length > 0 ? 'mt-4' : ''} data-engineering-primary-investigation="">{evidence}</div>}
+          </div>
         </div>
       )}
 
