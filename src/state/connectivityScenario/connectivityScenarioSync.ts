@@ -1,5 +1,4 @@
 import type {
-  ConnectivityScenario,
   LocationReference,
   ScenarioEndpoint,
   ScenarioEndpointKind,
@@ -7,67 +6,23 @@ import type {
   ScenarioEndpointRole,
 } from '../../types/connectivityScenario';
 import {
-  buildConnectivityScenarioFromLegacyState,
   legacyCommercialTerminalsToScenarioTerminals,
-  scenarioToCommercialRouteSelector,
-  type CommercialRouteSelectorRoute,
   type LegacyCommercialTerminal,
-  type LegacyConnectivityScenarioInput,
-  type LegacyLeoTopologyMode,
-  type LegacyLinkMode,
-  type LegacyMeshTab,
   type LegacyPointReference,
 } from '../../utils/connectivityScenarioAdapters';
 
-export interface LegacyScenarioProjection {
-  activeAnalysisPoint: LegacyPointReference | null;
-  siteB: LegacyPointReference | null;
-  linkMode: LegacyLinkMode;
-  activeMeshTab: LegacyMeshTab;
-  leoTopologyMode: LegacyLeoTopologyMode;
-  routeSelectorRoute: CommercialRouteSelectorRoute;
-}
-
-export function buildScenarioFromLegacyProjection(input: LegacyConnectivityScenarioInput): ConnectivityScenario {
-  return buildConnectivityScenarioFromLegacyState(input);
-}
-
-function locationToLegacyPoint(location: LocationReference | undefined): LegacyPointReference | null {
-  if (!location) return null;
-
-  return {
-    lat: location.lat,
-    lng: location.lng,
-    altitude: location.altitudeKm,
-  };
-}
-
-export function legacyLinkModeFromScenario(scenario: ConnectivityScenario): LegacyLinkMode {
-  if (scenario.geoServiceTopology === 'p2p') return 'POINT_TO_POINT';
-  if (scenario.geoServiceTopology === 'mesh') return 'MESH';
-  if (scenario.geoServiceTopology === 'return') return 'STAR_RETURN';
-  return 'STAR_FORWARD';
-}
-
-export function legacyMeshTabFromScenario(scenario: ConnectivityScenario): LegacyMeshTab {
-  return scenario.trafficIntent === 'b-to-a' ? 'reverse' : 'forward';
-}
-
-export function legacyLeoTopologyModeFromScenario(scenario: ConnectivityScenario): LegacyLeoTopologyMode {
-  return scenario.servicePattern === 'site-to-site' ? 'SITE_TO_SITE' : 'SINGLE_SITE';
-}
-
-export function projectScenarioToLegacyState(scenario: ConnectivityScenario): LegacyScenarioProjection {
-  return {
-    activeAnalysisPoint: locationToLegacyPoint(scenario.origin?.location),
-    siteB: locationToLegacyPoint(scenario.destination?.location),
-    linkMode: legacyLinkModeFromScenario(scenario),
-    activeMeshTab: legacyMeshTabFromScenario(scenario),
-    leoTopologyMode: legacyLeoTopologyModeFromScenario(scenario),
-    routeSelectorRoute: scenarioToCommercialRouteSelector(scenario),
-  };
-}
-
+/**
+ * ARCH-2: this used to also export buildScenarioFromLegacyProjection and
+ * projectScenarioToLegacyState (plus their legacy*FromScenario helpers) — a
+ * full legacy↔store round-trip that had zero production callers (only its
+ * own tests exercised it). ConnectivityScenario is a label-only shadow read
+ * model today: App.tsx's actual engineering computation reads the legacy
+ * per-field state directly (geoRFClassIdA/B, leoTerminalType, etc.), never
+ * this store — see connectivityScenarioEngineeringReadModel.ts's parity-check
+ * guard for the one place ConnectivityScenario output (a display label) is
+ * actually consumed. createScenarioEndpointFromLocation below is the one
+ * live construction path, called from App.tsx's location-search handlers.
+ */
 export function createScenarioEndpointFromLocation({
   endpoint,
   point,

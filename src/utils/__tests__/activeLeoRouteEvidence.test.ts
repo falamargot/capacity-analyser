@@ -133,6 +133,29 @@ describe('L-M2 — FSPL uses the actual user↔satellite slant range', () => {
   });
 });
 
+// ── LEO-3 — per-direction Ka feeder margin, not the shared weakest-of-both ───
+
+describe('LEO-3 — feederMarginDb is per-direction, not the shared weakestMarginDb', () => {
+  it('downlink and uplink legs report distinct feeder margins from their own up/down budgets', () => {
+    const evidence = buildActiveLeoRouteEvidence(buildEvidenceInput(), createActiveLeoRouteEvidenceState());
+    const throughput = evidence.leoPerformance?.throughput;
+    expect(throughput).toBeTruthy();
+
+    const dlMargin = throughput!.downlink.network.feederMarginDb;
+    const ulMargin = throughput!.uplink.network.feederMarginDb;
+
+    // Both legs must have a real feeder budget computed (this fixture's SNP
+    // has a valid feeder elevation), and — because the Ka gateway-up path
+    // (68 dBW EIRP / 8 dB/K satellite G/T) and satellite-down path (42 dBW
+    // EIRP / 29 dB/K gateway G/T) are physically different budgets — they
+    // must NOT collapse to the same figure the way the shared
+    // feederBudget.weakestMarginDb previously did on both legs.
+    expect(dlMargin).not.toBeNull();
+    expect(ulMargin).not.toBeNull();
+    expect(dlMargin).not.toBeCloseTo(ulMargin!, 3);
+  });
+});
+
 // ── L-Mo7 — uplink-specific weather and pattern terms (Lot 3, Item 3) ────────
 
 describe('L-Mo7 — uplink weather is 14.25 GHz-specific, not the downlink composite', () => {

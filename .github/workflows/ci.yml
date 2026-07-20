@@ -1,0 +1,70 @@
+name: CI
+
+# TS-1: this repo previously had no CI at all — tests, lint, typecheck, and
+# build were never gated on push/PR, so regressions (including several this
+# workflow's own audit found) could land silently. Blocking gates below are
+# genuinely green today (0 lint errors/warnings, 941+ tests passing, build
+# succeeds) — typecheck is deliberately non-blocking for now, see its step.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+
+  typecheck:
+    name: Typecheck (non-blocking)
+    runs-on: ubuntu-latest
+    # Non-blocking: the codebase has a pre-existing TypeScript error baseline
+    # (146 as of 2026-07-20, down from 199 after this same audit's fixes —
+    # see docs/Capacity_Analyzer_Production_Code_Audit.md TS-1) that hasn't
+    # been fully burned down yet. This step still runs on every push/PR for
+    # visibility (check the job output to see if the count moved), but
+    # continue-on-error keeps it from blocking merges until either the
+    # baseline reaches zero or a proper baseline-diff step replaces this one.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsc -p tsconfig.app.json --noEmit

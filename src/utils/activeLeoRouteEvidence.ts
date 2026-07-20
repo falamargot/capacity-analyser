@@ -551,6 +551,7 @@ function buildEndpointDebug(args: {
     sharedThroughputMbps: number;
     beamTotalThroughputMbps: number;
     feederCapacityMbps: number | null;
+    feederMarginDb: number | null;
     feederLimited: boolean;
     finalUserMbps: number;
   }): LeoThroughputLeg => {
@@ -560,7 +561,12 @@ function buildEndpointDebug(args: {
       activeUsers,
       beamSharingMbps: legArgs.sharedThroughputMbps,
       feederCapacityMbps: legArgs.feederCapacityMbps,
-      feederMarginDb: feederBudget?.weakestMarginDb ?? null,
+      // LEO-3: per-direction margin, not the shared weakestMarginDb — the
+      // gateway-up (feeds downlink) and satellite-down (feeds uplink) paths
+      // are physically different budgets that can legitimately differ, and
+      // showing the same worst-of-both number on both drawer tiles obscured
+      // which direction was actually closer to the Ka feeder limit.
+      feederMarginDb: legArgs.feederMarginDb,
       feederLimited: legArgs.feederLimited,
       handoverFactor: args.handoverFactor,
       handoverMbps: legArgs.sharedThroughputMbps * args.handoverFactor,
@@ -613,6 +619,7 @@ function buildEndpointDebug(args: {
     sharedThroughputMbps: downlinkSharing.sharedThroughputMbps,
     beamTotalThroughputMbps: downlinkSharing.beamTotalThroughputMbps,
     feederCapacityMbps: feederBudget?.up.capacityMbps ?? null,
+    feederMarginDb: feederBudget?.up.marginDb ?? null,
     feederLimited: downlinkSharing.wasFeederLimited,
     finalUserMbps: args.finalDownlinkMbps ?? rawDownlinkMbps,
   });
@@ -637,6 +644,7 @@ function buildEndpointDebug(args: {
     sharedThroughputMbps: uplinkSharing.sharedThroughputMbps,
     beamTotalThroughputMbps: uplinkSharing.beamTotalThroughputMbps,
     feederCapacityMbps: feederBudget?.down.capacityMbps ?? null,
+    feederMarginDb: feederBudget?.down.marginDb ?? null,
     feederLimited: uplinkSharing.wasFeederLimited,
     finalUserMbps: args.finalUplinkMbps ?? rawUplinkMbps,
   });

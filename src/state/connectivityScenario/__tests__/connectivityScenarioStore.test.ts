@@ -3,11 +3,7 @@ import type { ScenarioEndpoint, TerminalCapability } from '../../../types/connec
 import { getScenarioTechnologyCapabilities } from '../../../utils/connectivityScenarioSelectors';
 import { connectivityScenarioActions } from '../connectivityScenarioActions';
 import { connectivityScenarioReducer, initialConnectivityScenario } from '../connectivityScenarioReducer';
-import {
-  buildScenarioFromLegacyProjection,
-  createScenarioEndpointFromLocation,
-  projectScenarioToLegacyState,
-} from '../connectivityScenarioSync';
+import { createScenarioEndpointFromLocation } from '../connectivityScenarioSync';
 
 const geoTerminal: TerminalCapability = {
   id: 'geo-vsat',
@@ -119,62 +115,6 @@ describe('ConnectivityScenarioStore reducer', () => {
 });
 
 describe('ConnectivityScenario synchronization layer', () => {
-  it('maps legacy state into a store scenario snapshot', () => {
-    const scenario = buildScenarioFromLegacyProjection({
-      activeAnalysisPoint: { lat: 48.8566, lng: 2.3522 },
-      activeAnalysisPointLabel: 'Paris',
-      siteB: { lat: 45.0703, lng: 7.6869 },
-      siteBLabel: 'Turin',
-      linkMode: 'MESH',
-      activeMeshTab: 'forward',
-      originTerminals: [
-        { id: 'legacy-geo', technology: 'geo', band: 'Ku', label: 'VSAT' },
-        { id: 'legacy-leo', technology: 'leo', model: 'OW70L' },
-      ],
-      destinationTerminals: [
-        { id: 'legacy-geo-b', technology: 'geo', band: 'Ku', label: 'VSAT' },
-      ],
-    });
-
-    expect(scenario.servicePattern).toBe('site-to-site');
-    expect(scenario.trafficIntent).toBe('a-to-b');
-    expect(scenario.geoServiceTopology).toBe('mesh');
-    expect(scenario.origin?.terminalCapabilities).toHaveLength(2);
-  });
-
-  it('projects store state back to legacy topology and route selector shape', () => {
-    const scenario = {
-      ...initialConnectivityScenario,
-      servicePattern: 'site-to-site' as const,
-      trafficIntent: 'b-to-a' as const,
-      geoServiceTopology: 'p2p' as const,
-      origin: customerSiteEndpoint('origin', 'Paris', [geoTerminal]),
-      destination: customerSiteEndpoint('destination', 'Turin', [geoTerminal]),
-    };
-
-    expect(projectScenarioToLegacyState(scenario)).toEqual({
-      activeAnalysisPoint: { lat: 48.8566, lng: 2.3522, altitude: undefined },
-      siteB: { lat: 45.0703, lng: 7.6869, altitude: undefined },
-      linkMode: 'POINT_TO_POINT',
-      activeMeshTab: 'reverse',
-      leoTopologyMode: 'SITE_TO_SITE',
-      routeSelectorRoute: {
-        origin: {
-          label: 'Paris',
-          terminals: [
-            { id: 'geo-vsat', technology: 'geo', band: 'Ku', label: 'VSAT' },
-          ],
-        },
-        destination: {
-          label: 'Turin',
-          terminals: [
-            { id: 'geo-vsat', technology: 'geo', band: 'Ku', label: 'VSAT' },
-          ],
-        },
-      },
-    });
-  });
-
   it('creates endpoint snapshots from the same location inputs App handlers receive', () => {
     const endpoint = createScenarioEndpointFromLocation({
       endpoint: 'origin',

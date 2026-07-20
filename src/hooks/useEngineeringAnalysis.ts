@@ -72,6 +72,7 @@ import type { ActiveLeoRouteEvidence } from '../utils/activeLeoRouteEvidence';
 import {
   buildGeoEngineeringAnalysisViewModel,
   buildLeoEngineeringAnalysisViewModel,
+  selectActiveEngineeringTruth,
   type EngineeringAnalysisViewModel,
   type EngineeringEvidenceItem,
   type EngineeringTruth,
@@ -1283,7 +1284,7 @@ export function useEngineeringAnalysis({
     GEO: engineeringAnalysisViewModels.GEO.truth,
     LEO: engineeringAnalysisViewModels.LEO.truth,
   }), [engineeringAnalysisViewModels]);
-  const activeEngineeringTruth = engineeringTruths[satelliteScope === 'ALL' ? activeConnTab : satelliteScope];
+  const activeEngineeringTruth = selectActiveEngineeringTruth(engineeringTruths, satelliteScope, activeConnTab);
 
   const leoPdfDetails = useMemo(() => buildLeoPdfDetails({
     resolvedLEOConnectivity,

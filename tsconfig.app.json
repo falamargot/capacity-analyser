@@ -2,7 +2,11 @@
   "compilerOptions": {
     "target": "ES2020",
     "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    // TS-1: was ES2020 while the code already legitimately uses ES2021's
+    // String.replaceAll and ES2022's Array.prototype.at (broadly supported
+    // in evergreen browsers) — the mismatch produced ~15 false-positive
+    // TS2550/TS2551 errors that masked real ones in the same tsc output.
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
 

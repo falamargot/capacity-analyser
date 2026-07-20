@@ -111,7 +111,13 @@ export function connectivityScenarioReducer(
       });
     }
 
-    default:
+    default: {
+      // ARCH-3: exhaustiveness check — if a new ConnectivityScenarioAction
+      // variant is added without a case above, this fails to compile instead
+      // of silently no-op'ing at runtime.
+      const _exhaustive: never = action;
+      void _exhaustive;
       return state;
+    }
   }
 }

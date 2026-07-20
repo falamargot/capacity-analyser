@@ -605,6 +605,14 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     autoSelectedGEORef.current = autoSelectedGEOSatellite;
     const selectedSatelliteRef = useRef(selectedSatellite);
     selectedSatelliteRef.current = selectedSatellite;
+    // PERF-2: leoS2SLinks reads this via ref instead of depending on the
+    // `satellites` prop directly — it only needs a satrec to re-propagate
+    // live against Cesium time inside each CallbackProperty (called every
+    // frame), not a tick-fresh array reference, so there is no reason for
+    // that memo to recompute (rebuilding 7 CallbackProperty closures and
+    // reassigning them as Entity props) on every ~1s satellite-position tick.
+    const satellitesRef = useRef(satellites);
+    satellitesRef.current = satellites;
     const simulationState = useMemo(() => buildSimulationStateSnapshot({
         coveragePolicy,
         weatherCondition,
@@ -966,7 +974,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
 
         const satACallback = new CallbackProperty((time?: JulianDate) => {
             if (!time) return [];
-            const sat = satellites.find(s => s.id === satAId);
+            const sat = satellitesRef.current.find(s => s.id === satAId);
             if (!sat) return [];
             const satPos = propagateSatellite(sat, time);
             return [posA, satPos];
@@ -974,7 +982,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
 
         const satAToSnpACallback = snpAPos ? new CallbackProperty((time?: JulianDate) => {
             if (!time) return [];
-            const sat = satellites.find(s => s.id === satAId);
+            const sat = satellitesRef.current.find(s => s.id === satAId);
             if (!sat) return [];
             const satPos = propagateSatellite(sat, time);
             return [satPos, snpAPos];
@@ -982,7 +990,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
 
         const satBCallback = new CallbackProperty((time?: JulianDate) => {
             if (!time) return [];
-            const sat = satellites.find(s => s.id === satBId);
+            const sat = satellitesRef.current.find(s => s.id === satBId);
             if (!sat) return [];
             const satPos = propagateSatellite(sat, time);
             return [satPos, posB];
@@ -990,7 +998,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
 
         const satBToSnpBCallback = snpBPos ? new CallbackProperty((time?: JulianDate) => {
             if (!time) return [];
-            const sat = satellites.find(s => s.id === satBId);
+            const sat = satellitesRef.current.find(s => s.id === satBId);
             if (!sat) return [];
             const satPos = propagateSatellite(sat, time);
             return [snpBPos, satPos];
@@ -1008,7 +1016,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
             snpAName: selectedSnpA?.name ?? null, snpBName: selectedSnpB?.name ?? null,
             popName: logicalPop?.name ?? 'Core PoP',
         };
-    }, [leoSiteToSiteResult, satellites]);
+    }, [leoSiteToSiteResult]);
 
     // Backbone topology visible even when full S2S route is unavailable (e.g. regulatory
     // pending, no satellite coverage). Computed only when leoS2SLinks would be null.

@@ -26,7 +26,7 @@ import { getAssignedGeoSatellitesForGateway } from '../../utils/geoConnectivityM
 import type { SNPConnectedSatellite } from '../../services/coverageService';
 import { getMoonSnapshot, MOON_MEAN_RADIUS_KM } from '../../utils/moonInfo';
 import { JulianDate } from 'cesium';
-import type { EngineeringTruthSet } from '../../utils/engineeringAnalysisViewModel';
+import { selectActiveEngineeringTruth, type EngineeringTruthSet } from '../../utils/engineeringAnalysisViewModel';
 
 interface MobileSelectedPoint {
     lat: number;
@@ -479,9 +479,7 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
     engineeringTruths = {},
 }) => {
     const { failedSnps } = useSimulation();
-    const activeEngineeringTruth = engineeringTruths[satelliteScope === 'GEO' || satelliteScope === 'LEO'
-        ? satelliteScope
-        : activeConnectivityTab];
+    const activeEngineeringTruth = selectActiveEngineeringTruth(engineeringTruths, satelliteScope, activeConnectivityTab);
     const selectedPointStatus = useMemo(
         () => deriveSelectedPointStatusPresentation({
             scope: satelliteScope,

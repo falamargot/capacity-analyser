@@ -5,8 +5,10 @@ import {
   displayEvidenceValue,
   engineeringVerdictLabel,
   engineeringVerdictTone,
+  selectActiveEngineeringTruth,
   type EngineeringAnalysisViewModel,
   type EngineeringServiceState,
+  type EngineeringTruth,
 } from '../engineeringAnalysisViewModel';
 import type { LeoSiteToSiteResult } from '../leoSiteToSiteModel';
 import { makeGeoResult, makeLeoResult } from './fixtures/engineeringViewModelFixtures';
@@ -395,5 +397,28 @@ describe('engineering analysis view model', () => {
     });
     const surfaces = ['sidebar', 'header', 'mobile-peek', 'workspace-summary', 'export'];
     expect(new Set(surfaces.map(readSurface)).size).toBe(1);
+  });
+});
+
+// ARCH-4: single shared "which technology is active" rule — previously
+// reimplemented independently in useEngineeringAnalysis.ts (desktop) and
+// MobileAnalysisSummary.tsx (mobile).
+describe('selectActiveEngineeringTruth', () => {
+  const geoTruth = { technology: 'GEO' } as unknown as EngineeringTruth;
+  const leoTruth = { technology: 'LEO' } as unknown as EngineeringTruth;
+  const truths = { GEO: geoTruth, LEO: leoTruth };
+
+  it('returns the scoped technology truth when scope is GEO or LEO', () => {
+    expect(selectActiveEngineeringTruth(truths, 'GEO', 'LEO')).toBe(geoTruth);
+    expect(selectActiveEngineeringTruth(truths, 'LEO', 'GEO')).toBe(leoTruth);
+  });
+
+  it('falls back to activeConnTab when scope is ALL', () => {
+    expect(selectActiveEngineeringTruth(truths, 'ALL', 'GEO')).toBe(geoTruth);
+    expect(selectActiveEngineeringTruth(truths, 'ALL', 'LEO')).toBe(leoTruth);
+  });
+
+  it('returns undefined when the selected technology has no truth yet', () => {
+    expect(selectActiveEngineeringTruth({}, 'GEO', 'LEO')).toBeUndefined();
   });
 });

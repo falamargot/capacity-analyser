@@ -74,6 +74,24 @@ export interface EngineeringTruth {
 
 export type EngineeringTruthSet = Partial<Record<EngineeringAnalysisMode, EngineeringTruth>>;
 
+/**
+ * ARCH-4: which technology's truth is "active" for a given satellite scope —
+ * previously reimplemented independently in useEngineeringAnalysis.ts (desktop)
+ * and MobileAnalysisSummary.tsx (mobile), logically equivalent today only by
+ * both authors having correctly reasoned through the same 3-valued scope type.
+ * A future SatelliteScope addition could silently desync the two without
+ * either surface's own tests catching it; this is now the one place that rule
+ * is expressed.
+ */
+export function selectActiveEngineeringTruth(
+  engineeringTruths: EngineeringTruthSet,
+  satelliteScope: 'ALL' | EngineeringAnalysisMode,
+  activeConnTab: EngineeringAnalysisMode,
+): EngineeringTruth | undefined {
+  const mode = satelliteScope === 'ALL' ? activeConnTab : satelliteScope;
+  return engineeringTruths[mode];
+}
+
 export type { PredictionConfidenceSummary };
 
 export interface EngineeringMetric {

@@ -170,6 +170,14 @@ export function useSatelliteLoader({
         // §1.3 — Pre-index by ID to avoid O(n²) find() calls per tick
         const prevById = new Map(prevSatellitesRef.current.map((s) => [s.id, s]));
 
+        // PERF-2: track whether ANY item actually changed reference. The
+        // per-item epsilon gate below already returns the same object when a
+        // satellite hasn't moved enough to matter, but the array itself was
+        // always a *new* container from .map() regardless — every consumer
+        // memoized on the bare `satellites` array (not its items) re-fired
+        // every ~1s tick for nothing. Mirrors the item-level stabilization
+        // this hook already does, one level up.
+        let anyItemChanged = false;
         const updatedSatellites = currentSatellites.map((sat) => {
           const workerPos = posMap.get(sat.id);
           if (!workerPos) return sat;
@@ -201,6 +209,7 @@ export function useSatelliteLoader({
           // Nothing changed → return same reference (prevents downstream re-renders)
           if (!positionChanged && !shouldRecalculateCoverage) return sat;
 
+          anyItemChanged = true;
           const updatedSat = positionChanged ? { ...sat, position: newPosition } : sat;
           return shouldRecalculateCoverage
             ? { ...updatedSat, coverages: calculateCoverages(updatedSat) }
@@ -209,7 +218,10 @@ export function useSatelliteLoader({
 
         prevSelectedSatelliteRef.current = currentSelectedId;
         prevSatellitesRef.current = updatedSatellites;
-        return updatedSatellites;
+        // Every item is reference-identical to currentSatellites when nothing
+        // changed, so returning currentSatellites here is not just "close
+        // enough" — it's the exact same content, just without a new container.
+        return anyItemChanged ? updatedSatellites : currentSatellites;
       });
 
       // Schedule next tick after state update is applied
