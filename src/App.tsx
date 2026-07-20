@@ -140,9 +140,10 @@ import {
   scenarioToConnectivityScenarioCard,
 } from './utils/connectivityScenarioCardProjection';
 import {
-  engineeringHeroCameraTargetIsEquivalent,
-  resolveEngineeringHeroCameraTarget,
-} from './utils/engineeringHeroCamera';
+  engineeringCameraFrameIsEquivalent,
+  resolveEngineeringCameraIntent,
+  type EngineeringCameraSceneNodes,
+} from './utils/engineeringCameraDirector';
 import { engineeringVerdictLabel, engineeringVerdictTone } from './utils/engineeringAnalysisViewModel';
 import type { EngineeringConfigureDraft } from './types/engineeringConfigure';
 import {
@@ -4036,35 +4037,44 @@ const App: React.FC = () => {
       ].filter(Boolean).join(' / ')
     : null;
 
-  const engineeringHeroFrameGeometry = useMemo(() => {
-    const groundNodes: Array<Cartesian3 | null> = [groundPointToCartesian(activeAnalysisPoint)];
-    const servingSatellites: Array<Cartesian3 | null> = [];
+  const engineeringCameraScene = useMemo<EngineeringCameraSceneNodes>(() => {
+    const origin = groundPointToCartesian(activeAnalysisPoint);
 
     if (activeConnectivityTab === 'LEO') {
-      servingSatellites.push(
-        satelliteToCartesian(activeLeoSiteToSiteResult?.servingSatelliteA ?? resolvedAutoLEO),
-      );
-      groundNodes.push(snpToCartesian(activeLeoSiteToSiteResult?.selectedSnpA ?? selectedSNP));
+      const satelliteOrigin = satelliteToCartesian(activeLeoSiteToSiteResult?.servingSatelliteA ?? resolvedAutoLEO);
+      const gatewayOrigin = snpToCartesian(activeLeoSiteToSiteResult?.selectedSnpA ?? selectedSNP);
 
       if (leoTopologyMode === 'SITE_TO_SITE') {
-        groundNodes.push(
-          snpToCartesian(activeLeoSiteToSiteResult?.selectedSnpB ?? selectedSNPB),
-          groundPointToCartesian(pointBLeo ?? siteB),
-        );
-        servingSatellites.push(
-          satelliteToCartesian(activeLeoSiteToSiteResult?.servingSatelliteB ?? resolvedAutoLEOB),
-        );
+        return {
+          origin,
+          destination: groundPointToCartesian(pointBLeo ?? siteB),
+          satelliteOrigin,
+          satelliteDestination: satelliteToCartesian(activeLeoSiteToSiteResult?.servingSatelliteB ?? resolvedAutoLEOB),
+          gatewayOrigin,
+          gatewayDestination: snpToCartesian(activeLeoSiteToSiteResult?.selectedSnpB ?? selectedSNPB),
+        };
       }
-    } else {
-      servingSatellites.push(satelliteToCartesian(activeGeoSatellite));
-      groundNodes.push(
-        linkMode === 'MESH' || linkMode === 'POINT_TO_POINT'
-          ? groundPointToCartesian(siteB)
-          : geoGatewayToCartesian(activeCommercialTrafficGeoGateway),
-      );
+
+      return {
+        origin,
+        destination: null,
+        satelliteOrigin,
+        satelliteDestination: satelliteOrigin,
+        gatewayOrigin,
+        gatewayDestination: null,
+      };
     }
 
-    return { groundNodes, servingSatellites };
+    const satelliteOrigin = satelliteToCartesian(activeGeoSatellite);
+    const isSiteToSite = linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
+    return {
+      origin,
+      destination: isSiteToSite ? groundPointToCartesian(siteB) : null,
+      satelliteOrigin,
+      satelliteDestination: satelliteOrigin,
+      gatewayOrigin: isSiteToSite ? null : geoGatewayToCartesian(activeCommercialTrafficGeoGateway),
+      gatewayDestination: null,
+    };
   }, [
     activeAnalysisPoint,
     activeCommercialTrafficGeoGateway,
@@ -4118,50 +4128,54 @@ const App: React.FC = () => {
     const canvas = viewer.scene.canvas;
     const inspectorHost = document.querySelector<HTMLElement>('[data-engineering-inspector-host]');
     const inspectorWidth = isMobile ? 0 : inspectorHost?.getBoundingClientRect().width ?? 0;
-    const target = resolveEngineeringHeroCameraTarget({
+    const intent = resolveEngineeringCameraIntent({
       technology: activeConnectivityTab,
       topology: activeConnectivityTab === 'GEO' ? linkMode : leoTopologyMode,
-      groundNodes: engineeringHeroFrameGeometry.groundNodes,
-      servingSatellites: engineeringHeroFrameGeometry.servingSatellites,
+      direction: activeMeshTab === 'reverse' ? 'B_TO_A' : 'A_TO_B',
+      stageId: focus.stageId,
+      limitingSide: engineeringTruths[activeConnectivityTab]?.rfLimitingSide ?? null,
+      nodes: engineeringCameraScene,
       viewport: {
         width: canvas.clientWidth,
         height: canvas.clientHeight,
         inspectorWidth,
       },
     });
-    if (!target) return;
+    if (!intent) return;
 
-    const focusKey = `hero:${target.signature}`;
+    const focusKey = `stage:${intent.signature}`;
     if (engineeringFocusCameraKeyRef.current === focusKey) return;
     engineeringFocusCameraKeyRef.current = focusKey;
     viewer.camera.cancelFlight();
 
     if (prefersReducedMotion) {
       viewer.camera.setView({
-        destination: target.destination,
-        orientation: { direction: target.direction, up: target.up },
+        destination: intent.frame.destination,
+        orientation: { direction: intent.frame.direction, up: intent.frame.up },
       });
       viewer.scene.requestRender();
       return;
     }
 
-    const materiallyEquivalent = engineeringHeroCameraTargetIsEquivalent({
+    const materiallyEquivalent = engineeringCameraFrameIsEquivalent({
       destination: viewer.camera.positionWC,
       direction: viewer.camera.directionWC,
       up: viewer.camera.upWC,
-    }, target);
+    }, intent.frame);
     if (materiallyEquivalent) return;
 
     viewer.camera.flyTo({
-      destination: target.destination,
-      orientation: { direction: target.direction, up: target.up },
+      destination: intent.frame.destination,
+      orientation: { direction: intent.frame.direction, up: intent.frame.up },
       duration: ENGINEERING_CAMERA_ANIMATION_SECONDS,
       easingFunction: EasingFunction.CUBIC_OUT,
     });
   }, [
     activeConnectivityTab,
+    activeMeshTab,
+    engineeringCameraScene,
     engineeringFocusController.focus,
-    engineeringHeroFrameGeometry,
+    engineeringTruths,
     isMobile,
     leoTopologyMode,
     linkMode,

@@ -61,6 +61,8 @@ export interface EngineeringTruth {
   headline: string;
   summary: string;
   decisiveFactor?: string;
+  /** Which side is RF-limiting, for camera framing only. GEO: 'uplink'|'downlink' (mirrors e2e.limitingSegment). LEO: 'A'|'B' (mirrors the existing sourceIsBottleneck decision). */
+  rfLimitingSide?: 'uplink' | 'downlink' | 'A' | 'B' | null;
   primaryMetrics: EngineeringTruthMetric[];
   diagnosticMetrics: EngineeringTruthMetric[];
   confidence?: PredictionConfidenceSummary;
@@ -447,6 +449,7 @@ export function buildGeoEngineeringAnalysisViewModel(input: BuildGeoEngineeringA
             ? 'Complete the scenario before end-to-end service can be evaluated.'
             : 'No deliverable GEO result is available for the current route.',
     decisiveFactor,
+    rfLimitingSide: e2e?.limitingSegment ?? null,
     primaryMetrics,
     diagnosticMetrics,
     confidence,
@@ -840,6 +843,7 @@ export function buildLeoEngineeringAnalysisViewModel(input: BuildLeoEngineeringA
             ? 'Complete the scenario before end-to-end service can be evaluated.'
             : 'No deliverable LEO result is available for the current path.',
     decisiveFactor,
+    rfLimitingSide: !isS2S || !bottleneckLeg ? null : (sourceIsBottleneck ? sourceSiteId : destinationSiteId) as 'A' | 'B',
     primaryMetrics,
     diagnosticMetrics,
     confidence,

@@ -101,7 +101,9 @@ describe('Engineering Cause Chain investigation', () => {
     expect(container.innerHTML).toContain('Delivery: Beam sharing. 188 Mbps → 8 Mbps. Close Engineering Inspector.');
     expect(container.querySelectorAll('[aria-expanded="true"]')).toHaveLength(1);
     expect(container.querySelector('[data-engineering-stage-evidence]')).toBeNull();
-    expect(container.textContent).toContain('Globe path: selected focus');
+    // Delivery focus returns the globe to its delivered end-to-end styling
+    // (the conclusion of the story), not a single selected leg.
+    expect(container.textContent).toContain('Globe path: delivered route');
     expect(inspectorHost.querySelector('[data-engineering-inspector]')).not.toBeNull();
     expect(inspectorHost.querySelector('[data-engineering-stage-evidence="delivery"]')).not.toBeNull();
     expect(inspectorHost.textContent).toContain('188 Mbps → 8 Mbps');

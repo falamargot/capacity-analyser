@@ -106,7 +106,7 @@ import type { CommercialScenarioViewModel } from './commercial/commercialViewMod
 import type { CommercialRouteModel, CommercialRouteNodeType, CommercialRouteFocusTarget, CommercialRouteSegmentId, RouteCoordinate } from '../types/commercialRouteModel';
 import CommercialSymbolicConnectivityLayer from './cesium-globe/CommercialSymbolicConnectivityLayer';
 import { useEngineeringFocus } from '../contexts/EngineeringFocusContext';
-import { causeStageForRouteSegment, parseEngineeringRouteEntityFocus } from '../utils/engineeringFocusModel';
+import { causeStageForRouteSegment, parseEngineeringRouteEntityFocus, resolveEngineeringStageLayerPresentation } from '../utils/engineeringFocusModel';
 import FlightCoverageRibbon from './cesium-globe/FlightCoverageRibbon';
 import { getGeoGatewaysForRendering, getTrafficTeleportGatewayNameAllowlist } from './cesium-globe/geoGatewayMarkerModel';
 
@@ -1107,6 +1107,14 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         linkMode,
         activeMeshTab,
     } = topologyProps;
+    // Stage-driven layer emphasis: one declarative table (in the focus model)
+    // decides which overlays participate in the selected Cause Chain stage's
+    // story, instead of per-layer stage conditionals scattered below.
+    const engineeringStageLayers = resolveEngineeringStageLayerPresentation(
+        engineeringAnalyticalStage,
+        engineeringFocus.focus.kind === 'locked' ? engineeringFocus.focus.technology : null,
+        linkMode ?? '',
+    );
     const {
         airTrafficState,
         selectedAircraft,
@@ -2757,7 +2765,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         previously and caused a silent no-remount bug when candidates
                         arrived after clearing. */}
                     {(!commercialMode || commercialGeoCoverageVisible) && (
-                        (commercialMode || !engineeringAnalyticalStage || engineeringAnalyticalStage === 'rf') &&
+                        (commercialMode || engineeringStageLayers.geoCoverage) &&
                         <CoverageLayer
                             satellites={satellites}
                             selection={selection}
@@ -2772,7 +2780,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         />
                     )}
 
-                    {!commercialMode && !engineeringAnalyticalStage && <MoonLayer enableLighting={enableLighting} selected={selectedMoon} />}
+                    {!commercialMode && engineeringStageLayers.showMoon && <MoonLayer enableLighting={enableLighting} selected={selectedMoon} />}
 
                     {/* OneWeb Comb Layer - Engineering shows operational beam context.
                         Commercial keeps the LEO service footprint visible across
@@ -2796,11 +2804,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                             leoServiceViewModel={leoServiceViewModel}
                             commercialTone={commercialMode && (!commercialSatelliteFocused || commercialDominantTechnology !== 'LEO') ? 'secondary' : 'primary'}
                             commercialEnvelopeOnly={commercialMode}
-                            commercialOpacityScale={commercialMode && commercialSatelliteFocused && commercialDominantTechnology === 'LEO'
-                                ? 0.32
-                                : engineeringAnalyticalStage && engineeringAnalyticalStage !== 'rf'
-                                    ? engineeringAnalyticalStage === 'path' ? 0.06 : 0.1
-                                    : 1}
+                            commercialOpacityScale={commercialMode
+                                ? (commercialSatelliteFocused && commercialDominantTechnology === 'LEO' ? 0.32 : 1)
+                                : engineeringStageLayers.leoBeamOpacityScale}
                             showCommercialProjectionPanels={!commercialMode || (commercialSatelliteFocused && commercialDominantTechnology === 'LEO')}
                         />
                     ))}
