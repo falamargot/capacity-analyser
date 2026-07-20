@@ -113,7 +113,7 @@ exports[`M0 golden scenario matrix > GEO > 'geo-budget-unavailable' 1`] = `
       },
       {
         "detail": undefined,
-        "evidence": undefined,
+        "evidence": [],
         "id": "delivery",
         "label": "Delivery",
         "state": "not-evaluated",
@@ -255,7 +255,7 @@ exports[`M0 golden scenario matrix > GEO > 'geo-incomplete-site-b-required' 1`] 
       },
       {
         "detail": undefined,
-        "evidence": undefined,
+        "evidence": [],
         "id": "delivery",
         "label": "Delivery",
         "state": "not-evaluated",
@@ -464,7 +464,23 @@ exports[`M0 golden scenario matrix > GEO > 'geo-mesh-forward' 1`] = `
       },
       {
         "detail": undefined,
-        "evidence": undefined,
+        "evidence": [
+          {
+            "label": "Protocol efficiency",
+            "state": "passed",
+            "value": "92%",
+          },
+          {
+            "label": "Contention ratio",
+            "state": "warning",
+            "value": "4.2x",
+          },
+          {
+            "label": "Limiting factor",
+            "state": "warning",
+            "value": "Shared capacity",
+          },
+        ],
         "id": "delivery",
         "label": "Delivery",
         "state": "warning",
@@ -693,7 +709,23 @@ exports[`M0 golden scenario matrix > GEO > 'geo-mesh-reverse' 1`] = `
       },
       {
         "detail": undefined,
-        "evidence": undefined,
+        "evidence": [
+          {
+            "label": "Protocol efficiency",
+            "state": "passed",
+            "value": "92%",
+          },
+          {
+            "label": "Contention ratio",
+            "state": "warning",
+            "value": "4.2x",
+          },
+          {
+            "label": "Limiting factor",
+            "state": "warning",
+            "value": "Shared capacity",
+          },
+        ],
         "id": "delivery",
         "label": "Delivery",
         "state": "warning",
@@ -855,7 +887,7 @@ exports[`M0 golden scenario matrix > GEO > 'geo-path-unavailable-no-gateway' 1`]
       },
       {
         "detail": undefined,
-        "evidence": undefined,
+        "evidence": [],
         "id": "delivery",
         "label": "Delivery",
         "state": "not-evaluated",
@@ -1059,7 +1091,23 @@ exports[`M0 golden scenario matrix > GEO > 'geo-point-to-point' 1`] = `
       },
       {
         "detail": undefined,
-        "evidence": undefined,
+        "evidence": [
+          {
+            "label": "Protocol efficiency",
+            "state": "passed",
+            "value": "92%",
+          },
+          {
+            "label": "Contention ratio",
+            "state": "warning",
+            "value": "4.2x",
+          },
+          {
+            "label": "Limiting factor",
+            "state": "warning",
+            "value": "Shared capacity",
+          },
+        ],
         "id": "delivery",
         "label": "Delivery",
         "state": "warning",
@@ -1283,7 +1331,7 @@ exports[`M0 golden scenario matrix > GEO > 'geo-star-forward-blocked-negative-ma
       },
       {
         "detail": undefined,
-        "evidence": undefined,
+        "evidence": [],
         "id": "delivery",
         "label": "Delivery",
         "state": "not-evaluated",
@@ -1523,7 +1571,23 @@ exports[`M0 golden scenario matrix > GEO > 'geo-star-forward-constrained' 1`] = 
       },
       {
         "detail": undefined,
-        "evidence": undefined,
+        "evidence": [
+          {
+            "label": "Protocol efficiency",
+            "state": "passed",
+            "value": "92%",
+          },
+          {
+            "label": "Contention ratio",
+            "state": "warning",
+            "value": "4.2x",
+          },
+          {
+            "label": "Limiting factor",
+            "state": "warning",
+            "value": "Shared capacity",
+          },
+        ],
         "id": "delivery",
         "label": "Delivery",
         "state": "warning",
@@ -1770,7 +1834,23 @@ exports[`M0 golden scenario matrix > GEO > 'geo-star-return-degraded-low-margin'
       },
       {
         "detail": undefined,
-        "evidence": undefined,
+        "evidence": [
+          {
+            "label": "Protocol efficiency",
+            "state": "passed",
+            "value": "92%",
+          },
+          {
+            "label": "Contention ratio",
+            "state": "warning",
+            "value": "4.2x",
+          },
+          {
+            "label": "Limiting factor",
+            "state": "warning",
+            "value": "Shared capacity",
+          },
+        ],
         "id": "delivery",
         "label": "Delivery",
         "state": "warning",
@@ -1960,7 +2040,7 @@ exports[`M0 golden scenario matrix > LEO > 'leo-incomplete-site-b-required' 1`] 
       },
       {
         "detail": undefined,
-        "evidence": undefined,
+        "evidence": [],
         "id": "delivery",
         "label": "Delivery",
         "state": "not-evaluated",
@@ -2120,7 +2200,7 @@ exports[`M0 golden scenario matrix > LEO > 'leo-path-unavailable' 1`] = `
       },
       {
         "detail": undefined,
-        "evidence": undefined,
+        "evidence": [],
         "id": "delivery",
         "label": "Delivery",
         "state": "not-evaluated",
@@ -2340,7 +2420,23 @@ exports[`M0 golden scenario matrix > LEO > 'leo-single-available' 1`] = `
       },
       {
         "detail": undefined,
-        "evidence": undefined,
+        "evidence": [
+          {
+            "label": "Beam sharing",
+            "state": "warning",
+            "value": "36.0 / 187.0 Mbps",
+          },
+          {
+            "label": "Feeder margin (Ka)",
+            "state": "passed",
+            "value": "11.5 dB",
+          },
+          {
+            "label": "Handover factor",
+            "state": "passed",
+            "value": "1.00",
+          },
+        ],
         "id": "delivery",
         "label": "Delivery",
         "state": "passed",
@@ -2563,7 +2659,23 @@ exports[`M0 golden scenario matrix > LEO > 'leo-single-constrained-beam-sharing'
       },
       {
         "detail": undefined,
-        "evidence": undefined,
+        "evidence": [
+          {
+            "label": "Beam sharing",
+            "state": "warning",
+            "value": "36.0 / 187.0 Mbps",
+          },
+          {
+            "label": "Feeder margin (Ka)",
+            "state": "passed",
+            "value": "11.5 dB",
+          },
+          {
+            "label": "Handover factor",
+            "state": "passed",
+            "value": "1.00",
+          },
+        ],
         "id": "delivery",
         "label": "Delivery",
         "state": "warning",
@@ -2774,7 +2886,7 @@ exports[`M0 golden scenario matrix > LEO > 'leo-single-rf-blocked' 1`] = `
       },
       {
         "detail": undefined,
-        "evidence": undefined,
+        "evidence": [],
         "id": "delivery",
         "label": "Delivery",
         "state": "not-evaluated",
@@ -2989,7 +3101,7 @@ exports[`M0 golden scenario matrix > LEO > 'leo-single-service-blocked-regulator
       },
       {
         "detail": undefined,
-        "evidence": undefined,
+        "evidence": [],
         "id": "delivery",
         "label": "Delivery",
         "state": "not-evaluated",
@@ -3179,7 +3291,18 @@ exports[`M0 golden scenario matrix > LEO > 'leo-site-to-site-a-to-b' 1`] = `
       },
       {
         "detail": undefined,
-        "evidence": undefined,
+        "evidence": [
+          {
+            "label": "Feeder margin (Ka)",
+            "state": "passed",
+            "value": "11.5 dB",
+          },
+          {
+            "label": "Handover factor",
+            "state": "passed",
+            "value": "1.00",
+          },
+        ],
         "id": "delivery",
         "label": "Delivery",
         "state": "passed",
@@ -3374,7 +3497,18 @@ exports[`M0 golden scenario matrix > LEO > 'leo-site-to-site-b-to-a' 1`] = `
       },
       {
         "detail": undefined,
-        "evidence": undefined,
+        "evidence": [
+          {
+            "label": "Feeder margin (Ka)",
+            "state": "passed",
+            "value": "11.5 dB",
+          },
+          {
+            "label": "Handover factor",
+            "state": "passed",
+            "value": "1.00",
+          },
+        ],
         "id": "delivery",
         "label": "Delivery",
         "state": "passed",

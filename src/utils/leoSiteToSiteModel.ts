@@ -119,6 +119,10 @@ export interface LeoSiteToSiteResult {
   regulatoryResultA: RegulatoryResult | null;
   regulatoryResultB: RegulatoryResult | null;
 
+  /** Per-site beam load estimate — powers the Service Gates "Capacity" evidence. */
+  beamLoadA: BeamLoadResult | null;
+  beamLoadB: BeamLoadResult | null;
+
   failureReason: LeoSiteToSiteFailureReason | null;
   serviceStatus: ServiceStatus;
 
@@ -517,6 +521,8 @@ export function computeLeoSiteToSiteResult(args: ComputeLeoSiteToSiteArgs): LeoS
     selectedSnpB,
     regulatoryResultA,
     regulatoryResultB,
+    beamLoadA,
+    beamLoadB,
     failureReason,
     serviceStatus,
     logicalPop,

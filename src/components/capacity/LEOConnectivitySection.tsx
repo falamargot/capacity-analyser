@@ -565,6 +565,9 @@ const TerminalAssumptionsSection = ({ d }: { d: LeoRFDebugInfo }) => {
           <div className="mt-0.5">
             Source: {terminal.sourceLabel}{terminal.sourceUrl ? ` · ${terminal.sourceUrl}` : ''}
           </div>
+          <div className="mt-0.5 italic">
+            Polarization: not modeled — the RF chain does not carry a per-beam polarization parameter.
+          </div>
           {terminalNotes && <div className="mt-0.5 truncate">{terminalNotes}</div>}
         </div>
       </div>

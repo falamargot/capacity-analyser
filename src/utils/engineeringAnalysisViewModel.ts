@@ -448,6 +448,28 @@ export function buildGeoEngineeringAnalysisViewModel(input: BuildGeoEngineeringA
         metric('RF margin', marginDb, fmtDb(marginDb), 'diagnostic', `${limitingSegment} is limiting`),
       ]
     : [];
+  // Delivery cause-stage evidence — previously never populated by this
+  // builder, leaving the Inspector's "Delivered service evidence" primary
+  // block always empty.
+  const deliveryEvidence: EngineeringEvidenceItem[] = canDeliver && activeNetworkLayer
+    ? [
+        {
+          label: 'Protocol efficiency',
+          value: `${Math.round(activeNetworkLayer.protocolEfficiency * 100)}%`,
+          state: activeNetworkLayer.protocolEfficiency >= 0.9 ? 'passed' : 'warning',
+        },
+        {
+          label: 'Contention ratio',
+          value: `${activeNetworkLayer.contentionRatio.toFixed(1)}x`,
+          state: activeNetworkLayer.contentionRatio > 1 ? 'warning' : 'passed',
+        },
+        {
+          label: 'Limiting factor',
+          value: deliveryFactor ?? 'None',
+          state: deliveryFactor ? 'warning' : 'passed',
+        },
+      ]
+    : [];
 
   const truth: EngineeringTruth = {
     technology: 'GEO',
@@ -489,7 +511,7 @@ export function buildGeoEngineeringAnalysisViewModel(input: BuildGeoEngineeringA
         input.serviceReason,
         input.serviceEvidence,
       ),
-      causeStage('delivery', 'Delivery', !scenarioComplete || !pathResolved || !budgetAvailable || status === 'blocked' || serviceBlocked ? 'not-evaluated' : deliveryConstrained || serviceDegraded ? 'warning' : evidenceUncertain ? 'pending' : 'passed', !scenarioComplete || !pathResolved || !budgetAvailable || status === 'blocked' || serviceBlocked ? 'Not available' : deliveryConstrained ? `${deliveryFactor} limiting` : evidenceUncertain ? 'Evidence uncertain' : `${fmtMbps(displayedThroughput)} delivered`),
+      causeStage('delivery', 'Delivery', !scenarioComplete || !pathResolved || !budgetAvailable || status === 'blocked' || serviceBlocked ? 'not-evaluated' : deliveryConstrained || serviceDegraded ? 'warning' : evidenceUncertain ? 'pending' : 'passed', !scenarioComplete || !pathResolved || !budgetAvailable || status === 'blocked' || serviceBlocked ? 'Not available' : deliveryConstrained ? `${deliveryFactor} limiting` : evidenceUncertain ? 'Evidence uncertain' : `${fmtMbps(displayedThroughput)} delivered`, undefined, deliveryEvidence),
     ],
     nextAction: truthState === 'incomplete'
       ? 'Complete the missing endpoint or scenario input.'
@@ -848,6 +870,35 @@ export function buildLeoEngineeringAnalysisViewModel(input: BuildLeoEngineeringA
         ),
       ]
     : [];
+  // Delivery cause-stage evidence — previously never populated by this
+  // builder, leaving the Inspector's "Delivered service evidence" primary
+  // block always empty. Uses the bottleneck leg for S2S (the leg that set the
+  // selected direction's throughput) and the downlink leg for single-site.
+  const deliveryNetworkForEvidence = isS2S ? bottleneckLeg?.network : input.debugInfo?.downlink.network;
+  const beamSharingDeliveryEvidence: EngineeringEvidenceItem | null = !isS2S && deliveryNetworkForEvidence
+    ? {
+        label: 'Beam sharing',
+        value: `${deliveryNetworkForEvidence.beamSharingMbps.toFixed(1)} / ${deliveryNetworkForEvidence.peakRfMbps.toFixed(1)} Mbps`,
+        state: deliveryNetworkForEvidence.beamSharingMbps < deliveryNetworkForEvidence.peakRfMbps * 0.8 ? 'warning' : 'passed',
+      }
+    : null;
+  const deliveryEvidence: EngineeringEvidenceItem[] = canDeliver && deliveryNetworkForEvidence
+    ? [
+        ...(beamSharingDeliveryEvidence ? [beamSharingDeliveryEvidence] : []),
+        {
+          label: 'Feeder margin (Ka)',
+          value: deliveryNetworkForEvidence.feederMarginDb != null
+            ? `${deliveryNetworkForEvidence.feederMarginDb.toFixed(1)} dB${deliveryNetworkForEvidence.feederLimited ? ' · limited' : ''}`
+            : '—',
+          state: deliveryNetworkForEvidence.feederLimited ? 'warning' : 'passed',
+        },
+        {
+          label: 'Handover factor',
+          value: deliveryNetworkForEvidence.handoverFactor.toFixed(2),
+          state: deliveryNetworkForEvidence.handoverFactor < 0.95 ? 'warning' : 'passed',
+        },
+      ]
+    : [];
 
   const truth: EngineeringTruth = {
     technology: 'LEO',
@@ -878,7 +929,7 @@ export function buildLeoEngineeringAnalysisViewModel(input: BuildLeoEngineeringA
       causeStage('path', 'Path', !scenarioComplete ? 'not-evaluated' : pathResolved ? 'passed' : 'blocked', !scenarioComplete ? 'Not evaluated' : pathResolved ? 'Satellite and ground path resolved' : 'Unavailable', input.pathReason),
       causeStage('rf', 'Link Budget', !scenarioComplete || !pathResolved ? 'not-evaluated' : !budgetAvailable || inferredRfStatus === 'unavailable' ? 'pending' : rfBlocked ? 'blocked' : rfMarginal ? 'warning' : 'passed', !scenarioComplete || !pathResolved ? 'Not evaluated' : !budgetAvailable || inferredRfStatus === 'unavailable' ? 'Budget unavailable' : rfBlocked ? `${fmtDb(rfMarginDbForSummary)} · ${rfBlockReason} does not close` : rfMarginal ? `${fmtDb(rfMarginDbForSummary)} · low margin` : `${fmtDb(rfMarginDbForSummary)} · closes`),
       causeStage('service', 'Service gates', !scenarioComplete || !pathResolved || !budgetAvailable || rfBlocked ? 'not-evaluated' : serviceBlocked ? 'blocked' : serviceDegraded ? 'warning' : 'passed', !scenarioComplete || !pathResolved || !budgetAvailable || rfBlocked ? 'Not evaluated' : serviceBlocked ? `${serviceReason} blocks service` : serviceDegraded ? `${serviceReason} degrades service` : 'Allowed', input.serviceReason, input.serviceEvidence),
-      causeStage('delivery', 'Delivery', !scenarioComplete || !pathResolved || !budgetAvailable || rfBlocked || serviceBlocked ? 'not-evaluated' : deliveryUnavailable ? 'blocked' : deliveryConstrained || serviceDegraded ? 'warning' : evidenceUncertain ? 'pending' : 'passed', !scenarioComplete || !pathResolved || !budgetAvailable || rfBlocked || serviceBlocked ? 'Not available' : deliveryUnavailable ? 'No delivered throughput' : deliveryConstrained ? `${decisiveFactor ?? 'Constraint'} limiting` : evidenceUncertain ? 'Evidence uncertain' : `${fmtMbps(deliveredThroughput)} delivered`),
+      causeStage('delivery', 'Delivery', !scenarioComplete || !pathResolved || !budgetAvailable || rfBlocked || serviceBlocked ? 'not-evaluated' : deliveryUnavailable ? 'blocked' : deliveryConstrained || serviceDegraded ? 'warning' : evidenceUncertain ? 'pending' : 'passed', !scenarioComplete || !pathResolved || !budgetAvailable || rfBlocked || serviceBlocked ? 'Not available' : deliveryUnavailable ? 'No delivered throughput' : deliveryConstrained ? `${decisiveFactor ?? 'Constraint'} limiting` : evidenceUncertain ? 'Evidence uncertain' : `${fmtMbps(deliveredThroughput)} delivered`, undefined, deliveryEvidence),
     ],
     nextAction: truthState === 'incomplete'
       ? 'Place the missing endpoint or complete the scenario input.'
