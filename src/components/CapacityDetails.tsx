@@ -283,7 +283,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
 
   return (
     <div className={['h-full bg-white dark:bg-slate-900 rounded-lg shadow-lg overflow-hidden flex flex-col transition-colors duration-300', selectionRevealActive ? 'endpoint-selection-panel-reveal' : ''].join(' ')}>
-      <div className={`flex h-full flex-col ${satelliteScope === 'ALL' ? (compactDesktop ? 'px-1 py-3.5' : 'px-1.5 py-4') : (compactDesktop ? 'p-3.5' : 'p-4')}`}>
+      <div className={`flex h-full flex-col ${satelliteScope === 'ALL' ? (compactDesktop ? 'px-1 py-2.5' : 'px-1.5 py-3') : (compactDesktop ? 'p-2.5' : 'p-3')}`}>
         {/* Section 1: Header */}
         {!externalHeader && (
           <AnalysisHeader
@@ -300,7 +300,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
         <div className="flex-1 min-h-0 overflow-y-auto">
           {/* Section 2: Constellation-based Connectivity */}
           {(satelliteScope === 'LEO' || satelliteScope === 'GEO' || satelliteScope === 'ALL') && (
-            <div className="mb-6">
+            <div className="mb-4">
               <div className={satelliteScope === 'ALL'
                 ? `relative overflow-hidden rounded-xl border border-transparent bg-transparent transition-colors duration-300 after:pointer-events-none after:absolute after:inset-y-2 after:left-0 after:z-10 after:w-[2px] after:rounded-full after:content-[''] ${activeConnTab === 'LEO' ? 'after:bg-pink-500/45 dark:after:bg-pink-400/40' : 'after:bg-blue-500/45 dark:after:bg-blue-400/40'}`
                 : undefined}
@@ -488,7 +488,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
             && activeEngineeringTruth.state !== 'incomplete'
             && activeEngineeringTruth.state !== 'path-unavailable'
             && activeEngineeringTruth.state !== 'budget-unavailable' && (
-            <div className="mb-4">
+            <div className="mb-3">
               <ExportButton {...exportButtonPayload} />
             </div>
           )}

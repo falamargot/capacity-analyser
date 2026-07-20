@@ -5,7 +5,7 @@ interface LayerHeadingProps {
 
 /** Section divider used between GEO/LEO connectivity-section layers (Access, Space Segment, etc). */
 const LayerHeading = ({ title, detail }: LayerHeadingProps) => (
-  <div className="border-t border-slate-200 pt-3 first:border-t-0 first:pt-0 dark:border-slate-800">
+  <div className="border-t border-slate-200/60 pt-2.5 first:border-t-0 first:pt-0 dark:border-slate-800/60">
     <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
       {title}
     </div>

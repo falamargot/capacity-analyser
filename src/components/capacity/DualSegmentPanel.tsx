@@ -1617,7 +1617,7 @@ const DualSegmentPanel = memo<DualSegmentPanelProps>(({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {isMesh ? (
         <>
           <TopologyContextCard linkMode={linkMode} />

@@ -70,9 +70,9 @@ const CollapsibleSection = memo<CollapsibleSectionProps>(({
   }, [collapsible, storageKey]);
 
   return (
-    <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+    <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg border border-gray-200/70 dark:border-slate-700/70 overflow-hidden">
       <div
-        className={`relative flex w-full items-center justify-between gap-3 px-4 py-3 text-left ${collapsible ? 'hover:bg-gray-100/50 dark:hover:bg-slate-700/30 transition-colors' : ''}`}
+        className={`relative flex w-full items-center justify-between gap-3 px-3 py-2 text-left ${collapsible ? 'hover:bg-gray-100/50 dark:hover:bg-slate-700/30 transition-colors' : ''}`}
       >
         {collapsible && (
           <button
@@ -89,7 +89,7 @@ const CollapsibleSection = memo<CollapsibleSectionProps>(({
             {title}
           </div>
           {subtitle && (
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{subtitle}</p>
+            <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{subtitle}</p>
           )}
         </div>
         {collapsible && (
@@ -101,7 +101,7 @@ const CollapsibleSection = memo<CollapsibleSectionProps>(({
         )}
       </div>
       {isExpanded && (
-        <div id={contentId} className="border-t border-gray-200 dark:border-slate-700 px-4 py-4">
+        <div id={contentId} className="border-t border-gray-200/70 dark:border-slate-700/70 px-3 py-3">
           {children}
         </div>
       )}

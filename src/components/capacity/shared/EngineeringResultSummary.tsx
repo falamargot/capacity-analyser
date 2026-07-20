@@ -95,7 +95,7 @@ const provenanceLabel: Record<EngineeringTruthMetric['provenance'], string> = {
 
 
 const MetricTile = ({ metric, diagnostic = false }: { metric: EngineeringTruthMetric; diagnostic?: boolean }) => (
-  <div className={`min-w-0 rounded-lg border px-3 py-2.5 [@media(max-height:700px)]:py-2 ${
+  <div className={`min-w-0 rounded-lg border px-2.5 py-2 [@media(max-height:700px)]:py-1.5 ${
     diagnostic
       ? 'border-amber-200 bg-amber-50/55 dark:border-amber-800/70 dark:bg-amber-950/20'
       : 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-950/55'
@@ -105,15 +105,15 @@ const MetricTile = ({ metric, diagnostic = false }: { metric: EngineeringTruthMe
         {metric.label}
       </span>
       {diagnostic && (
-        <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
+        <span className="shrink-0 rounded-full bg-amber-100/70 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide text-amber-700/90 dark:bg-amber-500/10 dark:text-amber-300/90">
           {provenanceLabel[metric.provenance]}
         </span>
       )}
     </div>
-    <div className="mt-1.5 text-lg font-black leading-tight tabular-nums text-slate-950 dark:text-white">
+    <div className={`mt-1 font-black leading-tight tabular-nums text-slate-950 dark:text-white ${diagnostic ? 'text-base' : 'text-xl'}`}>
       {metric.display}
     </div>
-    {metric.detail && <p className="mt-1 text-[10px] leading-4 text-slate-500 dark:text-slate-400" title={metric.detail}>{metric.detail}</p>}
+    {metric.detail && <p className="mt-0.5 text-[10px] leading-4 text-slate-500 dark:text-slate-400" title={metric.detail}>{metric.detail}</p>}
   </div>
 );
 
@@ -121,27 +121,27 @@ const stageWorkspaceCopy: Record<EngineeringCauseStageId, { eyebrow: string; tit
   scenario: {
     eyebrow: 'Scenario definition',
     title: 'Analysis frame',
-    explanation: 'These selected assets and assumptions establish the engineering context used by every downstream stage.',
+    explanation: 'Assets and assumptions used by every downstream stage.',
   },
   path: {
     eyebrow: 'Resolved path',
     title: 'Route resolution',
-    explanation: 'The resolved route is shown first; hop geometry and lower-level path proof remain available directly below it.',
+    explanation: 'Resolved route first; hop geometry and path proof below.',
   },
   rf: {
     eyebrow: 'RF verdict',
     title: 'Closure decision',
-    explanation: 'Closure, the limiting segment and decisive margin take priority over the supporting link-budget calculations.',
+    explanation: 'Closure, limiting segment and decisive margin lead; link-budget detail follows.',
   },
   service: {
     eyebrow: 'Service decision',
     title: 'Gate evaluation',
-    explanation: 'The service verdict and the rule or capability that determines it are presented before secondary evidence.',
+    explanation: 'Verdict and determining rule lead; supporting evidence follows.',
   },
   delivery: {
     eyebrow: 'Delivered outcome',
     title: 'Service transformation',
-    explanation: 'The delivered result and limiting transformation lead; latency composition and supporting proof follow on demand.',
+    explanation: 'Delivered result and limiting transformation lead; latency detail follows.',
   },
 };
 
@@ -153,18 +153,18 @@ const StageConclusion = ({ stage }: { stage: EngineeringCauseStage }) => {
   return (
     <section className="engineering-stage-conclusion" aria-labelledby={`stage-conclusion-${stage.id}`}>
       <div className="engineering-stage-conclusion__status">
-        <span className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${styles.iconClass}`}>
-          <StatusIcon className="h-4 w-4" aria-hidden="true" />
+        <span className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border ${styles.iconClass}`}>
+          <StatusIcon className="h-3.5 w-3.5" aria-hidden="true" />
         </span>
         <div className="min-w-0">
-          <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">{copy.eyebrow}</div>
+          <div className="text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500">{copy.eyebrow}</div>
           <h3 id={`stage-conclusion-${stage.id}`} className={`mt-1 break-words text-[22px] font-black leading-7 tracking-tight ${styles.textClass}`}>
             {stage.summary}
           </h3>
         </div>
       </div>
-      {stage.detail && <p className="mt-3 text-[13px] font-semibold leading-5 text-slate-700 dark:text-slate-200">{stage.detail}</p>}
-      <p className="mt-2 max-w-[52rem] text-[11px] leading-5 text-slate-500 dark:text-slate-400">{copy.explanation}</p>
+      {stage.detail && <p className="mt-2 text-[13px] font-semibold leading-5 text-slate-700 dark:text-slate-200">{stage.detail}</p>}
+      <p className="mt-1.5 max-w-[52rem] text-[11px] leading-5 text-slate-500 dark:text-slate-400">{copy.explanation}</p>
     </section>
   );
 };
@@ -184,7 +184,7 @@ const StageEvidenceContent = ({
   const renderEvidence = (items: EngineeringCauseStage['evidence'], secondary = false) => items?.map((item) => (
     <div
       key={`${item.label}:${item.value}`}
-      className="grid min-w-0 gap-x-5 gap-y-1 border-t border-slate-200/75 py-3 first:border-t-0 sm:grid-cols-[minmax(9rem,0.62fr)_minmax(0,1.38fr)] sm:items-start dark:border-slate-800"
+      className="grid min-w-0 gap-x-5 gap-y-1 border-t border-slate-200/55 py-2 first:border-t-0 sm:grid-cols-[minmax(9rem,0.62fr)_minmax(0,1.38fr)] sm:items-start dark:border-slate-800/55"
     >
       <dt className="pt-0.5 text-[9px] font-bold uppercase tracking-[0.11em] text-slate-500 dark:text-slate-400">{item.label}</dt>
       <dd
@@ -206,20 +206,17 @@ const StageEvidenceContent = ({
   );
 
   const SecondaryEvidence = () => secondaryEvidence.length > 0 ? (
-    <details className="group mt-6 border-y border-slate-200/80 dark:border-slate-700/80" data-engineering-secondary-investigation="">
-      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 py-3 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 outline-none focus-visible:ring-2 focus-visible:ring-sky-400 dark:text-slate-400 [&::-webkit-details-marker]:hidden">
-        <span>Supporting engineering evidence</span>
-        <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" aria-hidden="true" />
-      </summary>
-      <div className="border-t border-slate-200/80 dark:border-slate-700/80">
-        <EvidenceList items={secondaryEvidence} secondary />
+    <div className="mt-4 border-t border-slate-200/55 pt-3 dark:border-slate-700/55" data-engineering-secondary-investigation="">
+      <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400">
+        Supporting engineering evidence
       </div>
-    </details>
+      <EvidenceList items={secondaryEvidence} secondary />
+    </div>
   ) : null;
 
   const PrimaryEvidence = ({ title }: { title: string }) => primaryEvidence.length > 0 ? (
     <section className="engineering-stage-primary-evidence" aria-labelledby={`stage-evidence-${stage.id}`}>
-      <h3 id={`stage-evidence-${stage.id}`} className="mb-1 text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+      <h3 id={`stage-evidence-${stage.id}`} className="mb-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500">
         {title}
       </h3>
       <EvidenceList items={primaryEvidence} />
@@ -246,9 +243,9 @@ const StageEvidenceContent = ({
         <div className="engineering-stage-composition engineering-stage-composition--path">
           {summaryEvidence && <div data-engineering-workspace-summary="">{summaryEvidence}</div>}
           <PrimaryEvidence title="Path validity" />
-          <div className="border-t border-slate-200/80 py-4 dark:border-slate-700/80">
+          <div className="border-t border-slate-200/55 py-3 dark:border-slate-700/55">
             {secondaryEvidence.length > 0 && <EvidenceList items={secondaryEvidence} secondary />}
-            {evidence && <div className={secondaryEvidence.length > 0 ? 'mt-4' : ''} data-engineering-primary-investigation="">{evidence}</div>}
+            {evidence && <div className={secondaryEvidence.length > 0 ? 'mt-3' : ''} data-engineering-primary-investigation="">{evidence}</div>}
           </div>
         </div>
       )}
@@ -321,7 +318,7 @@ const CauseStage = ({
     .filter(Boolean)
     .join('. ');
   return (
-    <li className={`relative min-w-0 ${compact ? '' : 'pb-2.5 last:pb-0 [@media(max-height:700px)]:pb-2'}`}>
+    <li className={`relative min-w-0 ${compact ? '' : 'pb-2 last:pb-0 [@media(max-height:700px)]:pb-1.5'}`}>
       {!last && <span className={`absolute bottom-0 left-[0.73rem] top-6 w-px ${styles.lineClass}`} aria-hidden="true" />}
       <button
         id={buttonId}
@@ -402,20 +399,17 @@ const EngineeringInspector = ({
           <div className="h-1.5 w-14 rounded-full bg-slate-300 dark:bg-slate-600" />
         </div>
       )}
-      <header className={`engineering-inspector-header flex shrink-0 items-start justify-between gap-4 border-b border-slate-200/80 bg-white/90 dark:border-slate-700/80 dark:bg-slate-900 ${variant === 'desktop' ? 'px-6 py-5' : 'px-4 pb-3 pt-2.5'}`}>
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span className={`h-2 w-2 shrink-0 rounded-full ${technology === 'LEO' ? 'bg-pink-500' : 'bg-blue-500'}`} aria-hidden="true" />
-            <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">Engineering Inspector</span>
-          </div>
-          <div className="mt-2 flex items-center gap-2.5">
-            <span className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border ${styles.iconClass}`}>
-              <StatusIcon className="h-3.5 w-3.5" aria-hidden="true" />
-            </span>
-            <div className="min-w-0">
-              <div className="text-[9px] font-bold uppercase tracking-[0.13em] text-slate-400 dark:text-slate-500">{technology} · Cause Chain</div>
-              <h2 className={`${variant === 'desktop' ? 'text-[19px] leading-6' : 'text-[17px] leading-5'} truncate font-bold text-slate-950 dark:text-white`}>{stage.label}</h2>
+      <header className={`engineering-inspector-header flex shrink-0 items-center justify-between gap-4 bg-white/90 dark:bg-slate-900 ${variant === 'desktop' ? 'px-5 py-3' : 'px-4 pb-2 pt-1.5'}`}>
+        <div className="flex min-w-0 items-center gap-2">
+          <span className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${styles.iconClass}`}>
+            <StatusIcon className="h-3 w-3" aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
+              <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${technology === 'LEO' ? 'bg-pink-500' : 'bg-blue-500'}`} aria-hidden="true" />
+              {technology} · Cause Chain
             </div>
+            <h2 className={`${variant === 'desktop' ? 'text-[20px] leading-6' : 'text-[18px] leading-5'} truncate font-extrabold tracking-tight text-slate-950 dark:text-white`}>{stage.label}</h2>
           </div>
         </div>
         <button
@@ -424,7 +418,7 @@ const EngineeringInspector = ({
           className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm outline-none transition-colors hover:bg-slate-100 hover:text-slate-800 focus-visible:ring-2 focus-visible:ring-sky-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
           aria-label="Close Engineering Inspector"
         >
-          <X className="h-4 w-4" aria-hidden="true" />
+          <X className="h-3.5 w-3.5" aria-hidden="true" />
         </button>
       </header>
 
@@ -453,10 +447,10 @@ const EngineeringInspector = ({
       )}
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-        <div key={stage.id} className={`engineering-inspector-content ${variant === 'desktop' ? 'p-6' : 'px-4 pb-6 pt-4 sm:px-5'}`} aria-live="polite">
+        <div key={stage.id} className={`engineering-inspector-content ${variant === 'desktop' ? 'p-5' : 'px-4 pb-5 pt-3 sm:px-5'}`} aria-live="polite">
           <StageEvidenceContent stage={stage} evidence={evidence} summaryEvidence={summaryEvidence} />
           {nextAction && (
-            <div className="mt-7 border-t border-slate-200 pt-4 text-[11px] leading-5 text-slate-600 dark:border-slate-800 dark:text-slate-300">
+            <div className="mt-5 border-t border-slate-200/60 pt-3 text-[11px] leading-5 text-slate-600 dark:border-slate-800/60 dark:text-slate-300">
               <strong className="font-semibold text-slate-800 dark:text-slate-100">Next investigation:</strong> {nextAction}
             </div>
           )}
@@ -580,7 +574,7 @@ const EngineeringResultSummary = ({ technology, truth, stageEvidence, stageSumma
 
   return (
     <section
-      className={`engineering-lens relative mb-4 rounded-xl border bg-white shadow-sm dark:bg-slate-950 [@media(max-height:700px)]:mb-2 ${tone.border}`}
+      className={`engineering-lens relative mb-3 rounded-xl border bg-white shadow-sm dark:bg-slate-950 [@media(max-height:700px)]:mb-2 ${tone.border}`}
       aria-label={`${technology} engineering result`}
       data-engineering-lens-posture={expandedStageId ? 'reasoning' : 'summary'}
       onKeyDown={(event) => {
@@ -590,7 +584,7 @@ const EngineeringResultSummary = ({ technology, truth, stageEvidence, stageSumma
         }
       }}
     >
-      <div className={`sticky top-0 z-20 rounded-t-xl border-b border-slate-200/80 px-3.5 py-3 shadow-[0_8px_18px_-18px_rgba(15,23,42,0.8)] backdrop-blur-md dark:border-slate-800 [@media(max-height:700px)]:py-2.5 ${tone.wash} ${verdictPulse ? 'engineering-verdict-pulse' : ''}`}>
+      <div className={`sticky top-0 z-20 rounded-t-xl border-b border-slate-200/60 px-3 py-2.5 shadow-[0_8px_18px_-18px_rgba(15,23,42,0.8)] backdrop-blur-md dark:border-slate-800/70 [@media(max-height:700px)]:py-2 ${tone.wash} ${verdictPulse ? 'engineering-verdict-pulse' : ''}`}>
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
             <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${tone.marker}`} aria-hidden="true" />
@@ -599,12 +593,12 @@ const EngineeringResultSummary = ({ technology, truth, stageEvidence, stageSumma
             </span>
           </div>
         </div>
-        <h3 className="mt-2 text-[17px] font-bold leading-5 tracking-tight text-slate-950 dark:text-white">
+        <h3 className="mt-1.5 text-[17px] font-bold leading-5 tracking-tight text-slate-950 dark:text-white">
           {truth.headline}
         </h3>
         <p className="mt-1 text-[11px] leading-4 text-slate-600 dark:text-slate-300">{truth.summary}</p>
         {(truth.decisiveFactor || confidence) && (
-          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-500 dark:text-slate-400">
+          <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-500 dark:text-slate-400">
             {truth.decisiveFactor && <span><strong className="font-semibold text-slate-700 dark:text-slate-200">Decisive factor:</strong> {truth.decisiveFactor}</span>}
             {confidence && (truth.confidenceBreakdown ? (
               <button
@@ -627,8 +621,8 @@ const EngineeringResultSummary = ({ technology, truth, stageEvidence, stageSumma
       </div>
 
       {truth.primaryMetrics.length > 0 && (
-        <div className="border-b border-slate-200/80 p-3 dark:border-slate-800 [@media(max-height:700px)]:p-2.5">
-          <div className="mb-2 flex items-center gap-3">
+        <div className="border-b border-slate-200/60 p-2.5 dark:border-slate-800/70 [@media(max-height:700px)]:p-2">
+          <div className="mb-1.5 flex items-center gap-3">
             <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-emerald-700 dark:text-emerald-300">Delivered service</span>
           </div>
           <div className="grid grid-cols-[repeat(auto-fit,minmax(7.5rem,1fr))] gap-2">
@@ -638,8 +632,8 @@ const EngineeringResultSummary = ({ technology, truth, stageEvidence, stageSumma
       )}
 
       {truth.diagnosticMetrics.length > 0 && (
-        <div className="border-b border-amber-200/80 bg-amber-50/30 p-3 dark:border-amber-900/60 dark:bg-amber-950/10 [@media(max-height:700px)]:p-2.5">
-          <div className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-amber-700 dark:text-amber-300">
+        <div className="border-b border-amber-200/60 bg-amber-50/30 p-2.5 dark:border-amber-900/50 dark:bg-amber-950/10 [@media(max-height:700px)]:p-2">
+          <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-amber-700 dark:text-amber-300">
             <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
             Investigation evidence — not delivered service
           </div>
@@ -649,9 +643,9 @@ const EngineeringResultSummary = ({ technology, truth, stageEvidence, stageSumma
         </div>
       )}
 
-      <div className="p-3 [@media(max-height:700px)]:p-2.5">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <h4 className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-600 dark:text-slate-300">Why this result</h4>
+      <div className="p-2.5 [@media(max-height:700px)]:p-2">
+        <div className="mb-1.5 flex items-center justify-between gap-2">
+          <h4 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Why this result</h4>
           <label className="flex items-center gap-1.5 text-[9px] text-slate-400 dark:text-slate-500">
             <input
               type="checkbox"

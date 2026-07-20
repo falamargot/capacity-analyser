@@ -102,7 +102,7 @@ const GeoLinkBudgetEvidence = ({
   });
 
   return (
-    <div className="min-w-0 space-y-3" data-engineering-embedded-evidence={viewModel.mode}>
+    <div className="min-w-0 space-y-2.5" data-engineering-embedded-evidence={viewModel.mode}>
       <EngineeringRfDecisionEvidence viewModel={viewModel} />
       <DualSegmentPanel
         linkMode={linkMode}
@@ -115,12 +115,12 @@ const GeoLinkBudgetEvidence = ({
         variant="cockpit"
       />
       {result?.trafficTeleportEndpoint && (
-        <div className="mt-4 rounded-lg border border-cyan-100 bg-cyan-50/70 p-3 dark:border-cyan-500/20 dark:bg-cyan-500/10">
+        <div className="mt-3 rounded-lg border border-cyan-100 bg-cyan-50/70 p-2.5 dark:border-cyan-500/20 dark:bg-cyan-500/10">
           <LayerHeading
             title="RF Ground Capability"
-            detail="Traffic teleport capability consumed by the active STAR RF calculation."
+            detail="Traffic teleport capability used by the active STAR RF calculation."
           />
-          <div className="mt-3 grid grid-cols-1 gap-x-4 gap-y-1 text-xs text-cyan-950 dark:text-cyan-50 sm:grid-cols-2">
+          <div className="mt-2 grid grid-cols-1 gap-x-4 gap-y-1 text-xs text-cyan-950 dark:text-cyan-50 sm:grid-cols-2">
             <div className="flex justify-between gap-3">
               <span className="text-cyan-700 dark:text-cyan-200/80">Physical site</span>
               <span className="font-semibold">{result.trafficTeleportEndpoint.label}</span>
@@ -621,7 +621,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
     />
   );
   const scenarioConfigureEvidence = showConfigurationControls && onLinkModeChange ? (
-    <div className="mb-4">
+    <div className="mb-3">
       <LinkModeSelector linkMode={linkMode} onChange={onLinkModeChange} />
     </div>
   ) : null;
@@ -656,9 +656,9 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   }
   const scenarioAccessEvidence = showConfigurationControls ? (
     <>
-      <LayerHeading title="Terminal Configuration" detail="Terminal RF class, custom parameters and weather assumptions for each site." />
+      <LayerHeading title="Terminal Configuration" detail="RF class, custom parameters and weather per site." />
 
-      <div className="mb-4 mt-2">
+      <div className="mb-3 mt-1.5">
         {isMeshOrP2P && terminalTypeB != null && onTerminalTypeBChange ? (
           <>
             <div className="grid grid-cols-2 items-stretch gap-2">
@@ -816,18 +816,18 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
     </>
   ) : null;
   const scenarioSpaceEvidence = (
-      <div className="space-y-3">
-      <LayerHeading title="Coverage & Path Selection" detail="Resolved traffic path plus manual uplink/downlink coverage overrides." />
+      <div className="space-y-2.5">
+      <LayerHeading title="Coverage & Path Selection" detail="Resolved path plus manual coverage overrides." />
 
       {!isMeshOrP2P && (
-        <div className="mb-4 mt-2 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5 text-xs dark:border-slate-700 dark:bg-slate-900/60">
+        <div className="mb-3 mt-1.5 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-900/60">
           <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">Resolved traffic path</div>
           <div className="mt-1 font-semibold text-slate-900 dark:text-slate-100">{gatewaySideLabel}</div>
-          <div className="mt-1 text-[10px] leading-4 text-slate-500 dark:text-slate-400">{gatewayStatusTitle}</div>
+          <div className="mt-0.5 text-[10px] leading-4 text-slate-500 dark:text-slate-400">{gatewayStatusTitle}</div>
           {starTrafficGateway?.trafficCapability?.capabilityId && (
-            <div className="mt-1 font-mono text-[10px] leading-4 text-slate-500 dark:text-slate-400">{starTrafficGateway.trafficCapability.capabilityId}</div>
+            <div className="mt-0.5 font-mono text-[10px] leading-4 text-slate-500 dark:text-slate-400">{starTrafficGateway.trafficCapability.capabilityId}</div>
           )}
-          {gatewayTrafficStatusNote && <div className="mt-1 text-[10px] leading-4 text-slate-500 dark:text-slate-400">{gatewayTrafficStatusNote}</div>}
+          {gatewayTrafficStatusNote && <div className="mt-0.5 text-[10px] leading-4 text-slate-500 dark:text-slate-400">{gatewayTrafficStatusNote}</div>}
         </div>
       )}
 
@@ -839,7 +839,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
         const bUplinks   = candidateCoveragesB.filter(c =>  c.isUplink);
         const bDownlinks = candidateCoveragesB.filter(c => !c.isUplink);
         return (
-          <div className="mb-4 mt-2">
+          <div className="mb-3 mt-1.5">
             <CoverageSelector
               candidateCoverages={candidateCoverages}
               bestCoverage={bestCoverage}
@@ -892,7 +892,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
               const srcShort  = isForward ? 'A' : 'B';
               const dstShort  = isForward ? 'B' : 'A';
               return (
-                <div className="text-sm text-gray-700 dark:text-gray-300 text-center space-y-3 min-w-0">
+                <div className="text-sm text-gray-700 dark:text-gray-300 text-center space-y-2.5 min-w-0">
                   <div className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
                     <Route className="h-4 w-4 shrink-0 text-blue-500" />
                     <div className="min-w-0 break-words leading-relaxed">
@@ -914,7 +914,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                       <div className="break-words font-medium text-gray-600 dark:text-gray-300">{meshGeometry.satelliteName} → Point {dstShort} ({dstBeam})</div>
                       <div className="pl-3 break-words">→ Elevation: {dstElev.toFixed(1)}° | Slant Range: {rxKm.toFixed(0)} km ({rxMs.toFixed(1)} ms)</div>
                     </div>
-                    <div className="border-t border-gray-200 dark:border-slate-700 pt-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between font-semibold text-gray-700 dark:text-gray-200">
+                    <div className="border-t border-gray-200/70 dark:border-slate-700/70 pt-1.5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between font-semibold text-gray-700 dark:text-gray-200">
                       <span>One-way {srcShort}→{dstShort}</span>
                       <span>{oneWayKm.toFixed(0)} km ({oneWayMs.toFixed(1)} ms)</span>
                     </div>
@@ -957,7 +957,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                   ? geoGeometry.userToSatellite.slantRangeKm + geoGeometry.satelliteToGateway.slantRangeKm
                   : null;
                 return (
-                  <div className="text-sm text-gray-700 dark:text-gray-300 text-center space-y-3 min-w-0">
+                  <div className="text-sm text-gray-700 dark:text-gray-300 text-center space-y-2.5 min-w-0">
                     <div className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
                       <Route className="h-4 w-4 shrink-0 text-blue-500" />
                       <div className="min-w-0 break-words leading-relaxed">
@@ -983,7 +983,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                           {isStarForward ? ` | Elevation: ${geoGeometry.userToSatellite.elevationDeg.toFixed(1)}°` : ''}
                         </div>
                       </div>
-                      <div className="border-t border-gray-200 dark:border-slate-700 pt-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between font-semibold text-gray-700 dark:text-gray-200">
+                      <div className="border-t border-gray-200/70 dark:border-slate-700/70 pt-1.5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between font-semibold text-gray-700 dark:text-gray-200">
                         <span>{isStarReturn ? 'Return' : 'Forward'} one-way propagation</span>
                         <span className="break-words">{oneWayDistanceKm != null && geoGeometry.oneWayRadioMs != null ? `${oneWayDistanceKm.toFixed(0)} km (${geoGeometry.oneWayRadioMs.toFixed(1)} ms)` : '--'}</span>
                       </div>
@@ -1001,8 +1001,8 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
     </div>
   );
   const deliveryDetailEvidence = (
-        <div className="space-y-3">
-        <LayerHeading title="End-to-End Analysis" detail="Final throughput, latency, availability, bottleneck and limiting factor." />
+        <div className="space-y-2.5">
+        <LayerHeading title="End-to-End Analysis" detail="Throughput, latency, availability and limiting factor." />
         {/* Latency Breakdown */}
         {isMeshOrP2P ? (
           // ── MESH/P2P: selected one-way terminal path, no traffic gateway overhead ─
@@ -1027,13 +1027,13 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                 <div className="font-semibold text-gray-700 dark:text-gray-200">One-way propagation</div>
                 <div className="flex justify-between"><span>Point {src} → Satellite</span><span>{hop1Ms.toFixed(1)} ms</span></div>
                 <div className="flex justify-between"><span>Satellite → Point {dst}</span><span>{hop2Ms.toFixed(1)} ms</span></div>
-                <div className="border-t border-gray-200 dark:border-slate-700 pt-2 flex justify-between font-semibold text-gray-700 dark:text-gray-200">
+                <div className="border-t border-gray-200/70 dark:border-slate-700/70 pt-1.5 flex justify-between font-semibold text-gray-700 dark:text-gray-200">
                   <span>One-way propagation</span><span>{selectedPropagationMs.toFixed(1)} ms</span>
                 </div>
                 <div className="pt-1 font-semibold text-gray-700 dark:text-gray-200">Network overhead</div>
                 <div className="ml-2 flex justify-between"><span>Modem processing ({src} + {dst})</span><span>{meshGeometry.modemOverheadMs.toFixed(0)} ms</span></div>
                 <div className="ml-2 text-[10px] text-gray-400 dark:text-gray-500 italic">No traffic gateway - traffic gateway processing and routing delays do not apply.</div>
-                <div className="border-t border-gray-200 dark:border-slate-700 pt-2 flex justify-between font-semibold text-gray-800 dark:text-gray-100">
+                <div className="border-t border-gray-200/70 dark:border-slate-700/70 pt-1.5 flex justify-between font-semibold text-gray-800 dark:text-gray-100">
                   <span>Estimated {meshDirectionLabel} latency total</span><span>{selectedTotalMs.toFixed(1)} ms</span>
                 </div>
               </div>
@@ -1085,7 +1085,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                       <span>{row.value != null ? `${row.value.toFixed(1)} ms` : '--'}</span>
                     </div>
                   ))}
-                  <div className="border-t border-gray-200 dark:border-slate-700 pt-2 flex justify-between font-semibold text-gray-700 dark:text-gray-200">
+                  <div className="border-t border-gray-200/70 dark:border-slate-700/70 pt-1.5 flex justify-between font-semibold text-gray-700 dark:text-gray-200">
                     <span>Propagation total</span><span>{oneWayPropagationMs != null ? oneWayPropagationMs.toFixed(1) : '--'} ms</span>
                   </div>
                   <div className="pt-1 font-semibold text-gray-700 dark:text-gray-200">Network overhead</div>
@@ -1095,7 +1095,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                   <div className="ml-2 flex justify-between font-semibold text-gray-700 dark:text-gray-200">
                     <span>Network overhead total</span><span>{geoGeometry.overheadMs.total.toFixed(1)} ms</span>
                   </div>
-                  <div className="border-t border-gray-200 dark:border-slate-700 pt-2 flex justify-between font-semibold text-gray-800 dark:text-gray-100">
+                  <div className="border-t border-gray-200/70 dark:border-slate-700/70 pt-1.5 flex justify-between font-semibold text-gray-800 dark:text-gray-100">
                     <span>Estimated one-way total</span><span>{oneWayTotalMs != null ? oneWayTotalMs.toFixed(1) : '--'} ms</span>
                   </div>
                   {geoGeometry.warnings.length > 0 && (

@@ -817,7 +817,7 @@ const LeoLinkBudgetEvidence = ({
   };
 
   return (
-    <div className="min-w-0 space-y-3" data-engineering-embedded-evidence={viewModel.mode}>
+    <div className="min-w-0 space-y-2.5" data-engineering-embedded-evidence={viewModel.mode}>
       <EngineeringRfDecisionEvidence viewModel={viewModel} />
       {isS2S ? (
         hasS2SAccessBudgets ? (
@@ -1227,7 +1227,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   ) : null;
   const scenarioAccessEvidence = showConfigurationControls ? (
     <>
-        <LayerHeading title="Terminal Configuration" detail="Terminal model, RF characteristics and weather assumptions for each site." />
+        <LayerHeading title="Terminal Configuration" detail="Terminal model, RF characteristics and weather per site." />
         {/* ── S2S mode: two independent terminal cards ── */}
         {isS2S && terminalTypeB != null && onTerminalTypeBChange != null ? (
           <div className="space-y-1.5">
@@ -1308,7 +1308,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   ) : null;
   const pathDetailEvidence = (
     <>
-        <div data-engineering-path-detail="" className="space-y-3">
+        <div data-engineering-path-detail="" className="space-y-2.5">
         <LayerHeading title="Ground Segment" detail="SNP, PoP/backbone and feeder path details." />
         {/* Radio Path */}
         <CollapsibleSection
@@ -1320,7 +1320,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
         >
           {isS2S ? (
             s2sServiceActive ? (
-              <div className="space-y-3 text-xs">
+              <div className="space-y-2.5 text-xs">
                 {/* Compact route badge — order follows selected direction */}
                 <div className="flex items-center gap-1 overflow-x-auto pb-1 min-w-0 rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-950 px-3 py-2">
                   <Route className="h-4 w-4 shrink-0 text-pink-500 mr-1" />
@@ -1481,7 +1481,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
               </div>
             )
           ) : resolvedLEOConnectivity ? (
-            <div className="text-sm text-gray-700 dark:text-gray-300 text-center space-y-3 min-w-0">
+            <div className="text-sm text-gray-700 dark:text-gray-300 text-center space-y-2.5 min-w-0">
               {isRegulatoryBlocked && diagnosticOnlyNotice}
               {resolvedLEOConnectivity.snp ? (
                 <div className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
@@ -1525,7 +1525,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
                       )} | Elevation: {resolvedLEOConnectivity.snpLEOElevation?.toFixed(1)}°
                     </div>
                   </div>
-                  <div className="border-t border-gray-200 dark:border-slate-700 pt-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between font-semibold text-gray-700 dark:text-gray-200">
+                  <div className="border-t border-gray-200/70 dark:border-slate-700/70 pt-1.5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between font-semibold text-gray-700 dark:text-gray-200">
                     <span>One-way propagation</span>
                     <span className="break-words">
                       {(() => {
@@ -1558,8 +1558,8 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   );
   const deliveryDetailEvidence = (
     <>
-        <div className="space-y-3">
-        <LayerHeading title="End-to-End Analysis" detail="Final latency, throughput, availability and bottleneck reasoning." />
+        <div className="space-y-2.5">
+        <LayerHeading title="End-to-End Analysis" detail="Latency, throughput, availability and limiting factor." />
         {/* Latency Breakdown */}
         <LatencyBreakdownCard
           storageKey="leo-latency-breakdown"
@@ -1612,7 +1612,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
               <div className="flex justify-between"><span>Satellite {'->'} SNP</span><span>{leoGeometry.propagationBreakdownMs.satelliteToGateway.toFixed(1)} ms</span></div>
               <div className="flex justify-between"><span>SNP {'->'} Satellite</span><span>{leoGeometry.propagationBreakdownMs.gatewayToSatellite.toFixed(1)} ms</span></div>
               <div className="flex justify-between"><span>Satellite {'->'} Site A</span><span>{leoGeometry.propagationBreakdownMs.satelliteToUser.toFixed(1)} ms</span></div>
-              <div className="border-t border-gray-200 dark:border-slate-700 pt-2 flex justify-between font-semibold text-gray-700 dark:text-gray-200">
+              <div className="border-t border-gray-200/70 dark:border-slate-700/70 pt-1.5 flex justify-between font-semibold text-gray-700 dark:text-gray-200">
                 <span>RTT propagation</span><span>{leoGeometry.rttPropagationMs.toFixed(1)} ms</span>
               </div>
               <div className="pt-1 font-semibold text-gray-700 dark:text-gray-200">Network overhead components</div>
@@ -1629,7 +1629,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
                   <div className="ml-2 flex justify-between"><span>SNP → Internet PoP (fiber RTT)</span><span>{leoGeometry.snpToPopFiberRttMs.toFixed(0)} ms</span></div>
                 </>
               )}
-              <div className="border-t border-gray-200 dark:border-slate-700 pt-2 flex justify-between font-semibold text-gray-800 dark:text-gray-100">
+              <div className="border-t border-gray-200/70 dark:border-slate-700/70 pt-1.5 flex justify-between font-semibold text-gray-800 dark:text-gray-100">
                 <span>Estimated RTT total</span><span>{leoGeometry.rttTotalMs.toFixed(1)} ms</span>
               </div>
               {leoGeometry.warnings.length > 0 && (

@@ -72,31 +72,32 @@ const ExportButton: React.FC<ExportButtonProps> = ({
   const isDisabled = disabled || !location || isExporting;
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       <button
         onClick={handleExport}
         disabled={isDisabled}
         className={`
-          w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm
-          transition-all duration-200 ease-in-out
+          flex w-full items-center justify-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium
+          bg-white/90 backdrop-blur-sm dark:bg-slate-900/90
+          transition-colors duration-150
           ${isDisabled
-            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-            : 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 shadow-sm hover:shadow-md'
+            ? 'border-gray-200 text-gray-400 cursor-not-allowed dark:border-slate-700 dark:text-slate-600'
+            : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'
           }
         `}
-        title={isDisabled 
+        title={isDisabled
           ? (!location ? 'Select a location first' : 'Exporting...')
           : 'Export analysis as PDF'
         }
       >
         {isExporting ? (
           <>
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
             Exporting PDF...
           </>
         ) : (
           <>
-            <Download className="w-4 h-4" />
+            <Download className="w-3.5 h-3.5" />
             Export PDF
           </>
         )}

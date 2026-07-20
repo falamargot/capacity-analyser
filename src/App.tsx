@@ -3711,7 +3711,7 @@ const App: React.FC = () => {
   const useCompactDesktopSidebar = desktopCompactProgress >= 0.35;
   const useCompactDesktopHeader = desktopCompactProgress >= 0.2;
   const useCondensedHeaderSites = !isMobile && viewportSnapshot.innerWidth < 1420;
-  const desktopSidebarWidth = Math.round(lerp(500, 405, desktopCompactProgress));
+  const desktopSidebarWidth = Math.round(lerp(455, 370, desktopCompactProgress));
   const desktopLayoutGap = Math.round(lerp(24, 16, desktopCompactProgress));
   useEffect(() => {
     document.documentElement.style.setProperty('--desktop-sidebar-width', `${desktopSidebarWidth}px`);
@@ -5917,7 +5917,7 @@ const App: React.FC = () => {
               >
                 <div
                   data-engineering-inspector-host=""
-                  className="pointer-events-none absolute -bottom-px -top-px right-full z-50 w-[clamp(34rem,42vw,40rem)]"
+                  className="pointer-events-none absolute -bottom-px -top-px right-full z-50 w-[clamp(30rem,38vw,36rem)]"
                 />
                 <>
                   {!showEngineeringRouteStatus && (

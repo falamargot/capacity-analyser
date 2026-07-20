@@ -1,4 +1,3 @@
-import { ChevronDown } from 'lucide-react';
 import EngineeringClosurePipeline from '../EngineeringClosurePipeline';
 import type { EngineeringAnalysisViewModel } from '../../../utils/engineeringAnalysisViewModel';
 import { fmtDb, fmtMbps } from '../../../utils/engineeringFormat';
@@ -32,10 +31,10 @@ export const EngineeringEvidenceSummary = ({
 
 export const EngineeringScenarioEvidence = ({ facts }: { facts: EngineeringScenarioFact[] }) => (
   <section className="engineering-scenario-overview" aria-labelledby="engineering-scenario-overview-title">
-    <div className="mb-3 flex items-end justify-between gap-4">
+    <div className="mb-2 flex items-end justify-between gap-4">
       <div>
         <h4 id="engineering-scenario-overview-title" className="text-[12px] font-bold text-slate-900 dark:text-slate-100">Selected engineering context</h4>
-        <p className="mt-1 text-[10px] leading-4 text-slate-500 dark:text-slate-400">Topology, assets and environmental assumptions applied to this analysis.</p>
+        <p className="mt-0.5 text-[10px] leading-4 text-slate-500 dark:text-slate-400">Assumptions carried into this analysis.</p>
       </div>
       <span className="hidden shrink-0 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-400 sm:inline">Scenario inputs</span>
     </div>
@@ -59,7 +58,7 @@ export const EngineeringRfDecisionEvidence = ({ viewModel }: { viewModel: Engine
   if (facts.length === 0) return null;
   return (
     <section className="engineering-rf-decision" aria-label="Link budget decision evidence">
-      <div className="mb-3 flex items-start justify-between gap-4">
+      <div className="mb-2 flex items-start justify-between gap-4">
         <div>
           <h4 className="text-[12px] font-bold text-slate-900 dark:text-slate-100">Decisive RF evidence</h4>
           <p className="mt-1 text-[10px] leading-4 text-slate-600 dark:text-slate-400">
@@ -89,9 +88,9 @@ export const EngineeringDeliveryEvidence = ({
 }) => (
   <div className="engineering-delivery-workspace">
     <section className="engineering-delivery-transformation" aria-label={viewModel.closure.title}>
-      <div className="mb-4">
+      <div className="mb-3">
         <h4 className="text-[12px] font-bold text-slate-900 dark:text-slate-100">Throughput transformation</h4>
-        <p className="mt-1 text-[10px] leading-4 text-slate-600 dark:text-slate-400">How RF potential becomes the final delivered service.</p>
+        <p className="mt-0.5 text-[10px] leading-4 text-slate-600 dark:text-slate-400">RF potential → delivered service.</p>
       </div>
       <EngineeringClosurePipeline
         layout={viewModel.closure.layout}
@@ -100,13 +99,9 @@ export const EngineeringDeliveryEvidence = ({
       />
     </section>
     {children && (
-      <details className="group engineering-delivery-supporting" data-engineering-secondary-investigation="">
-        <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 py-3 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 outline-none focus-visible:ring-2 focus-visible:ring-sky-400 dark:text-slate-300 [&::-webkit-details-marker]:hidden">
-          <span>Latency composition &amp; supporting evidence</span>
-          <ChevronDown className="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" />
-        </summary>
-        <div className="border-t border-slate-200/80 py-4 dark:border-slate-700/80">{children}</div>
-      </details>
+      <div className="engineering-delivery-supporting border-t border-slate-200/60 pt-3 dark:border-slate-700/60" data-engineering-secondary-investigation="">
+        {children}
+      </div>
     )}
   </div>
 );
