@@ -83,6 +83,8 @@ export interface LEOGeometry {
   };
   /** Round-trip fiber delay SNP ↔ internet PoP. Present because OneWeb has no ISL. */
   snpToPopFiberRttMs?: number;
+  /** One-way user latency (propagation + overhead + one-way fiber) — see LeoConnectivityResult. */
+  oneWayLatencyMs: number;
   warnings: string[];
 }
 
@@ -1142,8 +1144,11 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   // The authoritative result and the detailed workspace share this exact
   // direction-aware evidence object; no sidebar-only throughput is derived.
   const answerDebugInfo = isS2S ? s2sLinkBudgetDebugInfo : (leoPerformance?.debugInfo ?? null);
-  const answerLatencyMs = isS2S ? s2sPrimaryLatency : (mobileLeoMetrics?.rtt ?? leoGeometry?.rttTotalMs ?? null);
-  const answerLatencyLabel = isS2S ? `${s2sPrimaryLabel} latency` : 'End-to-end RTT';
+  // One-way latency for both branches — s2sPrimaryLatency is already one-way
+  // (oneWayLatencyAtoB/BtoAMs); single-site now matches via oneWayLatencyMs
+  // instead of the previous rttTotalMs (a round trip).
+  const answerLatencyMs = isS2S ? s2sPrimaryLatency : (mobileLeoMetrics?.rtt ?? leoGeometry?.oneWayLatencyMs ?? null);
+  const answerLatencyLabel = isS2S ? `${s2sPrimaryLabel} latency` : 'One-way latency';
   const scenarioEvidence = (
     <EngineeringScenarioEvidence facts={[
       { label: 'Topology', value: isS2S ? 'SITE TO SITE' : 'SINGLE SITE' },

@@ -167,11 +167,13 @@ export function buildLeoRouteViewModel({
     routeValue: 'Site→LEO→SNP',
     throughputMbps: metrics?.downlinkGbps != null ? metrics.downlinkGbps * 1000 : null,
     throughputLabel: 'DL',
+    // metrics.rtt is one-way (see mobileLeoMetrics in useEngineeringAnalysis.ts),
+    // matching GEO's single-site labeling below despite the legacy field name.
     latencyMs: metrics?.rtt ?? null,
-    latencyLabel: 'RTT',
-    latencyIsRtt: true,
+    latencyLabel: 'One-way',
+    latencyIsRtt: false,
     summary: metrics
-      ? `DL ${formatRouteGbps(metrics.downlinkGbps)} · RTT ${formatRouteMs(metrics.rtt)}`
+      ? `DL ${formatRouteGbps(metrics.downlinkGbps)} · One-way ${formatRouteMs(metrics.rtt)}`
       : null,
     sourceLabel: 'Site',
     destinationLabel: 'SNP',

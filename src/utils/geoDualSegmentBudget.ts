@@ -437,12 +437,17 @@ export function buildStarForwardResult(
     ? resolveTerminalRFParams(userBand, terminalType, customParams).gtDbk
     : getTerminalDownlinkGT(userBand);
 
+  // Weather is modelled only at the user's location (no independent gateway-site
+  // weather input exists in the UI), so the fade applies exclusively to the
+  // segment terminating at the user — never to the gateway feeder leg, which
+  // may be hundreds or thousands of km away under entirely different sky
+  // conditions. Mirrors buildMeshResult's per-endpoint weatherAdjDbA/B handling.
   const uplinkSeg = buildUplinkSegment(
     uplinkAtGateway,
     { label: trafficTeleportName, eirpDbw: gatewayEirpDbw },
     { label: uplinkAtGateway.satelliteName },
     gatewayEirpDbw,
-    weatherAdjDb,
+    undefined,
   );
 
   const downlinkSeg = buildDownlinkSegment(
@@ -516,6 +521,9 @@ export function buildStarReturnResult(
     terminalEirpDbw = bandEirpTable.fixed ?? DEFAULT_TERMINAL.eirpTerminalDbw;
   }
 
+  // Weather is modelled only at the user's location — see buildStarForwardResult
+  // for the same rationale. The uplink (user → satellite) leg gets the fade; the
+  // gateway downlink leg does not.
   const uplinkSeg = buildUplinkSegment(
     uplinkAtUser,
     { label: userLabel ?? 'User terminal', eirpDbw: terminalEirpDbw },
@@ -529,7 +537,7 @@ export function buildStarReturnResult(
     { label: downlinkAtGateway.satelliteName },
     { label: trafficTeleportName, gtDbk: gatewayGTDbk },
     gatewayGTDbk,
-    weatherAdjDb,
+    undefined,
     getTerminalDownlinkGT(feederBand),
   );
 

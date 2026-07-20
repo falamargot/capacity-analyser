@@ -707,7 +707,7 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                 metrics: displayedLeoMetrics,
                 accentClassName: 'text-fuchsia-600 dark:text-fuchsia-300',
                 borderClassName: 'border-fuchsia-200/80 dark:border-fuchsia-400/20',
-                latencyLabel: leoTopologyMode === 'SITE_TO_SITE' ? `${selectedRouteLabel} latency` : 'LEO RTT',
+                latencyLabel: leoTopologyMode === 'SITE_TO_SITE' ? `${selectedRouteLabel} latency` : 'LEO latency',
                 downlinkLabel: leoTopologyMode === 'SITE_TO_SITE' ? selectedRouteLabel : 'DL throughput',
                 uplinkLabel: 'UL throughput',
                 extraMetrics: leoTopologyMode === 'SITE_TO_SITE' && leoSiteToSiteResult

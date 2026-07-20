@@ -88,7 +88,15 @@ interface OrbitState {
 
 function propagateOrbit(satrec: object, timeMs: number): OrbitState | null {
     const date = new Date(timeMs);
-    const pv = satellite.propagate(satrec as satellite.SatRec, date);
+    let pv: satellite.PositionAndVelocity | null;
+    try {
+        // Propagation errors (decayed orbit, bad TLE, numerical divergence) are an
+        // expected failure mode for these satrecs — see satellitePositionWorker.ts,
+        // which guards the same call for the same reason.
+        pv = satellite.propagate(satrec as satellite.SatRec, date);
+    } catch {
+        return null;
+    }
     const gmst = satellite.gstime(date);
 
     if (!pv || !pv.position || !pv.velocity ||

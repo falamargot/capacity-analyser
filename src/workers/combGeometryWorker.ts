@@ -57,7 +57,16 @@ self.addEventListener('message', (event: MessageEvent<CombWorkerRequest>) => {
             : new Map(Object.entries(simulationState.beamHealthByIndex ?? {}).map(([k, v]) => [Number(k), v as number])),
     } : undefined;
 
-    const beams = calculateCombGeometryLatLng(satrec, timeMs, rehydratedState);
+    let beams: CombWorkerResponse['beams'];
+    try {
+        beams = calculateCombGeometryLatLng(satrec, timeMs, rehydratedState);
+    } catch {
+        // Defense in depth: calculateCombGeometryLatLng already guards propagation
+        // failures internally, but any other unexpected throw here must still resolve
+        // this requestId — otherwise the caller's in-flight gate (useCombGeometry's
+        // pendingRef) never clears and every future comb-geometry request silently stops.
+        beams = null;
+    }
     const response: CombWorkerResponse = { requestId, beams };
     self.postMessage(response);
 });

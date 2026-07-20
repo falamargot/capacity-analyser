@@ -42,12 +42,13 @@ describe('activeRouteViewModel', () => {
     expect(routeDirectionFromMeshTab('reverse')).toBe('B_TO_A');
   });
 
-  it('builds LEO single-site display semantics', () => {
+  it('builds LEO single-site display semantics with one-way latency (matches GEO convention)', () => {
     const view = buildLeoRouteViewModel({ topologyMode: 'SINGLE_SITE', direction: 'A_TO_B', metrics: metrics.leo });
     expect(view.selectedTopology).toBe('LEO_SINGLE_SITE');
     expect(view.routeValue).toBe('Site→LEO→SNP');
-    expect(view.latencyLabel).toBe('RTT');
-    expect(view.summary).toBe('DL 120 Mbps · RTT 76 ms');
+    expect(view.latencyLabel).toBe('One-way');
+    expect(view.latencyIsRtt).toBe(false);
+    expect(view.summary).toBe('DL 120 Mbps · One-way 76 ms');
   });
 
   it('builds LEO S2S A-to-B selected values', () => {

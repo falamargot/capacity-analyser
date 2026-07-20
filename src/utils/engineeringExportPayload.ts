@@ -132,8 +132,13 @@ export function buildLeoPdfDetails({
       warnings: leoGeometry.warnings,
     } : null,
     performance: {
+      // Genuine round-trip time, matching its "RTT" label and the detailed
+      // latency breakdown above (leoGeometry.rttTotalMs) — mirrors GEO's
+      // equivalent field (geoGeometry.rttTotalMs, also honestly RTT-labeled).
+      // mobileLeoMetrics.rtt is a ONE-WAY latency (see mobileLeoMetrics in
+      // useEngineeringAnalysis.ts) and is not used here for that reason.
       rttLabel: 'End-to-End LEO RTT',
-      rttMs: mobileLeoMetrics?.rtt ?? null,
+      rttMs: leoGeometry?.rttTotalMs ?? null,
       downlinkGbps: mobileLeoMetrics?.downlinkGbps ?? null,
       uplinkGbps: mobileLeoMetrics?.uplinkGbps ?? null,
       maxDlGbps: terminalProfile.maxDlMbps / 1000,

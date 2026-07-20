@@ -88,6 +88,13 @@ export function useCombGeometry() {
             }
         });
 
+        worker.addEventListener('error', () => {
+            // An uncaught worker error (outside the message handler's own try/catch)
+            // must still clear the in-flight gate — otherwise getCombGeometries stops
+            // dispatching new requests for ANY satellite for the rest of the session.
+            pendingRef.current = null;
+        });
+
         workerRef.current = worker;
 
         return () => {

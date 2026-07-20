@@ -206,6 +206,23 @@ describe('STAR_FORWARD — terminal G/T affects downlink C/N', () => {
     expect(rLow!.forward.downlink.destination.gtDbk).not.toBeCloseTo(17.0, 1);
     expect(rHigh!.forward.downlink.destination.gtDbk).not.toBeCloseTo(17.0, 1);
   });
+
+  // GEO-1 regression: the user's local weather fade must apply only to the
+  // downlink (user) segment, never to the uplink (gateway feeder) segment —
+  // the app has no independent weather model for the gateway site.
+  it('applies weather fade only to the user-facing downlink segment, not the gateway uplink segment', () => {
+    const dl = makeDlCandidate();
+    const ul = makeUlCandidate();
+    const fadeDb = 6;
+
+    const clear = buildStarForwardResult(dl, ul, GATEWAY, 'User', undefined);
+    const storm = buildStarForwardResult(dl, ul, GATEWAY, 'User', fadeDb);
+
+    expect(storm!.forward.downlink.effectiveCNDb)
+      .toBeCloseTo(clear!.forward.downlink.effectiveCNDb - fadeDb, 5);
+    expect(storm!.forward.uplink.effectiveCNDb)
+      .toBeCloseTo(clear!.forward.uplink.effectiveCNDb, 5);
+  });
 });
 
 // ─── B. STAR_RETURN ───────────────────────────────────────────────────────────
@@ -278,6 +295,22 @@ describe('STAR_RETURN — terminal EIRP affects uplink C/N', () => {
     // Noise temp changes G/T but not EIRP → uplink C/N must be equal
     expect(rHot!.forward.uplink.effectiveCNDb)
       .toBeCloseTo(rBase!.forward.uplink.effectiveCNDb, 5);
+  });
+
+  // GEO-1 regression: the user's local weather fade must apply only to the
+  // uplink (user) segment, never to the downlink (gateway) segment.
+  it('applies weather fade only to the user-facing uplink segment, not the gateway downlink segment', () => {
+    const ul = makeUlCandidate();
+    const dl = makeDlCandidate({ isUplink: false, eirpDbw: 50, cnDb: 8 });
+    const fadeDb = 6;
+
+    const clear = buildStarReturnResult(ul, dl, GATEWAY, 'User', undefined);
+    const storm = buildStarReturnResult(ul, dl, GATEWAY, 'User', fadeDb);
+
+    expect(storm!.forward.uplink.effectiveCNDb)
+      .toBeCloseTo(clear!.forward.uplink.effectiveCNDb - fadeDb, 5);
+    expect(storm!.forward.downlink.effectiveCNDb)
+      .toBeCloseTo(clear!.forward.downlink.effectiveCNDb, 5);
   });
 });
 

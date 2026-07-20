@@ -61,6 +61,14 @@ export interface LeoConnectivityResult {
   /** Round-trip fiber delay SNP ↔ internet PoP (2 × one-way). No-ISL architecture only. */
   snpToPopFiberRttMs: number;
   rttTotalMs: number;
+  /**
+   * One-way user latency: radio propagation (user → satellite → SNP) + network
+   * overhead + one-way SNP↔PoP fiber leg. NOT half of rttTotalMs — overhead is
+   * a one-time cost, not doubled, so this is slightly more than rttTotalMs / 2.
+   * Matches the GEO one-way-latency convention (propagation + overheadMs.total);
+   * use this for any user-facing "latency" figure — rttTotalMs is a round trip.
+   */
+  oneWayLatencyMs: number;
   warnings: string[];
   isUserLinkUnstable: boolean;
   isGatewayLinkUnstable: boolean;
@@ -98,6 +106,7 @@ export function analyzeLeoConnectivity({
   const snpToPopFiberRttMs = 2 * snpToPopFiberDelayMs;
 
   const rttTotalMs = rttPropagationMs + networkOverheadTotalMs + snpToPopFiberRttMs;
+  const oneWayLatencyMs = oneWayRadioMs + networkOverheadTotalMs + snpToPopFiberDelayMs;
 
   const warnings: string[] = [];
   const isUserLinkUnstable = userToSatelliteElevationDeg < DEFAULT_RANGES.minUserTerminalElevationDeg;
@@ -136,6 +145,7 @@ export function analyzeLeoConnectivity({
     },
     snpToPopFiberRttMs,
     rttTotalMs,
+    oneWayLatencyMs,
     warnings,
     isUserLinkUnstable,
     isGatewayLinkUnstable,

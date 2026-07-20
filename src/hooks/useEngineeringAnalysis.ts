@@ -839,7 +839,13 @@ export function useEngineeringAnalysis({
     if (!leoPerformance) return null;
 
     return {
-      rtt: leoGeometry?.rttTotalMs ?? leoPerformance.rtt,
+      // MobileLinkMetrics.rtt is a legacy field name — for LEO single-site it
+      // carries the one-way user latency (radio propagation + network overhead
+      // + one-way SNP↔PoP fiber), matching GEO's convention and the LEO
+      // site-to-site path's oneWayLatencyAtoB/BtoAMs — NOT a round-trip time.
+      // Falls back to the canonical evidence pipeline's rtt (a true RTT) only
+      // when this hook's own geometry hasn't resolved yet (rare timing edge).
+      rtt: leoGeometry?.oneWayLatencyMs ?? leoPerformance.rtt,
       downlinkGbps: leoPerformance.downlinkGbps,
       uplinkGbps: leoPerformance.uplinkGbps,
     };
@@ -1129,10 +1135,15 @@ export function useEngineeringAnalysis({
       snpAName: leoSiteToSiteResult?.selectedSnpA?.name,
       snpBName: leoSiteToSiteResult?.selectedSnpB?.name,
       popName: leoSiteToSiteResult?.logicalPop?.name,
+      // Single-site latency is one-way (leoGeometry.oneWayLatencyMs via
+      // mobileLeoMetrics.rtt), matching the site-to-site legs below and GEO's
+      // one-way convention — previously this was a full round-trip time while
+      // site-to-site was one-way, so the same physical link showed ~2x
+      // different numbers purely from a topology-mode switch.
       latencyMs: isLeoSiteToSite
         ? activeMeshTab === 'reverse' ? leoSiteToSiteResult?.oneWayLatencyBtoAMs : leoSiteToSiteResult?.oneWayLatencyAtoBMs
-        : mobileLeoMetrics?.rtt ?? leoGeometry?.rttTotalMs ?? null,
-      latencyLabel: isLeoSiteToSite ? `${activeMeshTab === 'reverse' ? 'B → A' : 'A → B'} latency` : 'End-to-end RTT',
+        : mobileLeoMetrics?.rtt ?? leoGeometry?.oneWayLatencyMs ?? null,
+      latencyLabel: isLeoSiteToSite ? `${activeMeshTab === 'reverse' ? 'B → A' : 'A → B'} latency` : 'One-way latency',
       availabilityLabel: `${leoAvailability.indicativeAvailabilityPct.toFixed(1)}% indicative`,
       confidenceLabel: `${leoConfidence.level} ${leoConfidence.score}/100`,
       confidenceDetail: [leoConfidence.summary, leoConfidence.reasons[0] ?? leoConfidence.limitation].filter(Boolean).join('. '),
@@ -1195,14 +1206,17 @@ export function useEngineeringAnalysis({
     geoTerminalType,
     analysisSource,
     aircraftCallsign,
-    geoPerformance,
+    // Use the dual-segment-adjusted performance (matches what GEOConnectivitySection
+    // actually renders on screen), not the raw per-segment estimate — otherwise the
+    // exported PDF can show better stability/throughput than the app displayed.
+    geoPerformance: geoEffectivePerformance,
   }), [
     resolvedGEOConnectivity,
     geoGeometry,
     geoTerminalType,
     analysisSource,
     aircraftCallsign,
-    geoPerformance,
+    geoEffectivePerformance,
   ]);
 
   const satellitesRef = useRef<SatelliteData[]>(satellites);
@@ -1347,7 +1361,9 @@ export function useEngineeringAnalysis({
     leoPerformance,
     resolvedGEOConnectivity,
     geoGeometry,
-    geoPerformance,
+    // Same rationale as geoPdfDetails above: the export must match what the
+    // screen actually shows, not the pre-dual-segment-adjustment estimate.
+    geoPerformance: geoEffectivePerformance,
     linkMode,
     activeMeshTab,
     leoPdfDetails: satelliteScope !== 'GEO' ? leoPdfDetails : null,
@@ -1362,7 +1378,7 @@ export function useEngineeringAnalysis({
     analysisSource,
     cesiumViewerRef,
     geoGeometry,
-    geoPerformance,
+    geoEffectivePerformance,
     geoPdfDetails,
     globeRef,
     leoGeometry,
