@@ -127,6 +127,7 @@ function MobileSiteRouteSummary({
     siteB,
     accent,
     servingSatelliteName,
+    servingSatelliteNameB,
     relation,
     detailDirection,
     onToggleDirection,
@@ -143,6 +144,15 @@ function MobileSiteRouteSummary({
     };
     accent: 'LEO' | 'GEO';
     servingSatelliteName?: string | null;
+    /**
+     * Site B's own serving satellite — only meaningfully different from
+     * servingSatelliteName in LEO Site-to-Site, where each site can be served
+     * by a different satellite. GEO passes null here (one satellite genuinely
+     * serves both sites). Cross-Surface Consistency Audit 2026-07-21, F3:
+     * previously Site B's satellite was never shown at all, even when it
+     * differed from Site A's.
+     */
+    servingSatelliteNameB?: string | null;
     relation: 'forward' | 'reverse' | 'bidirectional';
     detailDirection: 'forward' | 'reverse';
     onToggleDirection?: () => void;
@@ -168,7 +178,7 @@ function MobileSiteRouteSummary({
     const indicatorBaseClassName = `absolute left-1/2 top-1/2 z-10 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border ${indicatorClassName}`;
 
     const renderSite = (label: 'SITE A' | 'SITE B', site: typeof siteA) => {
-        const siteServingSatelliteName = label === 'SITE A' ? servingSatelliteName : null;
+        const siteServingSatelliteName = label === 'SITE A' ? servingSatelliteName : servingSatelliteNameB;
 
         return (
             <div className="min-w-0 rounded-[18px] border border-slate-200/80 bg-white/82 px-2.5 py-2 shadow-sm dark:border-slate-700 dark:bg-slate-900/72">
@@ -766,6 +776,13 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
     const activeLeoServingSatellite = leoTopologyMode === 'SITE_TO_SITE'
         ? leoSiteToSiteResult?.servingSatelliteA ?? autoSelectedLEOSatellite
         : autoSelectedLEOSatellite;
+    // Site B's own serving satellite — only ever non-null in LEO Site-to-Site
+    // (Cross-Surface Consistency Audit 2026-07-21, F3: previously never
+    // computed at all, so Site B's satellite could not be shown even when it
+    // genuinely differed from Site A's).
+    const activeLeoServingSatelliteB = leoTopologyMode === 'SITE_TO_SITE'
+        ? leoSiteToSiteResult?.servingSatelliteB ?? null
+        : null;
     const activeServingSatellite = satelliteScope === 'GEO'
         ? autoSelectedGEOSatellite
         : satelliteScope === 'LEO'
@@ -775,6 +792,9 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                 : activeLeoServingSatellite;
     const shouldShowServingSatellite = Boolean(selectedPoint || selectedAircraft) && !selectedSatellite;
     const servingSatelliteName = shouldShowServingSatellite ? activeServingSatellite?.name ?? null : null;
+    const servingSatelliteNameB = shouldShowServingSatellite
+        ? (satelliteScope === 'GEO' ? null : satelliteScope === 'LEO' || activeConnectivityTab === 'LEO' ? activeLeoServingSatelliteB?.name ?? null : null)
+        : null;
     const mobileRouteSummary = useMemo(() => {
         const siteBPoint = pointB ?? pointBLeo;
         if (
@@ -816,6 +836,7 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
             },
             accent,
             servingSatelliteName,
+            servingSatelliteNameB,
             relation,
             detailDirection: activeMeshTab,
             onToggleDirection: relation === 'bidirectional' && onActiveMeshTabChange
@@ -837,6 +858,7 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
         pointBLeo,
         satelliteScope,
         servingSatelliteName,
+        servingSatelliteNameB,
         selectedAircraft,
         selectedGateway,
         selectedMoon,
@@ -1077,13 +1099,20 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                 </div>
             ) : null}
 
-            {!compact && mobileRouteSummary ? (
+            {/* mobileRouteSummary itself requires `compact` truthy (see its
+                useMemo's early-return above), so this must match rather than
+                negate — the old `!compact` here made this branch impossible
+                to reach given the app's one call site always passes `compact`
+                (App.tsx), silently disabling the whole Site Route Summary
+                card. Cross-Surface Consistency Audit 2026-07-21, F3. */}
+            {compact && mobileRouteSummary ? (
                 <div className={shouldHideCompactRouteHeader ? 'mt-0' : 'mt-2'}>
                     <MobileSiteRouteSummary
                         siteA={mobileRouteSummary.siteA}
                         siteB={mobileRouteSummary.siteB}
                         accent={mobileRouteSummary.accent}
                         servingSatelliteName={mobileRouteSummary.servingSatelliteName}
+                        servingSatelliteNameB={mobileRouteSummary.servingSatelliteNameB}
                         relation={mobileRouteSummary.relation}
                         detailDirection={mobileRouteSummary.detailDirection}
                         onToggleDirection={mobileRouteSummary.onToggleDirection}

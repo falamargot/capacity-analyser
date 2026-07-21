@@ -164,6 +164,22 @@ export interface ResolvedGeoGateway {
   satToGatewayDistanceKm: number;
 }
 
+/**
+ * Single formatter for "gateway name + role" wherever a plain ResolvedGeoGateway
+ * (not the richer StarTrafficGatewayResolution wrapper) is being displayed —
+ * a nominal gateway is shown bare, a backup/failover gateway is annotated.
+ * Consumers: engineeringExportPayload.ts's GEO PDF details.
+ * commercialRouteModel.ts's commercialGatewayLabel intentionally stays separate
+ * (it layers an additional COMM-only "reference / unconfirmed" capability-
+ * confidence case this formatter doesn't need), but both use the identical
+ * "(failover)" wording for the backup case.
+ */
+export function formatResolvedGatewayRoleLabel(gateway: ResolvedGeoGateway): string {
+  return gateway.controlAssignmentRole === 'backup'
+    ? `${gateway.gatewayName} (failover)`
+    : gateway.gatewayName;
+}
+
 export interface ResolvedConnectivityPath {
   satellite: SatelliteData;
   userLocation: { lat: number; lng: number; altitude?: number } | null;

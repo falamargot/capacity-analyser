@@ -1,6 +1,7 @@
 import type { RefObject } from 'react';
 import { SPEED_OF_LIGHT_RADIO_KM_S } from './capacityCalculator';
 import { getGatewayTrafficStatusNote } from '../components/globe/GlobeConfig';
+import { formatResolvedGatewayRoleLabel } from './geoConnectivityModel';
 import { buildLinkAvailabilityContext, formatLinkAvailabilityContext } from './linkAvailabilityContext';
 import type { PDFConnectionDetails, PDFEvidenceSummary } from './pdfExport';
 import type { ExportButtonPayload } from '../components/ExportButton';
@@ -20,6 +21,7 @@ import { TERMINAL_PROFILES } from '../components/capacity';
 import type { LeoTerminalProfile } from '../config/leoTerminals';
 import type { LeoConnectivityResult } from './leoConnectivityModel';
 import type { ActiveLeoPerformance } from './activeLeoRouteEvidence';
+import type { LeoSiteToSiteResult } from './leoSiteToSiteModel';
 
 /**
  * Pure builders for the PDF/export payload — extracted verbatim from
@@ -55,6 +57,127 @@ export interface BuildLeoPdfDetailsInputs {
   leoPerformance: LeoPerformanceLike | null;
   leoGeometry: LeoConnectivityResult | LEOGeometry | null;
   mobileLeoMetrics: MobileLeoMetricsSummary | null;
+  /**
+   * Site-to-Site result and active direction — when present, the export
+   * describes the full two-satellite/two-SNP S2S route instead of the
+   * single-site template below. Optional and defaults to absent so every
+   * existing single-site call/snapshot is unaffected (Cross-Surface
+   * Consistency Audit 2026-07-21, F1: the export previously had no
+   * Site-to-Site awareness at all and silently exported the single-site
+   * round-trip template even while the live app showed a two-satellite route).
+   */
+  siteToSiteResult?: LeoSiteToSiteResult | null;
+  direction?: 'A_TO_B' | 'B_TO_A';
+}
+
+/**
+ * LEO Site-to-Site export branch (F1 fix). Mirrors the route construction
+ * already proven correct in LEOConnectivitySection.tsx's Radio Path detail
+ * and s2sLatencyHopRows — same field names, same direction-ordering — so the
+ * exported route can never silently collapse to a single satellite/SNP the
+ * way the old single-site template did.
+ */
+function buildLeoS2SPdfDetails(
+  siteToSiteResult: LeoSiteToSiteResult,
+  direction: 'A_TO_B' | 'B_TO_A',
+  terminalProfile: LeoTerminalProfile,
+): PDFConnectionDetails {
+  const isAtoB = direction === 'A_TO_B';
+  if (!siteToSiteResult.serviceAvailable) {
+    return {
+      radioPath: 'No complete LEO Site-to-Site path for the current beam coverage.',
+      emptyState: 'No complete LEO Site-to-Site path for the current beam coverage.',
+    };
+  }
+
+  const sourceSite = isAtoB ? 'Site A' : 'Site B';
+  const destinationSite = isAtoB ? 'Site B' : 'Site A';
+  const sourceSatName = (isAtoB ? siteToSiteResult.servingSatelliteA : siteToSiteResult.servingSatelliteB)?.name ?? 'Unresolved satellite';
+  const destinationSatName = (isAtoB ? siteToSiteResult.servingSatelliteB : siteToSiteResult.servingSatelliteA)?.name ?? 'Unresolved satellite';
+  const sourceSnpName = (isAtoB ? siteToSiteResult.selectedSnpA : siteToSiteResult.selectedSnpB)?.name ?? 'Unresolved SNP';
+  const destinationSnpName = (isAtoB ? siteToSiteResult.selectedSnpB : siteToSiteResult.selectedSnpA)?.name ?? 'Unresolved SNP';
+  const sameSNP = sourceSnpName === destinationSnpName;
+  const popName = siteToSiteResult.logicalPop?.name ?? 'Core PoP';
+
+  const sourceUserLatencyMs = isAtoB ? siteToSiteResult.userLinkLatencyAms : siteToSiteResult.userLinkLatencyBms;
+  const sourceFeederLatencyMs = isAtoB ? siteToSiteResult.feederLatencyAms : siteToSiteResult.feederLatencyBms;
+  const destinationFeederLatencyMs = isAtoB ? siteToSiteResult.feederLatencyBms : siteToSiteResult.feederLatencyAms;
+  const destinationUserLatencyMs = isAtoB ? siteToSiteResult.userLinkLatencyBms : siteToSiteResult.userLinkLatencyAms;
+  const sourceUserDistanceKm = isAtoB ? siteToSiteResult.userLinkDistanceAKm : siteToSiteResult.userLinkDistanceBKm;
+  const sourceFeederDistanceKm = isAtoB ? siteToSiteResult.feederDistanceAKm : siteToSiteResult.feederDistanceBKm;
+  const destinationFeederDistanceKm = isAtoB ? siteToSiteResult.feederDistanceBKm : siteToSiteResult.feederDistanceAKm;
+  const destinationUserDistanceKm = isAtoB ? siteToSiteResult.userLinkDistanceBKm : siteToSiteResult.userLinkDistanceAKm;
+
+  const oneWayLatencyMs = isAtoB ? siteToSiteResult.oneWayLatencyAtoBMs : siteToSiteResult.oneWayLatencyBtoAMs;
+  const oneWayPropagationMs = sourceUserLatencyMs + sourceFeederLatencyMs + siteToSiteResult.backboneOneWayLatencyMs
+    + destinationFeederLatencyMs + destinationUserLatencyMs;
+  const oneWayDistanceKm = sourceUserDistanceKm + sourceFeederDistanceKm + siteToSiteResult.backboneDistanceKm
+    + destinationFeederDistanceKm + destinationUserDistanceKm;
+  const throughputMbps = isAtoB ? siteToSiteResult.finalThroughputAtoBMbps : siteToSiteResult.finalThroughputBtoAMbps;
+  const reverseThroughputMbps = isAtoB ? siteToSiteResult.finalThroughputBtoAMbps : siteToSiteResult.finalThroughputAtoBMbps;
+
+  return {
+    radioPath: sameSNP
+      ? `${sourceSite} -> ${sourceSatName} -> SNP ${sourceSnpName} -> ${destinationSatName} -> ${destinationSite}`
+      : `${sourceSite} -> ${sourceSatName} -> SNP ${sourceSnpName} -> ${popName} -> SNP ${destinationSnpName} -> ${destinationSatName} -> ${destinationSite}`,
+    routeLines: [
+      `${sourceSite} -> ${sourceSatName}`,
+      `Distance: ${sourceUserDistanceKm.toFixed(0)} km (${sourceUserLatencyMs.toFixed(1)} ms)`,
+      `${sourceSatName} -> SNP ${sourceSnpName}`,
+      `Distance: ${sourceFeederDistanceKm.toFixed(0)} km (${sourceFeederLatencyMs.toFixed(1)} ms)`,
+      ...(sameSNP
+        ? ['Same SNP — internal OneWeb routing, no backbone hop.']
+        : [
+            `SNP ${sourceSnpName} -> ${popName} -> SNP ${destinationSnpName}`,
+            `Distance: ${siteToSiteResult.backboneDistanceKm.toFixed(0)} km (${siteToSiteResult.backboneOneWayLatencyMs.toFixed(1)} ms)`,
+          ]),
+      `SNP ${destinationSnpName} -> ${destinationSatName}`,
+      `Distance: ${destinationFeederDistanceKm.toFixed(0)} km (${destinationFeederLatencyMs.toFixed(1)} ms)`,
+      `${destinationSatName} -> ${destinationSite}`,
+      `Distance: ${destinationUserDistanceKm.toFixed(0)} km (${destinationUserLatencyMs.toFixed(1)} ms)`,
+    ],
+    oneWayPropagation: {
+      distanceKm: oneWayDistanceKm,
+      latencyMs: oneWayPropagationMs,
+    },
+    latency: {
+      summary: `Estimated ${isAtoB ? 'A → B' : 'B → A'} one-way latency: ${oneWayLatencyMs.toFixed(1)} ms · round-trip reference: ${siteToSiteResult.rttMs.toFixed(1)} ms`,
+      propagationRows: [
+        { label: `Access ${sourceSite === 'Site A' ? 'A' : 'B'} (${sourceSite} -> ${sourceSatName})`, value: `${sourceUserLatencyMs.toFixed(1)} ms` },
+        { label: `Feeder ${sourceSite === 'Site A' ? 'A' : 'B'} (${sourceSatName} -> SNP)`, value: `${sourceFeederLatencyMs.toFixed(1)} ms` },
+        ...(sameSNP ? [] : [{ label: 'Backbone (SNP -> PoP -> SNP)', value: `${siteToSiteResult.backboneOneWayLatencyMs.toFixed(1)} ms` }]),
+        { label: `Feeder ${destinationSite === 'Site A' ? 'A' : 'B'} (SNP -> ${destinationSatName})`, value: `${destinationFeederLatencyMs.toFixed(1)} ms` },
+        { label: `Access ${destinationSite === 'Site A' ? 'A' : 'B'} (${destinationSatName} -> ${destinationSite})`, value: `${destinationUserLatencyMs.toFixed(1)} ms` },
+      ],
+      propagationTotal: `${oneWayPropagationMs.toFixed(1)} ms`,
+      overheadRows: [
+        { label: 'Processing margin', value: `${siteToSiteResult.processingMarginMs.toFixed(0)} ms` },
+      ],
+      overheadTotal: `${siteToSiteResult.processingMarginMs.toFixed(1)} ms`,
+      total: `${oneWayLatencyMs.toFixed(1)} ms one-way`,
+      warnings: [],
+    },
+    performance: {
+      // Genuine round-trip time, matching the single-site export's own
+      // rttLabel/rttMs convention (see the comment on that branch below) — the
+      // direction-selected one-way figure is the primary number, surfaced in
+      // `latency.summary` above instead, mirroring how the live Inspector
+      // shows both (one-way primary, round-trip as a secondary reference).
+      rttLabel: 'Round-trip reference',
+      rttMs: siteToSiteResult.rttMs,
+      // S2S has no real downlink/uplink distinction (it's A→B / B→A through a
+      // satellite relay) — the fixed PDF template only has "Downlink"/"Uplink"
+      // rows, so the selected direction's throughput is reported as
+      // "Downlink" and the reverse direction's as "Uplink", clarified in notes.
+      downlinkGbps: throughputMbps != null ? throughputMbps / 1000 : null,
+      uplinkGbps: reverseThroughputMbps != null ? reverseThroughputMbps / 1000 : null,
+      maxDlGbps: terminalProfile.maxDlMbps / 1000,
+      maxUlGbps: terminalProfile.maxUlMbps / 1000,
+      notes: [
+        `"Downlink" = ${isAtoB ? 'A → B' : 'B → A'} (selected direction) throughput; "Uplink" = ${isAtoB ? 'B → A' : 'A → B'} (reverse direction) throughput — Site-to-Site has no physical downlink/uplink distinction.`,
+      ],
+    },
+  };
 }
 
 export function buildLeoPdfDetails({
@@ -63,7 +186,13 @@ export function buildLeoPdfDetails({
   leoPerformance,
   leoGeometry,
   mobileLeoMetrics,
+  siteToSiteResult = null,
+  direction = 'A_TO_B',
 }: BuildLeoPdfDetailsInputs): PDFConnectionDetails | null {
+  if (siteToSiteResult) {
+    return buildLeoS2SPdfDetails(siteToSiteResult, direction, selectedLeoTerminalProfile);
+  }
+
   if (!resolvedLEOConnectivity) {
     return {
       radioPath: 'No valid LEO/SNP connectivity for this location.',
@@ -189,7 +318,7 @@ export function buildGeoPdfDetails({
   const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
   const resolvedGateway = geoGeometry.satelliteToGateway.resolvedGateway;
   const gatewayName = resolvedGateway
-    ? `${resolvedGateway.gatewayName} (${resolvedGateway.controlAssignmentRole})`
+    ? formatResolvedGatewayRoleLabel(resolvedGateway)
     : geoGeometry.satelliteToGateway.gateway?.name ?? 'No eligible traffic gateway';
   const gatewayTrafficStatusNote = resolvedGateway
     ? getGatewayTrafficStatusNote(resolvedGateway.gateway.trafficStatus)

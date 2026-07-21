@@ -4,12 +4,14 @@ import type { SatelliteData } from '../../types/satellites';
 import {
   GEO_GATEWAY_ASSIGNMENTS,
   analyzeGeoConnectivity,
+  formatResolvedGatewayRoleLabel,
   getGatewayAssignmentForSatellite,
   getGatewayAssignmentsForSatellite,
   getGroundSegmentRoutingForSatellite,
   resolveConnectivityPathForSatellite,
   resolveGatewayForSatellite,
   selectTrafficGeoGateway,
+  type ResolvedGeoGateway,
 } from '../geoConnectivityModel';
 
 const createGeoSatellite = (name: string, lng: number, id = name): SatelliteData => ({
@@ -239,5 +241,17 @@ describe('geoConnectivityModel gateway selection', () => {
     expect(trafficSelection).toBeNull();
     expect(geometry.satelliteToGateway.gateway).toBeNull();
     expect(geometry.satelliteToGateway.resolvedGateway).toBeNull();
+  });
+});
+
+describe('formatResolvedGatewayRoleLabel', () => {
+  it('shows a nominal gateway bare, with no role suffix', () => {
+    const gateway = { gatewayName: 'Cagliari', controlAssignmentRole: 'nominal' } as ResolvedGeoGateway;
+    expect(formatResolvedGatewayRoleLabel(gateway)).toBe('Cagliari');
+  });
+
+  it('annotates a backup-assigned gateway as failover, matching the live Inspector and COMM wording', () => {
+    const gateway = { gatewayName: 'Sarajevo', controlAssignmentRole: 'backup' } as ResolvedGeoGateway;
+    expect(formatResolvedGatewayRoleLabel(gateway)).toBe('Sarajevo (failover)');
   });
 });

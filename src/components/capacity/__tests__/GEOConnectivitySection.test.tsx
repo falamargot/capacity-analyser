@@ -155,6 +155,17 @@ const renderGeoRfEvidence = (content: ReactNode) => renderToStaticMarkup(
   </EngineeringFocusProvider>,
 );
 
+const geoPathFocusController: EngineeringFocusController = {
+  ...rfFocusController,
+  focus: createEngineeringFocus('locked', 'GEO', 'path', 'lens'),
+};
+
+const renderGeoPathEvidence = (content: ReactNode) => renderToStaticMarkup(
+  <EngineeringFocusProvider controller={geoPathFocusController} truths={{}}>
+    {content}
+  </EngineeringFocusProvider>,
+);
+
 const createGeoSatellite = (
   id: string,
   name: string,
@@ -566,6 +577,59 @@ describe('GEOConnectivitySection topology render smoke tests', () => {
 
       expect(resultHtml).toContain('latency');
       expect(resultHtml).toMatch(/\d+(\.\d+)? ms/);
+    });
+  });
+
+  describe('Path stage route diagram (kept symmetric with LEO — Cross-Surface Consistency Audit 2026-07-21)', () => {
+    it('STAR_FORWARD: names the gateway, satellite and user without dropping either hop', () => {
+      const satellite = createGeoSatellite('star-test', 'EUTELSAT STAR TEST', 10);
+      const selectedCoverage = createBeamCandidate(satellite, 'beam-1', false);
+      const html = renderGeoPathEvidence(
+        <GEOConnectivitySection
+          {...baseProps}
+          linkMode="STAR_FORWARD"
+          dualSegmentResult={makeStarResult(4.5)}
+          resolvedGEOConnectivity={makeResolvedGeoConnectivity(satellite, selectedCoverage)}
+          geoGeometry={makeLegacyRambouilletGeoGeometry()}
+          engineeringAnalysisViewModel={buildGeoEngineeringAnalysisViewModel({
+            linkMode: 'STAR_FORWARD',
+            result: makeStarResult(4.5),
+            confidenceLabel: 'High 90/100',
+            latencyMs: 280,
+            scenarioComplete: true,
+            pathResolved: true,
+          })}
+        />
+      );
+
+      expect(html).toContain('EUTELSAT STAR TEST');
+      expect(html.match(/data-route-diagram-node=""/g)?.length).toBe(3);
+    });
+
+    it('MESH: names one shared satellite between both sites — confirmed correct, not the LEO-style two-satellite case', () => {
+      const html = renderGeoPathEvidence(
+        <GEOConnectivitySection
+          {...baseProps}
+          linkMode="MESH"
+          dualSegmentResult={makeMeshResult(3.2, 2.1)}
+          engineeringAnalysisViewModel={buildGeoEngineeringAnalysisViewModel({
+            linkMode: 'MESH',
+            result: makeMeshResult(3.2, 2.1),
+            confidenceLabel: 'High 90/100',
+            latencyMs: 290,
+            scenarioComplete: true,
+            pathResolved: true,
+          })}
+        />
+      );
+
+      expect(html).toContain('Gateway');
+      expect(html).toContain('Site A');
+      expect(html).toContain('EUTELSAT TEST');
+      // Exactly one satellite node — GEO Mesh genuinely uses one satellite
+      // for both sites (unlike LEO Site-to-Site), so this is the correct
+      // shape, not a regression of the F2-style bug.
+      expect(html.match(/data-route-diagram-node=""/g)?.length).toBe(3);
     });
   });
 });

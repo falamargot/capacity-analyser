@@ -14,6 +14,8 @@ import { makeGeoResult, makeLeoResult } from './fixtures/engineeringViewModelFix
 import { getLeoTerminalProfile } from '../../config/leoTerminals';
 import type { SatelliteData } from '../../types/satellites';
 import type { GEOGeometry, ResolvedGEOConnectivity, ResolvedLEOConnectivity } from '../../components/capacity';
+import { computeLeoSiteToSiteResult } from '../leoSiteToSiteModel';
+import type { SNPData } from '../../components/globe/GlobeConfig';
 
 /**
  * M2.C golden freeze of the PDF/export payload contract (deferred from M0
@@ -67,6 +69,40 @@ const leoPerformance = {
 };
 
 const mobileLeoMetrics = { rtt: 71.8, downlinkGbps: 0.018, uplinkGbps: 0.012 };
+
+// F1 fixture (Cross-Surface Consistency Audit 2026-07-21): two DIFFERENT
+// serving satellites and two DIFFERENT SNPs, reproducing the reported
+// scenario (globe showed Site A -> ONEWEB-0184, Site B -> ONEWEB-0653) so the
+// export's regression test can assert both identities and the backbone hop
+// survive, rather than collapsing to the single-site round-trip template.
+const leoS2SResult = computeLeoSiteToSiteResult({
+  endpointA: { lat: 48.86, lng: 2.35 },
+  endpointB: { lat: 40.71, lng: -74.0 },
+  servingSatelliteA: { id: 'oneweb-0184', name: 'ONEWEB-0184' } as SatelliteData,
+  servingSatelliteB: { id: 'oneweb-0653', name: 'ONEWEB-0653' } as SatelliteData,
+  rfAvailableA: true,
+  rfAvailableB: true,
+  selectedSnpA: { name: 'Mornac', lat: 45.7, lng: -0.9 } as SNPData,
+  selectedSnpB: { name: 'Manassas', lat: 38.75, lng: -77.48 } as SNPData,
+  regulatoryResultA: {
+    isoA2: 'FR', isoA3: 'FRA', countryName: 'France', status: 'ALLOWED_CONFIRMED', reason: 'Test',
+    confidence: 1, emitAllowed: true, serviceAllowed: true, styleFill: '#000', styleOpacity: 1, isOcean: false,
+  },
+  regulatoryResultB: {
+    isoA2: 'US', isoA3: 'USA', countryName: 'United States', status: 'ALLOWED_CONFIRMED', reason: 'Test',
+    confidence: 1, emitAllowed: true, serviceAllowed: true, styleFill: '#000', styleOpacity: 1, isOcean: false,
+  },
+  userToSatDistanceAKm: 1100,
+  satToSnpDistanceAKm: 1300,
+  userToSatDistanceBKm: 1200,
+  satToSnpDistanceBKm: 1400,
+  elevationADeg: 52,
+  elevationBDeg: 48,
+  dlThroughputAMbps: 40,
+  ulThroughputAMbps: 18,
+  dlThroughputBMbps: 35,
+  ulThroughputBMbps: 22,
+});
 
 const resolvedGeo = {
   satellite: geoSatellite,
@@ -193,6 +229,45 @@ describe('M2 export payload golden', () => {
       leoPdfDetails: null,
       geoPdfDetails,
     })).toMatchSnapshot();
+  });
+
+  it('F1: LEO Site-to-Site export names both satellites, both SNPs and the backbone hop (A -> B)', () => {
+    const details = buildLeoPdfDetails({
+      resolvedLEOConnectivity: resolvedLeo,
+      selectedLeoTerminalProfile: getLeoTerminalProfile('fixed'),
+      leoPerformance,
+      leoGeometry: leoGeometry as never,
+      mobileLeoMetrics,
+      siteToSiteResult: leoS2SResult,
+      direction: 'A_TO_B',
+    });
+
+    expect(details).not.toBeNull();
+    expect(details?.radioPath).toContain('ONEWEB-0184');
+    expect(details?.radioPath).toContain('ONEWEB-0653');
+    expect(details?.radioPath).toContain('Mornac');
+    expect(details?.radioPath).toContain('Manassas');
+    // Never collapses to the old single-site round-trip template naming one satellite twice.
+    expect(details?.radioPath).not.toBe(
+      `Site A -> ONEWEB-0184 -> SNP Mornac -> ONEWEB-0184 -> Site A`
+    );
+    expect(details?.routeLines?.join(' ')).toContain('ONEWEB-0653');
+    expect(details).toMatchSnapshot();
+  });
+
+  it('F1: LEO Site-to-Site export swaps direction correctly (B -> A)', () => {
+    const details = buildLeoPdfDetails({
+      resolvedLEOConnectivity: resolvedLeo,
+      selectedLeoTerminalProfile: getLeoTerminalProfile('fixed'),
+      leoPerformance,
+      leoGeometry: leoGeometry as never,
+      mobileLeoMetrics,
+      siteToSiteResult: leoS2SResult,
+      direction: 'B_TO_A',
+    });
+
+    expect(details?.radioPath.startsWith('Site B')).toBe(true);
+    expect(details?.radioPath.endsWith('Site A')).toBe(true);
   });
 
   it('returns null without an analysis point', () => {

@@ -1,5 +1,73 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`M2 export payload golden > F1: LEO Site-to-Site export names both satellites, both SNPs and the backbone hop (A -> B) 1`] = `
+{
+  "latency": {
+    "overheadRows": [
+      {
+        "label": "Processing margin",
+        "value": "28 ms",
+      },
+    ],
+    "overheadTotal": "28.0 ms",
+    "propagationRows": [
+      {
+        "label": "Access A (Site A -> ONEWEB-0184)",
+        "value": "3.7 ms",
+      },
+      {
+        "label": "Feeder A (ONEWEB-0184 -> SNP)",
+        "value": "4.3 ms",
+      },
+      {
+        "label": "Backbone (SNP -> PoP -> SNP)",
+        "value": "39.5 ms",
+      },
+      {
+        "label": "Feeder B (SNP -> ONEWEB-0653)",
+        "value": "4.7 ms",
+      },
+      {
+        "label": "Access B (ONEWEB-0653 -> Site B)",
+        "value": "4.0 ms",
+      },
+    ],
+    "propagationTotal": "56.2 ms",
+    "summary": "Estimated A → B one-way latency: 84.2 ms · round-trip reference: 168.4 ms",
+    "total": "84.2 ms one-way",
+    "warnings": [],
+  },
+  "oneWayPropagation": {
+    "distanceKm": 12903.654207701107,
+    "latencyMs": 56.19647579841314,
+  },
+  "performance": {
+    "downlinkGbps": 0.018,
+    "maxDlGbps": 0.195,
+    "maxUlGbps": 0.032,
+    "notes": [
+      ""Downlink" = A → B (selected direction) throughput; "Uplink" = B → A (reverse direction) throughput — Site-to-Site has no physical downlink/uplink distinction.",
+    ],
+    "rttLabel": "Round-trip reference",
+    "rttMs": 168.39295159682626,
+    "uplinkGbps": 0.022,
+  },
+  "radioPath": "Site A -> ONEWEB-0184 -> SNP Mornac -> London -> SNP Manassas -> ONEWEB-0653 -> Site B",
+  "routeLines": [
+    "Site A -> ONEWEB-0184",
+    "Distance: 1100 km (3.7 ms)",
+    "ONEWEB-0184 -> SNP Mornac",
+    "Distance: 1300 km (4.3 ms)",
+    "SNP Mornac -> London -> SNP Manassas",
+    "Distance: 7904 km (39.5 ms)",
+    "SNP Manassas -> ONEWEB-0653",
+    "Distance: 1400 km (4.7 ms)",
+    "ONEWEB-0653 -> Site B",
+    "Distance: 1200 km (4.0 ms)",
+  ],
+}
+`;
+
 exports[`M2 export payload golden > freezes the GEO PDF details contract 1`] = `
 {
   "latency": {

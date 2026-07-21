@@ -208,6 +208,17 @@ const renderLeoRfEvidence = (content: ReactNode) => renderToStaticMarkup(
   </EngineeringFocusProvider>,
 );
 
+const pathFocusController: EngineeringFocusController = {
+  ...rfFocusController,
+  focus: createEngineeringFocus('locked', 'LEO', 'path', 'lens'),
+};
+
+const renderLeoPathEvidence = (content: ReactNode) => renderToStaticMarkup(
+  <EngineeringFocusProvider controller={pathFocusController} truths={{}}>
+    {content}
+  </EngineeringFocusProvider>,
+);
+
 const baseProps = {
   engineeringAnalysisViewModel: buildLeoEngineeringAnalysisViewModel({
     debugInfo: makeLeoResult(18, 12),
@@ -536,6 +547,90 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
 
       expect(detailsOpenStateBeforeText(html, 'Site A Investigation')).toBe(false);
       expect(detailsOpenStateBeforeText(html, 'Backbone Investigation')).toBe(true);
+    });
+  });
+
+  describe('Path stage route diagram (Cross-Surface Consistency Audit 2026-07-21, F2/M1)', () => {
+    it('SITE_TO_SITE: the Path stage summary names both serving satellites and both SNPs, not just Site A', () => {
+      const html = renderLeoPathEvidence(
+        <LEOConnectivitySection
+          {...baseProps}
+          leoTopologyMode="SITE_TO_SITE"
+          engineeringAnalysisViewModel={buildLeoEngineeringAnalysisViewModel({
+            debugInfo: makeLeoResult(75, 55),
+            siteToSiteResult: makeSiteToSiteResult(),
+            topology: 'SITE_TO_SITE',
+            latencyMs: 60,
+            latencyLabel: 'A → B latency',
+            confidenceLabel: 'High 90/100',
+            scenarioComplete: true,
+            pathResolved: true,
+            rfStatus: 'available',
+          })}
+          pointBLeo={{ lat: 15, lng: 25 }}
+          activeMeshTab="forward"
+          siteToSiteResult={makeSiteToSiteResult()}
+        />
+      );
+
+      // The reported bug: the old string-template Route summary named only
+      // Site A's satellite/SNP and jumped straight to "Site B" as if the
+      // path had no further hops. The diagram must name both satellites,
+      // both SNPs, and the backbone PoP.
+      expect(html).toContain('ONEWEB-A');
+      expect(html).toContain('ONEWEB-B');
+      expect(html).toContain('Fairbanks');
+      expect(html).toContain('Svalbard');
+      expect(html).toContain('Ashburn');
+      expect(html.indexOf('ONEWEB-A')).toBeLessThan(html.indexOf('ONEWEB-B'));
+    });
+
+    it('SITE_TO_SITE: reverses node order for B_TO_A without dropping either satellite', () => {
+      const html = renderLeoPathEvidence(
+        <LEOConnectivitySection
+          {...baseProps}
+          leoTopologyMode="SITE_TO_SITE"
+          engineeringAnalysisViewModel={buildLeoEngineeringAnalysisViewModel({
+            debugInfo: makeLeoResult(75, 55),
+            siteToSiteResult: makeSiteToSiteResult(),
+            topology: 'SITE_TO_SITE',
+            latencyMs: 60,
+            confidenceLabel: 'High 90/100',
+            scenarioComplete: true,
+            pathResolved: true,
+            rfStatus: 'available',
+          })}
+          pointBLeo={{ lat: 15, lng: 25 }}
+          activeMeshTab="reverse"
+          siteToSiteResult={makeSiteToSiteResult()}
+        />
+      );
+
+      expect(html).toContain('ONEWEB-A');
+      expect(html).toContain('ONEWEB-B');
+      expect(html.indexOf('ONEWEB-B')).toBeLessThan(html.indexOf('ONEWEB-A'));
+    });
+
+    it('SINGLE_SITE: the Path stage summary names the resolved satellite and SNP', () => {
+      const html = renderLeoPathEvidence(
+        <LEOConnectivitySection
+          {...baseProps}
+          leoTopologyMode="SINGLE_SITE"
+          resolvedLEOConnectivity={{
+            satellite: makeSatellite('ONEWEB-0042'),
+            snp: { name: 'Longyearbyen', lat: 78.2, lng: 15.6 },
+            userLEOElevation: 45,
+            snpLEOElevation: 30,
+            userLEODistance: 1100,
+            snpLEODistance: 1300,
+            connectedBeamIndex: 4,
+            candidateBeamCount: 2,
+          }}
+        />
+      );
+
+      expect(html).toContain('ONEWEB-0042');
+      expect(html).toContain('Longyearbyen');
     });
   });
 

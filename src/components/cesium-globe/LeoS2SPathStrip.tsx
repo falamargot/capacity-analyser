@@ -31,6 +31,7 @@ const truncate = (value: string, max = 14): string =>
 const CYAN = '#06b6d4';
 const ORANGE = '#f97316';
 const VIOLET = '#8b5cf6';
+const SLATE = '#64748b';
 
 const directionLabel = (direction: RouteDirection): string =>
   direction === 'B_TO_A' ? 'B→A' : 'A→B';
@@ -58,11 +59,13 @@ const LeoS2SPathStrip: React.FC<LeoS2SPathStripProps> = ({
     backboneOneWayLatencyMs,
     finalThroughputAtoBMbps,
     finalThroughputBtoAMbps,
-    rttMs,
+    oneWayLatencyAtoBMs,
+    oneWayLatencyBtoAMs,
   } = result;
 
   const isReverse = activeDirection === 'B_TO_A';
   const selectedThroughput = isReverse ? finalThroughputBtoAMbps : finalThroughputAtoBMbps;
+  const selectedOneWayLatencyMs = isReverse ? oneWayLatencyBtoAMs : oneWayLatencyAtoBMs;
   if (selectedThroughput == null || !Number.isFinite(selectedThroughput) || selectedThroughput <= 0) {
     return null;
   }
@@ -131,13 +134,14 @@ const LeoS2SPathStrip: React.FC<LeoS2SPathStripProps> = ({
     <BottomPathRibbon
       title="LEO Site-to-Site Path"
       accentColor={CYAN}
-      summary={`${directionLabel(activeDirection)} ${fmtMbps(selectedThroughput)} · latency ${fmtMs(rttMs)}`}
+      summary={`${directionLabel(activeDirection)} ${fmtMbps(selectedThroughput)} · latency ${fmtMs(selectedOneWayLatencyMs)}`}
       items={items}
       variant={variant}
       legendItems={[
         { color: CYAN, label: 'User link' },
         { color: ORANGE, label: 'Feeder link' },
         { color: VIOLET, label: 'Backbone / terrestrial network', dashed: true },
+        { color: SLATE, label: 'Latency value is selected one-way route', dashed: true },
       ]}
       trailingNote="Backbone capacity assumed non-limiting"
     />

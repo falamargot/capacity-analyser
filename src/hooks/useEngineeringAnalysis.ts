@@ -1372,12 +1372,17 @@ export function useEngineeringAnalysis({
     leoPerformance,
     leoGeometry,
     mobileLeoMetrics,
+    siteToSiteResult: leoTopologyMode === 'SITE_TO_SITE' ? leoSiteToSiteResult : null,
+    direction: activeMeshTab === 'reverse' ? 'B_TO_A' : 'A_TO_B',
   }), [
     resolvedLEOConnectivity,
     selectedLeoTerminalProfile,
     leoPerformance,
     leoGeometry,
     mobileLeoMetrics,
+    leoTopologyMode,
+    leoSiteToSiteResult,
+    activeMeshTab,
   ]);
 
   const geoPdfDetails = useMemo(() => buildGeoPdfDetails({

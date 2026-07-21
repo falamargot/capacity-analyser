@@ -4191,6 +4191,14 @@ const App: React.FC = () => {
       handleTechnologyChange(focus.technology);
       return;
     }
+    if (focus.kind === 'locked' && focus.stageId && focus.origin) {
+      // An open Inspector (locked via the lens, e.g. a clicked Cause Chain
+      // row) must stay open across a GEO/LEO switch rather than closing —
+      // retarget it to the newly active technology, same stage, so it keeps
+      // showing the same question with fresh data instead of disappearing.
+      engineeringFocusController.lock(activeConnectivityTab, focus.stageId, focus.origin);
+      return;
+    }
     engineeringFocusController.clear();
   }, [activeConnectivityTab, engineeringFocusController, handleTechnologyChange]);
 

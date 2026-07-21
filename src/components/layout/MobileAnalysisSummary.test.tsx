@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import type { SatelliteData } from '../../types/satellites';
 import type { EngineeringTruth } from '../../utils/engineeringAnalysisViewModel';
+import type { LeoSiteToSiteResult } from '../../utils/leoSiteToSiteModel';
 import MobileAnalysisSummary from './MobileAnalysisSummary';
 
 const makeSatellite = (
@@ -81,6 +82,43 @@ describe('MobileAnalysisSummary serving satellite identity', () => {
         expect(markup).toContain('A 48.86°N, 2.35°E · B 14.72°N, 17.47°W');
         expect(markup).toContain('Service available');
         expect(markup).toContain('42 Mbps');
+    });
+
+    it('LEO Site-to-Site: shows Site A and Site B each with their OWN serving satellite (Cross-Surface Consistency Audit 2026-07-21, F3)', () => {
+        const satA = makeSatellite('ONEWEB-0184', 'LEO');
+        const satB = makeSatellite('ONEWEB-0653', 'LEO');
+        const siteToSiteResult = {
+            servingSatelliteA: satA,
+            servingSatelliteB: satB,
+            serviceAvailable: true,
+            serviceStatus: 'ALLOWED',
+            failureReason: null,
+            finalThroughputAtoBMbps: 40,
+            finalThroughputBtoAMbps: 35,
+        } as unknown as LeoSiteToSiteResult;
+
+        const markup = renderToStaticMarkup(
+            <MobileAnalysisSummary
+                selectedSatellite={null}
+                autoSelectedLEOSatellite={satA}
+                autoSelectedGEOSatellite={makeSatellite('EUTELSAT 21B', 'GEO')}
+                selectedPoint={{ lat: 48.8566, lng: 2.3522 }}
+                pointBLeo={{ lat: 40.7128, lng: -74.006 }}
+                compact
+                satelliteScope="LEO"
+                activeConnectivityTab="LEO"
+                leoTopologyMode="SITE_TO_SITE"
+                leoSiteToSiteResult={siteToSiteResult}
+            />,
+        );
+
+        // Site A's card names its own satellite.
+        expect(markup).toContain('ONEWEB-0184');
+        // Site B's card must name ITS OWN satellite too — previously this was
+        // always blank (hardcoded null in renderSite), even though the data
+        // was available and the two sites are served by different satellites.
+        expect(markup).toContain('ONEWEB-0653');
+        expect(markup.indexOf('ONEWEB-0184')).toBeLessThan(markup.indexOf('ONEWEB-0653'));
     });
 
     it.each(['GEO', 'LEO'] as const)('keeps %s Engineering Truth authoritative when a satellite entity is selected', (technology) => {

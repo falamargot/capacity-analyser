@@ -60,6 +60,8 @@ const leoResult = {
   backboneOneWayLatencyMs: 5.2,
   finalThroughputAtoBMbps: 1200,
   finalThroughputBtoAMbps: 800,
+  oneWayLatencyAtoBMs: 44.4,
+  oneWayLatencyBtoAMs: 44.4,
   rttMs: 88.8,
 } as LeoSiteToSiteResult;
 
@@ -121,7 +123,9 @@ describe('bottom path ribbons', () => {
     expect(html).toContain('LEO Site-to-Site Path');
     expect(html).toContain('A→B 1.2 Gbps');
     expect(html).not.toContain('B→A 800 Mbps');
-    expect(html).toContain('latency 89 ms');
+    expect(html).toContain('latency 44 ms');
+    expect(html).not.toContain('latency 89 ms');
+    expect(html).toContain('Latency value is selected one-way route');
     expect(html.indexOf('Site A')).toBeLessThan(html.indexOf('Site B'));
     expect(html.indexOf('ONEWEB-0001')).toBeLessThan(html.indexOf('ONEWEB-0002'));
     expect(html.indexOf('PAR')).toBeLessThan(html.indexOf('MAD'));
@@ -132,7 +136,8 @@ describe('bottom path ribbons', () => {
 
     expect(html).toContain('B→A 800 Mbps');
     expect(html).not.toContain('A→B 1.2 Gbps');
-    expect(html).toContain('latency 89 ms');
+    expect(html).toContain('latency 44 ms');
+    expect(html).not.toContain('latency 89 ms');
     expect(html.indexOf('Site B')).toBeLessThan(html.indexOf('Site A'));
     expect(html.indexOf('ONEWEB-0002')).toBeLessThan(html.indexOf('ONEWEB-0001'));
     expect(html.indexOf('MAD')).toBeLessThan(html.indexOf('PAR'));

@@ -250,6 +250,10 @@ function commercialGatewayLabel(gateway: ResolvedGeoGateway): string {
   // On the traffic path a 'backup' role only arises from outage re-routing
   // (beam FAILOVER or the reference-allocation backup teleport) — surface it,
   // otherwise the hub silently relocates during a simulated outage.
+  // NOTE: this `controlAssignmentRole === 'backup'` check is a separately-named
+  // boolean from GEOConnectivitySection.tsx's `isFailoverGateway`
+  // (`beamRoute?.routingMode === 'FAILOVER'`) for the same underlying concept —
+  // see the comment there. Cross-Surface Consistency Audit 2026-07-21, M4.
   if (gateway.controlAssignmentRole === 'backup') {
     return `${gateway.gatewayName} (failover)`;
   }
