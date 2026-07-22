@@ -838,20 +838,35 @@ function EngineeringHeaderScenarioBuilder({
     >
       <div className={['relative flex min-w-0 items-stretch', compact ? 'gap-1.5' : 'gap-2'].join(' ')}>
         <SiteColumn eyebrow="Origin" config={buildDraftSiteConfig('siteA', siteA)} analysisSource={analysisSource} role="origin" activeTechnology={draft.technology} />
-        <div className="flex shrink-0 flex-col items-center self-stretch justify-center gap-1 px-0.5">
-          <div className="w-px flex-1 bg-gradient-to-b from-transparent via-slate-300/70 to-transparent dark:via-slate-600/55" />
-          <button
-            type="button"
-            onClick={swapDraftEndpoints}
-            disabled={!canSwap}
-            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-200/90 bg-white/70 text-sky-600 transition-colors hover:border-sky-300 hover:bg-white disabled:cursor-not-allowed disabled:opacity-30 dark:border-slate-700/80 dark:bg-slate-800/45 dark:text-sky-200 dark:hover:border-sky-500/50 dark:hover:bg-slate-800"
-            aria-label="Swap origin and destination"
+        {/* Single Site has no destination endpoint: the swap control and the Site B
+            column are meaningless, so hide them and mark the slot as not required
+            rather than presenting an editable Destination the model never uses. */}
+        {isSiteToSite && (
+          <div className="flex shrink-0 flex-col items-center self-stretch justify-center gap-1 px-0.5">
+            <div className="w-px flex-1 bg-gradient-to-b from-transparent via-slate-300/70 to-transparent dark:via-slate-600/55" />
+            <button
+              type="button"
+              onClick={swapDraftEndpoints}
+              disabled={!canSwap}
+              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-200/90 bg-white/70 text-sky-600 transition-colors hover:border-sky-300 hover:bg-white disabled:cursor-not-allowed disabled:opacity-30 dark:border-slate-700/80 dark:bg-slate-800/45 dark:text-sky-200 dark:hover:border-sky-500/50 dark:hover:bg-slate-800"
+              aria-label="Swap origin and destination"
+            >
+              <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden="true" />
+            </button>
+            <div className="w-px flex-1 bg-gradient-to-b from-transparent via-slate-300/70 to-transparent dark:via-slate-600/55" />
+          </div>
+        )}
+        {isSiteToSite ? (
+          <SiteColumn eyebrow="Destination" config={buildDraftSiteConfig('siteB', siteB)} analysisSource={analysisSource} role="destination" activeTechnology={draft.technology} />
+        ) : (
+          <div
+            className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 rounded-md border border-dashed border-slate-300/70 px-2 py-1 dark:border-white/[0.08]"
+            aria-label="Destination not required for Single Site"
           >
-            <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden="true" />
-          </button>
-          <div className="w-px flex-1 bg-gradient-to-b from-transparent via-slate-300/70 to-transparent dark:via-slate-600/55" />
-        </div>
-        <SiteColumn eyebrow="Destination" config={buildDraftSiteConfig('siteB', siteB)} analysisSource={analysisSource} role="destination" activeTechnology={draft.technology} />
+            <span className="truncate text-[9px] font-black uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">Destination</span>
+            <span className="truncate text-[10px] font-semibold text-slate-400 dark:text-slate-500">Not required for Single Site</span>
+          </div>
+        )}
       </div>
 
       <div className="grid min-w-0 grid-cols-[auto_auto_minmax(7rem,0.8fr)_minmax(8rem,1fr)] items-center gap-2 rounded-lg border border-slate-200/65 bg-white/55 px-2 py-1 dark:border-white/[0.07] dark:bg-slate-950/24">

@@ -139,3 +139,47 @@ describe('commercial hero eyebrow (recommended vs viewed vs hybrid)', () => {
     expect(recommendationHeroEyebrow(recommendationViewRole('insufficient_data', 'LEO'))).toBe('Viewed option');
   });
 });
+
+describe('commercial destination narrative (no phantom destination)', () => {
+  function geoSinglePointInput(withSiteB: boolean): Parameters<typeof buildCommercialScenarioViewModel>[0] {
+    return {
+      activeTechnology: 'GEO',
+      activeMeshTab: 'forward',
+      activeAnalysisPoint: { lat: 48.8566, lng: 2.3522 },
+      siteB: withSiteB ? { lat: 51.5074, lng: -0.1278 } : null,
+      selectedSnpName: null,
+      selectedSatellite: null,
+      activeGeoSatellite: null,
+      resolvedAutoLEO: null,
+      // STAR_FORWARD single-site: available route with coverage at the origin only.
+      metrics: { geo: { downlinkGbps: 0.12, rtt: 240 } } as Parameters<typeof buildCommercialScenarioViewModel>[0]['metrics'],
+      leoTopologyMode: 'SINGLE_SITE',
+      activeLeoRouteEvidence: null,
+      geoPointStatus: 'available',
+      linkMode: 'STAR_FORWARD',
+      selectedCoverage: null,
+      weatherType: 'clear',
+      weatherTypeB: 'clear',
+      leoTerminalType: 'fixed',
+    };
+  }
+
+  it('does not assert service reaches a destination when none is defined', () => {
+    const viewModel = buildCommercialScenarioViewModel(geoSinglePointInput(false));
+    const destination = viewModel.routeSegments.find((segment) => segment.id === 'siteB');
+
+    expect(viewModel.activeRouteAvailable).toBe(true);
+    // Regression: this used to read "Service reaches the customer destination."
+    // even with no Site B, no gateway and no SNP — a phantom-destination claim.
+    expect(destination?.story).not.toMatch(/reaches the customer destination/i);
+    expect(destination?.story).toBe('Coverage is confirmed at the origin; no destination site is defined.');
+  });
+
+  it('still confirms delivery when a real destination site is present', () => {
+    const viewModel = buildCommercialScenarioViewModel(geoSinglePointInput(true));
+    const destination = viewModel.routeSegments.find((segment) => segment.id === 'siteB');
+
+    expect(viewModel.activeRouteAvailable).toBe(true);
+    expect(destination?.story).toBe('Service reaches the customer destination.');
+  });
+});

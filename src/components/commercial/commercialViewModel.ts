@@ -558,8 +558,18 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
       role: 'Destination',
       isRouteParticipant: activeRouteAvailable && destinationStatus !== 'blocked' && destinationStatus !== 'unknown',
       isPrimaryIssue: primaryFailingSegment === 'siteB',
+      // Only claim the service reaches a customer destination when one is actually
+      // resolved. A GEO single-point route can be "available" (coverage at the origin)
+      // with no Site B and no gateway destination — asserting delivery there would be
+      // a phantom-destination claim.
       story: activeRouteAvailable
-        ? (destinationIsSnp ? 'Traffic exits at the selected network portal.' : 'Service reaches the customer destination.')
+        ? destinationIsSnp
+          ? 'Traffic exits at the selected network portal.'
+          : destinationEndpointKind === 'geo_gateway'
+            ? 'Traffic reaches the serving gateway.'
+            : input.siteB
+              ? 'Service reaches the customer destination.'
+              : 'Coverage is confirmed at the origin; no destination site is defined.'
         : 'Destination is shown as an endpoint until service is confirmed.',
       summary: siteBName,
       limitation: destinationStatus === 'healthy' ? undefined : input.siteB || destinationIsSnp ? 'Service to destination is not confirmed' : 'Destination is not selected yet',
