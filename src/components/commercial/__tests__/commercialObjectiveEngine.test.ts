@@ -74,13 +74,17 @@ describe('objective engine — gates and route safety', () => {
 });
 
 describe('objective engine — data-driven, no hardcoded orbit bias', () => {
-  it('given a fixture where LEO has a much lower RTT, REALTIME recommends LEO', () => {
+  it('given a fixture where LEO has a much lower RTT, REALTIME recommends LEO at Medium confidence', () => {
     const geo = option('geo', { rttMs: 600 });
     const leo = option('leo', { rttMs: 30 });
     const rec = buildObjectiveRecommendation([geo, leo], 'REALTIME');
     expect(rec.technology).toBe('leo');
     expect(rec.reasonCategory).toBe('LOWEST_LATENCY');
     expect(rec.favorableFactors).toContain('Stronger latency');
+    // Only regulatory + latency known → weighted coverage 0.5 → Medium, never High,
+    // even with the dominant criterion present and a large gap.
+    expect(rec.confidence?.level).toBe('Medium');
+    expect(rec.assessmentBasis).toBe('relative_comparison');
   });
 
   it('given a fixture where GEO has better sustained throughput and availability, BROADCAST recommends GEO', () => {
@@ -99,25 +103,64 @@ describe('objective engine — data-driven, no hardcoded orbit bias', () => {
   });
 });
 
-describe('objective engine — unknown is never zero', () => {
-  it('does not let a technology win a criterion the other lacks', () => {
+describe('objective engine — unknown is never zero, and never "similar"', () => {
+  it('returns insufficient_data (not SIMILAR) when the dominant criterion is not comparable', () => {
     // GEO has no RTT; if unknown were treated as 0 (best latency) GEO would win.
     const geo = option('geo', { rttMs: undefined });
     const leo = option('leo', { rttMs: 30 });
     const rec = buildObjectiveRecommendation([geo, leo], 'REALTIME');
-    // Latency is excluded from the common base → no decisive latency winner.
-    expect(rec.reasonCategory).toBe('SIMILAR_PERFORMANCE');
-    expect(rec.unknownCriteria).toContain('latency');
-    expect(rec.confidence?.level).toBe('Low');
+    expect(rec.technology).toBe('insufficient_data');
+    expect(rec.reasonCategory).toBe('INSUFFICIENT_DATA');
+    // Latency is known for LEO only → non-comparable, not both-unknown.
+    expect(rec.nonComparableCriteria).toContain('latency');
+    expect(rec.message).toContain('dominant');
+    expect(rec.message).toContain('latency');
+    expect(rec.confidence).toBeUndefined();
   });
 
-  it('keeps a criterion known for only one technology explanatory, not discriminating', () => {
+  it('does not manufacture a decisive win from a criterion known for one technology only', () => {
     const geo = option('geo', { sustainedMbps: 500 });
     const leo = option('leo', { sustainedMbps: null });
     const rec = buildObjectiveRecommendation([geo, leo], 'BULK');
-    // GEO's lone sustained figure must not manufacture a decisive win.
-    expect(rec.reasonCategory).not.toBe('HIGHEST_THROUGHPUT');
-    expect(rec.favorableFactors?.some((f) => f.includes('not compared'))).toBe(true);
+    // BULK dominant = sustained throughput; single-sided → insufficient_data.
+    expect(rec.technology).toBe('insufficient_data');
+    expect(rec.nonComparableCriteria).toContain('sustained throughput');
+  });
+
+  it('guards normalization against invalid latency values (0 / Infinity / NaN)', () => {
+    for (const bad of [0, Infinity, Number.NaN, -5]) {
+      const geo = option('geo', { rttMs: bad as number });
+      const leo = option('leo', { rttMs: 30 });
+      const rec = buildObjectiveRecommendation([geo, leo], 'REALTIME');
+      // Invalid latency is treated as unknown, never as a best/zero value.
+      expect(rec.technology).toBe('insufficient_data');
+    }
+  });
+});
+
+describe('objective engine — missing-data distinction', () => {
+  it('separates common, non-comparable and both-unknown criteria', () => {
+    const geo = option('geo', { rttMs: 550, sustainedMbps: 400, availabilityPct: 99 });
+    const leo = option('leo', { rttMs: 40, sustainedMbps: 90, availabilityPct: null });
+    const rec = buildObjectiveRecommendation([geo, leo], 'REALTIME');
+    // regulatory + latency + sustained known for both; availability single-sided; duty/contention/theoretical unknown.
+    expect(rec.commonCriteria).toEqual(expect.arrayContaining(['regulatory sellability', 'latency', 'sustained throughput']));
+    expect(rec.nonComparableCriteria).toContain('indicative availability');
+    expect(rec.unknownCriteria).toEqual(expect.arrayContaining(['duty cycle', 'contention']));
+  });
+});
+
+describe('objective engine — relative comparison basis', () => {
+  it('ranks two objectively weak options relatively without claiming a quantified need is met', () => {
+    const geo = option('geo', { rttMs: 700, sustainedMbps: 6 });
+    const leo = option('leo', { rttMs: 690, sustainedMbps: 9 });
+    const rec = buildObjectiveRecommendation([geo, leo], 'BULK');
+    // A winner may emerge from the relative comparison, but it is explicitly a
+    // relative preference — never an absolute-fitness percentage.
+    expect(rec.assessmentBasis).toBe('relative_comparison');
+    expect(['geo', 'leo', 'insufficient_data']).toContain(rec.technology);
+    // No field claims an absolute suitability score.
+    expect(rec).not.toHaveProperty('suitabilityPercent');
   });
 });
 

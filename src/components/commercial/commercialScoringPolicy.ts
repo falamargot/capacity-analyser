@@ -70,8 +70,14 @@ const W = (
 export interface CommercialScoringPolicy {
   version: string;
   weights: Record<CommercialObjective, CommercialScoringWeights>;
-  /** The single criterion that most defines each objective; its absence lowers confidence. */
-  dominantCriterion: Record<CommercialObjective, CommercialCriterionId>;
+  /**
+   * The criteria that define each objective. A weighted recommendation is only
+   * produced when at least one dominant criterion is comparable across the
+   * surviving technologies; otherwise the engine returns insufficient_data.
+   * RESILIENCE has no scoring dominant — it is special-cased on two deliverable
+   * routes and technology diversity.
+   */
+  dominantCriteria: Record<CommercialObjective, CommercialCriterionId[]>;
 }
 
 export const COMMERCIAL_SCORING_POLICY_V1: CommercialScoringPolicy = {
@@ -85,13 +91,13 @@ export const COMMERCIAL_SCORING_POLICY_V1: CommercialScoringPolicy = {
     BULK: W(3, 1, 5, 2, 2, 2, 3, 1, 0, 0),
     RESILIENCE: W(3, 2, 2, 1, 3, 1, 2, 3, 1, 0),
   },
-  dominantCriterion: {
-    REALTIME: 'latency',
-    BROADCAST: 'sustainedThroughput',
-    MOBILITY: 'mobilityFit',
-    BACKUP: 'diversityFromPrimary',
-    BULK: 'sustainedThroughput',
-    RESILIENCE: 'serviceDiversity',
+  dominantCriteria: {
+    REALTIME: ['latency'],
+    BROADCAST: ['sustainedThroughput', 'availability'],
+    MOBILITY: ['mobilityFit'],
+    BACKUP: ['diversityFromPrimary'],
+    BULK: ['sustainedThroughput'],
+    RESILIENCE: [], // special-cased: two deliverable routes + technology diversity
   },
 };
 
@@ -99,6 +105,12 @@ export function weightsFor(objective: CommercialObjective): CommercialScoringWei
   return COMMERCIAL_SCORING_POLICY_V1.weights[objective];
 }
 
-export function dominantCriterionFor(objective: CommercialObjective): CommercialCriterionId {
-  return COMMERCIAL_SCORING_POLICY_V1.dominantCriterion[objective];
+export function dominantCriteriaFor(objective: CommercialObjective): CommercialCriterionId[] {
+  return COMMERCIAL_SCORING_POLICY_V1.dominantCriteria[objective];
+}
+
+/** Total expected weight for an objective (used for weighted evidence coverage). */
+export function totalObjectiveWeight(objective: CommercialObjective): number {
+  const weights = weightsFor(objective);
+  return (Object.values(weights) as number[]).reduce((sum, w) => sum + w, 0);
 }

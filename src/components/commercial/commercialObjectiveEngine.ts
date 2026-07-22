@@ -8,7 +8,8 @@ import type {
 import {
   CRITERION_DIRECTION,
   CRITERION_NATURE,
-  dominantCriterionFor,
+  dominantCriteriaFor,
+  totalObjectiveWeight,
   weightsFor,
 } from './commercialScoringPolicy';
 import type { CommercialRecommendation, CommercialTechnologyOption } from './commercialTypes';
@@ -50,6 +51,16 @@ const OBJECTIVE_REASON_CATEGORY: Record<CommercialObjective, CommercialRecommend
   RESILIENCE: 'BEST_RESILIENCE',
 };
 
+const ASSESSMENT_BASIS = 'relative_comparison' as const;
+const SIMILAR_GAP = 0.05;
+const DECISIVE_GAP = 0.15;
+const HIGH_COVERAGE = 0.8;
+const MIN_COVERAGE = 0.5;
+
+function finiteOrNull(value: number | null | undefined): number | null {
+  return value != null && Number.isFinite(value) ? value : null;
+}
+
 function regulatoryRank(value: CommercialTechnologyOption['regulatoryConfidence']): number {
   if (value === 'confirmed') return 4;
   if (value === 'estimated') return 3;
@@ -60,8 +71,9 @@ function regulatoryRank(value: CommercialTechnologyOption['regulatoryConfidence'
 }
 
 /**
- * Raw comparable value of a criterion for an option, or `null` when unknown.
- * `null` is never coerced to zero.
+ * Raw comparable value of a criterion, or `null` when unknown or invalid.
+ * `null` is never coerced to zero. Lower-better ratio criteria (latency,
+ * contention) require a strictly positive finite value.
  */
 function criterionValue(
   option: CommercialTechnologyOption,
@@ -71,26 +83,30 @@ function criterionValue(
   switch (criterion) {
     case 'regulatory':
       return option.regulatoryConfidence == null ? null : regulatoryRank(option.regulatoryConfidence);
-    case 'latency':
-      return option.rttMs ?? null;
+    case 'latency': {
+      const v = finiteOrNull(option.rttMs);
+      return v != null && v > 0 ? v : null;
+    }
+    case 'contention': {
+      const v = finiteOrNull(option.contentionRatio);
+      return v != null && v > 0 ? v : null;
+    }
     case 'sustainedThroughput':
-      return option.sustainedMbps ?? null;
+      return finiteOrNull(option.sustainedMbps);
     case 'theoreticalThroughput':
-      return option.theoreticalMbps ?? null;
+      return finiteOrNull(option.theoreticalMbps);
     case 'availability':
-      return option.availabilityPct ?? null;
+      return finiteOrNull(option.availabilityPct);
     case 'dutyCycle':
-      return option.dutyCycle ?? null;
-    case 'contention':
-      return option.contentionRatio ?? null;
+      return finiteOrNull(option.dutyCycle);
     case 'serviceDiversity':
-      return option.serviceDiversity ?? null;
+      return finiteOrNull(option.serviceDiversity);
     case 'mobilityFit':
       return option.mobilityCompatible == null ? null : option.mobilityCompatible ? 1 : 0;
     case 'diversityFromPrimary': {
       const primary = context?.primaryTechnology;
       if (!primary) return null;
-      if (primary === 'TERRESTRIAL' || primary === 'OTHER') return 1; // both satellites differ from a non-satellite primary
+      if (primary === 'TERRESTRIAL' || primary === 'OTHER') return 1;
       const sameOrbit = (primary === 'GEO' && option.technology === 'geo')
         || (primary === 'LEO' && option.technology === 'leo');
       return sameOrbit ? 0 : 1;
@@ -105,10 +121,7 @@ interface GateResult {
   reason?: string;
 }
 
-function evaluateGates(
-  option: CommercialTechnologyOption,
-  objective: CommercialObjective,
-): GateResult {
+function evaluateGates(option: CommercialTechnologyOption, objective: CommercialObjective): GateResult {
   if (!option.available) return { passed: false, reason: 'no deliverable route' };
   if (option.regulatoryConfidence === 'blocked') return { passed: false, reason: 'regulatory blocked' };
   if (objective === 'MOBILITY' && option.mobilityCompatible === false) {
@@ -118,27 +131,31 @@ function evaluateGates(
 }
 
 /** Normalized shares (summing to 1) of a criterion across the two survivors. */
-function shares(rawA: number, rawB: number, criterion: CommercialCriterionId): [number, number] {
-  const transform = CRITERION_DIRECTION[criterion] === 'lower-better'
-    ? (r: number) => (r > 0 ? 1 / r : 0)
-    : (r: number) => Math.max(0, r);
-  const ta = transform(rawA);
-  const tb = transform(rawB);
-  const sum = ta + tb;
-  if (sum <= 0) return [0.5, 0.5];
-  return [ta / sum, tb / sum];
+function shares(rawGeo: number, rawLeo: number, criterion: CommercialCriterionId): [number, number] {
+  const lowerBetter = CRITERION_DIRECTION[criterion] === 'lower-better';
+  const transform = (r: number): number => {
+    if (!Number.isFinite(r)) return 0;
+    if (lowerBetter) return r > 0 ? 1 / r : 0;
+    return Math.max(0, r);
+  };
+  const tGeo = transform(rawGeo);
+  const tLeo = transform(rawLeo);
+  const sum = tGeo + tLeo;
+  if (!Number.isFinite(sum) || sum <= 0) return [0.5, 0.5];
+  return [tGeo / sum, tLeo / sum];
 }
 
 interface ScoredComparison {
   commonBase: CommercialCriterionId[];
-  totalCommonWeight: number;
-  scoreGeo: number; // normalized 0-1
-  scoreLeo: number;
+  commonWeight: number;
+  relativeScoreGeo: number; // 0-1; geo + leo = 1
+  relativeScoreLeo: number;
   sharesByCriterion: Partial<Record<CommercialCriterionId, { geo: number; leo: number; weight: number }>>;
-  /** Weighted criteria that are not in the common base (unknown for >= 1 technology). */
-  unknownWeighted: CommercialCriterionId[];
-  /** Criteria known for exactly one technology (explanatory only, never discriminating). */
-  singleSided: { criterion: CommercialCriterionId; technology: 'geo' | 'leo' }[];
+  /** Weighted criteria unknown for BOTH technologies. */
+  unknownBoth: CommercialCriterionId[];
+  /** Weighted criteria known for exactly ONE technology (explanatory, not discriminating). */
+  nonComparable: { criterion: CommercialCriterionId; technology: 'geo' | 'leo' }[];
+  evidenceCoverage: number; // weighted: common weight / total objective weight
 }
 
 function scoreComparison(
@@ -149,12 +166,12 @@ function scoreComparison(
 ): ScoredComparison {
   const weights = weightsFor(objective);
   const commonBase: CommercialCriterionId[] = [];
-  const unknownWeighted: CommercialCriterionId[] = [];
-  const singleSided: ScoredComparison['singleSided'] = [];
+  const unknownBoth: CommercialCriterionId[] = [];
+  const nonComparable: ScoredComparison['nonComparable'] = [];
   const sharesByCriterion: ScoredComparison['sharesByCriterion'] = {};
   let rawGeo = 0;
   let rawLeo = 0;
-  let totalCommonWeight = 0;
+  let commonWeight = 0;
 
   for (const criterion of ALL_CRITERIA) {
     const weight = weights[criterion];
@@ -166,113 +183,116 @@ function scoreComparison(
       sharesByCriterion[criterion] = { geo: sGeo, leo: sLeo, weight };
       rawGeo += weight * sGeo;
       rawLeo += weight * sLeo;
-      totalCommonWeight += weight;
+      commonWeight += weight;
       commonBase.push(criterion);
+    } else if (vGeo != null) {
+      nonComparable.push({ criterion, technology: 'geo' });
+    } else if (vLeo != null) {
+      nonComparable.push({ criterion, technology: 'leo' });
     } else {
-      unknownWeighted.push(criterion);
-      if (vGeo != null) singleSided.push({ criterion, technology: 'geo' });
-      if (vLeo != null) singleSided.push({ criterion, technology: 'leo' });
+      unknownBoth.push(criterion);
     }
   }
 
-  const scoreGeo = totalCommonWeight > 0 ? rawGeo / totalCommonWeight : 0.5;
-  const scoreLeo = totalCommonWeight > 0 ? rawLeo / totalCommonWeight : 0.5;
-  return { commonBase, totalCommonWeight, scoreGeo, scoreLeo, sharesByCriterion, unknownWeighted, singleSided };
+  const relativeScoreGeo = commonWeight > 0 ? rawGeo / commonWeight : 0.5;
+  const relativeScoreLeo = commonWeight > 0 ? rawLeo / commonWeight : 0.5;
+  const evidenceCoverage = totalObjectiveWeight(objective) > 0
+    ? commonWeight / totalObjectiveWeight(objective)
+    : 0;
+  return {
+    commonBase, commonWeight, relativeScoreGeo, relativeScoreLeo,
+    sharesByCriterion, unknownBoth, nonComparable, evidenceCoverage,
+  };
 }
 
 const NATURE_WEIGHT: Record<DataNature, number> = {
-  published: 1,
-  modeled: 1,
-  estimated: 0.6,
-  inferred: 0.5,
+  published: 1, modeled: 1, estimated: 0.6, inferred: 0.5,
 };
 
-function levelFromScore(score: number): CommercialRecommendationConfidence['level'] {
-  if (score >= 68) return 'High';
-  if (score >= 42) return 'Medium';
-  return 'Low';
+function gateCertaintyOf(geo: CommercialTechnologyOption, leo: CommercialTechnologyOption): number {
+  const minReg = Math.min(
+    geo.regulatoryConfidence ? regulatoryRank(geo.regulatoryConfidence) : 2,
+    leo.regulatoryConfidence ? regulatoryRank(leo.regulatoryConfidence) : 2,
+  );
+  return minReg >= 4 ? 1 : minReg >= 3 ? 0.7 : minReg >= 2 ? 0.5 : 0.3;
 }
 
+/**
+ * Commercial recommendation confidence — distinct from engineering
+ * predictionConfidence. Levels follow explicit rules; the numeric score is an
+ * indicator only.
+ */
 function buildConfidence(args: {
   objective: CommercialObjective;
   comparison: ScoredComparison;
   gap: number;
-  geo: CommercialTechnologyOption;
-  leo: CommercialTechnologyOption;
+  dominantComparable: boolean;
+  gateCertainty: number;
 }): CommercialRecommendationConfidence {
-  const { objective, comparison, gap, geo, leo } = args;
-  const weights = weightsFor(objective);
-  const weightedCriteria = ALL_CRITERIA.filter((c) => weights[c] > 0);
-  const coverageRatio = weightedCriteria.length > 0
-    ? comparison.commonBase.length / weightedCriteria.length
-    : 0;
-  const dominant = dominantCriterionFor(objective);
-  const dominantPresent = comparison.commonBase.includes(dominant);
-
-  const regRankGeo = geo.regulatoryConfidence ? regulatoryRank(geo.regulatoryConfidence) : 2;
-  const regRankLeo = leo.regulatoryConfidence ? regulatoryRank(leo.regulatoryConfidence) : 2;
-  const minReg = Math.min(regRankGeo, regRankLeo);
-  const gateCertainty = minReg >= 4 ? 1 : minReg >= 3 ? 0.7 : minReg >= 2 ? 0.5 : 0.3;
-
+  const { objective, comparison, gap, dominantComparable, gateCertainty } = args;
+  const coverage = comparison.evidenceCoverage;
   const dataNature = comparison.commonBase.length > 0
-    ? comparison.commonBase.reduce((sum, c) => sum + NATURE_WEIGHT[CRITERION_NATURE[c]], 0) / comparison.commonBase.length
+    ? comparison.commonBase.reduce((s, c) => s + NATURE_WEIGHT[CRITERION_NATURE[c]], 0) / comparison.commonBase.length
     : 0;
+
+  let level: CommercialRecommendationConfidence['level'];
+  if (dominantComparable && coverage >= HIGH_COVERAGE && gateCertainty >= 0.7 && gap >= DECISIVE_GAP) {
+    level = 'High';
+  } else if (dominantComparable && coverage >= MIN_COVERAGE && gap >= SIMILAR_GAP) {
+    level = 'Medium';
+  } else {
+    level = 'Low';
+  }
 
   const score = Math.round(100 * (
-    0.35 * coverageRatio
-    + 0.20 * (dominantPresent ? 1 : 0)
-    + 0.20 * Math.min(gap / 0.25, 1)
+    0.45 * coverage
+    + 0.20 * (dominantComparable ? 1 : 0)
+    + 0.20 * Math.min(gap / DECISIVE_GAP, 1)
     + 0.15 * gateCertainty
-    + 0.10 * dataNature
-  ));
+  ) * (0.9 + 0.1 * dataNature));
 
-  const reasons: string[] = [
-    `Criteria coverage ${Math.round(coverageRatio * 100)}% of the objective's weighted set`,
-    dominantPresent
-      ? `Dominant criterion (${CRITERION_LABEL[dominant]}) is comparable`
-      : `Dominant criterion (${CRITERION_LABEL[dominant]}) is unavailable`,
-    gap < 0.05 ? 'Scores are close between technologies' : `Score gap ${(gap * 100).toFixed(0)}%`,
+  const dominantLabels = dominantCriteriaFor(objective).map((c) => CRITERION_LABEL[c]).join(' + ') || 'route diversity';
+  const reasons = [
+    `Weighted evidence coverage ${Math.round(coverage * 100)}% of the objective`,
+    dominantComparable
+      ? `Dominant criterion (${dominantLabels}) is comparable`
+      : `Dominant criterion (${dominantLabels}) is not comparable`,
+    gap < SIMILAR_GAP ? 'Scores are close between technologies' : `Relative score gap ${(gap * 100).toFixed(0)}%`,
     `Regulatory gate certainty ${Math.round(gateCertainty * 100)}%`,
   ];
-
-  return { level: levelFromScore(score), score, reasons };
+  return { level, score, reasons };
 }
 
-function topFactors(
-  comparison: ScoredComparison,
-  winner: 'geo' | 'leo',
-): { favorable: string[]; limiting: string[] } {
+function factors(comparison: ScoredComparison, winner: 'geo' | 'leo'): { favorable: string[]; limiting: string[] } {
   const other = winner === 'geo' ? 'leo' : 'geo';
   const scored = comparison.commonBase.map((criterion) => {
     const s = comparison.sharesByCriterion[criterion]!;
-    const advantage = (s[winner] - s[other]) * s.weight;
-    return { criterion, advantage };
+    return { criterion, advantage: (s[winner] - s[other]) * s.weight };
   });
-  const favorable = scored
-    .filter((s) => s.advantage > 0)
-    .sort((a, b) => b.advantage - a.advantage)
-    .slice(0, 3)
-    .map((s) => `Stronger ${CRITERION_LABEL[s.criterion]}`);
-  const limiting = scored
-    .filter((s) => s.advantage < 0)
-    .sort((a, b) => a.advantage - b.advantage)
-    .slice(0, 3)
-    .map((s) => `Weaker ${CRITERION_LABEL[s.criterion]} than the alternative`);
-
-  // Single-sided criteria explain but never discriminate — tag them as such.
-  for (const s of comparison.singleSided) {
-    const tag = `${CRITERION_LABEL[s.criterion]} known only for ${s.technology.toUpperCase()} (not compared)`;
-    if (s.technology === winner) favorable.push(tag);
+  const favorable = scored.filter((s) => s.advantage > 0).sort((a, b) => b.advantage - a.advantage)
+    .slice(0, 3).map((s) => `Stronger ${CRITERION_LABEL[s.criterion]}`);
+  const limiting = scored.filter((s) => s.advantage < 0).sort((a, b) => a.advantage - b.advantage)
+    .slice(0, 3).map((s) => `Weaker ${CRITERION_LABEL[s.criterion]} than the alternative`);
+  for (const nc of comparison.nonComparable) {
+    const tag = `${CRITERION_LABEL[nc.criterion]} known only for ${nc.technology.toUpperCase()} (not compared)`;
+    if (nc.technology === winner) favorable.push(tag);
     else limiting.push(tag);
   }
   return { favorable, limiting };
 }
 
-function unknownCriteriaLabels(comparison: ScoredComparison): string[] {
-  return comparison.unknownWeighted.map((c) => CRITERION_LABEL[c]);
-}
+const labelOf = (c: CommercialCriterionId) => CRITERION_LABEL[c];
+const commonLabels = (c: ScoredComparison) => c.commonBase.map(labelOf);
+const unknownLabels = (c: ScoredComparison) => c.unknownBoth.map(labelOf);
+const nonComparableLabels = (c: ScoredComparison) =>
+  Array.from(new Set(c.nonComparable.map((n) => n.criterion))).map(labelOf);
 
-function insufficient(objective: CommercialObjective, reason: string, message: string): CommercialRecommendation {
+function insufficient(
+  objective: CommercialObjective,
+  reason: string,
+  message: string,
+  comparison?: ScoredComparison,
+): CommercialRecommendation {
   return {
     technology: 'insufficient_data',
     reasonCategory: 'INSUFFICIENT_DATA',
@@ -282,14 +302,20 @@ function insufficient(objective: CommercialObjective, reason: string, message: s
     message,
     expectedExperience: 'Waiting for comparable route evidence.',
     objective,
+    assessmentBasis: ASSESSMENT_BASIS,
+    ...(comparison ? {
+      commonCriteria: commonLabels(comparison),
+      nonComparableCriteria: nonComparableLabels(comparison),
+      unknownCriteria: unknownLabels(comparison),
+    } : {}),
   };
 }
 
 /**
- * Objective-aware recommendation engine (E1). Pure: no UI, no ENG→COMM wiring.
+ * Objective-aware recommendation engine (E1). Pure: no UI, no ENG->COMM wiring.
  * Never invents operator data, never turns an unknown into a zero, never applies
  * a GEO/LEO orbit bonus, and never recommends a technology without a deliverable
- * route.
+ * route. Scores are RELATIVE preferences, not absolute fitness (assessmentBasis).
  */
 export function buildObjectiveRecommendation(
   options: CommercialTechnologyOption[],
@@ -302,22 +328,13 @@ export function buildObjectiveRecommendation(
     return insufficient(objective, 'Waiting for comparable service options', 'Recommendation requires both GEO and LEO options');
   }
 
-  // BACKUP needs an explicit primary technology — never inferred, never a silent
-  // fallback to the legacy engine.
   if (objective === 'BACKUP' && !context?.primaryTechnology) {
-    return insufficient(
-      objective,
-      'Backup diversity needs the primary technology',
-      'Select the primary technology to assess backup diversity',
-    );
+    return insufficient(objective, 'Backup diversity needs the primary technology', 'Select the primary technology to assess backup diversity');
   }
 
   const geoGate = evaluateGates(geo, objective);
   const leoGate = evaluateGates(leo, objective);
-  const survivors = [
-    { option: geo, gate: geoGate },
-    { option: leo, gate: leoGate },
-  ].filter((s) => s.gate.passed);
+  const survivors = [{ option: geo, gate: geoGate }, { option: leo, gate: leoGate }].filter((s) => s.gate.passed);
 
   if (survivors.length === 0) {
     return {
@@ -329,13 +346,19 @@ export function buildObjectiveRecommendation(
       message: `Neither technology passes the ${OBJECTIVE_LABEL[objective]} gates`,
       expectedExperience: 'No active service path available.',
       objective,
+      assessmentBasis: ASSESSMENT_BASIS,
     };
   }
 
   if (survivors.length === 1) {
     const winner = survivors[0].option;
-    const other = winner.technology === 'geo' ? leo : geo;
     const otherGate = winner.technology === 'geo' ? leoGate : geoGate;
+    const other = winner.technology === 'geo' ? leo : geo;
+    // Confidence depends on the gate that eliminated the other technology and on
+    // whether the survivor's own dominant criterion is known — never automatic High.
+    const survivorHasDominant = dominantCriteriaFor(objective)
+      .some((c) => criterionValue(winner, c, context) != null);
+    const level = survivorHasDominant ? 'Medium' : 'Low';
     return {
       technology: winner.technology,
       reasonCategory: 'BEST_AVAILABILITY',
@@ -345,24 +368,33 @@ export function buildObjectiveRecommendation(
       message: `${winner.label} is the only deliverable option for a ${OBJECTIVE_LABEL[objective]} objective`,
       expectedExperience: `${winner.label} is the only viable path in this scenario.`,
       objective,
+      assessmentBasis: ASSESSMENT_BASIS,
       favorableFactors: [`${other.label} unavailable: ${otherGate.reason}`],
       limitingFactors: [`No comparison possible — only ${winner.label} is deliverable`],
       confidence: {
-        level: 'Medium',
-        score: 55,
-        reasons: [`Single deliverable technology (${other.label} gated out: ${otherGate.reason})`],
+        level,
+        score: level === 'Medium' ? 55 : 35,
+        reasons: [
+          `Single deliverable technology (${other.label} gated out: ${otherGate.reason})`,
+          survivorHasDominant
+            ? `${winner.label} dominant criterion is characterised`
+            : `${winner.label} dominant criterion is unknown`,
+        ],
       },
     };
   }
 
   // Both technologies survive the gates.
   const comparison = scoreComparison(geo, leo, objective, context);
-  const gap = Math.abs(comparison.scoreGeo - comparison.scoreLeo);
+  const gap = Math.abs(comparison.relativeScoreGeo - comparison.relativeScoreLeo);
+  const gateCertainty = gateCertaintyOf(geo, leo);
 
-  // RESILIENCE is the only objective allowed to auto-produce a diversity verdict
-  // when both routes are deliverable. The label stays "technology diversity"
-  // because infrastructure independence is not proven here.
+  // RESILIENCE — the only objective allowed to auto-produce a diversity verdict
+  // when both routes are deliverable. Labelled "technology diversity" because
+  // infrastructure independence is not proven here.
   if (objective === 'RESILIENCE') {
+    const coverage = comparison.evidenceCoverage;
+    const level = coverage >= HIGH_COVERAGE ? 'High' : coverage >= MIN_COVERAGE ? 'Medium' : 'Low';
     return {
       technology: 'hybrid',
       reasonCategory: 'BEST_RESILIENCE',
@@ -372,31 +404,56 @@ export function buildObjectiveRecommendation(
       message: 'GEO and LEO provide technology diversity; infrastructure independence is not yet proven',
       expectedExperience: 'Technology diversity across GEO and LEO.',
       objective,
+      assessmentBasis: ASSESSMENT_BASIS,
       favorableFactors: ['Both GEO and LEO routes are deliverable'],
       limitingFactors: ['Independent-infrastructure resilience not verified'],
-      unknownCriteria: unknownCriteriaLabels(comparison),
-      confidence: buildConfidence({ objective, comparison, gap, geo, leo }),
+      commonCriteria: commonLabels(comparison),
+      nonComparableCriteria: nonComparableLabels(comparison),
+      unknownCriteria: unknownLabels(comparison),
+      confidence: {
+        level,
+        score: Math.round(coverage * 100),
+        reasons: [
+          'Both routes are deliverable',
+          `Weighted evidence coverage ${Math.round(coverage * 100)}%`,
+        ],
+      },
     };
   }
 
-  // No weighted criterion is comparable across both technologies → do not fake a
-  // precise winner.
-  if (comparison.commonBase.length === 0) {
+  // A weighted recommendation requires the objective's dominant criterion to be
+  // comparable across both survivors. Otherwise we do not know the technologies
+  // are similar — we know the deciding evidence is missing → insufficient_data.
+  const dominantComparable = dominantCriteriaFor(objective).some((c) => comparison.commonBase.includes(c));
+  if (!dominantComparable) {
+    const dominantLabels = dominantCriteriaFor(objective).map(labelOf).join(' / ');
     return insufficient(
       objective,
-      'No comparable evidence across GEO and LEO for this objective',
-      'Recommendation needs at least one criterion known for both technologies',
+      `The dominant ${dominantLabels} criterion cannot be compared across the surviving technologies`,
+      `The dominant ${dominantLabels} criterion cannot be compared across the surviving technologies.`,
+      comparison,
     );
   }
 
-  const winner: 'geo' | 'leo' = comparison.scoreGeo >= comparison.scoreLeo ? 'geo' : 'leo';
+  const winner: 'geo' | 'leo' = comparison.relativeScoreGeo >= comparison.relativeScoreLeo ? 'geo' : 'leo';
   const winnerOption = winner === 'geo' ? geo : leo;
   const otherOption = winner === 'geo' ? leo : geo;
-  const factors = topFactors(comparison, winner);
-  const confidence = buildConfidence({ objective, comparison, gap, geo, leo });
+  const f = factors(comparison, winner);
+  const confidence = buildConfidence({ objective, comparison, gap, dominantComparable, gateCertainty });
+  const shared = {
+    objective,
+    assessmentBasis: ASSESSMENT_BASIS,
+    favorableFactors: f.favorable,
+    limitingFactors: f.limiting,
+    commonCriteria: commonLabels(comparison),
+    nonComparableCriteria: nonComparableLabels(comparison),
+    unknownCriteria: unknownLabels(comparison),
+    scoreGap: gap,
+  } as const;
 
-  // Close scores → SIMILAR, no decisive winner and never an automatic hybrid.
-  if (gap < 0.05) {
+  // Comparable scores with the dominant criterion present → SIMILAR, never an
+  // automatic hybrid for a non-RESILIENCE objective.
+  if (gap < SIMILAR_GAP) {
     return {
       technology: winnerOption.technology,
       reasonCategory: 'SIMILAR_PERFORMANCE',
@@ -405,11 +462,7 @@ export function buildObjectiveRecommendation(
       reason: `GEO and LEO score comparably for a ${OBJECTIVE_LABEL[objective]} objective`,
       message: `No decisive advantage between GEO and LEO for ${OBJECTIVE_LABEL[objective]}`,
       expectedExperience: 'Both technologies fit this objective comparably.',
-      objective,
-      favorableFactors: factors.favorable,
-      limitingFactors: factors.limiting,
-      unknownCriteria: unknownCriteriaLabels(comparison),
-      scoreGap: gap,
+      ...shared,
       confidence: { ...confidence, level: 'Low' },
     };
   }
@@ -418,7 +471,6 @@ export function buildObjectiveRecommendation(
   const reason = objective === 'BACKUP'
     ? `${winnerOption.label} provides better diversity from the primary link`
     : `${winnerOption.label} scores higher for a ${objectiveLabel} objective`;
-
   return {
     technology: winnerOption.technology,
     reasonCategory: OBJECTIVE_REASON_CATEGORY[objective],
@@ -427,11 +479,7 @@ export function buildObjectiveRecommendation(
     reason,
     message: `${winnerOption.label} recommended over ${otherOption.label} for a ${objectiveLabel} objective`,
     expectedExperience: `${winnerOption.label} best fits a ${objectiveLabel} objective in this scenario.`,
-    objective,
-    favorableFactors: factors.favorable,
-    limitingFactors: factors.limiting,
-    unknownCriteria: unknownCriteriaLabels(comparison),
-    scoreGap: gap,
+    ...shared,
     confidence,
   };
 }

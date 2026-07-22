@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   COMMERCIAL_SCORING_POLICY_V1,
   CRITERION_DIRECTION,
-  dominantCriterionFor,
+  dominantCriteriaFor,
+  totalObjectiveWeight,
   weightsFor,
 } from '../commercialScoringPolicy';
 import type { CommercialObjective } from '../commercialObjective';
@@ -22,11 +23,27 @@ describe('COMMERCIAL_SCORING_POLICY_V1', () => {
     expect(weightsFor('REALTIME').serviceDiversity).toBe(0);
   });
 
-  it('defines a dominant criterion for every objective', () => {
+  it('declares dominant criteria; each carries weight (RESILIENCE is special-cased and empty)', () => {
     for (const objective of OBJECTIVES) {
-      const dominant = dominantCriterionFor(objective);
-      expect(weightsFor(objective)[dominant]).toBeGreaterThan(0);
+      const dominant = dominantCriteriaFor(objective);
+      if (objective === 'RESILIENCE') {
+        expect(dominant).toHaveLength(0);
+        continue;
+      }
+      expect(dominant.length).toBeGreaterThan(0);
+      for (const criterion of dominant) {
+        expect(weightsFor(objective)[criterion]).toBeGreaterThan(0);
+      }
     }
+  });
+
+  it('declares BROADCAST with two dominant criteria', () => {
+    expect(dominantCriteriaFor('BROADCAST')).toEqual(['sustainedThroughput', 'availability']);
+  });
+
+  it('REALTIME weighted evidence coverage of {regulatory, latency} is 0.5', () => {
+    // (3 + 5) / 16 — the reason REALTIME with only these two lands at Medium, not High.
+    expect(totalObjectiveWeight('REALTIME')).toBe(16);
   });
 
   it('marks latency and contention as lower-better', () => {

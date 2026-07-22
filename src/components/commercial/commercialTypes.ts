@@ -124,9 +124,22 @@ export interface CommercialRecommendation {
   objective?: import('./commercialObjective').CommercialObjective;
   favorableFactors?: string[];
   limitingFactors?: string[];
+  /** Criteria compared across BOTH technologies (used in the score). */
+  commonCriteria?: string[];
+  /** Weighted criteria known for exactly ONE technology (explanatory, not discriminating). */
+  nonComparableCriteria?: string[];
+  /** Weighted criteria unknown for BOTH technologies. */
   unknownCriteria?: string[];
-  /** Normalized score gap between technologies on the common base (0-1). */
+  /**
+   * RELATIVE comparison gap between the two options on the common base (0-1).
+   * A preference signal, not an absolute-fitness gap.
+   */
   scoreGap?: number;
+  /**
+   * Scope of the score. `relative_comparison` means the recommendation ranks the
+   * present options against each other, NOT against an absolute service need.
+   */
+  assessmentBasis?: 'relative_comparison';
   confidence?: import('./commercialObjective').CommercialRecommendationConfidence;
 }
 
