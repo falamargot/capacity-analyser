@@ -1,27 +1,35 @@
 import type { DataNature } from '../../utils/dataProvenance';
+import type {
+  ScenarioCommercialObjective,
+  ScenarioCommercialPrimaryTechnology,
+  ScenarioCommercialTrafficDirection,
+} from '../../types/connectivityScenario';
 
 /**
  * Customer objective driving the commercial recommendation. Mono-objective in
  * v1. Absence of an objective (undefined) is NOT one of these values — it routes
  * to the legacy engine unchanged (see buildRecommendation).
  */
-export type CommercialObjective =
-  | 'REALTIME'
-  | 'BROADCAST'
-  | 'MOBILITY'
-  | 'BACKUP'
-  | 'BULK'
-  | 'RESILIENCE';
+export type CommercialObjective = ScenarioCommercialObjective;
+
+export const COMMERCIAL_OBJECTIVE_LABEL: Record<CommercialObjective, string> = {
+  REALTIME: 'Real-time / low latency',
+  BROADCAST: 'Broadcast distribution',
+  MOBILITY: 'Mobility',
+  BACKUP: 'Backup / continuity',
+  BULK: 'Bulk transfer',
+  RESILIENCE: 'Resilience',
+};
 
 /** Primary link a BACKUP objective is providing continuity for. Never inferred. */
-export type CommercialPrimaryTechnology = 'GEO' | 'LEO' | 'TERRESTRIAL' | 'OTHER';
+export type CommercialPrimaryTechnology = ScenarioCommercialPrimaryTechnology;
 
 /**
  * Traffic direction the throughput criteria are scored against. Default
  * BIDIRECTIONAL uses a conservative aggregation (the minimum of the two known
  * directions); an incomplete pair yields an unknown value, never a copied one.
  */
-export type CommercialTrafficDirection = 'DOWNLINK' | 'UPLINK' | 'BIDIRECTIONAL';
+export type CommercialTrafficDirection = ScenarioCommercialTrafficDirection;
 
 export interface CommercialRecommendationContext {
   /** Required by the BACKUP objective; absent → backup diversity cannot be scored. */
@@ -66,6 +74,8 @@ export const COMMERCIAL_CONFIDENCE_NOT_ASSESSED = 'Recommendation confidence: No
 export interface CommercialCriterionContribution {
   criterion: CommercialCriterionId;
   weight: number;
+  /** Raw value used for this option after traffic-direction derivation. */
+  rawValue: number;
   /** Normalized share of this criterion held by the technology (0-1). */
   share: number;
   contribution: number;

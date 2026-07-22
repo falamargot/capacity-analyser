@@ -173,7 +173,7 @@ function CommercialInspectorPanel({
           { label: 'Service path', value: viewModel.display.routeValue },
           { label: 'Indicative availability', value: viewModel.availabilityPct != null ? `${Math.round(viewModel.availabilityPct)}%` : viewModel.display.serviceStatusLabel },
           { label: 'Path stability', value: viewModel.display.pathStability },
-          { label: 'Forecast confidence', value: viewModel.display.confidenceNote ?? viewModel.display.confidence },
+          { label: 'Coverage evidence confidence', value: viewModel.display.confidenceNote ?? viewModel.display.confidence },
           { label: 'Weather availability', value: viewModel.display.availabilityContext },
         ]);
     }

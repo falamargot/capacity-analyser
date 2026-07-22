@@ -17,6 +17,7 @@ function gatewayViewModel({
     technology: 'geo',
     commercialDisplayTechnology: 'GEO',
     contextTechnology: 'GEO',
+    commercialIntent: { trafficDirection: 'BIDIRECTIONAL' },
     siteA: { name: 'Site A' },
     activeRouteAvailable: available,
     selectedSegmentId: 'siteB',

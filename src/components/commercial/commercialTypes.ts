@@ -147,6 +147,8 @@ export interface CommercialRecommendation {
    */
   assessmentBasis?: 'relative_comparison';
   confidence?: import('./commercialObjective').CommercialRecommendationConfidence;
+  /** Engineering-facing breakdown of the relative comparison; never a fitness percentage. */
+  technologyScores?: import('./commercialObjective').CommercialTechnologyScore[];
 }
 
 export interface CommercialExecutiveSummary {
@@ -167,6 +169,11 @@ export interface CommercialScenarioViewModel {
   commercialDisplayTechnology: 'LEO' | 'GEO';
   /** The user's active connectivity tab captured for context/debugging. */
   contextTechnology: 'LEO' | 'GEO';
+  commercialIntent: {
+    objective?: import('./commercialObjective').CommercialObjective;
+    trafficDirection: import('./commercialObjective').CommercialTrafficDirection;
+    primaryTechnology?: import('./commercialObjective').CommercialPrimaryTechnology;
+  };
   siteA?: {
     name: string;
   };

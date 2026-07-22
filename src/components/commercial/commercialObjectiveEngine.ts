@@ -4,6 +4,7 @@ import type {
   CommercialObjective,
   CommercialRecommendationConfidence,
   CommercialRecommendationContext,
+  CommercialTechnologyScore,
   CommercialTrafficDirection,
 } from './commercialObjective';
 import {
@@ -182,6 +183,26 @@ interface ScoredComparison {
    */
   nonComparable: { criterion: CommercialCriterionId; technology?: 'geo' | 'leo'; reason: 'single-sided' | 'incomparable' }[];
   evidenceCoverage: number; // weighted: common weight / total objective weight
+  /** Weighted confidence in the actual evidence nature carried by both options. */
+  dataNatureConfidence: number;
+}
+
+const NATURE_WEIGHT: Record<DataNature, number> = {
+  published: 1,
+  modeled: 1,
+  estimated: 0.6,
+  inferred: 0.5,
+};
+
+function criterionNatureConfidence(
+  geo: CommercialTechnologyOption,
+  leo: CommercialTechnologyOption,
+  criterion: CommercialCriterionId,
+): number {
+  const fallback = CRITERION_NATURE[criterion];
+  const geoNature = geo.evidence?.[criterion]?.nature ?? fallback;
+  const leoNature = leo.evidence?.[criterion]?.nature ?? fallback;
+  return (NATURE_WEIGHT[geoNature] + NATURE_WEIGHT[leoNature]) / 2;
 }
 
 function scoreComparison(
@@ -198,6 +219,7 @@ function scoreComparison(
   let rawGeo = 0;
   let rawLeo = 0;
   let commonWeight = 0;
+  let natureWeightedSum = 0;
 
   for (const criterion of ALL_CRITERIA) {
     const weight = weights[criterion];
@@ -215,6 +237,7 @@ function scoreComparison(
       rawGeo += weight * sGeo;
       rawLeo += weight * sLeo;
       commonWeight += weight;
+      natureWeightedSum += weight * criterionNatureConfidence(geo, leo, criterion);
       commonBase.push(criterion);
     } else if (vGeo != null) {
       nonComparable.push({ criterion, technology: 'geo', reason: 'single-sided' });
@@ -230,15 +253,12 @@ function scoreComparison(
   const evidenceCoverage = totalObjectiveWeight(objective) > 0
     ? commonWeight / totalObjectiveWeight(objective)
     : 0;
+  const dataNatureConfidence = commonWeight > 0 ? natureWeightedSum / commonWeight : 0;
   return {
     commonBase, commonWeight, relativeScoreGeo, relativeScoreLeo,
-    sharesByCriterion, unknownBoth, nonComparable, evidenceCoverage,
+    sharesByCriterion, unknownBoth, nonComparable, evidenceCoverage, dataNatureConfidence,
   };
 }
-
-const NATURE_WEIGHT: Record<DataNature, number> = {
-  published: 1, modeled: 1, estimated: 0.6, inferred: 0.5,
-};
 
 function gateCertaintyOf(geo: CommercialTechnologyOption, leo: CommercialTechnologyOption): number {
   const minReg = Math.min(
@@ -262,9 +282,7 @@ function buildConfidence(args: {
 }): CommercialRecommendationConfidence {
   const { objective, comparison, gap, dominantComparable, gateCertainty } = args;
   const coverage = comparison.evidenceCoverage;
-  const dataNature = comparison.commonBase.length > 0
-    ? comparison.commonBase.reduce((s, c) => s + NATURE_WEIGHT[CRITERION_NATURE[c]], 0) / comparison.commonBase.length
-    : 0;
+  const dataNature = comparison.dataNatureConfidence;
 
   let level: CommercialRecommendationConfidence['level'];
   if (dominantComparable && coverage >= HIGH_COVERAGE && gateCertainty >= 0.7 && gap >= DECISIVE_GAP) {
@@ -314,6 +332,31 @@ function factors(comparison: ScoredComparison, winner: 'geo' | 'leo'): { favorab
     else limiting.push(tag);
   }
   return { favorable, limiting };
+}
+
+function technologyScores(
+  comparison: ScoredComparison,
+  geo: CommercialTechnologyOption,
+  leo: CommercialTechnologyOption,
+  context: CommercialRecommendationContext | undefined,
+): CommercialTechnologyScore[] {
+  const build = (technology: 'geo' | 'leo', option: CommercialTechnologyOption): CommercialTechnologyScore => ({
+    technology,
+    relativeScore: technology === 'geo' ? comparison.relativeScoreGeo : comparison.relativeScoreLeo,
+    contributions: comparison.commonBase.map((criterion) => {
+      const scored = comparison.sharesByCriterion[criterion]!;
+      const share = scored[technology];
+      return {
+        criterion,
+        weight: scored.weight,
+        rawValue: criterionValue(option, criterion, context)!,
+        share,
+        contribution: comparison.commonWeight > 0 ? (scored.weight * share) / comparison.commonWeight : 0,
+        nature: option.evidence?.[criterion]?.nature ?? CRITERION_NATURE[criterion],
+      };
+    }),
+  });
+  return [build('geo', geo), build('leo', leo)];
 }
 
 const labelOf = (c: CommercialCriterionId) => CRITERION_LABEL[c];
@@ -484,6 +527,7 @@ export function buildObjectiveRecommendation(
     nonComparableCriteria: nonComparableLabels(comparison),
     unknownCriteria: unknownLabels(comparison),
     scoreGap: gap,
+    technologyScores: technologyScores(comparison, geo, leo, context),
   } as const;
 
   // Comparable scores with the dominant criterion present → SIMILAR, never an

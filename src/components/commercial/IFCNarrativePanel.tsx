@@ -1,11 +1,9 @@
-import { memo, useMemo } from 'react';
+import { memo } from 'react';
 import {
-  CheckCircle2,
+  AlertTriangle,
   ChevronRight,
   Plane,
   Satellite,
-  TrendingUp,
-  Users,
   Wifi,
 } from 'lucide-react';
 import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
@@ -21,26 +19,7 @@ import {
   responseTimeTier,
   uploadSpeedTier,
 } from './commercialTiers';
-
-// ── Airline → aircraft-type lookup ──────────────────────────────────────────
-
-const AIRLINE_TYPES: Record<string, string> = {
-  AF: 'A320', LH: 'A320', BA: 'B777', DL: 'B737', AA: 'B737',
-  UA: 'B737', EK: 'A380', QR: 'B777', EY: 'B787', SQ: 'A350',
-  CX: 'B777', JL: 'B777', NH: 'B787', CA: 'B737', MU: 'A320',
-  CZ: 'B737', TK: 'A330', RY: 'B737', EZ: 'A320', W6: 'A320',
-  FR: 'B737', U2: 'A320',
-};
-
-const AIRCRAFT_PAX: Record<string, number> = {
-  A380: 520, B777: 350, B787: 250, A350: 340,
-  A330: 280, B737: 175, A320: 175, A321: 220,
-};
-
-function inferAircraftType(callsign: string): string {
-  const code = callsign.substring(0, /^[A-Z]{2}\d+/.test(callsign) ? 2 : 3);
-  return AIRLINE_TYPES[code] ?? '';
-}
+import { CommercialDecisionSummary } from './CommercialObjectiveDecision';
 
 // ── Hero SVG ─────────────────────────────────────────────────────────────────
 
@@ -139,6 +118,7 @@ export interface IFCNarrativePanelProps {
   viewModel: CommercialScenarioViewModel;
   isOpen: boolean;
   onViewFullAnalysis?: () => void;
+  onOpenCustomerDecision?: () => void;
 }
 
 const IFCNarrativePanel = memo(function IFCNarrativePanel({
@@ -146,11 +126,8 @@ const IFCNarrativePanel = memo(function IFCNarrativePanel({
   viewModel,
   isOpen,
   onViewFullAnalysis,
+  onOpenCustomerDecision,
 }: IFCNarrativePanelProps) {
-  const aircraftType = useMemo(() => inferAircraftType(aircraft.callsign), [aircraft.callsign]);
-  const paxCount     = useMemo(() => AIRCRAFT_PAX[aircraftType] ?? 200, [aircraftType]);
-  const revenueK     = ((paxCount * 10) / 1000).toFixed(1);
-
   // Flight display values
   // altitude_km × 32.8084 = flight level (FL = feet / 100)
   const altFl = aircraft.altitude_km != null
@@ -220,11 +197,7 @@ const IFCNarrativePanel = memo(function IFCNarrativePanel({
               <div className="truncate text-[22px] font-black tracking-tight text-white">
                 {aircraft.callsign}
               </div>
-              {aircraftType && (
-                <div className="mt-0.5 text-[11px] font-semibold text-amber-300/65">
-                  {aircraftType}
-                </div>
-              )}
+              <div className="mt-0.5 text-[11px] font-semibold text-amber-300/65">Tracked aircraft</div>
             </div>
             <div className="flex flex-col items-end gap-0.5 pb-0.5 text-right">
               {altFl != null && (
@@ -257,7 +230,9 @@ const IFCNarrativePanel = memo(function IFCNarrativePanel({
 
         {/* ── Scrollable content ── */}
         <div className="min-h-0 flex-1 overflow-y-auto">
-
+          <div className="border-b border-slate-800/50 px-5 py-4">
+            <CommercialDecisionSummary viewModel={viewModel} onOpen={onOpenCustomerDecision} />
+          </div>
           {/* Link performance */}
           <div className="border-b border-slate-800/50 px-5 py-4">
             <div className="mb-2.5 flex items-center gap-1.5">
@@ -318,76 +293,35 @@ const IFCNarrativePanel = memo(function IFCNarrativePanel({
                 />
                 <FactRow
                   label="Round-trip latency"
-                  value={isLeo ? '~50 ms' : '~600 ms'}
-                  dim={!isLeo}
+                  value={formatMs(viewModel.rttMs)}
+                  dim={viewModel.rttMs == null}
                 />
               </div>
             </div>
             {isLeo && (
               <div className="mt-2 rounded-lg border border-emerald-500/18 bg-emerald-950/25 px-3 py-2">
                 <p className="text-[10px] leading-[1.6] text-emerald-300/80">
-                  LEO orbit eliminates the 600 ms GEO delay — passengers can video
-                  call, stream and browse at ground-network speeds throughout the flight.
+                  This point-in-time planning result does not establish continuous in-flight service.
+                  Terminal certification, beam handover, regulatory approval, gateway reachability and
+                  operator capacity must be confirmed for the complete route.
                 </p>
               </div>
             )}
           </div>
 
-          {/* Passenger opportunity */}
+          {/* Mobility evidence — no passenger/revenue claims are inferred from a callsign. */}
           <div className="border-b border-slate-800/50 px-5 py-4">
             <div className="mb-2.5 flex items-center gap-1.5">
-              <Users className="h-3 w-3 text-fuchsia-400" aria-hidden="true" />
-              <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-fuchsia-400/70">
-                Passenger Opportunity
+              <AlertTriangle className="h-3 w-3 text-amber-400" aria-hidden="true" />
+              <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-amber-400/70">
+                Mobility assessment limits
               </span>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              {/* Pax count */}
-              <div className="rounded-xl border border-slate-700/50 bg-slate-900/60 px-3 py-3">
-                <div className="mb-0.5 text-[9px] font-bold uppercase tracking-wider text-slate-400">
-                  Capacity
-                </div>
-                <div className="text-[20px] font-black leading-none text-white">
-                  ~{paxCount}
-                </div>
-                <div className="mt-0.5 text-[9px] text-slate-400">
-                  {aircraftType ? `${aircraftType} passengers` : 'passengers'}
-                </div>
-              </div>
-              {/* Revenue */}
-              <div className="rounded-xl border border-fuchsia-500/18 bg-fuchsia-950/18 px-3 py-3">
-                <div className="mb-0.5 text-[9px] font-bold uppercase tracking-wider text-fuchsia-400/60">
-                  IFC Revenue
-                </div>
-                <div className="text-[20px] font-black leading-none text-fuchsia-100">
-                  ~€{revenueK}k
-                </div>
-                <div className="mt-0.5 text-[9px] text-fuchsia-400/45">
-                  at €10 / pax avg
-                </div>
-              </div>
-            </div>
-
-            {/* LEO use-case fit */}
-            <div className="mt-2 rounded-lg border border-slate-700/40 bg-slate-900/40 px-3 py-2.5">
-              <div className="mb-1.5 flex items-center gap-1.5">
-                <TrendingUp className="h-3 w-3 text-emerald-400" aria-hidden="true" />
-                <span className="text-[9px] font-semibold text-emerald-300">
-                  LEO IFC use-case fit
-                </span>
-              </div>
-              <div className="space-y-1">
-                {[
-                  'Video calls & conferencing',
-                  'Real-time messaging',
-                  'Cloud apps & streaming',
-                ].map((use) => (
-                  <div key={use} className="flex items-center gap-1.5">
-                    <CheckCircle2 className="h-2.5 w-2.5 flex-shrink-0 text-emerald-400" aria-hidden="true" />
-                    <span className="text-[10px] text-slate-300">{use}</span>
-                  </div>
-                ))}
-              </div>
+            <div className="rounded-lg border border-amber-300/18 bg-amber-950/16 px-3 py-2.5">
+              <p className="text-[10px] leading-[1.6] text-slate-300">
+                Aircraft type, certified satcom terminal, passenger load and commercial revenue are not
+                present in the tracking feed. They are therefore not estimated from the callsign.
+              </p>
             </div>
           </div>
 

@@ -41,6 +41,7 @@ function baseViewModel(destinationType = 'SNP'): CommercialScenarioViewModel {
     technology: 'geo',
     commercialDisplayTechnology: 'GEO',
     contextTechnology: 'GEO',
+    commercialIntent: { trafficDirection: 'BIDIRECTIONAL' },
     siteA: { name: 'Site A' },
     siteB: destinationType === 'SNP' ? { name: 'Paris' } : { name: 'Site B' },
     activeRouteAvailable: true,

@@ -72,6 +72,25 @@ describe('ConnectivityScenarioStore reducer', () => {
     expect(state.geoServiceTopology).toBe('mesh');
   });
 
+  it('stores commercial intent with the scenario without changing legacy defaults', () => {
+    expect(initialConnectivityScenario.commercialObjective).toBeUndefined();
+
+    const state = [
+      connectivityScenarioActions.setCommercialObjective('BACKUP'),
+      connectivityScenarioActions.setCommercialTrafficDirection('DOWNLINK'),
+      connectivityScenarioActions.setCommercialPrimaryTechnology('TERRESTRIAL'),
+    ].reduce(connectivityScenarioReducer, initialConnectivityScenario);
+
+    expect(state.commercialObjective).toBe('BACKUP');
+    expect(state.commercialTrafficDirection).toBe('DOWNLINK');
+    expect(state.commercialPrimaryTechnology).toBe('TERRESTRIAL');
+
+    const cleared = connectivityScenarioReducer(state, connectivityScenarioActions.setCommercialObjective(undefined));
+    expect(cleared.commercialObjective).toBeUndefined();
+    expect(cleared.commercialTrafficDirection).toBe('DOWNLINK');
+    expect(cleared.commercialPrimaryTechnology).toBe('TERRESTRIAL');
+  });
+
   it('updates endpoint role, kind, and terminal capabilities', () => {
     const base = connectivityScenarioReducer(
       initialConnectivityScenario,

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import type { CommercialRouteModel, CommercialRouteSegmentId } from '../../types/commercialRouteModel';
 import type { CommercialScenarioViewModel } from './commercialViewModel';
+import { CommercialDecisionSummary } from './CommercialObjectiveDecision';
 import {
   buildCommercialNarrativeCardModel,
   recommendationHeroEyebrow,
@@ -54,6 +55,7 @@ export interface CommercialNarrativePanelProps {
   isOpen: boolean;
   onClose?: () => void;
   onViewFullAnalysis?: () => void;
+  onOpenCustomerDecision?: () => void;
 }
 
 const SEGMENT_ORDER: CommercialRouteSegmentId[] = [
@@ -747,9 +749,9 @@ function AlternativeCard({ viewModel }: { viewModel: CommercialScenarioViewModel
   const alt = viewModel.comparison.options.find((o) => o.technology !== recommended);
   if (!alt) return null;
 
-  const differentiator = alt.technology === 'geo'
-    ? 'Suitable for broadcast, VSAT backup and data-only workloads'
-    : 'Lower response time alternative for interactive applications';
+  const differentiator = alt.strengths[0]
+    ?? alt.limitingFactor
+    ?? (alt.available ? 'Viable alternative on the current route evidence' : 'No deliverable route');
 
   return (
     <div className="rounded-lg border border-slate-700/60 bg-slate-900/40 p-3">
@@ -777,9 +779,11 @@ function AlternativeCard({ viewModel }: { viewModel: CommercialScenarioViewModel
 function RecommendationBlock({
   viewModel,
   card,
+  onOpenCustomerDecision,
 }: {
   viewModel: CommercialScenarioViewModel;
   card: CommercialNarrativeCardModel;
+  onOpenCustomerDecision?: () => void;
 }) {
   const selectedOption = viewModel.comparison.options.find(
     (opt) => opt.technology === viewModel.commercialDisplayTechnology.toLowerCase(),
@@ -787,7 +791,8 @@ function RecommendationBlock({
   const dlTier = downloadSpeedTier(selectedOption?.downloadMbps);
   const ulTier = uploadSpeedTier(selectedOption?.uploadMbps);
   const rttTier = responseTimeTier(selectedOption?.rttMs);
-  const relTier = reliabilityTier(viewModel.availabilityPct);
+  const selectedAvailabilityPct = selectedOption?.availabilityPct ?? viewModel.availabilityPct;
+  const relTier = reliabilityTier(selectedAvailabilityPct);
   const confidence = confidenceLevelFromPrediction(
     viewModel.display.predictionConfidence?.level ?? viewModel.display.confidence,
   );
@@ -795,6 +800,8 @@ function RecommendationBlock({
   return (
     <div className="space-y-4">
       <VerdictHeroCard viewModel={viewModel} card={card} />
+
+      <CommercialDecisionSummary viewModel={viewModel} onOpen={onOpenCustomerDecision} />
 
       {/* Architecture diagram — built from the canonical route topology. */}
       <CommercialArchitectureDiagram topology={buildCommercialTopology(viewModel)} />
@@ -822,7 +829,7 @@ function RecommendationBlock({
             sublabelTone={rttTier.tone}
           />
           <CommercialKpiTile
-            value={viewModel.availabilityPct != null ? `${viewModel.availabilityPct.toFixed(1)}%` : '--'}
+            value={selectedAvailabilityPct != null ? `${selectedAvailabilityPct.toFixed(1)}%` : '--'}
             label="Indicative availability"
             sublabel={relTier.label !== '--' ? relTier.label : undefined}
             sublabelTone={relTier.tone}
@@ -832,7 +839,8 @@ function RecommendationBlock({
 
       {/* Use case fit */}
       <section>
-        <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-500">Application compatibility</div>
+        <div className="mb-1 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-500">Indicative application fit</div>
+        <p className="mb-2 text-[10px] leading-4 text-slate-500">Derived from latency and throughput only; not a service qualification.</p>
         <UseCaseFitGrid
           rttMs={selectedOption?.rttMs ?? viewModel.rttMs}
           downloadMbps={selectedOption?.downloadMbps ?? viewModel.downloadMbps}
@@ -844,9 +852,9 @@ function RecommendationBlock({
       {/* Alternative option */}
       <AlternativeCard viewModel={viewModel} />
 
-      {/* Forecast confidence */}
+      {/* Coverage-evidence confidence — distinct from recommendation confidence. */}
       <section>
-        <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-500">Forecast confidence</div>
+        <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-500">Coverage evidence confidence</div>
         <div className="rounded-lg border border-slate-800/60 bg-slate-900/40 px-3 py-3">
           <ForecastConfidenceGauge level={confidence} />
         </div>
@@ -864,6 +872,7 @@ function CommercialNarrativePanel({
   isOpen,
   onClose,
   onViewFullAnalysis,
+  onOpenCustomerDecision,
 }: CommercialNarrativePanelProps) {
   const card = buildCommercialNarrativeCardModel({
     viewModel,
@@ -983,7 +992,11 @@ function CommercialNarrativePanel({
           ) : isDestination ? (
             <ServiceDeliveryBlock card={card} viewModel={viewModel} commercialRouteModel={commercialRouteModel} />
           ) : isSummary ? (
-            <RecommendationBlock viewModel={viewModel} card={card} />
+            <RecommendationBlock
+              viewModel={viewModel}
+              card={card}
+              onOpenCustomerDecision={onOpenCustomerDecision}
+            />
           ) : (
             <>
               <p className="text-[16px] font-medium leading-[1.65] tracking-[-0.01em] text-white">

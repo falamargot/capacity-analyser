@@ -213,6 +213,10 @@ describe('objective engine — explainability and confidence', () => {
     expect(['High', 'Medium', 'Low']).toContain(rec.confidence?.level);
     expect(rec.confidence?.reasons.length).toBeGreaterThan(0);
     expect(typeof rec.scoreGap).toBe('number');
+    const leoScore = rec.technologyScores?.find((score) => score.technology === 'leo');
+    const latency = leoScore?.contributions.find((item) => item.criterion === 'latency');
+    expect(leoScore?.relativeScore).toBeTypeOf('number');
+    expect(latency).toMatchObject({ rawValue: 40, weight: 5, nature: 'modeled' });
   });
 });
 

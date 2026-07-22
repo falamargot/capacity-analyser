@@ -5,6 +5,9 @@ import type {
   ScenarioEndpointKey,
   ScenarioEndpointKind,
   ScenarioEndpointRole,
+  ScenarioCommercialObjective,
+  ScenarioCommercialPrimaryTechnology,
+  ScenarioCommercialTrafficDirection,
   ScenarioServicePattern,
   ScenarioTrafficIntent,
   TerminalCapability,
@@ -20,6 +23,9 @@ export type ConnectivityScenarioAction =
   | { type: 'SET_SERVICE_PATTERN'; servicePattern: ScenarioServicePattern }
   | { type: 'SET_TRAFFIC_INTENT'; trafficIntent?: ScenarioTrafficIntent }
   | { type: 'SET_GEO_SERVICE_TOPOLOGY'; geoServiceTopology?: GeoServiceTopology }
+  | { type: 'SET_COMMERCIAL_OBJECTIVE'; objective?: ScenarioCommercialObjective }
+  | { type: 'SET_COMMERCIAL_TRAFFIC_DIRECTION'; direction: ScenarioCommercialTrafficDirection }
+  | { type: 'SET_COMMERCIAL_PRIMARY_TECHNOLOGY'; technology?: ScenarioCommercialPrimaryTechnology }
   | { type: 'SET_ENDPOINT_ROLE'; endpoint: ScenarioEndpointKey; endpointRole: ScenarioEndpointRole }
   | { type: 'SET_ENDPOINT_KIND'; endpoint: ScenarioEndpointKey; endpointKind: ScenarioEndpointKind }
   | { type: 'SET_TERMINAL_CAPABILITIES'; endpoint: ScenarioEndpointKey; terminalCapabilities: TerminalCapability[] };
@@ -57,6 +63,18 @@ export const connectivityScenarioActions = {
   setGeoServiceTopology: (geoServiceTopology?: GeoServiceTopology): ConnectivityScenarioAction => ({
     type: 'SET_GEO_SERVICE_TOPOLOGY',
     geoServiceTopology,
+  }),
+  setCommercialObjective: (objective?: ScenarioCommercialObjective): ConnectivityScenarioAction => ({
+    type: 'SET_COMMERCIAL_OBJECTIVE',
+    objective,
+  }),
+  setCommercialTrafficDirection: (direction: ScenarioCommercialTrafficDirection): ConnectivityScenarioAction => ({
+    type: 'SET_COMMERCIAL_TRAFFIC_DIRECTION',
+    direction,
+  }),
+  setCommercialPrimaryTechnology: (technology?: ScenarioCommercialPrimaryTechnology): ConnectivityScenarioAction => ({
+    type: 'SET_COMMERCIAL_PRIMARY_TECHNOLOGY',
+    technology,
   }),
   setEndpointRole: (endpoint: ScenarioEndpointKey, endpointRole: ScenarioEndpointRole): ConnectivityScenarioAction => ({
     type: 'SET_ENDPOINT_ROLE',

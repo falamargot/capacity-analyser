@@ -89,6 +89,25 @@ describe('commercial final LEO service decision', () => {
   });
 });
 
+describe('commercial deliverable-metric gating', () => {
+  it('does not expose GEO diagnostic values as customer KPIs on a blocked route', () => {
+    const input = buildInput(evidence(false));
+    input.metrics = {
+      geo: { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 },
+    } as typeof input.metrics;
+    input.geoPointStatus = 'out_of_coverage';
+
+    const viewModel = buildCommercialScenarioViewModel(input);
+    const geo = viewModel.comparison.options.find((option) => option.technology === 'geo');
+
+    expect(geo?.available).toBe(false);
+    expect(geo?.downloadMbps).toBeUndefined();
+    expect(geo?.uploadMbps).toBeUndefined();
+    expect(geo?.rttMs).toBeUndefined();
+    expect(geo?.sustainedDownlinkMbps).toBeNull();
+  });
+});
+
 describe('commercial indicative availability (Reliability tile wiring)', () => {
   it('surfaces a numeric indicative availability so the tile renders a value, not "--"', () => {
     const viewModel = buildCommercialScenarioViewModel(buildInput(evidence(true)));
@@ -100,6 +119,86 @@ describe('commercial indicative availability (Reliability tile wiring)', () => {
     expect(Number.isFinite(viewModel.availabilityPct)).toBe(true);
     expect(viewModel.availabilityPct as number).toBeGreaterThan(80);
     expect(viewModel.availabilityPct as number).toBeLessThanOrEqual(99.9);
+  });
+
+  it('keeps availability and delivered throughput separate per technology', () => {
+    const input = buildInput(evidence(true));
+    input.metrics = {
+      geo: { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 },
+    } as typeof input.metrics;
+    input.geoPointStatus = 'available';
+
+    const viewModel = buildCommercialScenarioViewModel(input);
+    const leo = viewModel.comparison.options.find((option) => option.technology === 'leo');
+    const geo = viewModel.comparison.options.find((option) => option.technology === 'geo');
+
+    expect(leo?.sustainedDownlinkMbps).toBe(5);
+    expect(leo?.sustainedUplinkMbps).toBe(4);
+    expect(geo?.sustainedDownlinkMbps).toBe(120);
+    expect(geo?.sustainedUplinkMbps).toBe(30);
+    expect(leo?.availabilityPct).toBeTypeOf('number');
+    expect(geo?.availabilityPct).toBeTypeOf('number');
+    expect(leo?.evidence?.availability?.source).toMatch(/^LEO /);
+    expect(geo?.evidence?.availability?.source).toMatch(/^GEO /);
+    expect(leo?.theoreticalDownlinkMbps).toBeNull();
+    expect(geo?.theoreticalDownlinkMbps).toBeNull();
+  });
+});
+
+describe('commercial objective live wiring', () => {
+  it('keeps the historical engine when no objective is selected', () => {
+    const viewModel = buildCommercialScenarioViewModel(buildInput(evidence(true)));
+
+    expect(viewModel.commercialIntent).toEqual({
+      objective: undefined,
+      trafficDirection: 'BIDIRECTIONAL',
+      primaryTechnology: undefined,
+    });
+    expect(viewModel.recommendation.objective).toBeUndefined();
+    expect(viewModel.recommendation.assessmentBasis).toBeUndefined();
+  });
+
+  it('uses objective-aware scoring and labels simulated regulatory evidence honestly', () => {
+    const input = buildInput(evidence(true));
+    input.metrics = {
+      geo: { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 },
+    } as typeof input.metrics;
+    input.geoPointStatus = 'available';
+    input.commercialObjective = 'REALTIME';
+    input.leoRegulatoryResult = {
+      status: 'ALLOWED_CONFIRMED',
+      reason: 'Simulated planning status.',
+      confidence: 0.8,
+      emitAllowed: true,
+      serviceAllowed: true,
+    } as NonNullable<typeof input.leoRegulatoryResult>;
+
+    const viewModel = buildCommercialScenarioViewModel(input);
+    const leo = viewModel.comparison.options.find((option) => option.technology === 'leo');
+    const geo = viewModel.comparison.options.find((option) => option.technology === 'geo');
+
+    expect(viewModel.recommendation.objective).toBe('REALTIME');
+    expect(viewModel.recommendation.assessmentBasis).toBe('relative_comparison');
+    expect(viewModel.recommendation.technology).toBe('leo');
+    expect(leo?.evidence?.regulatory?.nature).toBe('estimated');
+    expect(leo?.evidence?.regulatory?.note).toMatch(/not legal clearance/i);
+    expect(geo?.regulatoryConfidence).toBeUndefined();
+    expect(geo?.evidence?.regulatory).toBeUndefined();
+  });
+
+  it('does not invent mobility compatibility from the LEO orbit', () => {
+    const input = buildInput(evidence(true));
+    input.metrics = {
+      geo: { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 },
+    } as typeof input.metrics;
+    input.geoPointStatus = 'available';
+    input.commercialObjective = 'MOBILITY';
+
+    const viewModel = buildCommercialScenarioViewModel(input);
+
+    expect(viewModel.comparison.options.every((option) => option.mobilityCompatible == null)).toBe(true);
+    expect(viewModel.recommendation.technology).toBe('insufficient_data');
+    expect(viewModel.recommendation.reason).toMatch(/mobility compatibility/i);
   });
 });
 

@@ -23,6 +23,9 @@ import {
 // ─── Plain-English reason helpers ────────────────────────────────────────────
 
 function plainRecommendationReason(viewModel: CommercialScenarioViewModel): string {
+  if (viewModel.recommendation.objective) {
+    return viewModel.recommendation.reason;
+  }
   switch (viewModel.recommendation.reasonCategory) {
     case 'LOWEST_LATENCY':
       return 'Lowest response time for interactive applications';
@@ -40,7 +43,9 @@ function plainRecommendationReason(viewModel: CommercialScenarioViewModel): stri
 }
 
 function recommendationTitle(viewModel: CommercialScenarioViewModel): string {
-  if (viewModel.recommendation.technology === 'hybrid') return 'Both Viable';
+  if (viewModel.recommendation.technology === 'hybrid') return viewModel.recommendation.objective
+    ? viewModel.recommendation.label
+    : 'Both Viable';
   if (viewModel.recommendation.technology === 'not_available') return 'No Service Available';
   if (viewModel.recommendation.technology === 'insufficient_data') return 'Recommendation Pending';
   return `${viewModel.recommendation.label} Selected`;
@@ -96,8 +101,6 @@ function commercialDifferentiator(
     return option.strengths[0] ?? 'Recommended for this route';
   }
 
-  if (option.technology === 'geo') return 'Suitable for broadcast and data-only backup';
-  if (option.technology === 'leo') return 'Lower latency alternative available';
   return option.strengths[0] ?? option.limitingFactor ?? option.statusLabel;
 }
 
@@ -203,9 +206,9 @@ function CompactKpiBar({ viewModel }: { viewModel: CommercialScenarioViewModel }
         </div>
       )}
 
-      {/* Forecast confidence */}
+      {/* Coverage evidence confidence */}
       <div className="mt-2 rounded-lg border border-slate-800/60 bg-slate-900/36 px-3 py-2">
-        <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500">Forecast confidence</div>
+        <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500">Coverage evidence confidence</div>
         <ForecastConfidenceGauge level={confidence} />
       </div>
     </section>
@@ -341,11 +344,11 @@ function FullKpiBar({ viewModel }: { viewModel: CommercialScenarioViewModel }) {
           </section>
         )}
 
-        {/* Forecast confidence strip — spans full width below the 3 zones */}
+        {/* Coverage evidence confidence strip — distinct from recommendation confidence. */}
       </div>
 
       <div className="mt-3 rounded-lg border border-slate-800/55 bg-slate-900/35 px-4 py-2.5">
-        <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500">Forecast confidence</div>
+        <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500">Coverage evidence confidence</div>
         <ForecastConfidenceGauge level={confidence} />
       </div>
 

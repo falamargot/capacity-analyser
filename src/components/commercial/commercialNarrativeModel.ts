@@ -518,7 +518,7 @@ export function buildCommercialNarrativeCardModel({
         narrativeStatement: serviceOutcomeStatement(viewModel),
         facts: compactFacts([
           { label: 'Recommended technology', value: recommendedTechnologyLabel(viewModel) },
-          { label: 'Forecast confidence', value: viewModel.display.confidence ?? viewModel.display.confidenceNote },
+          { label: 'Coverage evidence confidence', value: viewModel.display.confidence ?? viewModel.display.confidenceNote },
           { label: 'Reason', value: viewModel.recommendation.reason },
           { label: 'Alternative', value: alternative ? `${alternative.label} — ${alternative.available ? 'available' : 'unavailable'}` : undefined },
         ], 4),
