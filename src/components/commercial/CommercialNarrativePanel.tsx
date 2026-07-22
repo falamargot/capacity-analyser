@@ -229,8 +229,9 @@ function RelayDiagram({ topology, accent }: { topology: CommercialTopologyModel;
         <line x1="40" y1="138" x2="48" y2="138" stroke={accent.originText} strokeWidth="1.1" />
         <text x="44" y="160" textAnchor="middle" fill={accent.originText} fontSize="7" fontWeight="700" letterSpacing="0.5">{originLabel}</text>
         <text x="44" y="171" textAnchor="middle" fill={accent.originText.replace('0.82', '0.46')} fontSize="6.5" fontWeight="600" letterSpacing="1">Uplink</text>
-        {/* Destination */}
-        {hasDestination ? (
+        {/* Destination — omitted entirely when no destination is resolved, so an
+            origin-only route reads as origin -> satellite with no phantom node. */}
+        {hasDestination && (
           <>
             <circle cx="296" cy="128" r="22" fill={accent.destFill} stroke={accent.destStroke} strokeWidth="1.2" />
             <circle cx="296" cy="128" r="9" fill="none" stroke={accent.destText} strokeWidth="1.3" />
@@ -238,12 +239,6 @@ function RelayDiagram({ topology, accent }: { topology: CommercialTopologyModel;
             <circle cx="296" cy="128" r="1.5" fill={accent.destText} />
             <text x="296" y="160" textAnchor="middle" fill={accent.destText} fontSize="7" fontWeight="700" letterSpacing="0.5">{destinationLabel}</text>
             <text x="296" y="171" textAnchor="middle" fill={accent.destText.replace('0.82', '0.46')} fontSize="6.5" fontWeight="600" letterSpacing="1">{destinationCaptionByKind[topology.destinationKind]}</text>
-          </>
-        ) : (
-          <>
-            <circle cx="296" cy="128" r="22" fill="none" stroke="rgba(148,163,184,0.30)" strokeWidth="1.1" strokeDasharray="3,3" />
-            <text x="296" y="131" textAnchor="middle" fill="rgba(148,163,184,0.55)" fontSize="7" fontWeight="700" letterSpacing="0.5">No dest.</text>
-            <text x="296" y="160" textAnchor="middle" fill="rgba(148,163,184,0.50)" fontSize="6.5" fontWeight="600" letterSpacing="0.5">{destinationLabel}</text>
           </>
         )}
         <text x="170" y="178" textAnchor="middle" fill={accent.caption} fontSize="6.5" fontWeight="700" letterSpacing="3">{relayBottomCaption[topology.destinationKind]}</text>
@@ -309,18 +304,13 @@ function LeoBackboneDiagram({ topology }: { topology: CommercialTopologyModel })
         <line x1="24" y1="60" x2="24" y2="65" stroke="rgba(34,211,238,0.62)" strokeWidth="1.2" />
         <line x1="20" y1="65" x2="28" y2="65" stroke="rgba(34,211,238,0.46)" strokeWidth="1.0" />
         <text x="24" y="84" textAnchor="middle" fill="rgba(34,211,238,0.80)" fontSize="6.5" fontWeight="700" letterSpacing="0.5">{originLabel}</text>
-        {hasDestination ? (
+        {hasDestination && (
           <>
             <circle cx="316" cy="55" r="19" fill="rgba(46,16,101,0.48)" stroke="rgba(139,92,246,0.38)" strokeWidth="1.1" />
             <circle cx="316" cy="55" r="8" fill="none" stroke="rgba(167,139,250,0.82)" strokeWidth="1.2" />
             <circle cx="316" cy="55" r="3.5" fill="none" stroke="rgba(167,139,250,0.78)" strokeWidth="1.2" />
             <circle cx="316" cy="55" r="1.2" fill="rgba(167,139,250,0.96)" />
             <text x="316" y="84" textAnchor="middle" fill="rgba(167,139,250,0.80)" fontSize="6.5" fontWeight="700" letterSpacing="0.5">{destinationLabel}</text>
-          </>
-        ) : (
-          <>
-            <circle cx="316" cy="55" r="19" fill="none" stroke="rgba(148,163,184,0.30)" strokeWidth="1.1" strokeDasharray="3,3" />
-            <text x="316" y="84" textAnchor="middle" fill="rgba(148,163,184,0.52)" fontSize="6.5" fontWeight="700" letterSpacing="0.5">No dest.</text>
           </>
         )}
         <text x="170" y="192" textAnchor="middle" fill="rgba(217,70,239,0.28)" fontSize="6.5" fontWeight="700" letterSpacing="3">LEO RELAY CHAIN</text>

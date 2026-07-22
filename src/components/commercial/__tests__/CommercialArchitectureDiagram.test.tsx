@@ -36,13 +36,19 @@ describe('CommercialArchitectureDiagram', () => {
     expect(markup).toContain('SATELLITE TO GATEWAY');
   });
 
-  it('drops the destination node when no destination is resolved (GEO single-point)', () => {
+  it('drops the destination node entirely when no destination is resolved (GEO single-point)', () => {
     const markup = renderToStaticMarkup(<CommercialArchitectureDiagram topology={topology({
       destinationKind: 'none',
       destinationLabel: 'No destination',
     })} />);
+    // Origin -> satellite only: the caption explains it, and there is no
+    // destination node, no placeholder text, and no "Downlink" leg caption.
     expect(markup).toContain('COVERAGE AT ORIGIN');
-    expect(markup).toContain('No dest.');
+    expect(markup).toContain('Paris');
+    expect(markup).toContain('EUTELSAT 21B');
+    expect(markup).not.toContain('No dest.');
+    expect(markup).not.toContain('No destination');
+    expect(markup).not.toContain('Downlink');
   });
 
   it('renders the two-satellite backbone chain for LEO site-to-site', () => {
