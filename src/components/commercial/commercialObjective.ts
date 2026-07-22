@@ -16,9 +16,18 @@ export type CommercialObjective =
 /** Primary link a BACKUP objective is providing continuity for. Never inferred. */
 export type CommercialPrimaryTechnology = 'GEO' | 'LEO' | 'TERRESTRIAL' | 'OTHER';
 
+/**
+ * Traffic direction the throughput criteria are scored against. Default
+ * BIDIRECTIONAL uses a conservative aggregation (the minimum of the two known
+ * directions); an incomplete pair yields an unknown value, never a copied one.
+ */
+export type CommercialTrafficDirection = 'DOWNLINK' | 'UPLINK' | 'BIDIRECTIONAL';
+
 export interface CommercialRecommendationContext {
   /** Required by the BACKUP objective; absent → backup diversity cannot be scored. */
   primaryTechnology?: CommercialPrimaryTechnology;
+  /** Defaults to BIDIRECTIONAL when omitted. */
+  trafficDirection?: CommercialTrafficDirection;
 }
 
 /** Comparable scoring criteria. Redundancy is folded into `serviceDiversity`. */
@@ -46,6 +55,13 @@ export interface CommercialRecommendationConfidence {
   score: number; // 0-100
   reasons: string[];
 }
+
+/**
+ * Canonical label E2b must render when a recommendation carries no confidence
+ * (e.g. insufficient_data). The absence is never coerced to `Low`, and the UI
+ * must not show an empty field.
+ */
+export const COMMERCIAL_CONFIDENCE_NOT_ASSESSED = 'Recommendation confidence: Not assessed';
 
 export interface CommercialCriterionContribution {
   criterion: CommercialCriterionId;

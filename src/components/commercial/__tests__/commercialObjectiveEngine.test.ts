@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildRecommendation } from '../commercialEngine';
 import { buildObjectiveRecommendation } from '../commercialObjectiveEngine';
+import { COMMERCIAL_CONFIDENCE_NOT_ASSESSED } from '../commercialObjective';
 import type { CommercialTechnologyOption } from '../commercialTypes';
 
 function option(
@@ -88,16 +89,16 @@ describe('objective engine — data-driven, no hardcoded orbit bias', () => {
   });
 
   it('given a fixture where GEO has better sustained throughput and availability, BROADCAST recommends GEO', () => {
-    const geo = option('geo', { rttMs: 550, sustainedMbps: 500, availabilityPct: 99.5 });
-    const leo = option('leo', { rttMs: 550, sustainedMbps: 60, availabilityPct: 97 });
+    const geo = option('geo', { rttMs: 550, sustainedDownlinkMbps: 500, sustainedUplinkMbps: 500, availabilityPct: 99.5 });
+    const leo = option('leo', { rttMs: 550, sustainedDownlinkMbps: 60, sustainedUplinkMbps: 60, availabilityPct: 97 });
     const rec = buildObjectiveRecommendation([geo, leo], 'BROADCAST');
     expect(rec.technology).toBe('geo');
     expect(rec.reasonCategory).toBe('HIGHEST_THROUGHPUT');
   });
 
   it('reverses the winner when the same objective sees the opposite data', () => {
-    const geo = option('geo', { rttMs: 550, sustainedMbps: 60 });
-    const leo = option('leo', { rttMs: 550, sustainedMbps: 700 });
+    const geo = option('geo', { rttMs: 550, sustainedDownlinkMbps: 60, sustainedUplinkMbps: 60 });
+    const leo = option('leo', { rttMs: 550, sustainedDownlinkMbps: 700, sustainedUplinkMbps: 700 });
     const rec = buildObjectiveRecommendation([geo, leo], 'BULK');
     expect(rec.technology).toBe('leo'); // LEO now has the higher sustained throughput
   });
@@ -119,12 +120,15 @@ describe('objective engine — unknown is never zero, and never "similar"', () =
   });
 
   it('does not manufacture a decisive win from a criterion known for one technology only', () => {
-    const geo = option('geo', { sustainedMbps: 500 });
-    const leo = option('leo', { sustainedMbps: null });
+    const geo = option('geo', { sustainedDownlinkMbps: 500, sustainedUplinkMbps: 500 });
+    const leo = option('leo', { sustainedDownlinkMbps: null, sustainedUplinkMbps: null });
     const rec = buildObjectiveRecommendation([geo, leo], 'BULK');
     // BULK dominant = sustained throughput; single-sided → insufficient_data.
     expect(rec.technology).toBe('insufficient_data');
     expect(rec.nonComparableCriteria).toContain('sustained throughput');
+    // No confidence on insufficient_data — never coerced to Low.
+    expect(rec.confidence).toBeUndefined();
+    expect(COMMERCIAL_CONFIDENCE_NOT_ASSESSED).toBe('Recommendation confidence: Not assessed');
   });
 
   it('guards normalization against invalid latency values (0 / Infinity / NaN)', () => {
@@ -140,8 +144,8 @@ describe('objective engine — unknown is never zero, and never "similar"', () =
 
 describe('objective engine — missing-data distinction', () => {
   it('separates common, non-comparable and both-unknown criteria', () => {
-    const geo = option('geo', { rttMs: 550, sustainedMbps: 400, availabilityPct: 99 });
-    const leo = option('leo', { rttMs: 40, sustainedMbps: 90, availabilityPct: null });
+    const geo = option('geo', { rttMs: 550, sustainedDownlinkMbps: 400, sustainedUplinkMbps: 400, availabilityPct: 99 });
+    const leo = option('leo', { rttMs: 40, sustainedDownlinkMbps: 90, sustainedUplinkMbps: 90, availabilityPct: null });
     const rec = buildObjectiveRecommendation([geo, leo], 'REALTIME');
     // regulatory + latency + sustained known for both; availability single-sided; duty/contention/theoretical unknown.
     expect(rec.commonCriteria).toEqual(expect.arrayContaining(['regulatory sellability', 'latency', 'sustained throughput']));
@@ -152,8 +156,8 @@ describe('objective engine — missing-data distinction', () => {
 
 describe('objective engine — relative comparison basis', () => {
   it('ranks two objectively weak options relatively without claiming a quantified need is met', () => {
-    const geo = option('geo', { rttMs: 700, sustainedMbps: 6 });
-    const leo = option('leo', { rttMs: 690, sustainedMbps: 9 });
+    const geo = option('geo', { rttMs: 700, sustainedDownlinkMbps: 6, sustainedUplinkMbps: 6 });
+    const leo = option('leo', { rttMs: 690, sustainedDownlinkMbps: 9, sustainedUplinkMbps: 9 });
     const rec = buildObjectiveRecommendation([geo, leo], 'BULK');
     // A winner may emerge from the relative comparison, but it is explicitly a
     // relative preference — never an absolute-fitness percentage.
@@ -201,13 +205,57 @@ describe('objective engine — hybrid and ties', () => {
 
 describe('objective engine — explainability and confidence', () => {
   it('always exposes favorable/limiting factors and a scored confidence', () => {
-    const geo = option('geo', { rttMs: 550, sustainedMbps: 400, availabilityPct: 99 });
-    const leo = option('leo', { rttMs: 40, sustainedMbps: 80, availabilityPct: 98 });
+    const geo = option('geo', { rttMs: 550, sustainedDownlinkMbps: 400, sustainedUplinkMbps: 400, availabilityPct: 99 });
+    const leo = option('leo', { rttMs: 40, sustainedDownlinkMbps: 80, sustainedUplinkMbps: 80, availabilityPct: 98 });
     const rec = buildObjectiveRecommendation([geo, leo], 'REALTIME');
     expect(rec.favorableFactors?.length).toBeGreaterThan(0);
     expect(rec.confidence).toBeDefined();
     expect(['High', 'Medium', 'Low']).toContain(rec.confidence?.level);
     expect(rec.confidence?.reasons.length).toBeGreaterThan(0);
     expect(typeof rec.scoreGap).toBe('number');
+  });
+});
+
+describe('objective engine — traffic direction', () => {
+  it('BIDIRECTIONAL is incomplete when only one direction is known (dominant not comparable)', () => {
+    const geo = option('geo', { sustainedDownlinkMbps: 500 }); // no uplink
+    const leo = option('leo', { sustainedDownlinkMbps: 400 });
+    const rec = buildObjectiveRecommendation([geo, leo], 'BULK'); // default BIDIRECTIONAL
+    // The bidirectional value is incomplete for both → the dominant criterion is unknown.
+    expect(rec.technology).toBe('insufficient_data');
+    expect(rec.unknownCriteria).toContain('sustained throughput');
+    expect(rec.message).toContain('sustained throughput');
+  });
+
+  it('scores the downlink direction when the customer picks DOWNLINK', () => {
+    const geo = option('geo', { sustainedDownlinkMbps: 500, sustainedUplinkMbps: 10 });
+    const leo = option('leo', { sustainedDownlinkMbps: 80, sustainedUplinkMbps: 300 });
+    const rec = buildObjectiveRecommendation([geo, leo], 'BULK', { trafficDirection: 'DOWNLINK' });
+    expect(rec.technology).toBe('geo'); // GEO wins on downlink
+  });
+
+  it('scores the uplink direction — never copies the other way', () => {
+    const geo = option('geo', { sustainedDownlinkMbps: 500, sustainedUplinkMbps: 10 });
+    const leo = option('leo', { sustainedDownlinkMbps: 80, sustainedUplinkMbps: 300 });
+    const rec = buildObjectiveRecommendation([geo, leo], 'BULK', { trafficDirection: 'UPLINK' });
+    expect(rec.technology).toBe('leo'); // LEO wins on uplink
+  });
+});
+
+describe('objective engine — cross-tech comparability', () => {
+  it('excludes duty cycle and contention from the common base even when both are known', () => {
+    const geo = option('geo', {
+      sustainedDownlinkMbps: 300, sustainedUplinkMbps: 300, contentionRatio: 20, dutyCycle: 0.9,
+    });
+    const leo = option('leo', {
+      sustainedDownlinkMbps: 120, sustainedUplinkMbps: 120, contentionRatio: 5, dutyCycle: 0.7,
+    });
+    const rec = buildObjectiveRecommendation([geo, leo], 'BULK'); // dominant = sustained (comparable)
+    expect(rec.commonCriteria).toContain('sustained throughput');
+    expect(rec.commonCriteria).not.toContain('contention');
+    expect(rec.commonCriteria).not.toContain('duty cycle');
+    // Kept for explanation, not for scoring.
+    expect(rec.nonComparableCriteria).toEqual(expect.arrayContaining(['contention', 'duty cycle']));
+    expect(rec.technology).toBe('geo');
   });
 });

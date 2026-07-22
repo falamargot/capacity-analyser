@@ -27,6 +27,26 @@ export const CRITERION_DIRECTION: Record<CommercialCriterionId, CriterionDirecti
   diversityFromPrimary: 'higher-better',
 };
 
+/**
+ * Whether a criterion's values are comparable ACROSS GEO and LEO. A criterion
+ * that is not cross-tech comparable is kept as evidence for explanation but
+ * excluded from the shared comparison base, even when both technologies carry a
+ * value. Duty cycle, contention and service diversity have no established common
+ * GEO/LEO semantics in E2a and stay non-comparable until that is proven.
+ */
+export const CROSS_TECH_COMPARABLE: Record<CommercialCriterionId, boolean> = {
+  regulatory: true,
+  latency: true,
+  sustainedThroughput: true,
+  theoreticalThroughput: true,
+  availability: true,
+  dutyCycle: false,
+  contention: false,
+  serviceDiversity: false,
+  mobilityFit: true,
+  diversityFromPrimary: true,
+};
+
 /** Nature of each criterion's data, used by the confidence model. */
 export const CRITERION_NATURE: Record<CommercialCriterionId, DataNature> = {
   regulatory: 'published',

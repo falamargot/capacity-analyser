@@ -93,13 +93,17 @@ export interface CommercialTechnologyOption {
   regulatoryConfidence?: CommercialRegulatoryConfidence;
   strengths: string[];
   // ── Objective-scoring criteria (E). All optional and nullable: `null`/absent
-  // means "unknown", never zero. Populated by the ENG→COMM seam in E2; until
-  // then they stay unknown and the objective engine excludes them from scoring.
-  /** Delivered throughput under modelled load (Mbps). */
-  sustainedMbps?: number | null;
-  /** RF-potential throughput, clear-sky boresight (Mbps). */
-  theoreticalMbps?: number | null;
-  /** Indicative link availability (%). Estimated, not an SLA. */
+  // means "unknown", never zero. Populated per technology by the ENG→COMM seam
+  // (E2a); a direction known for only one way is NOT copied to the other.
+  /** Delivered downlink throughput under modelled load (Mbps). */
+  sustainedDownlinkMbps?: number | null;
+  /** Delivered uplink throughput under modelled load (Mbps). */
+  sustainedUplinkMbps?: number | null;
+  /** RF-potential downlink throughput, clear-sky boresight (Mbps). */
+  theoreticalDownlinkMbps?: number | null;
+  /** RF-potential uplink throughput, clear-sky boresight (Mbps). */
+  theoreticalUplinkMbps?: number | null;
+  /** Indicative link availability (%, 0-100) for THIS technology. Estimated, not an SLA. */
   availabilityPct?: number | null;
   /** Fraction of time the service is usable (0-1). */
   dutyCycle?: number | null;
@@ -109,6 +113,8 @@ export interface CommercialTechnologyOption {
   serviceDiversity?: number | null;
   /** Explicit terminal-profile mobility compatibility. `null` = unknown (not eliminating). */
   mobilityCompatible?: boolean | null;
+  /** Per-criterion evidence (value/unit/nature/source/date) for explainability. */
+  evidence?: import('./commercialCriteriaEvidence').CommercialCriteriaEvidence;
 }
 
 export interface CommercialRecommendation {

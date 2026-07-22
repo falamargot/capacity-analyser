@@ -4,10 +4,12 @@ import type {
   CommercialObjective,
   CommercialRecommendationConfidence,
   CommercialRecommendationContext,
+  CommercialTrafficDirection,
 } from './commercialObjective';
 import {
   CRITERION_DIRECTION,
   CRITERION_NATURE,
+  CROSS_TECH_COMPARABLE,
   dominantCriteriaFor,
   totalObjectiveWeight,
   weightsFor,
@@ -61,6 +63,25 @@ function finiteOrNull(value: number | null | undefined): number | null {
   return value != null && Number.isFinite(value) ? value : null;
 }
 
+/**
+ * Derives a scored throughput from directional values and the traffic direction.
+ * BIDIRECTIONAL takes the conservative minimum of the two directions and is
+ * INCOMPLETE (null) when only one direction is known — a single direction is
+ * never copied to the other.
+ */
+function deriveDirectional(
+  downlink: number | null | undefined,
+  uplink: number | null | undefined,
+  direction: CommercialTrafficDirection,
+): number | null {
+  const dl = finiteOrNull(downlink);
+  const ul = finiteOrNull(uplink);
+  if (direction === 'DOWNLINK') return dl;
+  if (direction === 'UPLINK') return ul;
+  if (dl != null && ul != null) return Math.min(dl, ul);
+  return null; // BIDIRECTIONAL but incomplete
+}
+
 function regulatoryRank(value: CommercialTechnologyOption['regulatoryConfidence']): number {
   if (value === 'confirmed') return 4;
   if (value === 'estimated') return 3;
@@ -80,6 +101,7 @@ function criterionValue(
   criterion: CommercialCriterionId,
   context: CommercialRecommendationContext | undefined,
 ): number | null {
+  const direction: CommercialTrafficDirection = context?.trafficDirection ?? 'BIDIRECTIONAL';
   switch (criterion) {
     case 'regulatory':
       return option.regulatoryConfidence == null ? null : regulatoryRank(option.regulatoryConfidence);
@@ -92,9 +114,9 @@ function criterionValue(
       return v != null && v > 0 ? v : null;
     }
     case 'sustainedThroughput':
-      return finiteOrNull(option.sustainedMbps);
+      return deriveDirectional(option.sustainedDownlinkMbps, option.sustainedUplinkMbps, direction);
     case 'theoreticalThroughput':
-      return finiteOrNull(option.theoreticalMbps);
+      return deriveDirectional(option.theoreticalDownlinkMbps, option.theoreticalUplinkMbps, direction);
     case 'availability':
       return finiteOrNull(option.availabilityPct);
     case 'dutyCycle':
@@ -153,8 +175,12 @@ interface ScoredComparison {
   sharesByCriterion: Partial<Record<CommercialCriterionId, { geo: number; leo: number; weight: number }>>;
   /** Weighted criteria unknown for BOTH technologies. */
   unknownBoth: CommercialCriterionId[];
-  /** Weighted criteria known for exactly ONE technology (explanatory, not discriminating). */
-  nonComparable: { criterion: CommercialCriterionId; technology: 'geo' | 'leo' }[];
+  /**
+   * Weighted criteria excluded from the score but kept for explanation: either
+   * known for exactly ONE technology ('single-sided'), or known for both but not
+   * cross-tech comparable ('incomparable').
+   */
+  nonComparable: { criterion: CommercialCriterionId; technology?: 'geo' | 'leo'; reason: 'single-sided' | 'incomparable' }[];
   evidenceCoverage: number; // weighted: common weight / total objective weight
 }
 
@@ -179,6 +205,11 @@ function scoreComparison(
     const vGeo = criterionValue(geo, criterion, context);
     const vLeo = criterionValue(leo, criterion, context);
     if (vGeo != null && vLeo != null) {
+      if (!CROSS_TECH_COMPARABLE[criterion]) {
+        // Known for both but no common GEO/LEO semantics → explain, never score.
+        nonComparable.push({ criterion, reason: 'incomparable' });
+        continue;
+      }
       const [sGeo, sLeo] = shares(vGeo, vLeo, criterion);
       sharesByCriterion[criterion] = { geo: sGeo, leo: sLeo, weight };
       rawGeo += weight * sGeo;
@@ -186,9 +217,9 @@ function scoreComparison(
       commonWeight += weight;
       commonBase.push(criterion);
     } else if (vGeo != null) {
-      nonComparable.push({ criterion, technology: 'geo' });
+      nonComparable.push({ criterion, technology: 'geo', reason: 'single-sided' });
     } else if (vLeo != null) {
-      nonComparable.push({ criterion, technology: 'leo' });
+      nonComparable.push({ criterion, technology: 'leo', reason: 'single-sided' });
     } else {
       unknownBoth.push(criterion);
     }
@@ -274,7 +305,11 @@ function factors(comparison: ScoredComparison, winner: 'geo' | 'leo'): { favorab
   const limiting = scored.filter((s) => s.advantage < 0).sort((a, b) => a.advantage - b.advantage)
     .slice(0, 3).map((s) => `Weaker ${CRITERION_LABEL[s.criterion]} than the alternative`);
   for (const nc of comparison.nonComparable) {
-    const tag = `${CRITERION_LABEL[nc.criterion]} known only for ${nc.technology.toUpperCase()} (not compared)`;
+    if (nc.reason === 'incomparable') {
+      limiting.push(`${CRITERION_LABEL[nc.criterion]} known for both but not comparable across GEO/LEO`);
+      continue;
+    }
+    const tag = `${CRITERION_LABEL[nc.criterion]} known only for ${nc.technology?.toUpperCase()} (not compared)`;
     if (nc.technology === winner) favorable.push(tag);
     else limiting.push(tag);
   }
