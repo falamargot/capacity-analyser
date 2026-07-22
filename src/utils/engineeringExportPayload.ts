@@ -3,7 +3,7 @@ import { SPEED_OF_LIGHT_RADIO_KM_S } from './capacityCalculator';
 import { getGatewayTrafficStatusNote } from '../components/globe/GlobeConfig';
 import { formatResolvedGatewayRoleLabel } from './geoConnectivityModel';
 import { buildLinkAvailabilityContext, formatLinkAvailabilityContext } from './linkAvailabilityContext';
-import { buildDataProvenance } from './dataProvenance';
+import { buildDataProvenance, type DataNature, type DataProvenanceDescriptor } from './dataProvenance';
 import type { PDFConnectionDetails, PDFEvidenceSummary } from './pdfExport';
 import type { ExportButtonPayload } from '../components/ExportButton';
 import type { EngineeringTruthSet } from './engineeringAnalysisViewModel';
@@ -20,6 +20,8 @@ import type {
 } from '../components/capacity';
 import { TERMINAL_PROFILES } from '../components/capacity';
 import type { LeoTerminalProfile } from '../config/leoTerminals';
+import type { CandidateCoverage } from '../types/analysis';
+import type { BeamLoadResult } from './capacityLayer';
 import type { LeoConnectivityResult } from './leoConnectivityModel';
 import type { ActiveLeoPerformance } from './activeLeoRouteEvidence';
 import type { LeoSiteToSiteResult } from './leoSiteToSiteModel';
@@ -389,6 +391,10 @@ export interface BuildEngineeringExportPayloadInputs {
   resolvedGEOConnectivity: ResolvedGEOConnectivity | null;
   geoGeometry: GEOGeometry | null;
   geoPerformance: GeoPerformanceEstimate | null;
+  selectedLeoTerminalProfile?: LeoTerminalProfile | null;
+  geoTerminalType?: TerminalType;
+  geoCoverage?: CandidateCoverage | null;
+  beamLoadResult?: BeamLoadResult | null;
   linkMode: LinkMode;
   activeMeshTab?: 'forward' | 'reverse';
   leoPdfDetails: PDFConnectionDetails | null;
@@ -412,6 +418,10 @@ export function buildEngineeringExportPayload({
   resolvedGEOConnectivity,
   geoGeometry,
   geoPerformance,
+  selectedLeoTerminalProfile,
+  geoTerminalType = 'fixed',
+  geoCoverage = null,
+  beamLoadResult = null,
   linkMode,
   activeMeshTab,
   leoPdfDetails,
@@ -425,6 +435,8 @@ export function buildEngineeringExportPayload({
 
   const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
   const preferLeo = satelliteScope === 'LEO' || (satelliteScope === 'ALL' && activeConnTab === 'LEO');
+  const leoTruth = engineeringTruths.LEO;
+  const geoTruth = engineeringTruths.GEO;
   const chosenTruth = engineeringTruths[preferLeo ? 'LEO' : 'GEO'];
   const throughputMetrics = chosenTruth?.primaryMetrics.filter((metric) => /throughput/i.test(metric.label)) ?? [];
   const chosenPerformance = throughputMetrics.length > 0
@@ -452,11 +464,53 @@ export function buildEngineeringExportPayload({
   // Canonical provenance model — the single source of truth shared by this PDF
   // export and the in-app verdict summary (see buildDataProvenance).
   const provenanceSatellite = preferLeo ? resolvedLEOConnectivity?.satellite : resolvedGEOConnectivity?.satellite;
+  const terminalProvenance: DataProvenanceDescriptor = preferLeo && selectedLeoTerminalProfile
+    ? {
+        source: `${selectedLeoTerminalProfile.vendor} ${selectedLeoTerminalProfile.model} · ${selectedLeoTerminalProfile.sourceLabel}`,
+        nature: terminalNatureFromLeoSource(selectedLeoTerminalProfile.sourceType),
+        asOf: null,
+        note: selectedLeoTerminalProfile.sourceType === 'OFFICIAL_DATASHEET'
+          ? 'Public terminal specification'
+          : selectedLeoTerminalProfile.sourceType === 'ENGINEERING_ESTIMATE'
+            ? 'Public references supplemented by engineering assumptions'
+            : 'Representative generic planning profile',
+      }
+    : {
+        source: `Capacity Analyzer GEO terminal assumption · ${TERMINAL_PROFILES[geoTerminalType].label}`,
+        nature: 'estimated',
+        asOf: null,
+        note: 'Representative planning profile, not a selected equipment datasheet',
+      };
+  const coverageFrequency: DataProvenanceDescriptor | undefined = !preferLeo && geoCoverage
+    ? {
+        source: `${geoCoverage.isSynthesized ? 'Synthesized GEO coverage' : 'Public GEO coverage contour'} · ${geoCoverage.satelliteName} · ${geoCoverage.coverageName}`,
+        nature: geoCoverage.isSynthesized ? 'estimated' : 'published',
+        asOf: null,
+        note: geoCoverage.isSynthesized
+          ? `Missing directional contour inferred from ${geoCoverage.syntheticSource ?? 'the opposite-direction coverage'}`
+          : 'Public, non-operational planning reference',
+      }
+    : undefined;
+  const capacityLoad: DataProvenanceDescriptor = preferLeo && beamLoadResult
+    ? {
+        source: `Network Load model · ${beamLoadResult.loadSource}`,
+        nature: 'modeled',
+        asOf: beamLoadResult.fillRateSourceDate ?? null,
+        note: `${beamLoadResult.loadDataMode}; simulated user load, not live subscriber telemetry`,
+      }
+    : {
+        source: preferLeo ? 'Simulation engine (5-pillar model)' : 'GEO link-budget and capacity model',
+        nature: 'modeled',
+        asOf: null,
+        note: 'Computed for this analysis; no live operational load telemetry',
+      };
   const dataProvenance = buildDataProvenance({
     architecture: preferLeo ? 'LEO' : 'GEO',
     satelliteName: provenanceSatellite?.name ?? null,
-    // position.sampleTimeMs is the propagation timestamp of the tracked orbit.
-    ephemerisAsOf: provenanceSatellite?.position?.sampleTimeMs ?? null,
+    tleEpochAsOf: provenanceSatellite?.tleEpochMs ?? null,
+    coverageFrequency,
+    capacityLoad,
+    terminal: terminalProvenance,
     weatherLabel: formatWeatherLabel(weatherType),
   });
 
@@ -469,12 +523,14 @@ export function buildEngineeringExportPayload({
     scope: satelliteScope,
     leoData: resolvedLEOConnectivity ? {
       name: resolvedLEOConnectivity.satellite.name,
-      elevation: resolvedLEOConnectivity.userLEOElevation || 0,
+      serviceState: leoTruth?.state ?? 'incomplete',
+      serviceReason: leoTruth?.headline,
+      elevation: Number.isFinite(resolvedLEOConnectivity.userLEOElevation) ? resolvedLEOConnectivity.userLEOElevation : null,
       rtt: resolvedLEOConnectivity.snp
         ? (leoGeometry?.rttTotalMs ?? (resolvedLEOConnectivity.userLEODistance + (resolvedLEOConnectivity.snpLEODistance || 0)) * 2 / SPEED_OF_LIGHT_RADIO_KM_S * 1000)
-        : resolvedLEOConnectivity.userLEODistance * 2 / SPEED_OF_LIGHT_RADIO_KM_S * 1000,
-      downlinkGbps: leoDownlinkMbps != null ? leoDownlinkMbps / 1000 : 0,
-      uplinkGbps: leoUplinkMbps != null ? leoUplinkMbps / 1000 : 0,
+        : null,
+      downlinkGbps: leoDownlinkMbps != null && leoDownlinkMbps > 0 ? leoDownlinkMbps / 1000 : null,
+      uplinkGbps: leoUplinkMbps != null && leoUplinkMbps > 0 ? leoUplinkMbps / 1000 : null,
       stability: resolvedLEOConnectivity.snp
         ? (leoPerformance?.stability ?? 'Unstable')
         : 'Unstable',
@@ -485,14 +541,18 @@ export function buildEngineeringExportPayload({
     } : null,
     geoData: resolvedGEOConnectivity ? {
       name: resolvedGEOConnectivity.satellite.name,
-      elevation: geoGeometry?.userToSatellite.elevationDeg || 0,
-      rtt: geoGeometry?.rttTotalMs || 0,
-      downlinkGbps: linkMode === 'STAR_RETURN' || activeMeshTab === 'reverse' ? 0 : (geoForwardMbps ?? 0) / 1000,
-      uplinkGbps: linkMode === 'STAR_RETURN' || activeMeshTab === 'reverse' ? (geoForwardMbps ?? 0) / 1000 : 0,
+      serviceState: geoTruth?.state ?? 'incomplete',
+      serviceReason: geoTruth?.headline,
+      elevation: geoGeometry?.userToSatellite.elevationDeg ?? null,
+      rtt: geoGeometry?.rttTotalMs ?? null,
+      downlinkGbps: linkMode === 'STAR_RETURN' || activeMeshTab === 'reverse' || geoForwardMbps == null || geoForwardMbps <= 0 ? null : geoForwardMbps / 1000,
+      uplinkGbps: linkMode === 'STAR_RETURN' || activeMeshTab === 'reverse'
+        ? (geoForwardMbps != null && geoForwardMbps > 0 ? geoForwardMbps / 1000 : null)
+        : null,
       stability: (() => {
         return geoGeometry?.isUserLinkUnstable ? 'Unstable' : geoPerformance?.stability ?? 'Unstable';
       })(),
-      distance: geoGeometry?.userToSatellite.slantRangeKm || 0,
+      distance: geoGeometry?.userToSatellite.slantRangeKm ?? null,
       radioPath: `${userLabel} → ${resolvedGEOConnectivity.satellite.name} → ${userLabel}`
     } : null,
     leoDetails: satelliteScope !== 'GEO' ? leoPdfDetails : null,
@@ -508,4 +568,10 @@ export function buildEngineeringExportPayload({
 function formatWeatherLabel(weatherType: WeatherType): string {
   const spaced = String(weatherType).replace(/_/g, ' ');
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+function terminalNatureFromLeoSource(sourceType: LeoTerminalProfile['sourceType']): DataNature {
+  if (sourceType === 'OFFICIAL_DATASHEET') return 'published';
+  if (sourceType === 'ENGINEERING_ESTIMATE') return 'estimated';
+  return 'estimated';
 }

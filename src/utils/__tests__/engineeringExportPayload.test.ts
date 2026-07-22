@@ -23,8 +23,8 @@ import type { SNPData } from '../../components/globe/GlobeConfig';
  * document content must show up as a reviewed snapshot diff.
  */
 
-const leoSatellite = { name: 'ONEWEB-0123' } as SatelliteData;
-const geoSatellite = { name: 'EUTELSAT TEST' } as SatelliteData;
+const leoSatellite = { name: 'ONEWEB-0123', tleEpochMs: Date.parse('2026-07-21T12:00:00.000Z') } as SatelliteData;
+const geoSatellite = { name: 'EUTELSAT TEST', tleEpochMs: Date.parse('2026-07-20T08:00:00.000Z') } as SatelliteData;
 
 const resolvedLeo: ResolvedLEOConnectivity = {
   satellite: leoSatellite,
@@ -216,6 +216,7 @@ describe('M2 export payload golden', () => {
       resolvedGEOConnectivity: resolvedGeo,
       geoGeometry,
       geoPerformance,
+      selectedLeoTerminalProfile: getLeoTerminalProfile('fixed'),
       linkMode: 'STAR_FORWARD',
       leoPdfDetails,
       geoPdfDetails,

@@ -16,6 +16,7 @@ describe('formatProvenanceDate', () => {
   it('formats known ISO and epoch dates', () => {
     expect(formatProvenanceDate('2026-05-01T00:00:00.000Z')).toMatch(/May 2026/);
     expect(formatProvenanceDate(Date.parse('2026-05-01T00:00:00Z'))).toMatch(/May 2026/);
+    expect(formatProvenanceDate('2026-06')).toBe('Jun 2026');
   });
 });
 
@@ -35,16 +36,16 @@ describe('buildDataProvenance', () => {
     const model = buildDataProvenance({ architecture: 'GEO', generatedAt });
     const byId = Object.fromEntries(model.entries.map((entry) => [entry.id, entry.nature]));
     expect(byId.ephemeris).toBe('published');
-    expect(byId['coverage-frequency']).toBe('published');
+    expect(byId['coverage-frequency']).toBe('inferred');
     expect(byId['capacity-load']).toBe('modeled');
     expect(byId.weather).toBe('estimated');
   });
 
-  it('ties modelled capacity freshness to the generation time and leaves unknown dates null', () => {
+  it('does not present analysis time as source-data freshness', () => {
     const model = buildDataProvenance({ architecture: 'GEO', generatedAt });
     const capacity = model.entries.find((entry) => entry.id === 'capacity-load');
     const coverage = model.entries.find((entry) => entry.id === 'coverage-frequency');
-    expect(capacity?.asOf).toBe(generatedAt.toISOString());
+    expect(capacity?.asOf).toBeNull();
     expect(coverage?.asOf).toBeNull();
   });
 
@@ -52,12 +53,18 @@ describe('buildDataProvenance', () => {
     const model = buildDataProvenance({
       architecture: 'LEO',
       satelliteName: 'ONEWEB-0012',
-      terminalLabel: 'Fixed VSAT',
+      tleEpochAsOf: '2026-07-21T12:00:00.000Z',
+      terminal: {
+        source: 'Intellian OW70L public datasheet',
+        nature: 'published',
+        asOf: null,
+      },
       weatherLabel: 'Clear',
       generatedAt,
     });
     expect(model.entries.find((e) => e.id === 'ephemeris')?.source).toContain('ONEWEB-0012');
-    expect(model.entries.find((e) => e.id === 'terminal')?.source).toContain('Fixed VSAT');
+    expect(model.entries.find((e) => e.id === 'terminal')?.source).toContain('Intellian OW70L');
+    expect(model.entries.find((e) => e.id === 'ephemeris')?.asOf).toBe('2026-07-21T12:00:00.000Z');
     expect(model.entries.find((e) => e.id === 'weather')?.source).toContain('Clear');
   });
 });
@@ -75,6 +82,6 @@ describe('dataProvenanceRows', () => {
     expect(generated).toBeDefined();
     expect(generated?.asOf).toMatch(/Jul 2026/);
     // Natures are surfaced as human labels, never raw enum values.
-    expect(rows.every((row) => ['Published', 'Modeled', 'Estimated', 'Inferred'].includes(row.nature))).toBe(true);
+    expect(rows.every((row) => ['Published', 'Modeled', 'Estimated', 'Inferred', 'Generated'].includes(row.nature))).toBe(true);
   });
 });

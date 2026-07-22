@@ -55,18 +55,37 @@ export const DATE_UNAVAILABLE = 'Date unavailable';
  */
 export function formatProvenanceDate(value: string | number | null | undefined): string {
   if (value == null) return DATE_UNAVAILABLE;
+  if (typeof value === 'string' && /^\d{4}-\d{2}$/.test(value)) {
+    const period = new Date(`${value}-01T00:00:00.000Z`);
+    return Number.isNaN(period.getTime()) ? DATE_UNAVAILABLE : format(period, 'MMM yyyy');
+  }
   const date = typeof value === 'number' ? new Date(value) : new Date(value);
   if (Number.isNaN(date.getTime())) return DATE_UNAVAILABLE;
   return format(date, 'd MMM yyyy');
 }
 
+export function formatProvenanceDateTime(value: string | number | null | undefined): string {
+  if (value == null) return DATE_UNAVAILABLE;
+  const date = typeof value === 'number' ? new Date(value) : new Date(value);
+  if (Number.isNaN(date.getTime())) return DATE_UNAVAILABLE;
+  return format(date, 'd MMM yyyy, HH:mm:ss');
+}
+
+export interface DataProvenanceDescriptor {
+  source: string;
+  nature: DataNature;
+  asOf?: string | number | null;
+  note?: string;
+}
+
 export interface BuildDataProvenanceInput {
   architecture: 'GEO' | 'LEO';
   satelliteName?: string | null;
-  /** Ephemeris/TLE epoch or position sample time (ms or ISO), if known. */
-  ephemerisAsOf?: string | number | null;
-  /** Human label for the terminal profile in use. */
-  terminalLabel?: string | null;
+  /** Epoch encoded by the source TLE. Never pass the SGP4 propagation time. */
+  tleEpochAsOf?: string | number | null;
+  coverageFrequency?: DataProvenanceDescriptor;
+  capacityLoad?: DataProvenanceDescriptor;
+  terminal?: DataProvenanceDescriptor;
   /** Indicative weather label (e.g. "Clear"), if selected. */
   weatherLabel?: string | null;
   /** Overridable for deterministic tests; defaults to now. */
@@ -88,36 +107,40 @@ export function buildDataProvenance(input: BuildDataProvenanceInput): DataProven
     {
       id: 'ephemeris',
       label: 'Orbital ephemeris (TLE)',
-      source: `Public two-line elements · CelesTrak SATCAT (${satellite})`,
+      source: `CelesTrak GP/TLE feed (${satellite})`,
       nature: 'published',
-      asOf: input.ephemerisAsOf ?? null,
+      asOf: input.tleEpochAsOf ?? null,
       note: 'Public tracking data, not an operator ephemeris',
     },
     {
       id: 'coverage-frequency',
       label: 'Coverage & frequency plan',
-      source: 'Published operator / regulatory references',
-      nature: 'published',
-      asOf: null,
-      note: 'Public, non-operational frequency data',
+      source: input.coverageFrequency?.source
+        ?? (input.architecture === 'LEO'
+          ? 'Modeled OneWeb beam geometry with public Ku-band assumptions'
+          : 'Coverage and frequency inputs retained by the analysis engine'),
+      nature: input.coverageFrequency?.nature ?? (input.architecture === 'LEO' ? 'modeled' : 'inferred'),
+      asOf: input.coverageFrequency?.asOf ?? null,
+      note: input.coverageFrequency?.note
+        ?? (input.architecture === 'LEO'
+          ? 'Planning geometry, not an operator coverage commitment'
+          : 'Specific source metadata is not retained for this scenario'),
     },
     {
       id: 'capacity-load',
       label: 'Capacity & network load',
-      source: 'Simulation engine (5-pillar model)',
-      nature: 'modeled',
-      // Capacity/load is computed by the model at analysis time.
-      asOf: generatedIso,
-      note: 'Simulated, not a filed/marketed figure',
+      source: input.capacityLoad?.source ?? 'Simulation engine (5-pillar model)',
+      nature: input.capacityLoad?.nature ?? 'modeled',
+      asOf: input.capacityLoad?.asOf ?? null,
+      note: input.capacityLoad?.note ?? 'Simulated, not a filed/marketed figure',
     },
     {
       id: 'terminal',
       label: 'Terminal profile',
-      source: input.terminalLabel?.trim()
-        ? `Terminal capability catalog · ${input.terminalLabel.trim()}`
-        : 'Terminal capability catalog',
-      nature: 'published',
-      asOf: null,
+      source: input.terminal?.source ?? `Representative ${input.architecture} terminal profile`,
+      nature: input.terminal?.nature ?? 'estimated',
+      asOf: input.terminal?.asOf ?? null,
+      note: input.terminal?.note,
     },
     {
       id: 'weather',
@@ -162,8 +185,8 @@ export function dataProvenanceRows(model: DataProvenanceModel): DataProvenanceRo
     id: 'generated',
     label: 'Report generated',
     source: 'Capacity Analyzer',
-    nature: dataNatureLabel.modeled,
-    asOf: formatProvenanceDate(model.generatedAt),
+    nature: 'Generated',
+    asOf: formatProvenanceDateTime(model.generatedAt),
   });
   return rows;
 }

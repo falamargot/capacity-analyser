@@ -1,16 +1,19 @@
 import jsPDF from 'jspdf';
 import { format } from 'date-fns';
 import { dataProvenanceRows, type DataProvenanceModel } from './dataProvenance';
+import type { EngineeringServiceState } from './engineeringAnalysisViewModel';
 
 // Types pour les données de performance
 export interface PerformanceData {
   name: string;
+  serviceState: EngineeringServiceState;
+  serviceReason?: string;
   rtt: number | null;
-  downlinkGbps: number;
-  uplinkGbps: number;
-  elevation: number;
+  downlinkGbps: number | null;
+  uplinkGbps: number | null;
+  elevation: number | null;
   stability: string;
-  distance: number;
+  distance: number | null;
   radioPath: string;
 }
 
@@ -102,15 +105,32 @@ export function generateFileName(location: LocationData): string {
   return `Capacity_Analysis_${location.lat.toFixed(2)}_${location.lng.toFixed(2)}_${timestamp}.pdf`;
 }
 
-function toPdfSafeText(value: string): string {
-  return value
+const CYRILLIC_TO_LATIN: Record<string, string> = {
+  А: 'A', Б: 'B', В: 'V', Г: 'G', Д: 'D', Ђ: 'Dj', Е: 'E', Ё: 'E', Ж: 'Zh', З: 'Z', И: 'I', Й: 'Y',
+  Ј: 'J', К: 'K', Л: 'L', Љ: 'Lj', М: 'M', Н: 'N', Њ: 'Nj', О: 'O', П: 'P', Р: 'R', С: 'S', Т: 'T', Ћ: 'C',
+  У: 'U', Ф: 'F', Х: 'Kh', Ц: 'Ts', Ч: 'Ch', Џ: 'Dz', Ш: 'Sh', Щ: 'Shch', Ъ: '', Ы: 'Y', Ь: '',
+  Э: 'E', Ю: 'Yu', Я: 'Ya', Є: 'Ye', І: 'I', Ї: 'Yi', Ґ: 'G',
+  а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', ђ: 'dj', е: 'e', ё: 'e', ж: 'zh', з: 'z', и: 'i', й: 'y',
+  ј: 'j', к: 'k', л: 'l', љ: 'lj', м: 'm', н: 'n', њ: 'nj', о: 'o', п: 'p', р: 'r', с: 's', т: 't', ћ: 'c',
+  у: 'u', ф: 'f', х: 'kh', ц: 'ts', ч: 'ch', џ: 'dz', ш: 'sh', щ: 'shch', ъ: '', ы: 'y', ь: '',
+  э: 'e', ю: 'yu', я: 'ya', є: 'ye', і: 'i', ї: 'yi', ґ: 'g',
+};
+
+export function toPdfSafeText(value: string): string {
+  const transliterated = Array.from(value.normalize('NFKD'))
+    .filter((character) => !/[\u0300-\u036f]/.test(character))
+    .map((character) => CYRILLIC_TO_LATIN[character] ?? character)
+    .join('');
+  return transliterated
     .replaceAll('→', ' -> ')
     .replaceAll('←', ' <- ')
     .replaceAll('–', '-')
     .replaceAll('—', '-')
+    .replaceAll('·', ' / ')
     .replaceAll('’', "'")
     .replaceAll('“', '"')
     .replaceAll('”', '"')
+    .replace(/[^\x20-\x7E°]/g, '?')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -151,11 +171,15 @@ function formatScopeLabel(scope: PDFScope): string {
   return scope;
 }
 
-function addFooter(pdf: jsPDF): void {
-  pdf.setFontSize(8);
-  pdf.setFont('helvetica', 'italic');
-  pdf.text('Capacity Analyzer - Theoretical Analysis Only - Not for Contractual Use', 105, 280, { align: 'center' });
-  pdf.text(`Generated: ${format(new Date(), 'PPpp')}`, 105, 285, { align: 'center' });
+function addFooters(pdf: jsPDF, generatedAt: Date): void {
+  const pageCount = pdf.getNumberOfPages();
+  for (let pageNumber = 1; pageNumber <= pageCount; pageNumber += 1) {
+    pdf.setPage(pageNumber);
+    pdf.setFontSize(8);
+    pdf.setFont('helvetica', 'italic');
+    pdf.text('Capacity Analyzer - Theoretical Analysis Only - Not for Contractual Use', 105, 280, { align: 'center' });
+    pdf.text(`Generated: ${format(generatedAt, 'PPpp')} · Page ${pageNumber}/${pageCount}`, 105, 285, { align: 'center' });
+  }
 }
 
 function formatThroughput(gbps: number | null | undefined): string {
@@ -176,7 +200,7 @@ function drawTable(
   startY: number
 ): number {
   const tableX = 20;
-  const colWidths = [44, 63, 63];
+  const colWidths = headers.length === 2 ? [54, 116] : [44, 63, 63];
   const lineHeight = 4.5;
   const cellPaddingX = 2.5;
   const cellPaddingY = 2.5;
@@ -216,12 +240,12 @@ function drawTable(
 
 function getSnapshotCanvas(data: PDFExportData): HTMLCanvasElement | null {
   const viewerCanvas = data.cesiumViewer?.scene?.canvas;
-  if (viewerCanvas instanceof HTMLCanvasElement) {
+  if (typeof HTMLCanvasElement !== 'undefined' && viewerCanvas instanceof HTMLCanvasElement) {
     return viewerCanvas;
   }
 
   const domCanvas = data.globeElement?.querySelector('canvas');
-  return domCanvas instanceof HTMLCanvasElement ? domCanvas : null;
+  return typeof HTMLCanvasElement !== 'undefined' && domCanvas instanceof HTMLCanvasElement ? domCanvas : null;
 }
 
 async function captureGlobeSnapshot(data: PDFExportData): Promise<SnapshotImage | null> {
@@ -243,30 +267,67 @@ async function captureGlobeSnapshot(data: PDFExportData): Promise<SnapshotImage 
   }
 }
 
-// Fonction pour calculer la recommandation
-function generateRecommendation(leoData: PerformanceData | null, geoData: PerformanceData | null): string {
-  if (!leoData && !geoData) return 'No data available for recommendation';
-  
-  if (leoData && geoData) {
-    if (leoData.rtt && leoData.rtt < 50) {
-      return 'Best for: Real-time applications (gaming, trading, IoT)';
-    } else if (geoData.downlinkGbps > leoData.downlinkGbps) {
-      return 'Best for: High-bandwidth applications (video, broadcast)';
-    }
-  }
-  
-  if (leoData && leoData.rtt && leoData.rtt < 50) {
-    return 'Best for: Real-time applications (gaming, trading, IoT)';
-  }
-  
-  if (geoData && geoData.downlinkGbps > 0.1) {
-    return 'Best for: High-bandwidth applications (video, broadcast)';
-  }
-  
-  return 'Analysis complete - Choose based on your specific requirements';
+const DELIVERABLE_STATES: ReadonlySet<EngineeringServiceState> = new Set(['available', 'constrained', 'degraded']);
+
+export function hasDeliverablePdfPath(data: PerformanceData | null | undefined): data is PerformanceData {
+  if (!data || !DELIVERABLE_STATES.has(data.serviceState)) return false;
+  return (data.downlinkGbps ?? 0) > 0 || (data.uplinkGbps ?? 0) > 0;
 }
 
-function createComparisonPage(pdf: jsPDF, data: PDFExportData, snapshot: SnapshotImage | null): void {
+function serviceStateLabel(data: PerformanceData | null): string {
+  if (!data) return 'Not evaluated';
+  const labels: Record<EngineeringServiceState, string> = {
+    available: 'Available',
+    constrained: 'Constrained',
+    degraded: 'Degraded',
+    blocked: 'Blocked',
+    incomplete: 'Incomplete',
+    'path-unavailable': 'Path unavailable',
+    'budget-unavailable': 'Budget unavailable',
+    uncertain: 'Uncertain',
+  };
+  return labels[data.serviceState];
+}
+
+export function generateEngineeringVerdict(
+  leoData: PerformanceData | null,
+  geoData: PerformanceData | null,
+  scope: PDFScope = 'ALL',
+): string {
+  const leoViable = scope !== 'GEO' && hasDeliverablePdfPath(leoData);
+  const geoViable = scope !== 'LEO' && hasDeliverablePdfPath(geoData);
+  if (!leoViable && !geoViable) {
+    return 'No viable recommendation: no technology has a confirmed deliverable path for this scenario.';
+  }
+  if (leoViable && !geoViable) {
+    return 'LEO is the only technology with a confirmed deliverable path in this analysis.';
+  }
+  if (geoViable && !leoViable) {
+    return 'GEO is the only technology with a confirmed deliverable path in this analysis.';
+  }
+  return 'Both LEO and GEO have deliverable paths. No customer objective is selected; compare latency, throughput, availability, and resilience before choosing.';
+}
+
+function comparisonMetric(
+  data: PerformanceData | null,
+  value: number | null | undefined,
+  formatter: (metric: number) => string,
+): string {
+  if (!hasDeliverablePdfPath(data) || value == null || !Number.isFinite(value)) return 'N/A';
+  return formatter(value);
+}
+
+function drawReportContext(pdf: jsPDF, title: string, data: PDFExportData): void {
+  pdf.setFontSize(18);
+  pdf.setFont('helvetica', 'bold');
+  pdf.text(title, 20, 20);
+  pdf.setFontSize(10);
+  pdf.setFont('helvetica', 'normal');
+  pdf.text(`Location: ${formatLocationLabel(data.location)}`, 20, 30);
+  pdf.text(`Scope filter: ${formatScopeLabel(data.scope)}`, 20, 36);
+}
+
+function createComparisonPage(pdf: jsPDF, data: PDFExportData, snapshot: SnapshotImage | null, generatedAt: Date): void {
   const { location, leoData, geoData } = data;
   
   pdf.setFontSize(20);
@@ -275,7 +336,7 @@ function createComparisonPage(pdf: jsPDF, data: PDFExportData, snapshot: Snapsho
   
   pdf.setFontSize(10);
   pdf.setFont('helvetica', 'normal');
-  pdf.text(`Generated: ${format(new Date(), 'PPpp')}`, 105, 30, { align: 'center' });
+  pdf.text(`Generated: ${format(generatedAt, 'PPpp')}`, 105, 30, { align: 'center' });
   pdf.text(`Location: ${formatLocationLabel(location)}`, 105, 37, { align: 'center' });
   pdf.text(`Scope filter: ${formatScopeLabel(data.scope)}`, 105, 43, { align: 'center' });
 
@@ -318,74 +379,71 @@ function createComparisonPage(pdf: jsPDF, data: PDFExportData, snapshot: Snapsho
   currentY += 5;
   const tableHeaders = ['Metric', 'LEO (OneWeb)', 'GEO (Eutelsat)'];
   const tableData = [
+    ['Service state', serviceStateLabel(leoData), serviceStateLabel(geoData)],
     ['Satellite', leoData?.name || 'N/A', geoData?.name || 'N/A'],
-    ['Latency', formatValue(leoData?.rtt, ' ms'), formatValue(geoData?.rtt, ' ms')],
-    ['Downlink', formatValue(leoData?.downlinkGbps * 1000, ' Mbps'), formatValue(geoData?.downlinkGbps * 1000, ' Mbps')],
-    ['Uplink', formatValue(leoData?.uplinkGbps * 1000, ' Mbps'), formatValue(geoData?.uplinkGbps * 1000, ' Mbps')],
-    ['Elevation', formatValue(leoData?.elevation, '°'), formatValue(geoData?.elevation, '°')],
-    ['Stability', leoData?.stability || 'N/A', geoData?.stability || 'N/A'],
-    ['Distance', formatValue(leoData?.distance, ' km'), formatValue(geoData?.distance, ' km')]
+    ['Latency', comparisonMetric(leoData, leoData?.rtt, (value) => `${Math.round(value)} ms`), comparisonMetric(geoData, geoData?.rtt, (value) => `${Math.round(value)} ms`)],
+    ['Downlink', comparisonMetric(leoData, leoData?.downlinkGbps, formatThroughput), comparisonMetric(geoData, geoData?.downlinkGbps, formatThroughput)],
+    ['Uplink', comparisonMetric(leoData, leoData?.uplinkGbps, formatThroughput), comparisonMetric(geoData, geoData?.uplinkGbps, formatThroughput)],
+    ['Elevation', comparisonMetric(leoData, leoData?.elevation, (value) => `${value.toFixed(1)}°`), comparisonMetric(geoData, geoData?.elevation, (value) => `${value.toFixed(1)}°`)],
+    ['Stability', hasDeliverablePdfPath(leoData) ? leoData.stability : 'N/A', hasDeliverablePdfPath(geoData) ? geoData.stability : 'N/A'],
+    ['Distance', comparisonMetric(leoData, leoData?.distance, (value) => `${Math.round(value)} km`), comparisonMetric(geoData, geoData?.distance, (value) => `${Math.round(value)} km`)],
   ];
 
   currentY = drawTable(pdf, tableHeaders, tableData, currentY);
 
-  currentY += 10;
+  currentY += 7;
   pdf.setFontSize(12);
   pdf.setFont('helvetica', 'bold');
-  pdf.text('RECOMMENDATION:', 20, currentY);
+  pdf.text('ENGINEERING VERDICT:', 20, currentY);
   
   currentY += 7;
   pdf.setFontSize(10);
   pdf.setFont('helvetica', 'normal');
-  const recommendation = generateRecommendation(leoData, geoData);
-  const lines = pdf.splitTextToSize(toPdfSafeText(recommendation), 150);
+  const verdict = generateEngineeringVerdict(leoData, geoData, data.scope);
+  const lines = pdf.splitTextToSize(toPdfSafeText(verdict), 170);
   lines.forEach((line: string) => {
     pdf.text(line, 20, currentY);
     currentY += 5;
   });
 
-  if (data.evidenceSummary) {
-    currentY += 5;
+}
+
+function createEvidencePage(pdf: jsPDF, data: PDFExportData): void {
+  if (!data.evidenceSummary) return;
+  pdf.addPage();
+  drawReportContext(pdf, 'DECISION EVIDENCE', data);
+  const evidenceRows = [
+    ['Architecture focus', data.evidenceSummary.architectureChoice],
+    ['Main limiting factor', data.evidenceSummary.limitingFactor],
+    ['Expected performance', data.evidenceSummary.expectedPerformance],
+    ['Prediction confidence', data.evidenceSummary.confidence],
+    ['Indicative weather availability', data.evidenceSummary.availabilityContext ?? 'N/A'],
+  ];
+  let currentY = drawTable(pdf, ['Evidence', 'Value'], evidenceRows, 48);
+  if (data.evidenceSummary.confidenceReasons.length) {
+    currentY += 8;
     pdf.setFontSize(12);
     pdf.setFont('helvetica', 'bold');
-    pdf.text('EVIDENCE SUMMARY', 20, currentY);
-    currentY += 6;
-    const evidenceRows = [
-      ['Architecture choice', data.evidenceSummary.architectureChoice],
-      ['Main limiting factor', data.evidenceSummary.limitingFactor],
-      ['Expected performance', data.evidenceSummary.expectedPerformance],
-      ['Prediction confidence', data.evidenceSummary.confidence],
-      ['Weather availability', data.evidenceSummary.availabilityContext ?? 'N/A'],
-    ];
-    currentY = drawTable(pdf, ['Evidence', 'Value'], evidenceRows, currentY);
-    if (data.evidenceSummary.confidenceReasons.length) {
-      currentY += 5;
-      pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'normal');
-      const reasonText = data.evidenceSummary.confidenceReasons.join(' | ');
-      const reasonLines = pdf.splitTextToSize(toPdfSafeText(reasonText), 150);
-      reasonLines.forEach((line: string) => {
-        pdf.text(line, 20, currentY);
-        currentY += 5;
-      });
-    }
+    pdf.text('CONFIDENCE BASIS', 20, currentY);
+    currentY += 7;
+    pdf.setFontSize(9);
+    pdf.setFont('helvetica', 'normal');
+    const reasonText = data.evidenceSummary.confidenceReasons.join(' | ');
+    const reasonLines = pdf.splitTextToSize(toPdfSafeText(reasonText), 170);
+    pdf.text(reasonLines, 20, currentY);
   }
+}
 
-  if (data.dataProvenance) {
-    currentY += 5;
-    pdf.setFontSize(12);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('DATA PROVENANCE', 20, currentY);
-    currentY += 6;
-    const provenanceRows = dataProvenanceRows(data.dataProvenance).map((row) => [
-      row.label,
-      row.note ? `${row.source} (${row.note})` : row.source,
-      `${row.nature} · ${row.asOf}`,
-    ]);
-    currentY = drawTable(pdf, ['Data', 'Source', 'Nature · as of'], provenanceRows, currentY);
-  }
-
-  addFooter(pdf);
+function createProvenancePage(pdf: jsPDF, data: PDFExportData): void {
+  if (!data.dataProvenance) return;
+  pdf.addPage();
+  drawReportContext(pdf, 'DATA PROVENANCE', data);
+  const provenanceRows = dataProvenanceRows(data.dataProvenance).map((row) => [
+    row.label,
+    row.note ? `${row.source} (${row.note})` : row.source,
+    `${row.nature} · ${row.asOf}`,
+  ]);
+  drawTable(pdf, ['Data', 'Source', 'Nature · as of'], provenanceRows, 48);
 }
 
 function createDetailsPage(pdf: jsPDF, data: PDFExportData): void {
@@ -408,7 +466,6 @@ function createDetailsPage(pdf: jsPDF, data: PDFExportData): void {
   };
 
   const startNewPage = () => {
-    addFooter(pdf);
     pdf.addPage();
     drawHeader(true);
   };
@@ -447,9 +504,15 @@ function createDetailsPage(pdf: jsPDF, data: PDFExportData): void {
   };
 
   const writeParagraphBlock = (title: string, body: string) => {
+    pdf.setFontSize(9);
+    pdf.setFont('helvetica', 'normal');
+    const lines = pdf.splitTextToSize(toPdfSafeText(body), 166);
+    ensureSpace(9 + lines.length * 4.5 + 4);
     writeSubheading(title);
-    ensureSpace(8);
-    writeWrappedText(body, 24, 166);
+    pdf.setFontSize(9);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text(lines, 24, currentY);
+    currentY += lines.length * 4.5;
     currentY += 4;
   };
 
@@ -586,21 +649,28 @@ function createDetailsPage(pdf: jsPDF, data: PDFExportData): void {
     'Export notes',
     'Values in this report reflect the current simulated analysis state shown in the application at export time. Throughput, latency, elevation, and stability are theoretical indicators and should not be treated as contractual service guarantees.'
   );
+}
 
-  addFooter(pdf);
+export async function buildPDFDocument(data: PDFExportData): Promise<jsPDF> {
+  const pdf = new jsPDF('p', 'mm', 'a4');
+  const snapshot = await captureGlobeSnapshot(data);
+  const generatedAtValue = data.dataProvenance?.generatedAt ?? new Date().toISOString();
+  const parsedGeneratedAt = new Date(generatedAtValue);
+  const generatedAt = Number.isNaN(parsedGeneratedAt.getTime()) ? new Date() : parsedGeneratedAt;
+
+  createComparisonPage(pdf, data, snapshot, generatedAt);
+  createEvidencePage(pdf, data);
+  createProvenancePage(pdf, data);
+  createDetailsPage(pdf, data);
+  addFooters(pdf, generatedAt);
+  return pdf;
 }
 
 // Fonction principale d'export PDF
 export async function exportToPDF(data: PDFExportData): Promise<void> {
   try {
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const snapshot = await captureGlobeSnapshot(data);
-
-    createComparisonPage(pdf, data, snapshot);
-    createDetailsPage(pdf, data);
-
-    const fileName = generateFileName(data.location);
-    pdf.save(fileName);
+    const pdf = await buildPDFDocument(data);
+    pdf.save(generateFileName(data.location));
   } catch (error) {
     console.error('Error generating PDF:', error);
     throw new Error('Failed to generate PDF');

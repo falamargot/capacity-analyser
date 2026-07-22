@@ -16,6 +16,8 @@ export interface SatelliteData {
    */
   opsStatus: SatelliteStatusCategory;
   satrec: any;
+  /** UTC epoch encoded by the source TLE. Distinct from position.sampleTimeMs. */
+  tleEpochMs?: number;
   position: {
     lat: number;
     lng: number;

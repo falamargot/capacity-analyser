@@ -483,6 +483,11 @@ function buildSatelliteData(
   // Decayed satellites must not appear in the scene at all
   if (opsStatus === 'decayed') return null;
 
+  const tleJulianEpoch = Number(sat.satrec?.jdsatepoch);
+  const tleEpochMs = Number.isFinite(tleJulianEpoch)
+    ? (tleJulianEpoch - 2440587.5) * 86_400_000
+    : undefined;
+
   return {
     id: sat.noradId,
     name: sat.name,
@@ -492,6 +497,7 @@ function buildSatelliteData(
     orbitType,
     opsStatus,
     satrec: sat.satrec,
+    tleEpochMs,
     position: { ...calculatePosition(sat) },
     referenced_coverages: coverageData || { type: 'FeatureCollection' as const, features: [] },
     coverages: coverageData
