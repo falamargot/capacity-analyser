@@ -155,3 +155,58 @@ describe('HeaderScenarioBuilder engineering Configure workflow', () => {
     expect(markup).not.toContain('EUTELSAT 21B · 4');
   });
 });
+
+describe('HeaderScenarioBuilder single-site destination handling', () => {
+  const renderConfigure = (baseline: EngineeringConfigureDraft) =>
+    renderToStaticMarkup(
+      <HeaderScenarioBuilder
+        siteA={site('Origin', 'Paris')}
+        siteB={site('Destination', 'Dakar')}
+        onSwap={() => undefined}
+        engineeringConfigure={{
+          baseline,
+          truths: {},
+          candidates: { siteA: [], siteB: [] },
+          onApply: () => undefined,
+        }}
+      />,
+    );
+
+  const SINGLE_SITE_PLACEHOLDER = 'Not required for Single Site';
+  const SWAP_LABEL = 'Swap origin and destination';
+
+  it('hides the destination site and swap control for GEO Star (single site)', () => {
+    const markup = renderConfigure({ ...configureBaseline, technology: 'GEO', geoLinkMode: 'STAR_FORWARD' });
+
+    expect(markup).toContain(SINGLE_SITE_PLACEHOLDER);
+    expect(markup).not.toContain('Dakar');
+    expect(markup).not.toContain(SWAP_LABEL);
+    // Origin remains untouched.
+    expect(markup).toContain('Paris');
+  });
+
+  it('hides the destination site and swap control for LEO Single Site', () => {
+    const markup = renderConfigure({ ...configureBaseline, technology: 'LEO', leoTopologyMode: 'SINGLE_SITE' });
+
+    expect(markup).toContain(SINGLE_SITE_PLACEHOLDER);
+    expect(markup).not.toContain('Dakar');
+    expect(markup).not.toContain(SWAP_LABEL);
+    expect(markup).toContain('Paris');
+  });
+
+  it('keeps the destination site and swap control for GEO Mesh (site-to-site)', () => {
+    const markup = renderConfigure({ ...configureBaseline, technology: 'GEO', geoLinkMode: 'MESH' });
+
+    expect(markup).not.toContain(SINGLE_SITE_PLACEHOLDER);
+    expect(markup).toContain('Dakar');
+    expect(markup).toContain(SWAP_LABEL);
+  });
+
+  it('keeps the destination site and swap control for LEO Site-to-Site', () => {
+    const markup = renderConfigure({ ...configureBaseline, technology: 'LEO', leoTopologyMode: 'SITE_TO_SITE' });
+
+    expect(markup).not.toContain(SINGLE_SITE_PLACEHOLDER);
+    expect(markup).toContain('Dakar');
+    expect(markup).toContain(SWAP_LABEL);
+  });
+});
