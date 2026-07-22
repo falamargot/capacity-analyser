@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   buildEngineeringExportPayload,
   buildGeoPdfDetails,
@@ -173,6 +173,17 @@ const geoPdfDetails = buildGeoPdfDetails({
 });
 
 describe('M2 export payload golden', () => {
+  // The export payload now carries a canonical data-provenance model whose
+  // generation timestamp would otherwise make these goldens non-deterministic.
+  // Freeze the clock so the frozen payload stays stable across runs.
+  beforeAll(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-22T00:00:00.000Z'));
+  });
+  afterAll(() => {
+    vi.useRealTimers();
+  });
+
   it('freezes the LEO PDF details contract', () => {
     expect(leoPdfDetails).toMatchSnapshot();
   });

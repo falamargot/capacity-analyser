@@ -3,6 +3,7 @@ import { SatelliteData } from '../types/satellites';
 import { SatelliteScope } from './SatelliteScopeFilter';
 import SatelliteDetails from './SatelliteDetails';
 import ExportButton from './ExportButton';
+import DataProvenancePanel from './DataProvenancePanel';
 import type { CandidateCoverage } from '../types/analysis';
 import { useSimulation } from '../contexts/SimulationContext';
 import type { RegulatoryResult } from '../services/regulatoryService';
@@ -488,7 +489,9 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
             && activeEngineeringTruth.state !== 'incomplete'
             && activeEngineeringTruth.state !== 'path-unavailable'
             && activeEngineeringTruth.state !== 'budget-unavailable' && (
-            <div className="mb-3">
+            <div className="mb-3 space-y-2">
+              {/* Same canonical provenance model the exported PDF renders. */}
+              <DataProvenancePanel model={exportButtonPayload.dataProvenance} />
               <ExportButton {...exportButtonPayload} />
             </div>
           )}

@@ -3,6 +3,7 @@ import { SPEED_OF_LIGHT_RADIO_KM_S } from './capacityCalculator';
 import { getGatewayTrafficStatusNote } from '../components/globe/GlobeConfig';
 import { formatResolvedGatewayRoleLabel } from './geoConnectivityModel';
 import { buildLinkAvailabilityContext, formatLinkAvailabilityContext } from './linkAvailabilityContext';
+import { buildDataProvenance } from './dataProvenance';
 import type { PDFConnectionDetails, PDFEvidenceSummary } from './pdfExport';
 import type { ExportButtonPayload } from '../components/ExportButton';
 import type { EngineeringTruthSet } from './engineeringAnalysisViewModel';
@@ -448,6 +449,17 @@ export function buildEngineeringExportPayload({
     availabilityContext: formatLinkAvailabilityContext(availabilityContext),
   };
 
+  // Canonical provenance model — the single source of truth shared by this PDF
+  // export and the in-app verdict summary (see buildDataProvenance).
+  const provenanceSatellite = preferLeo ? resolvedLEOConnectivity?.satellite : resolvedGEOConnectivity?.satellite;
+  const dataProvenance = buildDataProvenance({
+    architecture: preferLeo ? 'LEO' : 'GEO',
+    satelliteName: provenanceSatellite?.name ?? null,
+    // position.sampleTimeMs is the propagation timestamp of the tracked orbit.
+    ephemerisAsOf: provenanceSatellite?.position?.sampleTimeMs ?? null,
+    weatherLabel: formatWeatherLabel(weatherType),
+  });
+
   return {
     location: {
       lat: activePoint.lat,
@@ -486,7 +498,14 @@ export function buildEngineeringExportPayload({
     leoDetails: satelliteScope !== 'GEO' ? leoPdfDetails : null,
     geoDetails: satelliteScope !== 'LEO' ? geoPdfDetails : null,
     evidenceSummary,
+    dataProvenance,
     globeRef,
     cesiumViewerRef,
   };
+}
+
+/** Human-readable weather label from the raw weather type (decoupled from COMM). */
+function formatWeatherLabel(weatherType: WeatherType): string {
+  const spaced = String(weatherType).replace(/_/g, ' ');
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }

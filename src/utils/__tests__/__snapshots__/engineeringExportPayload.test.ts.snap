@@ -139,6 +139,50 @@ exports[`M2 export payload golden > freezes the GEO PDF details contract 1`] = `
 exports[`M2 export payload golden > freezes the GEO-scope star-return payload direction mapping 1`] = `
 {
   "cesiumViewerRef": undefined,
+  "dataProvenance": {
+    "entries": [
+      {
+        "asOf": null,
+        "id": "ephemeris",
+        "label": "Orbital ephemeris (TLE)",
+        "nature": "published",
+        "note": "Public tracking data, not an operator ephemeris",
+        "source": "Public two-line elements · CelesTrak SATCAT (EUTELSAT TEST)",
+      },
+      {
+        "asOf": null,
+        "id": "coverage-frequency",
+        "label": "Coverage & frequency plan",
+        "nature": "published",
+        "note": "Public, non-operational frequency data",
+        "source": "Published operator / regulatory references",
+      },
+      {
+        "asOf": "2026-07-22T00:00:00.000Z",
+        "id": "capacity-load",
+        "label": "Capacity & network load",
+        "nature": "modeled",
+        "note": "Simulated, not a filed/marketed figure",
+        "source": "Simulation engine (5-pillar model)",
+      },
+      {
+        "asOf": null,
+        "id": "terminal",
+        "label": "Terminal profile",
+        "nature": "published",
+        "source": "Terminal capability catalog",
+      },
+      {
+        "asOf": null,
+        "id": "weather",
+        "label": "Weather availability",
+        "nature": "estimated",
+        "note": "Indicative planning context, not an SLA or live measurement",
+        "source": "Indicative weather / rain-region heuristic · Light rain",
+      },
+    ],
+    "generatedAt": "2026-07-22T00:00:00.000Z",
+  },
   "evidenceSummary": {
     "architectureChoice": "GEO feasibility path",
     "availabilityContext": "Weather-sensitive (99.1% indicative, fade risk ~1.5 dB)",
@@ -341,6 +385,50 @@ exports[`M2 export payload golden > freezes the LEO PDF details no-SNP fallback 
 exports[`M2 export payload golden > freezes the full export payload for an ALL-scope LEO-focused scenario 1`] = `
 {
   "cesiumViewerRef": undefined,
+  "dataProvenance": {
+    "entries": [
+      {
+        "asOf": null,
+        "id": "ephemeris",
+        "label": "Orbital ephemeris (TLE)",
+        "nature": "published",
+        "note": "Public tracking data, not an operator ephemeris",
+        "source": "Public two-line elements · CelesTrak SATCAT (ONEWEB-0123)",
+      },
+      {
+        "asOf": null,
+        "id": "coverage-frequency",
+        "label": "Coverage & frequency plan",
+        "nature": "published",
+        "note": "Public, non-operational frequency data",
+        "source": "Published operator / regulatory references",
+      },
+      {
+        "asOf": "2026-07-22T00:00:00.000Z",
+        "id": "capacity-load",
+        "label": "Capacity & network load",
+        "nature": "modeled",
+        "note": "Simulated, not a filed/marketed figure",
+        "source": "Simulation engine (5-pillar model)",
+      },
+      {
+        "asOf": null,
+        "id": "terminal",
+        "label": "Terminal profile",
+        "nature": "published",
+        "source": "Terminal capability catalog",
+      },
+      {
+        "asOf": null,
+        "id": "weather",
+        "label": "Weather availability",
+        "nature": "estimated",
+        "note": "Indicative planning context, not an SLA or live measurement",
+        "source": "Indicative weather / rain-region heuristic · Clear",
+      },
+    ],
+    "generatedAt": "2026-07-22T00:00:00.000Z",
+  },
   "evidenceSummary": {
     "architectureChoice": "LEO feasibility path",
     "availabilityContext": "Robust (99.8% indicative, fade risk ~0.0 dB)",

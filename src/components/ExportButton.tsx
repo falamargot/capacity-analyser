@@ -8,6 +8,7 @@ import type {
   PerformanceData,
   LocationData,
 } from '../utils/pdfExport';
+import type { DataProvenanceModel } from '../utils/dataProvenance';
 
 interface ExportButtonProps {
   location: LocationData | null;
@@ -17,6 +18,7 @@ interface ExportButtonProps {
   leoDetails?: PDFConnectionDetails | null;
   geoDetails?: PDFConnectionDetails | null;
   evidenceSummary?: PDFEvidenceSummary | null;
+  dataProvenance?: DataProvenanceModel | null;
   globeRef?: React.RefObject<HTMLElement | null>;
   cesiumViewerRef?: React.RefObject<any>;
   disabled?: boolean;
@@ -32,6 +34,7 @@ const ExportButton: React.FC<ExportButtonProps> = ({
   leoDetails,
   geoDetails,
   evidenceSummary,
+  dataProvenance,
   globeRef,
   cesiumViewerRef,
   disabled = false
@@ -54,6 +57,7 @@ const ExportButton: React.FC<ExportButtonProps> = ({
         leoDetails,
         geoDetails,
         evidenceSummary,
+        dataProvenance,
         globeElement: globeRef?.current || null,
         cesiumViewer: cesiumViewerRef?.current
       };

@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import { format } from 'date-fns';
+import { dataProvenanceRows, type DataProvenanceModel } from './dataProvenance';
 
 // Types pour les données de performance
 export interface PerformanceData {
@@ -90,6 +91,7 @@ export interface PDFExportData {
   leoDetails?: PDFConnectionDetails | null;
   geoDetails?: PDFConnectionDetails | null;
   evidenceSummary?: PDFEvidenceSummary | null;
+  dataProvenance?: DataProvenanceModel | null;
   globeElement: HTMLElement | null;
   cesiumViewer?: CesiumViewerLike | null;
 }
@@ -367,6 +369,20 @@ function createComparisonPage(pdf: jsPDF, data: PDFExportData, snapshot: Snapsho
         currentY += 5;
       });
     }
+  }
+
+  if (data.dataProvenance) {
+    currentY += 5;
+    pdf.setFontSize(12);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('DATA PROVENANCE', 20, currentY);
+    currentY += 6;
+    const provenanceRows = dataProvenanceRows(data.dataProvenance).map((row) => [
+      row.label,
+      row.note ? `${row.source} (${row.note})` : row.source,
+      `${row.nature} · ${row.asOf}`,
+    ]);
+    currentY = drawTable(pdf, ['Data', 'Source', 'Nature · as of'], provenanceRows, currentY);
   }
 
   addFooter(pdf);
