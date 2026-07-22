@@ -160,7 +160,7 @@ function CompactKpiBar({ viewModel }: { viewModel: CommercialScenarioViewModel }
           <CommercialKpiTile value={formatMbps(viewModel.downloadMbps)} label="Download" sublabel={dlTier.label !== '--' ? dlTier.label : undefined} sublabelTone={dlTier.tone} />
           <CommercialKpiTile value={formatMbps(viewModel.uploadMbps)} label="Upload" sublabel={ulTier.label !== '--' ? ulTier.label : undefined} sublabelTone={ulTier.tone} />
           <CommercialKpiTile value={formatMs(viewModel.rttMs)} label="Latency" sublabel={rttTier.label !== '--' ? rttTier.label : undefined} sublabelTone={rttTier.tone} />
-          <CommercialKpiTile value={viewModel.availabilityPct != null ? `${viewModel.availabilityPct.toFixed(1)}%` : '--'} label="Reliability" sublabel={relTier.label !== '--' ? relTier.label : undefined} sublabelTone={relTier.tone} />
+          <CommercialKpiTile value={viewModel.availabilityPct != null ? `${viewModel.availabilityPct.toFixed(1)}%` : '--'} label="Indicative availability" sublabel={relTier.label !== '--' ? relTier.label : undefined} sublabelTone={relTier.tone} />
         </div>
         <p className="mt-1.5 text-[11px] leading-4 text-slate-300">{interpretation}</p>
       </div>
@@ -288,7 +288,7 @@ function FullKpiBar({ viewModel }: { viewModel: CommercialScenarioViewModel }) {
             />
             <CommercialKpiTile
               value={viewModel.availabilityPct != null ? `${viewModel.availabilityPct.toFixed(1)}%` : '--'}
-              label="Reliability"
+              label="Indicative availability"
               sublabel={relTier.label !== '--' ? relTier.label : undefined}
               sublabelTone={relTier.tone}
             />

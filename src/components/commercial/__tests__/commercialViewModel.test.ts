@@ -2,6 +2,11 @@ import { describe, expect, it } from 'vitest';
 import type { ActiveLeoRouteEvidence } from '../../../utils/activeLeoRouteEvidence';
 import type { LeoSiteToSiteResult } from '../../../utils/leoSiteToSiteModel';
 import { buildCommercialScenarioViewModel } from '../commercialViewModel';
+import {
+  buildCommercialNarrativeCardModel,
+  recommendationHeroEyebrow,
+  recommendationViewRole,
+} from '../commercialNarrativeModel';
 
 function buildInput(evidence: ActiveLeoRouteEvidence): Parameters<typeof buildCommercialScenarioViewModel>[0] {
   return {
@@ -81,5 +86,56 @@ describe('commercial final LEO service decision', () => {
     expect(viewModel.rttMs).toBeUndefined();
     expect(leoOption?.downloadMbps).toBeUndefined();
     expect(leoOption?.rttMs).toBeUndefined();
+  });
+});
+
+describe('commercial indicative availability (Reliability tile wiring)', () => {
+  it('surfaces a numeric indicative availability so the tile renders a value, not "--"', () => {
+    const viewModel = buildCommercialScenarioViewModel(buildInput(evidence(true)));
+
+    // Regression: availabilityPct was computed inside the availability context but
+    // never assigned to the view model, so every Reliability/Availability tile read
+    // undefined and rendered "--".
+    expect(viewModel.availabilityPct).toBeTypeOf('number');
+    expect(Number.isFinite(viewModel.availabilityPct)).toBe(true);
+    expect(viewModel.availabilityPct as number).toBeGreaterThan(80);
+    expect(viewModel.availabilityPct as number).toBeLessThanOrEqual(99.9);
+  });
+});
+
+describe('commercial coverage confidence (no over-claim)', () => {
+  it('reports coverage confidence from the canonical prediction score, not route participation', () => {
+    const viewModel = buildCommercialScenarioViewModel(buildInput(evidence(true)));
+    const card = buildCommercialNarrativeCardModel({ viewModel, selectedSegmentId: 'access' });
+    const coverage = card.facts.find((fact) => fact.label === 'Coverage confidence');
+
+    // Regression: this used to be a flat "High" whenever the segment was on the
+    // route. It must now echo the canonical confidence level (High/Medium/Low).
+    expect(coverage).toBeDefined();
+    expect(coverage?.value).toBe(viewModel.display.confidence);
+    expect(['High', 'Medium', 'Low']).toContain(coverage?.value);
+  });
+});
+
+describe('commercial hero eyebrow (recommended vs viewed vs hybrid)', () => {
+  it('labels the recommended technology "Recommended solution"', () => {
+    expect(recommendationHeroEyebrow(recommendationViewRole('geo', 'GEO'))).toBe('Recommended solution');
+    expect(recommendationHeroEyebrow(recommendationViewRole('leo', 'LEO'))).toBe('Recommended solution');
+  });
+
+  it('labels a non-recommended technology being inspected "Viewed option"', () => {
+    // Engine recommends GEO but the customer is viewing the LEO alternative.
+    expect(recommendationHeroEyebrow(recommendationViewRole('geo', 'LEO'))).toBe('Viewed option');
+    expect(recommendationHeroEyebrow(recommendationViewRole('leo', 'GEO'))).toBe('Viewed option');
+  });
+
+  it('labels either leg of a hybrid recommendation "Part of hybrid recommendation"', () => {
+    expect(recommendationHeroEyebrow(recommendationViewRole('hybrid', 'GEO'))).toBe('Part of hybrid recommendation');
+    expect(recommendationHeroEyebrow(recommendationViewRole('hybrid', 'LEO'))).toBe('Part of hybrid recommendation');
+  });
+
+  it('never claims "Recommended solution" when there is no resolved recommendation', () => {
+    expect(recommendationHeroEyebrow(recommendationViewRole('not_available', 'GEO'))).toBe('Viewed option');
+    expect(recommendationHeroEyebrow(recommendationViewRole('insufficient_data', 'LEO'))).toBe('Viewed option');
   });
 });

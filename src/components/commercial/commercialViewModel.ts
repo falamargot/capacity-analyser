@@ -605,6 +605,11 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
     downloadMbps,
     uploadMbps,
     rttMs,
+    // Indicative model-derived availability (weather/rain-region heuristic, not an SLA
+    // or ITU-R statistic). Surfaced numerically so the availability tile renders a
+    // value instead of "--"; consumers label it "Indicative availability" so the
+    // estimated, non-SLA nature is explicit next to the figure.
+    availabilityPct: availabilityContext.indicativeAvailabilityPct,
     primaryWarning: customerPrimaryWarning,
     bottleneck: customerPrimaryWarning,
     routeSegments,

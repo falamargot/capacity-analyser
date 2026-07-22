@@ -1,10 +1,41 @@
 import type { CommercialRouteModel, CommercialRouteSegmentId } from '../../types/commercialRouteModel';
+import type { CommercialRecommendedTechnology } from './commercialTypes';
 import type {
   CommercialCustomerServiceState,
   CommercialRouteSegment,
   CommercialScenarioViewModel,
   CommercialTechnologyOption,
 } from './commercialViewModel';
+
+/**
+ * How the technology the customer is currently viewing relates to the engine's
+ * recommendation. Drives the commercial hero label so a non-recommended option
+ * is never presented as "Recommended solution".
+ *  - 'recommended'  → viewed technology is the single recommended one
+ *  - 'hybrid-part'  → recommendation is hybrid; the viewed technology is one leg of it
+ *  - 'viewed'       → viewed technology is not recommended (alternative / no recommendation)
+ */
+export type RecommendationViewRole = 'recommended' | 'hybrid-part' | 'viewed';
+
+export function recommendationViewRole(
+  recommendationTechnology: CommercialRecommendedTechnology,
+  displayTechnology: 'LEO' | 'GEO',
+): RecommendationViewRole {
+  const viewed = displayTechnology.toLowerCase();
+  if (recommendationTechnology === viewed) return 'recommended';
+  if (recommendationTechnology === 'hybrid') return 'hybrid-part';
+  return 'viewed';
+}
+
+const recommendationEyebrowLabel: Record<RecommendationViewRole, string> = {
+  recommended: 'Recommended solution',
+  'hybrid-part': 'Part of hybrid recommendation',
+  viewed: 'Viewed option',
+};
+
+export function recommendationHeroEyebrow(role: RecommendationViewRole): string {
+  return recommendationEyebrowLabel[role];
+}
 
 export interface CommercialNarrativeFact {
   label: string;
@@ -348,7 +379,10 @@ export function buildCommercialNarrativeCardModel({
         facts: compactFacts([
           { label: 'Location', value: clean(viewModel.siteA?.name) ?? segment?.role },
           { label: 'Signal verified', value: segment?.isRouteParticipant ? 'Confirmed' : 'Pending' },
-          { label: 'Coverage confidence', value: segment?.isRouteParticipant ? 'High' : 'Pending' },
+          // Coverage confidence must reflect the canonical prediction-confidence score
+          // (High/Medium/Low), not merely whether the segment is on the route — route
+          // participation alone does not justify a "High" confidence claim.
+          { label: 'Coverage confidence', value: segment?.isRouteParticipant ? (viewModel.display.confidence ?? 'Pending') : 'Pending' },
         ]),
         businessNote: businessNote(
           constraint,

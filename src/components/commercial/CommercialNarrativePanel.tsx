@@ -20,6 +20,8 @@ import type { CommercialRouteModel, CommercialRouteSegmentId } from '../../types
 import type { CommercialScenarioViewModel } from './commercialViewModel';
 import {
   buildCommercialNarrativeCardModel,
+  recommendationHeroEyebrow,
+  recommendationViewRole,
   type CommercialNarrativeCardModel,
 } from './commercialNarrativeModel';
 import { formatMbps, formatMs, commServiceStatusLabel } from './commercialDisplayUtils';
@@ -271,7 +273,9 @@ function OriginSiteBlock({
     { label: 'Service type', value: isGeo ? 'GEO satellite broadband' : 'LEO satellite broadband' },
     { label: 'Signal verified', value: isReady ? 'Confirmed' : 'Pending' },
     { label: 'Weather impact', value: weatherImpact },
-    { label: 'Coverage confidence', value: isReady ? 'High' : 'Pending' },
+    // Reflect the canonical prediction-confidence level rather than asserting
+    // "High" from service readiness alone.
+    { label: 'Coverage confidence', value: isReady ? (viewModel.display.confidence ?? 'Pending') : 'Pending' },
   ];
 
   return (
@@ -579,6 +583,20 @@ function VerdictHeroCard({
   const isGeo = viewModel.commercialDisplayTechnology === 'GEO';
   const isLeo = viewModel.commercialDisplayTechnology === 'LEO';
 
+  // The hero renders whichever technology the customer is currently viewing
+  // (commercialDisplayTechnology), which is NOT necessarily what the engine
+  // recommends. The eyebrow distinguishes the recommended technology, one leg of a
+  // hybrid recommendation, and a merely-viewed alternative — so we never present a
+  // non-recommended technology as "Recommended solution".
+  const viewRole = recommendationViewRole(
+    viewModel.recommendation.technology,
+    viewModel.commercialDisplayTechnology,
+  );
+  const heroEyebrow = recommendationHeroEyebrow(viewRole);
+  // The star signals endorsement — shown for the recommended technology and for a
+  // hybrid leg (both are part of the recommendation), hidden for a viewed alternative.
+  const isRecommendedView = viewRole !== 'viewed';
+
   const heroBorder = isGeo
     ? 'border-blue-200/20 bg-[radial-gradient(circle_at_82%_14%,rgba(96,165,250,0.18),transparent_34%),linear-gradient(180deg,rgba(12,18,46,0.98),rgba(15,23,42,0.96)_66%,rgba(14,30,88,0.90))]'
     : isLeo
@@ -602,10 +620,12 @@ function VerdictHeroCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className={`text-[9px] font-bold uppercase tracking-[0.24em] ${accentText}`}>
-            Recommended solution
+            {heroEyebrow}
           </div>
           <div className="mt-0.5 flex items-center gap-2">
-            <Star className={`h-4 w-4 shrink-0 ${isGeo ? 'text-blue-300' : isLeo ? 'text-fuchsia-300' : 'text-slate-400'}`} aria-hidden="true" />
+            {isRecommendedView && (
+              <Star className={`h-4 w-4 shrink-0 ${isGeo ? 'text-blue-300' : isLeo ? 'text-fuchsia-300' : 'text-slate-400'}`} aria-hidden="true" />
+            )}
             <span className="text-[16px] font-bold text-white/90">{technologyName}</span>
           </div>
         </div>
@@ -705,7 +725,7 @@ function RecommendationBlock({
           />
           <CommercialKpiTile
             value={viewModel.availabilityPct != null ? `${viewModel.availabilityPct.toFixed(1)}%` : '--'}
-            label="Reliability"
+            label="Indicative availability"
             sublabel={relTier.label !== '--' ? relTier.label : undefined}
             sublabelTone={relTier.tone}
           />
