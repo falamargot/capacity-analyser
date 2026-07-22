@@ -5961,7 +5961,7 @@ const App: React.FC = () => {
                     </div>
 
                     {isCustomerDecisionOpen && !isFullscreen && (
-                      <div className="pointer-events-none absolute bottom-[5.75rem] right-0 top-0 z-50 w-[clamp(30rem,38vw,36rem)]">
+                      <div className="pointer-events-none absolute bottom-[5.75rem] right-[380px] top-0 z-50 w-[clamp(30rem,38vw,36rem)]">
                         <CustomerDecisionInspector
                           viewModel={commercialScenarioViewModel}
                           mode="commercial"
@@ -5975,7 +5975,7 @@ const App: React.FC = () => {
 
                     {/* Narrative panel — slides in from right.
                         Aircraft in COMM mode → IFC-specific panel; otherwise standard narrative. */}
-                    {!isCustomerDecisionOpen && !isFullscreen && selectedAircraft ? (
+                    {!isFullscreen && selectedAircraft ? (
                       <IFCNarrativePanel
                         aircraft={selectedAircraft}
                         viewModel={commercialScenarioViewModel}
@@ -5983,7 +5983,7 @@ const App: React.FC = () => {
                         onViewFullAnalysis={() => handleModeSwitch('engineering')}
                         onOpenCustomerDecision={handleOpenCustomerDecision}
                       />
-                    ) : !isCustomerDecisionOpen && !isFullscreen && (
+                    ) : !isFullscreen && (
                       <CommercialNarrativePanel
                         viewModel={commercialScenarioViewModel}
                         selectedSegmentId={commercialSelectedSegment}
