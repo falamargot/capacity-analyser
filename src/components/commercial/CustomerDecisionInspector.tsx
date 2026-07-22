@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BarChart3, CircleHelp, Target, X } from 'lucide-react';
+import { BarChart3, Target, X } from 'lucide-react';
 import type { CommercialScenarioViewModel } from './commercialViewModel';
 import type {
   CommercialCriterionId,
@@ -202,10 +202,6 @@ export default function CustomerDecisionInspector({
               onTrafficDirectionChange={onTrafficDirectionChange}
               onPrimaryTechnologyChange={onPrimaryTechnologyChange}
             />
-            <div className="mt-3 flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[11px] leading-4 text-slate-600 dark:border-slate-700 dark:bg-slate-900/45 dark:text-slate-300">
-              <CircleHelp className="mt-0.5 h-3.5 w-3.5 shrink-0 text-violet-500" aria-hidden="true" />
-              <span>The selected priority is shared between Engineering and Commercial views.</span>
-            </div>
           </div>
         )}
 
