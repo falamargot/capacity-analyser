@@ -24,6 +24,11 @@ import {
   recommendationViewRole,
   type CommercialNarrativeCardModel,
 } from './commercialNarrativeModel';
+import {
+  buildCommercialTopology,
+  type CommercialDestinationKind,
+  type CommercialTopologyModel,
+} from './commercialTopologyModel';
 import { formatMbps, formatMs, commServiceStatusLabel } from './commercialDisplayUtils';
 import {
   SignalQualityBar,
@@ -133,46 +138,132 @@ function FactRow({
   );
 }
 
-// ─── Existing architecture diagrams (kept as-is) ─────────────────────────────
+// ─── Architecture diagrams — driven by the canonical topology model ──────────
+// Labels, the destination node and (for LEO) the number of hops are derived from
+// buildCommercialTopology so the picture matches the resolved route instead of a
+// hardcoded "SITE A -> SAT -> SITE B" chain.
 
-function GeoArchitectureDiagram() {
+/** Truncates a label to fit an SVG text node without wrapping. */
+function svgLabel(value: string, max = 15): string {
+  const trimmed = value.trim();
+  return trimmed.length > max ? `${trimmed.slice(0, max - 1)}…` : trimmed;
+}
+
+const destinationCaptionByKind: Record<CommercialDestinationKind, string> = {
+  site: 'Downlink',
+  gateway: 'Gateway',
+  portal: 'SNP portal',
+  none: 'Not resolved',
+};
+
+interface RelayAccent {
+  container: string;
+  satFill: string;
+  satStroke: string;
+  satAntenna: string;
+  satText: string;
+  originFill: string;
+  originStroke: string;
+  originText: string;
+  destFill: string;
+  destStroke: string;
+  destText: string;
+  legUp: string;
+  legDown: string;
+  caption: string;
+}
+
+const GEO_RELAY_ACCENT: RelayAccent = {
+  container: 'border-blue-200/20 bg-[radial-gradient(circle_at_50%_32%,rgba(96,165,250,0.22),transparent_48%),linear-gradient(180deg,rgba(14,20,52,0.72),rgba(15,23,42,0.80))]',
+  satFill: 'rgba(22,46,120,0.52)', satStroke: 'rgba(96,165,250,0.48)', satAntenna: 'rgba(147,197,253,0.92)', satText: 'rgba(147,197,253,0.80)',
+  originFill: 'rgba(8,47,73,0.52)', originStroke: 'rgba(34,211,238,0.38)', originText: 'rgba(34,211,238,0.82)',
+  destFill: 'rgba(46,16,101,0.48)', destStroke: 'rgba(139,92,246,0.38)', destText: 'rgba(167,139,250,0.82)',
+  legUp: 'rgba(96,165,250,0.52)', legDown: 'rgba(139,92,246,0.48)', caption: 'rgba(96,165,250,0.30)',
+};
+
+const LEO_RELAY_ACCENT: RelayAccent = {
+  container: 'border-fuchsia-200/18 bg-[radial-gradient(ellipse_at_50%_28%,rgba(217,70,239,0.15),transparent_48%),linear-gradient(180deg,rgba(18,10,40,0.78),rgba(15,23,42,0.82))]',
+  satFill: 'rgba(88,28,135,0.48)', satStroke: 'rgba(217,70,239,0.45)', satAntenna: 'rgba(240,171,252,0.88)', satText: 'rgba(240,171,252,0.78)',
+  originFill: 'rgba(8,47,73,0.52)', originStroke: 'rgba(34,211,238,0.38)', originText: 'rgba(34,211,238,0.82)',
+  destFill: 'rgba(46,16,101,0.48)', destStroke: 'rgba(139,92,246,0.38)', destText: 'rgba(167,139,250,0.82)',
+  legUp: 'rgba(34,211,238,0.52)', legDown: 'rgba(139,92,246,0.52)', caption: 'rgba(217,70,239,0.28)',
+};
+
+const relayBottomCaption: Record<CommercialDestinationKind, string> = {
+  site: 'DIRECT SATELLITE RELAY',
+  gateway: 'SATELLITE TO GATEWAY',
+  portal: 'SITE TO SNP PORTAL',
+  none: 'COVERAGE AT ORIGIN',
+};
+
+/**
+ * Three-node relay picture (origin → satellite → destination) shared by GEO and
+ * single-site LEO. The destination node adapts to the resolved endpoint, and a
+ * route with no destination drops the downlink leg entirely rather than drawing
+ * a phantom Site B.
+ */
+function RelayDiagram({ topology, accent }: { topology: CommercialTopologyModel; accent: RelayAccent }) {
+  const hasDestination = topology.destinationKind !== 'none';
+  const satLabel = svgLabel(topology.satelliteLabels[0] ?? 'Satellite');
+  const originLabel = svgLabel(topology.originLabel);
+  const destinationLabel = svgLabel(topology.destinationLabel);
+
   return (
-    <div
-      className="relative overflow-hidden rounded-xl border border-blue-200/20 bg-[radial-gradient(circle_at_50%_32%,rgba(96,165,250,0.22),transparent_48%),linear-gradient(180deg,rgba(14,20,52,0.72),rgba(15,23,42,0.80))]"
-      aria-hidden="true"
-    >
+    <div className={`relative overflow-hidden rounded-xl border ${accent.container}`} aria-hidden="true">
       <svg viewBox="0 0 340 180" className="w-full" style={{ display: 'block' }}>
-        <ellipse cx="170" cy="48" rx="28" ry="18" fill="rgba(96,165,250,0.20)" />
-        <line x1="44" y1="128" x2="170" y2="48" stroke="rgba(96,165,250,0.52)" strokeWidth="1.5" strokeDasharray="5,4" />
-        <line x1="170" y1="48" x2="296" y2="128" stroke="rgba(139,92,246,0.48)" strokeWidth="1.5" strokeDasharray="5,4" />
-        <circle cx="107" cy="88" r="2.8" fill="rgba(147,197,253,0.90)" />
-        <circle cx="107" cy="88" r="5" fill="none" stroke="rgba(147,197,253,0.28)" strokeWidth="1" />
-        <circle cx="233" cy="88" r="2.8" fill="rgba(167,139,250,0.85)" />
-        <circle cx="233" cy="88" r="5" fill="none" stroke="rgba(167,139,250,0.26)" strokeWidth="1" />
-        <circle cx="170" cy="48" r="24" fill="rgba(22,46,120,0.52)" stroke="rgba(96,165,250,0.48)" strokeWidth="1.2" />
-        <rect x="162" y="42" width="16" height="10" rx="2" fill="none" stroke="rgba(147,197,253,0.92)" strokeWidth="1.3" />
-        <line x1="157" y1="47" x2="162" y2="47" stroke="rgba(147,197,253,0.85)" strokeWidth="1.8" />
-        <line x1="178" y1="47" x2="183" y2="47" stroke="rgba(147,197,253,0.85)" strokeWidth="1.8" />
-        <text x="170" y="82" textAnchor="middle" fill="rgba(147,197,253,0.80)" fontSize="7.5" fontWeight="700" letterSpacing="2">GEO SAT</text>
-        <circle cx="44" cy="128" r="22" fill="rgba(8,47,73,0.52)" stroke="rgba(34,211,238,0.38)" strokeWidth="1.2" />
-        <path d="M37 133 Q44 124 51 133" fill="none" stroke="rgba(34,211,238,0.88)" strokeWidth="1.5" strokeLinecap="round" />
-        <line x1="44" y1="133" x2="44" y2="138" stroke="rgba(34,211,238,0.65)" strokeWidth="1.3" />
-        <line x1="40" y1="138" x2="48" y2="138" stroke="rgba(34,211,238,0.48)" strokeWidth="1.1" />
-        <text x="44" y="160" textAnchor="middle" fill="rgba(34,211,238,0.82)" fontSize="7.5" fontWeight="700" letterSpacing="2">SITE A</text>
-        <text x="44" y="171" textAnchor="middle" fill="rgba(34,211,238,0.46)" fontSize="6.5" fontWeight="600" letterSpacing="1">Uplink</text>
-        <circle cx="296" cy="128" r="22" fill="rgba(46,16,101,0.48)" stroke="rgba(139,92,246,0.38)" strokeWidth="1.2" />
-        <circle cx="296" cy="128" r="9" fill="none" stroke="rgba(167,139,250,0.82)" strokeWidth="1.3" />
-        <circle cx="296" cy="128" r="4" fill="none" stroke="rgba(167,139,250,0.78)" strokeWidth="1.3" />
-        <circle cx="296" cy="128" r="1.5" fill="rgba(167,139,250,0.95)" />
-        <text x="296" y="160" textAnchor="middle" fill="rgba(167,139,250,0.82)" fontSize="7.5" fontWeight="700" letterSpacing="2">SITE B</text>
-        <text x="296" y="171" textAnchor="middle" fill="rgba(167,139,250,0.46)" fontSize="6.5" fontWeight="600" letterSpacing="1">Downlink</text>
-        <text x="170" y="178" textAnchor="middle" fill="rgba(96,165,250,0.30)" fontSize="6.5" fontWeight="700" letterSpacing="3">DIRECT SATELLITE RELAY</text>
+        <ellipse cx="170" cy="48" rx="28" ry="18" fill={accent.satFill.replace('0.52', '0.20').replace('0.48', '0.16')} />
+        <line x1="44" y1="128" x2="170" y2="48" stroke={accent.legUp} strokeWidth="1.5" strokeDasharray="5,4" />
+        {hasDestination && (
+          <line x1="170" y1="48" x2="296" y2="128" stroke={accent.legDown} strokeWidth="1.5" strokeDasharray="5,4" />
+        )}
+        {/* Satellite */}
+        <circle cx="170" cy="48" r="24" fill={accent.satFill} stroke={accent.satStroke} strokeWidth="1.2" />
+        <rect x="162" y="42" width="16" height="10" rx="2" fill="none" stroke={accent.satAntenna} strokeWidth="1.3" />
+        <line x1="157" y1="47" x2="162" y2="47" stroke={accent.satAntenna} strokeWidth="1.8" />
+        <line x1="178" y1="47" x2="183" y2="47" stroke={accent.satAntenna} strokeWidth="1.8" />
+        <text x="170" y="82" textAnchor="middle" fill={accent.satText} fontSize="7" fontWeight="700" letterSpacing="0.5">{satLabel}</text>
+        {/* Origin */}
+        <circle cx="44" cy="128" r="22" fill={accent.originFill} stroke={accent.originStroke} strokeWidth="1.2" />
+        <path d="M37 133 Q44 124 51 133" fill="none" stroke={accent.originText} strokeWidth="1.5" strokeLinecap="round" />
+        <line x1="44" y1="133" x2="44" y2="138" stroke={accent.originText} strokeWidth="1.3" />
+        <line x1="40" y1="138" x2="48" y2="138" stroke={accent.originText} strokeWidth="1.1" />
+        <text x="44" y="160" textAnchor="middle" fill={accent.originText} fontSize="7" fontWeight="700" letterSpacing="0.5">{originLabel}</text>
+        <text x="44" y="171" textAnchor="middle" fill={accent.originText.replace('0.82', '0.46')} fontSize="6.5" fontWeight="600" letterSpacing="1">Uplink</text>
+        {/* Destination */}
+        {hasDestination ? (
+          <>
+            <circle cx="296" cy="128" r="22" fill={accent.destFill} stroke={accent.destStroke} strokeWidth="1.2" />
+            <circle cx="296" cy="128" r="9" fill="none" stroke={accent.destText} strokeWidth="1.3" />
+            <circle cx="296" cy="128" r="4" fill="none" stroke={accent.destText} strokeWidth="1.3" />
+            <circle cx="296" cy="128" r="1.5" fill={accent.destText} />
+            <text x="296" y="160" textAnchor="middle" fill={accent.destText} fontSize="7" fontWeight="700" letterSpacing="0.5">{destinationLabel}</text>
+            <text x="296" y="171" textAnchor="middle" fill={accent.destText.replace('0.82', '0.46')} fontSize="6.5" fontWeight="600" letterSpacing="1">{destinationCaptionByKind[topology.destinationKind]}</text>
+          </>
+        ) : (
+          <>
+            <circle cx="296" cy="128" r="22" fill="none" stroke="rgba(148,163,184,0.30)" strokeWidth="1.1" strokeDasharray="3,3" />
+            <text x="296" y="131" textAnchor="middle" fill="rgba(148,163,184,0.55)" fontSize="7" fontWeight="700" letterSpacing="0.5">No dest.</text>
+            <text x="296" y="160" textAnchor="middle" fill="rgba(148,163,184,0.50)" fontSize="6.5" fontWeight="600" letterSpacing="0.5">{destinationLabel}</text>
+          </>
+        )}
+        <text x="170" y="178" textAnchor="middle" fill={accent.caption} fontSize="6.5" fontWeight="700" letterSpacing="3">{relayBottomCaption[topology.destinationKind]}</text>
       </svg>
     </div>
   );
 }
 
-function LeoArchitectureDiagram() {
+/**
+ * Five-node LEO site-to-site picture (Site A → LEO A → backbone → LEO B →
+ * Site B). Rendered only when two serving satellites resolve; labels come from
+ * the canonical topology model.
+ */
+function LeoBackboneDiagram({ topology }: { topology: CommercialTopologyModel }) {
+  const satA = svgLabel(topology.satelliteLabels[0] ?? 'LEO A', 12);
+  const satB = svgLabel(topology.satelliteLabels[1] ?? 'LEO B', 12);
+  const originLabel = svgLabel(topology.originLabel, 12);
+  const destinationLabel = svgLabel(topology.destinationLabel, 12);
+  const hasDestination = topology.destinationKind !== 'none';
+
   return (
     <div
       className="relative overflow-hidden rounded-xl border border-fuchsia-200/18 bg-[radial-gradient(ellipse_at_50%_28%,rgba(217,70,239,0.15),transparent_48%),linear-gradient(180deg,rgba(18,10,40,0.78),rgba(15,23,42,0.82))]"
@@ -185,17 +276,19 @@ function LeoArchitectureDiagram() {
         <line x1="110" y1="64" x2="110" y2="128" stroke="rgba(217,70,239,0.48)" strokeWidth="1.2" strokeDasharray="3,3" />
         <line x1="136" y1="139" x2="204" y2="139" stroke="rgba(99,102,241,0.65)" strokeWidth="2" strokeDasharray="5,3" />
         <line x1="230" y1="128" x2="230" y2="64" stroke="rgba(217,70,239,0.48)" strokeWidth="1.2" strokeDasharray="3,3" />
-        <line x1="230" y1="44" x2="316" y2="55" stroke="rgba(139,92,246,0.52)" strokeWidth="1.5" strokeDasharray="4,3" />
+        {hasDestination && (
+          <line x1="230" y1="44" x2="316" y2="55" stroke="rgba(139,92,246,0.52)" strokeWidth="1.5" strokeDasharray="4,3" />
+        )}
         <circle cx="110" cy="44" r="20" fill="rgba(88,28,135,0.48)" stroke="rgba(217,70,239,0.45)" strokeWidth="1.2" />
         <rect x="103" y="38" width="14" height="9" rx="1.5" fill="none" stroke="rgba(240,171,252,0.88)" strokeWidth="1.2" />
         <line x1="99" y1="42.5" x2="103" y2="42.5" stroke="rgba(240,171,252,0.80)" strokeWidth="1.6" />
         <line x1="117" y1="42.5" x2="121" y2="42.5" stroke="rgba(240,171,252,0.80)" strokeWidth="1.6" />
-        <text x="110" y="74" textAnchor="middle" fill="rgba(240,171,252,0.75)" fontSize="6.5" fontWeight="700" letterSpacing="1">LEO SAT A</text>
+        <text x="110" y="74" textAnchor="middle" fill="rgba(240,171,252,0.75)" fontSize="6.5" fontWeight="700" letterSpacing="0.5">{satA}</text>
         <circle cx="230" cy="44" r="20" fill="rgba(88,28,135,0.48)" stroke="rgba(217,70,239,0.45)" strokeWidth="1.2" />
         <rect x="223" y="38" width="14" height="9" rx="1.5" fill="none" stroke="rgba(240,171,252,0.88)" strokeWidth="1.2" />
         <line x1="219" y1="42.5" x2="223" y2="42.5" stroke="rgba(240,171,252,0.80)" strokeWidth="1.6" />
         <line x1="237" y1="42.5" x2="241" y2="42.5" stroke="rgba(240,171,252,0.80)" strokeWidth="1.6" />
-        <text x="230" y="74" textAnchor="middle" fill="rgba(240,171,252,0.75)" fontSize="6.5" fontWeight="700" letterSpacing="1">LEO SAT B</text>
+        <text x="230" y="74" textAnchor="middle" fill="rgba(240,171,252,0.75)" fontSize="6.5" fontWeight="700" letterSpacing="0.5">{satB}</text>
         <rect x="97" y="128" width="26" height="22" rx="4" fill="rgba(49,46,129,0.52)" stroke="rgba(99,102,241,0.50)" strokeWidth="1" />
         <circle cx="110" cy="135" r="2" fill="rgba(129,140,248,0.88)" />
         <circle cx="104" cy="144" r="1.6" fill="rgba(129,140,248,0.70)" />
@@ -215,16 +308,34 @@ function LeoArchitectureDiagram() {
         <path d="M17 60 Q24 51 31 60" fill="none" stroke="rgba(34,211,238,0.88)" strokeWidth="1.4" strokeLinecap="round" />
         <line x1="24" y1="60" x2="24" y2="65" stroke="rgba(34,211,238,0.62)" strokeWidth="1.2" />
         <line x1="20" y1="65" x2="28" y2="65" stroke="rgba(34,211,238,0.46)" strokeWidth="1.0" />
-        <text x="24" y="84" textAnchor="middle" fill="rgba(34,211,238,0.80)" fontSize="7" fontWeight="700" letterSpacing="2">SITE A</text>
-        <circle cx="316" cy="55" r="19" fill="rgba(46,16,101,0.48)" stroke="rgba(139,92,246,0.38)" strokeWidth="1.1" />
-        <circle cx="316" cy="55" r="8" fill="none" stroke="rgba(167,139,250,0.82)" strokeWidth="1.2" />
-        <circle cx="316" cy="55" r="3.5" fill="none" stroke="rgba(167,139,250,0.78)" strokeWidth="1.2" />
-        <circle cx="316" cy="55" r="1.2" fill="rgba(167,139,250,0.96)" />
-        <text x="316" y="84" textAnchor="middle" fill="rgba(167,139,250,0.80)" fontSize="7" fontWeight="700" letterSpacing="2">SITE B</text>
+        <text x="24" y="84" textAnchor="middle" fill="rgba(34,211,238,0.80)" fontSize="6.5" fontWeight="700" letterSpacing="0.5">{originLabel}</text>
+        {hasDestination ? (
+          <>
+            <circle cx="316" cy="55" r="19" fill="rgba(46,16,101,0.48)" stroke="rgba(139,92,246,0.38)" strokeWidth="1.1" />
+            <circle cx="316" cy="55" r="8" fill="none" stroke="rgba(167,139,250,0.82)" strokeWidth="1.2" />
+            <circle cx="316" cy="55" r="3.5" fill="none" stroke="rgba(167,139,250,0.78)" strokeWidth="1.2" />
+            <circle cx="316" cy="55" r="1.2" fill="rgba(167,139,250,0.96)" />
+            <text x="316" y="84" textAnchor="middle" fill="rgba(167,139,250,0.80)" fontSize="6.5" fontWeight="700" letterSpacing="0.5">{destinationLabel}</text>
+          </>
+        ) : (
+          <>
+            <circle cx="316" cy="55" r="19" fill="none" stroke="rgba(148,163,184,0.30)" strokeWidth="1.1" strokeDasharray="3,3" />
+            <text x="316" y="84" textAnchor="middle" fill="rgba(148,163,184,0.52)" fontSize="6.5" fontWeight="700" letterSpacing="0.5">No dest.</text>
+          </>
+        )}
         <text x="170" y="192" textAnchor="middle" fill="rgba(217,70,239,0.28)" fontSize="6.5" fontWeight="700" letterSpacing="3">LEO RELAY CHAIN</text>
       </svg>
     </div>
   );
+}
+
+export function CommercialArchitectureDiagram({ topology }: { topology: CommercialTopologyModel }) {
+  if (topology.technology === 'GEO') {
+    return <RelayDiagram topology={topology} accent={GEO_RELAY_ACCENT} />;
+  }
+  return topology.isSiteToSite
+    ? <LeoBackboneDiagram topology={topology} />
+    : <RelayDiagram topology={topology} accent={LEO_RELAY_ACCENT} />;
 }
 
 // ─── Step 1: Origin Site ──────────────────────────────────────────────────────
@@ -680,8 +791,6 @@ function RecommendationBlock({
   viewModel: CommercialScenarioViewModel;
   card: CommercialNarrativeCardModel;
 }) {
-  const isGeo = viewModel.commercialDisplayTechnology === 'GEO';
-  const isLeo = viewModel.commercialDisplayTechnology === 'LEO';
   const selectedOption = viewModel.comparison.options.find(
     (opt) => opt.technology === viewModel.commercialDisplayTechnology.toLowerCase(),
   );
@@ -697,9 +806,8 @@ function RecommendationBlock({
     <div className="space-y-4">
       <VerdictHeroCard viewModel={viewModel} card={card} />
 
-      {/* Architecture diagram — kept from original design */}
-      {isGeo && <GeoArchitectureDiagram />}
-      {isLeo && <LeoArchitectureDiagram />}
+      {/* Architecture diagram — built from the canonical route topology. */}
+      <CommercialArchitectureDiagram topology={buildCommercialTopology(viewModel)} />
 
       {/* 4 KPI tiles */}
       <section>
