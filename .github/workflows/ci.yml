@@ -3,8 +3,9 @@ name: CI
 # TS-1: this repo previously had no CI at all — tests, lint, typecheck, and
 # build were never gated on push/PR, so regressions (including several this
 # workflow's own audit found) could land silently. Blocking gates below are
-# genuinely green today (0 lint errors/warnings, 941+ tests passing, build
-# succeeds) — typecheck is deliberately non-blocking for now, see its step.
+# genuinely green today (0 lint errors/warnings, 987+ tests passing, build
+# succeeds). Typecheck is gated as a *baseline ratchet* (see its step): the
+# pre-existing error count may not grow, and shrinking it is encouraged.
 
 on:
   push:
@@ -50,16 +51,16 @@ jobs:
       - run: npm run build
 
   typecheck:
-    name: Typecheck (non-blocking)
+    name: Typecheck (baseline ratchet)
     runs-on: ubuntu-latest
-    # Non-blocking: the codebase has a pre-existing TypeScript error baseline
-    # (146 as of 2026-07-20, down from 199 after this same audit's fixes —
-    # see docs/Capacity_Analyzer_Production_Code_Audit.md TS-1) that hasn't
-    # been fully burned down yet. This step still runs on every push/PR for
-    # visibility (check the job output to see if the count moved), but
-    # continue-on-error keeps it from blocking merges until either the
-    # baseline reaches zero or a proper baseline-diff step replaces this one.
-    continue-on-error: true
+    # The codebase carries a pre-existing TypeScript error baseline (144 as of
+    # 2026-07-22, down from 199 after the TS-1 audit's fixes — see
+    # docs/Capacity_Analyzer_Production_Code_Audit.md TS-1) that hasn't been
+    # fully burned down yet. Rather than block on zero (unreachable today) or
+    # not gate at all (lets new errors land silently), this step ratchets:
+    #   - any INCREASE above the baseline fails the job (no new type errors),
+    #   - a DECREASE passes and asks you to lower TYPECHECK_BASELINE to lock it in,
+    #   - the delta is always printed for visibility.
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -67,4 +68,24 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx tsc -p tsconfig.app.json --noEmit
+      - name: Typecheck against error baseline
+        env:
+          # Lower this whenever the count drops (the step tells you the new value).
+          TYPECHECK_BASELINE: 144
+        run: |
+          # tsc exits non-zero when errors exist; capture output without aborting here.
+          npx tsc -p tsconfig.app.json --noEmit > tsc.log 2>&1 || true
+          count=$(grep -c "error TS" tsc.log || true)
+          count=${count:-0}
+          delta=$((count - TYPECHECK_BASELINE))
+          echo "TypeScript errors: ${count} (baseline ${TYPECHECK_BASELINE}, delta ${delta})"
+          if [ "$count" -gt "$TYPECHECK_BASELINE" ]; then
+            echo "::error::TypeScript error count rose from ${TYPECHECK_BASELINE} to ${count} (+${delta}). New type errors are not allowed — fix them or they block merge."
+            grep "error TS" tsc.log || true
+            exit 1
+          fi
+          if [ "$count" -lt "$TYPECHECK_BASELINE" ]; then
+            echo "::notice::TypeScript errors dropped from ${TYPECHECK_BASELINE} to ${count} (${delta}). Lower TYPECHECK_BASELINE in .github/workflows/ci.yml to ${count} to lock in the improvement."
+          else
+            echo "TypeScript error count matches the baseline."
+          fi
