@@ -15,6 +15,8 @@ import {
   optionHasRecommendationEvidence,
   serviceQualityRank,
 } from './commercialHelpers';
+import type { CommercialObjective, CommercialRecommendationContext } from './commercialObjective';
+import { buildObjectiveRecommendation } from './commercialObjectiveEngine';
 
 function insufficientDataRecommendation(reason = 'Not enough comparable route metrics are available'): CommercialRecommendation {
   return {
@@ -52,7 +54,22 @@ function regulatoryLabel(value: CommercialRegulatoryConfidence | undefined): str
   return 'partially known';
 }
 
-export function buildRecommendation(options: CommercialTechnologyOption[]): CommercialRecommendation {
+/**
+ * Objective-aware entry point. When no objective is supplied (the default
+ * "no preference" path) this delegates VERBATIM to the historic engine
+ * (legacyBuildRecommendation) so existing behaviour and goldens are unchanged.
+ * An objective routes to the pure objective engine (E).
+ */
+export function buildRecommendation(
+  options: CommercialTechnologyOption[],
+  objective?: CommercialObjective,
+  context?: CommercialRecommendationContext,
+): CommercialRecommendation {
+  if (!objective) return legacyBuildRecommendation(options);
+  return buildObjectiveRecommendation(options, objective, context);
+}
+
+function legacyBuildRecommendation(options: CommercialTechnologyOption[]): CommercialRecommendation {
   const leo = options.find((option) => option.technology === 'leo');
   const geo = options.find((option) => option.technology === 'geo');
   if (!leo || !geo) {

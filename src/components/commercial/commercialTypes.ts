@@ -92,6 +92,23 @@ export interface CommercialTechnologyOption {
   technicalLimitingFactor?: string;
   regulatoryConfidence?: CommercialRegulatoryConfidence;
   strengths: string[];
+  // ── Objective-scoring criteria (E). All optional and nullable: `null`/absent
+  // means "unknown", never zero. Populated by the ENG→COMM seam in E2; until
+  // then they stay unknown and the objective engine excludes them from scoring.
+  /** Delivered throughput under modelled load (Mbps). */
+  sustainedMbps?: number | null;
+  /** RF-potential throughput, clear-sky boresight (Mbps). */
+  theoreticalMbps?: number | null;
+  /** Indicative link availability (%). Estimated, not an SLA. */
+  availabilityPct?: number | null;
+  /** Fraction of time the service is usable (0-1). */
+  dutyCycle?: number | null;
+  /** Equivalent users sharing capacity (>= 1); lower is better. */
+  contentionRatio?: number | null;
+  /** Consolidated service/route diversity (0-1); satellite/gateway/route are underlying evidence. */
+  serviceDiversity?: number | null;
+  /** Explicit terminal-profile mobility compatibility. `null` = unknown (not eliminating). */
+  mobilityCompatible?: boolean | null;
 }
 
 export interface CommercialRecommendation {
@@ -102,6 +119,15 @@ export interface CommercialRecommendation {
   reason: string;
   message: string;
   expectedExperience: string;
+  // ── Objective-aware explainability (E). Populated only when an objective is
+  // supplied; the legacy path leaves these undefined (behaviour unchanged).
+  objective?: import('./commercialObjective').CommercialObjective;
+  favorableFactors?: string[];
+  limitingFactors?: string[];
+  unknownCriteria?: string[];
+  /** Normalized score gap between technologies on the common base (0-1). */
+  scoreGap?: number;
+  confidence?: import('./commercialObjective').CommercialRecommendationConfidence;
 }
 
 export interface CommercialExecutiveSummary {
