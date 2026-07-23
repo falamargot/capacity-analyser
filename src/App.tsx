@@ -23,6 +23,14 @@ import CommercialKpiBar from './components/commercial/CommercialKpiBar';
 import CustomerDecisionInspector from './components/commercial/CustomerDecisionInspector';
 import CustomerDecisionLauncher from './components/commercial/CustomerDecisionLauncher';
 import {
+  DECISION_GEO_ANALYSIS_SCOPE,
+  DECISION_LEO_ANALYSIS_SCOPE,
+  activeTopologyNeedsDestination,
+  geoScenarioNeedsDestination,
+  shouldBuildGeoDecisionAnalysis,
+} from './components/commercial/decisionAnalysisPolicy';
+import { shouldCloseDecisionInspectorForFocusTransition } from './components/commercial/decisionInspectorPolicy';
+import {
   buildCommercialScenarioViewModel,
   type CommercialScenarioViewModel,
   type CommercialTechnologyOption,
@@ -117,6 +125,10 @@ import {
 } from './utils/geoTerminalRFModel';
 import { supportsStarTrafficTopology } from './utils/geoGroundInfrastructure';
 import { buildGeoRouteAnalysisViewModel } from './utils/geoRouteAnalysisViewModel';
+import {
+  resolveTerminalProfileTransition,
+  type GroundTerminalProfile,
+} from './utils/analysisTerminalOverride';
 import { getLeoTerminalProfile } from './config/leoTerminals';
 import type { LeoSiteToSiteFailureReason } from './utils/leoSiteToSiteModel';
 import {
@@ -556,6 +568,7 @@ const App: React.FC = () => {
     })
   ), [engineeringDestinationGeoReadModelParity.ok, engineeringScenarioReadModel.destination?.geoTerminal?.label, geoRFClassIdB]);
   const [previousAnalysisSource, setPreviousAnalysisSource] = useState<'earth' | 'aircraft' | undefined>(undefined);
+  const groundTerminalBeforeAircraftRef = useRef<GroundTerminalProfile | null>(null);
   const [cameraTarget, setCameraTarget] = useState<{ lat: number; lng: number; alt: number } | null>(null);
   const {
     selectedSelection,
@@ -708,6 +721,10 @@ const App: React.FC = () => {
   } = useUiModeState();
   const [commercialSelectedSegment, setCommercialSelectedSegment] = useState<string>('summary');
   const [isCustomerDecisionOpen, setIsCustomerDecisionOpen] = useState(false);
+  const decisionSupportEvidenceRequired = commercialMode
+    || isCustomerDecisionOpen
+    || !!connectivityScenario.commercialObjective;
+  const previousEngineeringFocusKindRef = useRef(engineeringFocusController.focus.kind);
   const customerDecisionLauncherRef = useRef<HTMLButtonElement | null>(null);
   const [isGlobeModePeekPressed, setIsGlobeModePeekPressed] = useState(false);
   const globeCommercialMode = isGlobeModePeekPressed ? !commercialMode : commercialMode;
@@ -760,24 +777,43 @@ const App: React.FC = () => {
   }, [handleCloseCustomerDecision, handleOpenCustomerDecision, isCustomerDecisionOpen]);
 
   useEffect(() => {
-    if (!isCustomerDecisionOpen || engineeringFocusController.focus.kind !== 'locked') return;
-    setIsCustomerDecisionOpen(false);
+    const previousKind = previousEngineeringFocusKindRef.current;
+    const currentKind = engineeringFocusController.focus.kind;
+    previousEngineeringFocusKindRef.current = currentKind;
+    if (shouldCloseDecisionInspectorForFocusTransition(
+      isCustomerDecisionOpen,
+      previousKind,
+      currentKind,
+    )) {
+      setIsCustomerDecisionOpen(false);
+    }
   }, [engineeringFocusController.focus.kind, isCustomerDecisionOpen]);
 
   // Derived backward-compat variables — downstream components still receive pointB / pointBLeo
-  const geoNeedsPointB = LINK_MODE_REQUIRES_POINT_B.has(linkMode) && satelliteScope !== 'LEO';
+  // Topology belongs to the shared scenario, not to the globe's visual filter.
+  // Switching ALL/GEO/LEO must never discard Site B or remove it from the
+  // evidence used by Decision Support.
+  const geoNeedsPointB = geoScenarioNeedsDestination(linkMode);
   const leoNeedsPointB = leoTopologyMode === 'SITE_TO_SITE';
-  const isTwoPointMode = geoNeedsPointB || leoNeedsPointB;
+  const isTwoPointMode = activeTopologyNeedsDestination({
+    displayScope: satelliteScope,
+    activeTechnology: activeConnectivityTab,
+    geoNeedsDestination: geoNeedsPointB,
+    leoNeedsDestination: leoNeedsPointB,
+  });
+  const scenarioRetainsSiteB = geoNeedsPointB || leoNeedsPointB;
   const pointB = siteB && geoNeedsPointB ? siteB : null;
   const pointBLeo = siteB && leoNeedsPointB ? siteB : null;
 
-  // Clear siteB when neither GEO Mesh/P2P nor LEO S2S is active
+  // Clear Site B only when neither stored topology needs it. The active visual
+  // technology controls whether the UI asks for Site B, but switching filters
+  // must not erase the other technology's scenario endpoint.
   useEffect(() => {
-    if (!isTwoPointMode) {
+    if (!scenarioRetainsSiteB) {
       setSiteB(null);
       setIsSiteBArmed(false);
     }
-  }, [isTwoPointMode]);
+  }, [scenarioRetainsSiteB]);
 
   const [airTrafficEnabled, setAirTrafficEnabled] = useState(false);
   const [maritimeTrafficEnabled, setMaritimeTrafficEnabled] = useState(false);
@@ -966,7 +1002,21 @@ const App: React.FC = () => {
   }, [setWeatherType, weatherCondition, weatherType]);
 
   useEffect(() => {
-    if (activeAnalysisSource === 'aircraft') {
+    const transition = resolveTerminalProfileTransition({
+      previousSource: previousAnalysisSource,
+      currentSource: activeAnalysisSource,
+      currentProfile: {
+        leoTerminalType,
+        leoTerminalModelId,
+        geoTerminalType,
+        geoRFClassId: geoRFClassIdA,
+        geoRFCustomParams: geoRFCustomParamsA,
+      },
+      savedGroundProfile: groundTerminalBeforeAircraftRef.current,
+    });
+    groundTerminalBeforeAircraftRef.current = transition.savedGroundProfile;
+
+    if (transition.action === 'apply-aviation') {
       if (leoTerminalType !== 'aviation') handleLeoTerminalTypeChange('aviation');
       if (geoTerminalType !== 'aviation') {
         setGeoTerminalType('aviation');
@@ -976,13 +1026,12 @@ const App: React.FC = () => {
       if (weatherType !== 'clear') setWeatherType('clear');
       setWeatherCondition('CLEAR');
       if (autoWeatherEnabled) setAutoWeatherEnabled(false);
-    } else if (activeAnalysisSource === 'earth' && previousAnalysisSource === 'aircraft') {
-      if (leoTerminalType === 'aviation') handleLeoTerminalTypeChange('fixed');
-      if (geoTerminalType === 'aviation') {
-        setGeoTerminalType('fixed');
-        setGeoRFClassIdA(USE_CASE_DEFAULT_RF_CLASS.fixed.Ku);
-        setGeoRFCustomParamsA(null);
-      }
+    } else if (transition.action === 'restore-ground') {
+      setLeoTerminalType(transition.profile.leoTerminalType);
+      setLeoTerminalModelId(transition.profile.leoTerminalModelId);
+      setGeoTerminalType(transition.profile.geoTerminalType);
+      setGeoRFClassIdA(transition.profile.geoRFClassId);
+      setGeoRFCustomParamsA(transition.profile.geoRFCustomParams);
     }
 
     setPreviousAnalysisSource(activeAnalysisSource);
@@ -990,13 +1039,18 @@ const App: React.FC = () => {
     activeAnalysisSource,
     autoWeatherEnabled,
     geoTerminalType,
+    geoRFClassIdA,
+    geoRFCustomParamsA,
     handleLeoTerminalTypeChange,
+    leoTerminalModelId,
     leoTerminalType,
     previousAnalysisSource,
     setAutoWeatherEnabled,
     setGeoRFClassIdA,
     setGeoRFCustomParamsA,
     setGeoTerminalType,
+    setLeoTerminalModelId,
+    setLeoTerminalType,
     setWeatherCondition,
     setWeatherType,
     weatherType,
@@ -1427,7 +1481,7 @@ const App: React.FC = () => {
       return [];
     }
 
-    if (satelliteScope !== 'ALL' && satelliteScope !== 'GEO') {
+    if (satelliteScope === 'LEO' && !decisionSupportEvidenceRequired) {
       return [];
     }
 
@@ -1437,12 +1491,18 @@ const App: React.FC = () => {
       selectedSelection.position
     );
     return ranked;
-  }, [geoRFClassIdA, satelliteScope, geoOperationalSatellites, selectedSelection]);
+  }, [
+    decisionSupportEvidenceRequired,
+    geoRFClassIdA,
+    geoOperationalSatellites,
+    satelliteScope,
+    selectedSelection,
+  ]);
 
   // Coverage candidates for Point B (MESH / Point-to-Point modes only).
   const candidateCoveragesB = useMemo(() => {
     if (!LINK_MODE_REQUIRES_POINT_B.has(linkMode) || !pointB) return [];
-    if (satelliteScope !== 'ALL' && satelliteScope !== 'GEO') return [];
+    if (satelliteScope === 'LEO' && !decisionSupportEvidenceRequired) return [];
 
     const ranked = rankCandidateCoverages(
       findCandidateCoverages(pointB, geoOperationalSatellites, { terminalRFClassId: geoRFClassIdB }),
@@ -1450,7 +1510,14 @@ const App: React.FC = () => {
       pointB
     );
     return ranked;
-  }, [geoRFClassIdB, linkMode, pointB, satelliteScope, geoOperationalSatellites]);
+  }, [
+    decisionSupportEvidenceRequired,
+    geoRFClassIdB,
+    geoOperationalSatellites,
+    linkMode,
+    pointB,
+    satelliteScope,
+  ]);
 
   const eligibleCandidateCoverages = useMemo(() => {
     if (candidateCoverages.length === 0) return candidateCoverages;
@@ -2264,7 +2331,7 @@ const App: React.FC = () => {
   ]);
 
   const geoPointStatus = useMemo<GeoPointStatus | null>(() => {
-    if (!activeAnalysisPoint || (satelliteScope !== 'ALL' && satelliteScope !== 'GEO')) {
+    if (!activeAnalysisPoint || (satelliteScope === 'LEO' && !decisionSupportEvidenceRequired)) {
       return null;
     }
 
@@ -2309,6 +2376,7 @@ const App: React.FC = () => {
   }, [
     activeAnalysisPoint,
     activeGeoSatellite,
+    decisionSupportEvidenceRequired,
     failedGeoGatewaySiteIds,
     geoOperationalSatellites,
     linkMode,
@@ -2323,8 +2391,15 @@ const App: React.FC = () => {
     // expensive buildGeoRouteAnalysisViewModel doesn't block the Cesium rAF loop
     // at the moment the user clicks. After the transition settles, isPending=false
     // and the computation runs normally.
-    // COMM→ENG: uiMode check handles it immediately — no transition cost in that direction.
-    if (uiMode !== 'commercial' || isUiModeTransitionPending) return null;
+    // Decision Support needs a stable cross-technology truth even while ENG is
+    // displaying a single orbit. Keep the expensive GEO route off by default in
+    // ENG, but retain it while the opt-in decision workflow is open/selected.
+    if (!shouldBuildGeoDecisionAnalysis({
+      uiMode,
+      transitionPending: isUiModeTransitionPending,
+      inspectorOpen: isCustomerDecisionOpen,
+      objectiveSelected: !!connectivityScenario.commercialObjective,
+    })) return null;
 
     // Keep GEO commercial analysis off the per-second satellite state tick.
     // The live ref is fresh when the scenario changes, without forcing a
@@ -2337,7 +2412,9 @@ const App: React.FC = () => {
       activePoint: activeAnalysisPoint,
       pointB,
       satellites: routeSatellites,
-      satelliteScope,
+      // Header scope is presentation state. Decision Support always evaluates
+      // the GEO route against the full analytical satellite set.
+      satelliteScope: DECISION_GEO_ANALYSIS_SCOPE,
       linkMode,
       activeMeshTab,
       candidateCoverages: eligibleCandidateCoverages,
@@ -2378,7 +2455,6 @@ const App: React.FC = () => {
     nearestLocation,
     nearestLocationB,
     pointB,
-    satelliteScope,
     satellites.length,
     selectedCoverage,
     selectedDownlinkCoverage,
@@ -2387,6 +2463,8 @@ const App: React.FC = () => {
     selectedUplinkCoverageB,
     uiMode,
     isUiModeTransitionPending,
+    isCustomerDecisionOpen,
+    connectivityScenario.commercialObjective,
     weatherType,
     weatherTypeB,
   ]);
@@ -2734,7 +2812,7 @@ const App: React.FC = () => {
     const { autoSelectedLEOSat, servingAssignment } = resolveAutoSelectedSatellites(
       { lat: analyzisPosition.lat, lng: analyzisPosition.lng },
       satellitesForResolutionRef.current,   // stable ref — not a dep
-      satelliteScope,
+      decisionSupportEvidenceRequired ? DECISION_LEO_ANALYSIS_SCOPE : satelliteScope,
       simulationState,
       now,
       failedSnps,
@@ -2743,7 +2821,16 @@ const App: React.FC = () => {
     );
     setAutoSelectedLEOId(autoSelectedLEOSat?.id || null);
     setLeoServingAssignmentA(servingAssignment);
-  }, [analyzisPosition, autoSelectedLEOId, failedSnps, geoRFClassIdA, satelliteScope, simulationState, satellitesForResolutionRef]); // §1.1 — satellites removed
+  }, [
+    analyzisPosition,
+    autoSelectedLEOId,
+    decisionSupportEvidenceRequired,
+    failedSnps,
+    geoRFClassIdA,
+    satelliteScope,
+    simulationState,
+    satellitesForResolutionRef,
+  ]); // §1.1 — satellites removed
 
   // §1.3 — Periodic re-resolution for fixed positions (earth / vessel).
   //
@@ -2776,7 +2863,7 @@ const App: React.FC = () => {
       const { autoSelectedLEOSat, servingAssignment } = resolveAutoSelectedSatellites(
         { lat: pos.lat, lng: pos.lng },
         satellitesForResolutionRef.current,  // always-fresh satellite positions
-        satelliteScope,
+        decisionSupportEvidenceRequired ? DECISION_LEO_ANALYSIS_SCOPE : satelliteScope,
         simulationState,
         now,
         failedSnps,
@@ -2790,7 +2877,16 @@ const App: React.FC = () => {
 
     const interval = setInterval(reResolve, RESOLUTION_INTERVAL_MS);
     return () => clearInterval(interval);
-  }, [analyzisPosition, autoSelectedLEOId, failedSnps, geoRFClassIdA, satelliteScope, simulationState, satellitesForResolutionRef]); // re-arm when position/scope/policy change
+  }, [
+    analyzisPosition,
+    autoSelectedLEOId,
+    decisionSupportEvidenceRequired,
+    failedSnps,
+    geoRFClassIdA,
+    satelliteScope,
+    simulationState,
+    satellitesForResolutionRef,
+  ]); // re-arm when position/policy changes
 
   // Resolve satellite + SNP for Point B (LEO site-to-site) whenever it changes.
   useEffect(() => {
@@ -2807,7 +2903,7 @@ const App: React.FC = () => {
       const { autoSelectedLEOSat, servingAssignment } = resolveAutoSelectedSatellites(
         { lat: pointBLeo.lat, lng: pointBLeo.lng },
         satellitesForResolutionRef.current,
-        'LEO',
+        decisionSupportEvidenceRequired ? DECISION_LEO_ANALYSIS_SCOPE : satelliteScope,
         simulationState,
         now,
         failedSnps,
@@ -2821,7 +2917,16 @@ const App: React.FC = () => {
     reResolve();
     const interval = setInterval(reResolve, RESOLUTION_INTERVAL_MS);
     return () => clearInterval(interval);
-  }, [pointBLeo, leoTopologyMode, failedSnps, simulationState, satellitesForResolutionRef, autoSelectedLEOIdB]);
+  }, [
+    autoSelectedLEOIdB,
+    decisionSupportEvidenceRequired,
+    failedSnps,
+    leoTopologyMode,
+    pointBLeo,
+    satelliteScope,
+    satellitesForResolutionRef,
+    simulationState,
+  ]);
 
   // Handle coverage polygon click on the globe
   const handleCoverageClick = useCallback((coverageKey: string) => {
@@ -3405,7 +3510,9 @@ const App: React.FC = () => {
     onToggleHelpPanel: handleToggleHelpMenu,
     onToggleEntryPointPanel: handleToggleTargetSourcesMenu,
     onResetView: handleResetView,
+    onDismissOverlay: handleCloseCustomerDecision,
     onModePeekChange: handleGlobeModePeekChange,
+    overlayOpen: isCustomerDecisionOpen,
     enabled: !isCommandPaletteOpen,
   });
 

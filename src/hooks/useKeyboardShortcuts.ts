@@ -7,7 +7,11 @@ interface KeyboardShortcutsConfig {
   onToggleHelpPanel: () => void;
   onToggleEntryPointPanel: () => void;
   onResetView: () => void;
+  /** Close the active overlay without invoking the destructive view reset. */
+  onDismissOverlay?: () => void;
   onModePeekChange?: (pressed: boolean) => void;
+  /** While true, only Escape remains active and dismisses the overlay. */
+  overlayOpen?: boolean;
   /** Disable shortcuts when an input/textarea/select is focused */
   enabled?: boolean;
 }
@@ -18,7 +22,9 @@ const useKeyboardShortcuts = ({
   onToggleHelpPanel,
   onToggleEntryPointPanel,
   onResetView,
+  onDismissOverlay,
   onModePeekChange,
+  overlayOpen = false,
   enabled = true,
 }: KeyboardShortcutsConfig) => {
   useEffect(() => {
@@ -33,6 +39,17 @@ const useKeyboardShortcuts = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
       const isMac = typeof navigator !== 'undefined' && navigator.platform.includes('Mac');
+
+      // Modal/inspector ownership takes precedence over the global shortcut
+      // layer. In particular, Escape must dismiss the overlay and must never
+      // fall through to the scenario-reset command.
+      if (overlayOpen) {
+        if (key === 'escape') {
+          e.preventDefault();
+          onDismissOverlay?.();
+        }
+        return;
+      }
 
       // Cmd+K / Ctrl+K — keyboard shortcuts help (always active, even in inputs)
       if ((e.metaKey || e.ctrlKey) && key === 'k') {
@@ -101,7 +118,17 @@ const useKeyboardShortcuts = ({
       window.removeEventListener('keyup', handleKeyUp, true);
       window.removeEventListener('blur', handleBlur);
     };
-  }, [enabled, onScopeChange, onToggleFullscreen, onToggleHelpPanel, onToggleEntryPointPanel, onResetView, onModePeekChange]);
+  }, [
+    enabled,
+    onDismissOverlay,
+    onModePeekChange,
+    onResetView,
+    onScopeChange,
+    onToggleEntryPointPanel,
+    onToggleFullscreen,
+    onToggleHelpPanel,
+    overlayOpen,
+  ]);
 };
 
 export default useKeyboardShortcuts;

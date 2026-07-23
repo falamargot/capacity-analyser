@@ -173,13 +173,16 @@ export default function CustomerDecisionInspector({
       </header>
 
       <nav className="shrink-0 border-b border-slate-200/80 bg-slate-50/90 px-3 py-2 dark:border-slate-800 dark:bg-slate-950/90" aria-label="Customer decision sections">
-        <div className="grid grid-flow-col auto-cols-fr gap-1.5">
+        <div className="grid grid-flow-col auto-cols-fr gap-1.5" role="tablist">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              aria-pressed={activeTab === tab.id}
+              role="tab"
+              id={`customer-decision-tab-${tab.id}`}
+              aria-controls={`customer-decision-panel-${tab.id}`}
+              aria-selected={activeTab === tab.id}
               className={[
                 'h-9 rounded-xl border px-3 text-[11px] font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-violet-400',
                 activeTab === tab.id
@@ -193,7 +196,12 @@ export default function CustomerDecisionInspector({
         </div>
       </nav>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5">
+      <div
+        id={`customer-decision-panel-${activeTab}`}
+        role="tabpanel"
+        aria-labelledby={`customer-decision-tab-${activeTab}`}
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5"
+      >
         {activeTab === 'priority' && (
           <div className="mx-auto max-w-[32rem]">
             <CommercialObjectiveControls
