@@ -268,6 +268,51 @@ describe('commercial objective live wiring', () => {
     ]));
     expect(viewModel.recommendation.message).toMatch(/remain unverified/i);
   });
+
+  it('compares a true LEO Site-to-Site route with a deliverable GEO route for BROADCAST', () => {
+    const input = buildInput(evidence(true));
+    input.metrics = {
+      geo: { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 },
+    } as typeof input.metrics;
+    input.geoPointStatus = 'available';
+    input.commercialObjective = 'BROADCAST';
+    input.commercialTrafficDirection = 'DOWNLINK';
+
+    const viewModel = buildCommercialScenarioViewModel(input);
+    const leo = viewModel.comparison.options.find((option) => option.technology === 'leo');
+    const geo = viewModel.comparison.options.find((option) => option.technology === 'geo');
+
+    expect(input.leoTopologyMode).toBe('SITE_TO_SITE');
+    expect(leo?.available).toBe(true);
+    expect(geo?.available).toBe(true);
+    expect(leo?.sustainedDownlinkMbps).toBe(5);
+    expect(geo?.sustainedDownlinkMbps).toBe(120);
+    expect(viewModel.recommendation.technology).toBe('geo');
+  });
+
+  it('never recommends a route blocked by the regulatory planning gate', () => {
+    const input = buildInput(evidence(true));
+    input.metrics = {
+      geo: { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 },
+    } as typeof input.metrics;
+    input.geoPointStatus = 'available';
+    input.commercialObjective = 'REALTIME';
+    input.leoRegulatoryResult = {
+      status: 'BLOCKED',
+      reason: 'Planning overlay blocks service in the selected country.',
+      confidence: 0.9,
+      emitAllowed: false,
+      serviceAllowed: false,
+    } as NonNullable<typeof input.leoRegulatoryResult>;
+
+    const viewModel = buildCommercialScenarioViewModel(input);
+    const leo = viewModel.comparison.options.find((option) => option.technology === 'leo');
+
+    expect(leo?.regulatoryConfidence).toBe('blocked');
+    expect(leo?.evidence?.regulatory?.value).toBe(0);
+    expect(viewModel.recommendation.technology).not.toBe('leo');
+    expect(viewModel.recommendation.reason).toMatch(/regulatory blocked/i);
+  });
 });
 
 describe('commercial coverage confidence (no over-claim)', () => {

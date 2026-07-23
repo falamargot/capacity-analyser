@@ -438,6 +438,33 @@ export function buildObjectiveRecommendation(
     const winner = survivors[0].option;
     const otherGate = winner.technology === 'geo' ? leoGate : geoGate;
     const other = winner.technology === 'geo' ? leo : geo;
+
+    // A working copy of the primary link is not a backup. If the only
+    // deliverable satellite option is the same technology as the declared
+    // primary, report the diversity gap explicitly instead of decorating it as
+    // a recommendation.
+    const primaryMatchesWinner = objective === 'BACKUP'
+      && ((context?.primaryTechnology === 'GEO' && winner.technology === 'geo')
+        || (context?.primaryTechnology === 'LEO' && winner.technology === 'leo'));
+    if (primaryMatchesWinner) {
+      return {
+        technology: 'not_available',
+        reasonCategory: 'INSUFFICIENT_DATA',
+        label: 'No Diverse Backup',
+        chipLabel: 'No diverse backup',
+        reason: `${winner.label} is the primary technology and the alternative is not deliverable`,
+        message: `${winner.label} service is available, but it does not provide technology diversity from the declared primary link`,
+        expectedExperience: 'The primary path remains usable; no diverse satellite backup is available in this scenario.',
+        objective,
+        assessmentBasis: ASSESSMENT_BASIS,
+        favorableFactors: [`Primary ${winner.label} path remains deliverable`],
+        limitingFactors: [
+          `${winner.label} cannot provide technology diversity from itself`,
+          `${other.label} unavailable: ${otherGate.reason}`,
+        ],
+      };
+    }
+
     // Confidence depends on the gate that eliminated the other technology and on
     // whether the survivor's own dominant criterion is known — never automatic High.
     const survivorHasDominant = dominantCriteriaFor(objective)

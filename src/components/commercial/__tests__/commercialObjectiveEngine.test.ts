@@ -194,6 +194,28 @@ describe('objective engine — BACKUP requires an explicit primary', () => {
     expect(viaLeoPrimary.technology).toBe('geo');
     expect(viaGeoPrimary.reason).toContain('diversity');
   });
+
+  it('does not present the primary technology itself as a diverse backup', () => {
+    const geo = option('geo', { rttMs: 500 });
+    const leo = option('leo', { available: false, status: 'blocked' });
+    const rec = buildObjectiveRecommendation([geo, leo], 'BACKUP', { primaryTechnology: 'GEO' });
+
+    expect(rec.technology).toBe('not_available');
+    expect(rec.chipLabel).toBe('No diverse backup');
+    expect(rec.reason).toMatch(/primary technology/i);
+    expect(rec.message).toMatch(/does not provide technology diversity/i);
+    expect(rec.expectedExperience).toMatch(/primary path remains usable/i);
+    expect(rec.confidence).toBeUndefined();
+  });
+
+  it('still recommends a sole survivor when it differs from the primary technology', () => {
+    const geo = option('geo', { rttMs: 500 });
+    const leo = option('leo', { available: false, status: 'blocked' });
+    const rec = buildObjectiveRecommendation([geo, leo], 'BACKUP', { primaryTechnology: 'LEO' });
+
+    expect(rec.technology).toBe('geo');
+    expect(rec.chipLabel).toBe('Recommended: GEO');
+  });
 });
 
 describe('objective engine — hybrid and ties', () => {
@@ -274,6 +296,19 @@ describe('objective engine — traffic direction', () => {
     const leo = option('leo', { sustainedDownlinkMbps: 80, sustainedUplinkMbps: 300 });
     const rec = buildObjectiveRecommendation([geo, leo], 'BULK', { trafficDirection: 'UPLINK' });
     expect(rec.technology).toBe('leo'); // LEO wins on uplink
+  });
+
+  it('flips the BULK winner deterministically when only the requested direction changes', () => {
+    const geo = option('geo', { sustainedDownlinkMbps: 500, sustainedUplinkMbps: 10 });
+    const leo = option('leo', { sustainedDownlinkMbps: 80, sustainedUplinkMbps: 300 });
+
+    const downlink = buildObjectiveRecommendation([geo, leo], 'BULK', { trafficDirection: 'DOWNLINK' });
+    const uplink = buildObjectiveRecommendation([geo, leo], 'BULK', { trafficDirection: 'UPLINK' });
+
+    expect(downlink.technology).toBe('geo');
+    expect(uplink.technology).toBe('leo');
+    expect(downlink.commonCriteria).toContain('sustained throughput');
+    expect(uplink.commonCriteria).toContain('sustained throughput');
   });
 });
 
