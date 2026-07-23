@@ -42,6 +42,17 @@ function normalizedName(value: string): string {
   return value.trim().toLocaleLowerCase().replace(/\s+/g, ' ');
 }
 
+function uniqueNames(values: Array<string | null | undefined>): string[] {
+  const names = new Map<string, string>();
+  values.forEach((value) => {
+    const displayName = value?.trim();
+    if (!displayName) return;
+    const key = normalizedName(displayName);
+    if (!names.has(key)) names.set(key, displayName);
+  });
+  return [...names.values()];
+}
+
 function displayBand(value: string): string {
   if (value === 'KU') return 'Ku';
   if (value === 'KA') return 'Ka';
@@ -205,14 +216,16 @@ export function buildCommercialResilienceAssessment(
   }
 
   const geoGround = input.geoGroundNode?.trim();
-  const leoGround = (input.leoGroundNodes ?? []).map((name) => name?.trim()).filter((name): name is string => !!name);
+  const leoGround = uniqueNames(input.leoGroundNodes ?? []);
   if (geoGround && leoGround.length) {
     const geoKey = normalizedName(geoGround);
-    const leoKeys = new Set(leoGround.map(normalizedName));
-    if (leoKeys.has(geoKey)) {
+    const sharedGround = leoGround.some((name) => normalizedName(name) === geoKey);
+    const distinctLeoGround = leoGround.filter((name) => normalizedName(name) !== geoKey);
+    if (sharedGround) {
       sharedRiskDomains.push(`Shared named ground entry point (${geoGround})`);
-    } else {
-      independentDomains.push(`Distinct named ground entry points (${geoGround} / ${leoGround.join(' / ')})`);
+    }
+    if (distinctLeoGround.length) {
+      independentDomains.push(`Distinct named ground entry points (${geoGround} / ${distinctLeoGround.join(' / ')})`);
     }
   } else {
     unknownDomains.push('Ground-entry-point independence not fully resolved');

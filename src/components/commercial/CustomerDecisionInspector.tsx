@@ -138,10 +138,10 @@ export default function CustomerDecisionInspector({
         onClose();
       }}
       className={[
-        'pointer-events-auto flex h-full min-h-0 w-full flex-col overflow-hidden border border-slate-200/90 bg-white/98 backdrop-blur-xl dark:border-slate-700/90 dark:bg-slate-950/98',
+        'pointer-events-auto flex min-h-0 w-full flex-col overflow-hidden border border-slate-200/90 bg-white/98 backdrop-blur-xl dark:border-slate-700/90 dark:bg-slate-950/98',
         mobile
-          ? 'rounded-t-[28px] border-b-0 shadow-[0_-18px_60px_-28px_rgba(15,23,42,0.68)]'
-          : 'rounded-l-[24px] shadow-[-12px_12px_42px_-26px_rgba(15,23,42,0.72)] dark:shadow-[-14px_12px_46px_-28px_rgba(0,0,0,0.96)]',
+          ? 'h-full rounded-t-[28px] border-b-0 shadow-[0_-18px_60px_-28px_rgba(15,23,42,0.68)]'
+          : 'h-auto max-h-[inherit] rounded-[24px] shadow-[-12px_12px_42px_-26px_rgba(15,23,42,0.72)] dark:shadow-[-14px_12px_46px_-28px_rgba(0,0,0,0.96)]',
       ].join(' ')}
     >
       {mobile && (
@@ -149,15 +149,15 @@ export default function CustomerDecisionInspector({
           <div className="h-1.5 w-14 rounded-full bg-slate-300 dark:bg-slate-600" />
         </div>
       )}
-      <header className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200/80 bg-white/95 px-5 py-4 dark:border-slate-800 dark:bg-slate-900/95">
+      <header className="flex shrink-0 items-start justify-between gap-3 border-b border-slate-200/80 bg-white/95 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/95">
         <div className="flex min-w-0 items-start gap-3">
-          <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-300/20 dark:bg-violet-400/12 dark:text-violet-200">
+          <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-300/20 dark:bg-violet-400/12 dark:text-violet-200">
             <BarChart3 className="h-4 w-4" aria-hidden="true" />
           </span>
           <div className="min-w-0">
             <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-violet-600 dark:text-violet-300/80">Decision support</div>
-            <h2 className="truncate text-[19px] font-extrabold tracking-tight text-slate-950 dark:text-white">Customer priority</h2>
-            <p className="mt-1 max-w-[29rem] text-[11px] leading-4 text-slate-500 dark:text-slate-400">
+            <h2 className="truncate text-[18px] font-extrabold tracking-tight text-slate-950 dark:text-white">Customer priority</h2>
+            <p className="mt-0.5 max-w-[29rem] text-[10px] leading-3.5 text-slate-500 dark:text-slate-400">
               Applies a declared business priority to the same engineering evidence. It does not change the RF calculation.
             </p>
           </div>
@@ -172,7 +172,7 @@ export default function CustomerDecisionInspector({
         </button>
       </header>
 
-      <nav className="shrink-0 border-b border-slate-200/80 bg-slate-50/90 px-3 py-2 dark:border-slate-800 dark:bg-slate-950/90" aria-label="Customer decision sections">
+      <nav className="shrink-0 border-b border-slate-200/80 bg-slate-50/90 px-3 py-1.5 dark:border-slate-800 dark:bg-slate-950/90" aria-label="Customer decision sections">
         <div className="grid grid-flow-col auto-cols-fr gap-1.5" role="tablist">
           {tabs.map((tab) => (
             <button
@@ -184,7 +184,7 @@ export default function CustomerDecisionInspector({
               aria-controls={`customer-decision-panel-${tab.id}`}
               aria-selected={activeTab === tab.id}
               className={[
-                'h-9 rounded-xl border px-3 text-[11px] font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-violet-400',
+                'h-8 rounded-xl border px-3 text-[11px] font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-violet-400',
                 activeTab === tab.id
                   ? 'border-violet-300 bg-white text-violet-800 shadow-sm dark:border-violet-300/35 dark:bg-violet-400/14 dark:text-violet-100'
                   : 'border-transparent text-slate-500 hover:border-slate-200 hover:bg-white dark:text-slate-400 dark:hover:border-slate-700 dark:hover:bg-slate-900',
@@ -200,7 +200,7 @@ export default function CustomerDecisionInspector({
         id={`customer-decision-panel-${activeTab}`}
         role="tabpanel"
         aria-labelledby={`customer-decision-tab-${activeTab}`}
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5"
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3"
       >
         {activeTab === 'priority' && (
           <div className="mx-auto max-w-[32rem]">

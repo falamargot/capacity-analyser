@@ -28,7 +28,8 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173)",
       "PowerShell(Start-Process -NoNewWindow -FilePath \"npm\" -ArgumentList \"run\",\"dev\",\"--\",\"--port\",\"5173\" -PassThru)",
       "PowerShell(Start-Sleep -Seconds 5; try { $r = Invoke-WebRequest -Uri \"http://localhost:5173\" -TimeoutSec 3 -UseBasicParsing; \"HTTP $\\($r.StatusCode\\)\" } catch { \"not ready: $_\" })",
-      "PowerShell(npm run dev 2>&1)"
+      "PowerShell(npm run dev 2>&1)",
+      "Bash(lsof -iTCP:3000 -sTCP:LISTEN -n -P)"
     ]
   }
 }

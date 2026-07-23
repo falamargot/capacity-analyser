@@ -38,36 +38,23 @@ describe('Decision Support analytical scope', () => {
   it('builds cross-technology evidence in COMM and in the opt-in ENG workflow', () => {
     expect(shouldBuildGeoDecisionAnalysis({
       uiMode: 'commercial',
-      transitionPending: false,
       inspectorOpen: false,
       objectiveSelected: false,
     })).toBe(true);
     expect(shouldBuildGeoDecisionAnalysis({
       uiMode: 'engineering',
-      transitionPending: false,
       inspectorOpen: true,
       objectiveSelected: false,
     })).toBe(true);
     expect(shouldBuildGeoDecisionAnalysis({
       uiMode: 'engineering',
-      transitionPending: false,
       inspectorOpen: false,
       objectiveSelected: true,
     })).toBe(true);
     expect(shouldBuildGeoDecisionAnalysis({
       uiMode: 'engineering',
-      transitionPending: false,
       inspectorOpen: false,
       objectiveSelected: false,
-    })).toBe(false);
-  });
-
-  it('defers the expensive GEO route during a mode transition', () => {
-    expect(shouldBuildGeoDecisionAnalysis({
-      uiMode: 'commercial',
-      transitionPending: true,
-      inspectorOpen: true,
-      objectiveSelected: true,
     })).toBe(false);
   });
 });

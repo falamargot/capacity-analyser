@@ -29,10 +29,11 @@ export function activeTopologyNeedsDestination(args: {
 
 export function shouldBuildGeoDecisionAnalysis(args: {
   uiMode: UiMode;
-  transitionPending: boolean;
   inspectorOpen: boolean;
   objectiveSelected: boolean;
 }): boolean {
-  if (args.transitionPending) return false;
+  // Decision Support is an opt-in cross-technology workflow. Once it is open
+  // or an objective is selected, never drop a candidate because a transient
+  // null route would be interpreted as "not deliverable".
   return args.uiMode === 'commercial' || args.inspectorOpen || args.objectiveSelected;
 }

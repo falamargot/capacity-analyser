@@ -1,4 +1,4 @@
-import { useCallback, useState, useTransition } from 'react';
+import { useCallback, useState } from 'react';
 import type { SatelliteScope } from '../components/SatelliteScopeFilter';
 
 export type UiMode = 'engineering' | 'commercial';
@@ -8,13 +8,12 @@ export const useUiModeState = () => {
   const [satelliteScope, setSatelliteScope] = useState<SatelliteScope>('ALL');
   const [activeConnectivityTab, setActiveConnectivityTab] = useState<ActiveTechnology>('LEO');
   const [uiMode, setUiMode] = useState<UiMode>('engineering');
-  // isPending is true for exactly the transition render where uiMode just changed.
-  // Used to skip buildGeoRouteAnalysisViewModel during mode switches so Cesium's
-  // rAF loop is not blocked by the expensive computation during the switch frame.
-  const [isUiModeTransitionPending, startUiModeTransition] = useTransition();
 
   const handleUiModeChange = useCallback((mode: UiMode) => {
-    startUiModeTransition(() => setUiMode(mode));
+    // A primary navigation control must commit on its first activation. The
+    // analytical view models are already memoized; deferring this state change
+    // made the pressed state and the visible surface lag behind the user's click.
+    setUiMode(mode);
   }, []);
 
   // Scope and technology focus are coupled: scope is either ALL or equal to the
@@ -39,8 +38,6 @@ export const useUiModeState = () => {
     technologyScope: satelliteScope,
     satelliteScope,
     activeConnectivityTab,
-    isUiModeTransitionPending,
-    startUiModeTransition,
     setUiMode,
     setActiveTechnology: setActiveConnectivityTab,
     setTechnologyScope: setSatelliteScope,

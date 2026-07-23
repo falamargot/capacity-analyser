@@ -143,4 +143,28 @@ describe('commercial operational evidence — pairwise resilience', () => {
     ]));
     expect(assessment.assessedDomainCount).toBe(1);
   });
+
+  it('deduplicates repeated LEO ground-entry names before presenting resilience evidence', () => {
+    const assessment = buildCommercialResilienceAssessment({
+      geoRouteAvailable: true,
+      leoRouteAvailable: true,
+      geoGroundNode: 'Cagliari',
+      leoGroundNodes: ['Mornac', ' mornac ', 'MORNAC'],
+    });
+
+    expect(assessment.independentDomains).toContain('Distinct named ground entry points (Cagliari / Mornac)');
+    expect(assessment.independentDomains.join(' ')).not.toContain('Mornac / Mornac');
+  });
+
+  it('reports shared and distinct ground domains separately when both are demonstrated', () => {
+    const assessment = buildCommercialResilienceAssessment({
+      geoRouteAvailable: true,
+      leoRouteAvailable: true,
+      geoGroundNode: 'Mornac',
+      leoGroundNodes: ['Mornac', 'Manassas', 'manassas'],
+    });
+
+    expect(assessment.sharedRiskDomains).toContain('Shared named ground entry point (Mornac)');
+    expect(assessment.independentDomains).toContain('Distinct named ground entry points (Mornac / Manassas)');
+  });
 });

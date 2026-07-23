@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useState, useEffect, useMemo, useCallback, useRef, useReducer } from 'react';
+import React, { Suspense, lazy, useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef, useReducer } from 'react';
 import MapViewSwitcher from './components/MapViewSwitcher';
 import type { AirTrafficStateProps, CallbackProps, CameraProps, CameraViewBounds, CommercialStateProps, DisplayLayerProps, DisplayPrefsProps, IssStateProps, MaritimeTrafficStateProps, SelectionAnalysisProps, TopologyProps, TrafficProps } from './components/CesiumGlobe';
 import SatelliteSelector from './components/SatelliteSelector';
@@ -714,13 +714,13 @@ const App: React.FC = () => {
     commercialMode,
     satelliteScope,
     activeConnectivityTab,
-    isUiModeTransitionPending,
     handleUiModeChange,
     handleTechnologyChange,
     handleTechnologyScopeChange,
   } = useUiModeState();
   const [commercialSelectedSegment, setCommercialSelectedSegment] = useState<string>('summary');
   const [isCustomerDecisionOpen, setIsCustomerDecisionOpen] = useState(false);
+  const [customerDecisionPanelTop, setCustomerDecisionPanelTop] = useState(64);
   const decisionSupportEvidenceRequired = commercialMode
     || isCustomerDecisionOpen
     || !!connectivityScenario.commercialObjective;
@@ -762,10 +762,18 @@ const App: React.FC = () => {
     dispatchConnectivityScenario(connectivityScenarioActions.setCommercialPrimaryTechnology(technology));
   }, []);
 
+  const syncCustomerDecisionPanelPosition = useCallback(() => {
+    const launcher = customerDecisionLauncherRef.current;
+    if (!launcher) return;
+    const launcherRect = launcher.getBoundingClientRect();
+    setCustomerDecisionPanelTop(Math.max(8, Math.round(launcherRect.bottom + 8)));
+  }, []);
+
   const handleOpenCustomerDecision = useCallback(() => {
     engineeringFocusController.clear();
+    syncCustomerDecisionPanelPosition();
     setIsCustomerDecisionOpen(true);
-  }, [engineeringFocusController]);
+  }, [engineeringFocusController, syncCustomerDecisionPanelPosition]);
 
   const handleCloseCustomerDecision = useCallback(() => {
     setIsCustomerDecisionOpen(false);
@@ -851,6 +859,20 @@ const App: React.FC = () => {
   const [isDesktopHeaderCollapsed, setIsDesktopHeaderCollapsed] = useState(false);
   const [commandPaletteQuery, setCommandPaletteQuery] = useState('');
   const [isHelpMenuOpen, setIsHelpMenuOpen] = useState(false);
+
+  useLayoutEffect(() => {
+    if (!isCustomerDecisionOpen || isMobile) return;
+    syncCustomerDecisionPanelPosition();
+  }, [
+    isCustomerDecisionOpen,
+    isMobile,
+    isDesktopHeaderCollapsed,
+    syncCustomerDecisionPanelPosition,
+    uiMode,
+    viewportSnapshot.innerHeight,
+    viewportSnapshot.innerWidth,
+  ]);
+
   const {
     authorshipToastVisible,
     handleLogoPressStart,
@@ -2388,16 +2410,12 @@ const App: React.FC = () => {
   ]);
 
   const geoRouteAnalysis = useMemo(() => {
-    // Skip during the mode-switch transition render (isPending=true) so the
-    // expensive buildGeoRouteAnalysisViewModel doesn't block the Cesium rAF loop
-    // at the moment the user clicks. After the transition settles, isPending=false
-    // and the computation runs normally.
     // Decision Support needs a stable cross-technology truth even while ENG is
-    // displaying a single orbit. Keep the expensive GEO route off by default in
-    // ENG, but retain it while the opt-in decision workflow is open/selected.
+    // displaying a single orbit or the presentation mode is changing. Keep the
+    // expensive GEO route off by default in ENG, but never replace established
+    // evidence with a transient null while the opt-in workflow is active.
     if (!shouldBuildGeoDecisionAnalysis({
       uiMode,
-      transitionPending: isUiModeTransitionPending,
       inspectorOpen: isCustomerDecisionOpen,
       objectiveSelected: !!connectivityScenario.commercialObjective,
     })) return null;
@@ -2463,7 +2481,6 @@ const App: React.FC = () => {
     selectedUplinkCoverage,
     selectedUplinkCoverageB,
     uiMode,
-    isUiModeTransitionPending,
     isCustomerDecisionOpen,
     connectivityScenario.commercialObjective,
     weatherType,
@@ -6066,19 +6083,6 @@ const App: React.FC = () => {
                       />
                     </div>
 
-                    {isCustomerDecisionOpen && !isFullscreen && (
-                      <div className="pointer-events-none absolute bottom-[5.75rem] right-[380px] top-0 z-50 w-[clamp(30rem,38vw,36rem)]">
-                        <CustomerDecisionInspector
-                          viewModel={commercialScenarioViewModel}
-                          mode="commercial"
-                          onClose={handleCloseCustomerDecision}
-                          onObjectiveChange={handleCommercialObjectiveChange}
-                          onTrafficDirectionChange={handleCommercialTrafficDirectionChange}
-                          onPrimaryTechnologyChange={handleCommercialPrimaryTechnologyChange}
-                        />
-                      </div>
-                    )}
-
                     {/* Narrative panel — slides in from right.
                         Aircraft in COMM mode → IFC-specific panel; otherwise standard narrative. */}
                     {!isFullscreen && selectedAircraft ? (
@@ -6129,21 +6133,6 @@ const App: React.FC = () => {
                 className={`relative z-40 flex flex-shrink-0 flex-col overflow-visible rounded-[24px] border border-slate-200/80 bg-white/97 shadow-[0_30px_70px_-35px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-950/98 ${isFullscreen ? 'hidden' : ''}`}
                 style={{ width: desktopSidebarWidth }}
               >
-                <div
-                  data-engineering-inspector-host=""
-                  className="pointer-events-none absolute -bottom-px -top-px right-full z-50 w-[clamp(30rem,38vw,36rem)]"
-                >
-                  {isCustomerDecisionOpen && (
-                    <CustomerDecisionInspector
-                      viewModel={commercialScenarioViewModel}
-                      mode="engineering"
-                      onClose={handleCloseCustomerDecision}
-                      onObjectiveChange={handleCommercialObjectiveChange}
-                      onTrafficDirectionChange={handleCommercialTrafficDirectionChange}
-                      onPrimaryTechnologyChange={handleCommercialPrimaryTechnologyChange}
-                    />
-                  )}
-                </div>
                 <>
                   {!showEngineeringRouteStatus && (
                     <SidebarHeroCard
@@ -6274,6 +6263,29 @@ const App: React.FC = () => {
               </div>
             )}
           </div>
+
+          {isCustomerDecisionOpen && !isFullscreen && (
+            <div
+              data-customer-decision-host=""
+              className="pointer-events-none fixed z-[1450] w-[clamp(30rem,38vw,36rem)]"
+              style={{
+                right: commercialMode
+                  ? 'calc(380px + 1rem)'
+                  : `calc(${desktopSidebarWidth}px + 1rem)`,
+                top: customerDecisionPanelTop,
+                maxHeight: `calc(100dvh - ${customerDecisionPanelTop}px - 0.75rem)`,
+              }}
+            >
+              <CustomerDecisionInspector
+                viewModel={commercialScenarioViewModel}
+                mode={commercialMode ? 'commercial' : 'engineering'}
+                onClose={handleCloseCustomerDecision}
+                onObjectiveChange={handleCommercialObjectiveChange}
+                onTrafficDirectionChange={handleCommercialTrafficDirectionChange}
+                onPrimaryTechnologyChange={handleCommercialPrimaryTechnologyChange}
+              />
+            </div>
+          )}
         </main>
       )}
 

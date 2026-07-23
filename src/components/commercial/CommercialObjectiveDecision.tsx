@@ -47,7 +47,7 @@ export function CommercialObjectiveControls({
   return (
     <section
       aria-label="Customer decision priority"
-      className="rounded-xl border border-sky-300/20 bg-slate-900/62 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+      className="rounded-xl border border-sky-300/20 bg-slate-900/62 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
     >
       <div className="flex items-start gap-2.5">
         <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-sky-300/25 bg-sky-400/10 text-sky-200">
@@ -59,7 +59,7 @@ export function CommercialObjectiveControls({
         </div>
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-1.5">
+      <div className="mt-2 grid grid-cols-2 gap-1 sm:grid-cols-4">
         {OBJECTIVES.map((item) => {
           const selected = objective === item.value;
           return (
@@ -70,7 +70,7 @@ export function CommercialObjectiveControls({
               aria-pressed={selected}
               onClick={() => onObjectiveChange?.(item.value)}
               className={[
-                'min-h-9 rounded-lg border px-2.5 py-2 text-left text-[11px] font-semibold leading-4 transition-colors',
+                'min-h-8 rounded-lg border px-2 py-1.5 text-left text-[10px] font-semibold leading-3.5 transition-colors',
                 selected
                   ? 'border-sky-300/55 bg-sky-400/16 text-sky-50 shadow-[0_0_18px_rgba(56,189,248,0.10)]'
                   : 'border-slate-700/65 bg-slate-950/40 text-slate-300 hover:border-slate-500 hover:text-white',
@@ -83,7 +83,7 @@ export function CommercialObjectiveControls({
       </div>
 
       {needsDirection && (
-        <div className="mt-3 border-t border-slate-700/55 pt-3">
+        <div className="mt-2 border-t border-slate-700/55 pt-2">
           <div className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500">Traffic direction</div>
           <div className="grid grid-cols-3 gap-1" role="group" aria-label="Traffic direction">
             {([
@@ -108,13 +108,13 @@ export function CommercialObjectiveControls({
             ))}
           </div>
           {trafficDirection === 'BIDIRECTIONAL' && (
-            <p className="mt-1.5 text-[10px] leading-4 text-slate-500">Uses the lower of known uplink and downlink rates.</p>
+            <p className="mt-1 text-[9px] leading-3.5 text-slate-500">Uses the lower of known uplink and downlink rates.</p>
           )}
         </div>
       )}
 
       {objective === 'BACKUP' && (
-        <label className="mt-3 block border-t border-slate-700/55 pt-3">
+        <label className="mt-2 block border-t border-slate-700/55 pt-2">
           <span className="mb-1.5 block text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500">Existing primary link</span>
           <span className="relative block">
             <select
@@ -136,7 +136,7 @@ export function CommercialObjectiveControls({
         </label>
       )}
 
-      <div className="mt-3 flex items-start gap-1.5 rounded-lg border border-slate-700/55 bg-slate-950/35 px-2.5 py-2 text-[10px] leading-4 text-slate-400">
+      <div className="mt-2 flex items-start gap-1.5 rounded-lg border border-slate-700/55 bg-slate-950/35 px-2 py-1.5 text-[9px] leading-3.5 text-slate-400">
         <CircleHelp className="mt-0.5 h-3 w-3 shrink-0" aria-hidden="true" />
         <span>Relative planning comparison only. It does not certify service fitness or replace operator validation.</span>
       </div>
