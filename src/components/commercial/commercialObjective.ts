@@ -36,6 +36,22 @@ export interface CommercialRecommendationContext {
   primaryTechnology?: CommercialPrimaryTechnology;
   /** Defaults to BIDIRECTIONAL when omitted. */
   trafficDirection?: CommercialTrafficDirection;
+  /**
+   * Pairwise GEO/LEO independence evidence. This is intentionally separate
+   * from each option's `serviceDiversity`: route diversity is a property of the
+   * combined architecture and must not be fabricated as an orbit bonus.
+   */
+  resilienceAssessment?: CommercialResilienceAssessment;
+}
+
+export interface CommercialResilienceAssessment {
+  independentDomains: string[];
+  sharedRiskDomains: string[];
+  unknownDomains: string[];
+  /** Number of assessed domains (independent + shared), excluding unknowns. */
+  assessedDomainCount: number;
+  /** Total domains considered by the canonical assessment. */
+  totalDomainCount: number;
 }
 
 /** Comparable scoring criteria. Redundancy is folded into `serviceDiversity`. */

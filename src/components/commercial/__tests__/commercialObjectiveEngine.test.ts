@@ -72,6 +72,16 @@ describe('objective engine — gates and route safety', () => {
     expect(rec.technology).not.toBe('not_available');
     expect(rec.unknownCriteria).toContain('mobility compatibility');
   });
+
+  it('reports terminal gate failures accurately when both routes exist but both terminals are fixed', () => {
+    const geo = option('geo', { mobilityCompatible: false });
+    const leo = option('leo', { mobilityCompatible: false });
+    const rec = buildObjectiveRecommendation([geo, leo], 'MOBILITY');
+    expect(rec.technology).toBe('not_available');
+    expect(rec.reason).toContain('mobility');
+    expect(rec.message).toBe('GEO: terminal not mobility-compatible; LEO: terminal not mobility-compatible');
+    expect(rec.expectedExperience).toContain('selected terminal');
+  });
 });
 
 describe('objective engine — data-driven, no hardcoded orbit bias', () => {
@@ -192,6 +202,27 @@ describe('objective engine — hybrid and ties', () => {
     expect(rec.technology).toBe('hybrid');
     expect(rec.chipLabel).toBe('Technology diversity');
     expect(rec.message).toContain('independence');
+  });
+
+  it('qualifies hybrid resilience from verified, shared and unknown risk domains', () => {
+    const rec = buildObjectiveRecommendation([option('geo'), option('leo')], 'RESILIENCE', {
+      resilienceAssessment: {
+        independentDomains: ['Distinct orbital architectures', 'Distinct ground entry points'],
+        sharedRiskDomains: ['Shared Ku-band exposure'],
+        unknownDomains: ['Operator independence not verified', 'Backhaul independence not verified'],
+        assessedDomainCount: 3,
+        totalDomainCount: 5,
+      },
+    });
+    expect(rec.technology).toBe('hybrid');
+    expect(rec.confidence?.level).toBe('Medium');
+    expect(rec.confidence?.reasons).toContain('Independence evidence covers 3/5 risk domains');
+    expect(rec.favorableFactors).toContain('Distinct ground entry points');
+    expect(rec.limitingFactors).toEqual(expect.arrayContaining([
+      'Shared Ku-band exposure',
+      'Backhaul independence not verified',
+    ]));
+    expect(rec.message).toContain('2 independent domains');
   });
 
   it('a tie on a non-RESILIENCE objective yields SIMILAR, never an automatic hybrid', () => {

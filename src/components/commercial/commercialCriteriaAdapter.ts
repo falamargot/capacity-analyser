@@ -1,4 +1,10 @@
 import type { CommercialCriteriaEvidence, CommercialCriterionEvidence } from './commercialCriteriaEvidence';
+import type { CommercialCriterionId } from './commercialObjective';
+
+type OperationalCriterionId = 'dutyCycle' | 'contention' | 'serviceDiversity' | 'mobilityFit';
+type OperationalEvidence = Partial<
+  Pick<CommercialCriteriaEvidence, OperationalCriterionId>
+>;
 
 /**
  * ENG → COMM seam (E2a). Pure, per-technology adapter: it maps canonical
@@ -9,10 +15,10 @@ import type { CommercialCriteriaEvidence, CommercialCriterionEvidence } from './
  * top-level indicative availability must be resolved separately per technology,
  * never copied into both).
  *
- * Not wired in E2a — left `null` because no cross-tech-comparable canonical
- * source is established yet: duty cycle, contention, service diversity and
- * mobility compatibility. Their evidence can be attached later once semantics
- * are agreed (see CROSS_TECH_COMPARABLE).
+ * E2c operational evidence is accepted through a narrow, validated input:
+ * mobility comes from the selected terminal profile; GEO/LEO load evidence is
+ * retained with its distinct semantics; duty cycle and per-option diversity
+ * remain explicitly unassessed rather than fabricated.
  */
 export interface CommercialCriteriaSource {
   technology: 'geo' | 'leo';
@@ -27,6 +33,11 @@ export interface CommercialCriteriaSource {
   /** Indicative availability for THIS technology (%, 0-100). */
   availabilityPct?: number | null;
   availabilityAsOf?: string | number | null;
+  /**
+   * Operational evidence is supplied by a dedicated canonical resolver. Null
+   * evidence is retained to explain why a criterion is not assessed.
+   */
+  operationalEvidence?: OperationalEvidence;
 }
 
 export interface CommercialCriteriaContribution {
@@ -52,6 +63,49 @@ const MBPS_MAX = 1_000_000; // sanity bound (1 Tbps) — rejects garbage, not re
 
 function mbps(value: number | null | undefined): number | null {
   return finiteInRange(value, 0, MBPS_MAX);
+}
+
+function validatedOperationalValue(
+  criterion: OperationalCriterionId,
+  evidence: CommercialCriterionEvidence<number | boolean> | undefined,
+): number | boolean | null {
+  if (!evidence || evidence.value == null) return null;
+  if (criterion === 'mobilityFit') {
+    return typeof evidence.value === 'boolean' ? evidence.value : null;
+  }
+  if (typeof evidence.value !== 'number') return null;
+  if (criterion === 'contention') return finiteInRange(evidence.value, 1, 1_000_000);
+  return finiteInRange(evidence.value, 0, 1);
+}
+
+function attachOperationalEvidence(
+  target: CommercialCriteriaEvidence,
+  source: OperationalEvidence | undefined,
+): {
+  dutyCycle: number | null;
+  contentionRatio: number | null;
+  serviceDiversity: number | null;
+  mobilityCompatible: boolean | null;
+} {
+  const dutyCycle = validatedOperationalValue('dutyCycle', source?.dutyCycle);
+  const contention = validatedOperationalValue('contention', source?.contention);
+  const serviceDiversity = validatedOperationalValue('serviceDiversity', source?.serviceDiversity);
+  const mobilityFit = validatedOperationalValue('mobilityFit', source?.mobilityFit);
+
+  (['dutyCycle', 'contention', 'serviceDiversity', 'mobilityFit'] as OperationalCriterionId[])
+    .forEach((criterion) => {
+      const item = source?.[criterion];
+      if (!item) return;
+      const value = validatedOperationalValue(criterion, item);
+      target[criterion] = { ...item, value } as CommercialCriteriaEvidence[CommercialCriterionId];
+    });
+
+  return {
+    dutyCycle: typeof dutyCycle === 'number' ? dutyCycle : null,
+    contentionRatio: typeof contention === 'number' ? contention : null,
+    serviceDiversity: typeof serviceDiversity === 'number' ? serviceDiversity : null,
+    mobilityCompatible: typeof mobilityFit === 'boolean' ? mobilityFit : null,
+  };
 }
 
 function ev<T extends number | boolean>(
@@ -115,6 +169,11 @@ export function buildCommercialCriteria(source: CommercialCriteriaSource): Comme
       'Indicative planning context, not an SLA',
     );
   }
+  // Preserve the legacy hot path: no operational-evidence arrays/objects are
+  // allocated until the opt-in objective workflow supplies that evidence.
+  const operational = source.operationalEvidence
+    ? attachOperationalEvidence(evidence, source.operationalEvidence)
+    : undefined;
 
   return {
     sustainedDownlinkMbps: sustainedDl,
@@ -122,11 +181,10 @@ export function buildCommercialCriteria(source: CommercialCriteriaSource): Comme
     theoreticalDownlinkMbps: theoreticalDl,
     theoreticalUplinkMbps: theoreticalUl,
     availabilityPct: availability,
-    // Not wired in E2a — no cross-tech-comparable canonical source yet.
-    dutyCycle: null,
-    contentionRatio: null,
-    serviceDiversity: null,
-    mobilityCompatible: null,
+    dutyCycle: operational?.dutyCycle ?? null,
+    contentionRatio: operational?.contentionRatio ?? null,
+    serviceDiversity: operational?.serviceDiversity ?? null,
+    mobilityCompatible: operational?.mobilityCompatible ?? null,
     evidence,
   };
 }

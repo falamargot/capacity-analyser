@@ -68,6 +68,12 @@ import {
 } from './commercialHelpers';
 import { buildExecutiveSummary, buildRecommendation } from './commercialEngine';
 import { buildCommercialCriteria } from './commercialCriteriaAdapter';
+import {
+  buildCommercialResilienceAssessment,
+  buildGeoContentionEvidence,
+  buildLeoContentionEvidence,
+  buildOperationalEvidence,
+} from './commercialOperationalEvidence';
 import type {
   CommercialObjective,
   CommercialPrimaryTechnology,
@@ -96,6 +102,7 @@ interface BuildCommercialScenarioViewModelInput {
   weatherType: WeatherType;
   weatherTypeB: WeatherType;
   leoTerminalType: TerminalType;
+  geoTerminalType: TerminalType;
   originGeoTerminalLabel?: string;
   destinationGeoTerminalLabel?: string;
   originLeoTerminalLabel?: string;
@@ -297,6 +304,20 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
     weatherType: input.weatherType,
     lat: input.activeAnalysisPoint?.lat,
   });
+  // E2c evidence is built only while the opt-in decision feature is active.
+  // The default/legacy path therefore retains both its object shape and its
+  // previous allocation cost.
+  const leoOperationalEvidence = input.commercialObjective
+    ? buildOperationalEvidence({
+        mobility: {
+          technology: 'leo',
+          terminalType: input.leoTerminalType,
+          terminalLabel: input.originLeoTerminalLabel,
+          requiredClass: input.activeAnalysisSource === 'aircraft' ? 'aviation' : 'generic',
+        },
+        contention: buildLeoContentionEvidence(leoEvidence),
+      })
+    : undefined;
   const leoCriteria = buildCommercialCriteria({
     technology: 'leo',
     rttMs: leoFinalRouteAvailable ? leoRttMs : null,
@@ -307,8 +328,20 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
     theoreticalDownlinkMbps: null,
     theoreticalUplinkMbps: null,
     availabilityPct: leoAvailabilityContext.indicativeAvailabilityPct,
+    operationalEvidence: leoOperationalEvidence,
   });
   const geoFinalMetricsAvailable = geoRoute.available && geoMetricsComplete;
+  const geoOperationalEvidence = input.commercialObjective
+    ? buildOperationalEvidence({
+        mobility: {
+          technology: 'geo',
+          terminalType: input.geoTerminalType,
+          terminalLabel: input.originGeoTerminalLabel,
+          requiredClass: input.activeAnalysisSource === 'aircraft' ? 'aviation' : 'generic',
+        },
+        contention: buildGeoContentionEvidence(input.geoRouteAnalysis?.networkLayer),
+      })
+    : undefined;
   const geoCriteria = buildCommercialCriteria({
     technology: 'geo',
     rttMs: geoFinalMetricsAvailable ? geoRttMs : null,
@@ -317,6 +350,7 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
     theoreticalDownlinkMbps: null,
     theoreticalUplinkMbps: null,
     availabilityPct: geoAvailabilityContext.indicativeAvailabilityPct,
+    operationalEvidence: geoOperationalEvidence,
   });
   if (leoObjectiveRegulatoryConfidence) {
     leoCriteria.evidence.regulatory = {
@@ -393,6 +427,20 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
     {
       trafficDirection: input.commercialTrafficDirection ?? 'BIDIRECTIONAL',
       primaryTechnology: input.commercialPrimaryTechnology,
+      resilienceAssessment: input.commercialObjective === 'RESILIENCE'
+        ? buildCommercialResilienceAssessment({
+            geoRouteAvailable: geoFinalMetricsAvailable,
+            leoRouteAvailable: leoMetricsComplete,
+            geoGroundNode: input.geoGatewayName,
+            leoGroundNodes: [
+              leoEvidence?.selectedSnpA?.name,
+              leoEvidence?.selectedSnpB?.name,
+              input.selectedSnpName,
+            ],
+            geoBand: (input.geoRouteAnalysis?.selectedCoverage ?? input.selectedCoverage)?.band,
+            leoBand: leoEvidence?.debugEvidence.siteA?.terminal.supportedBands[0] ?? null,
+          })
+        : undefined,
     },
   );
   const commercialDisplayTechnology = deriveDisplayTechnology(input.activeTechnology);

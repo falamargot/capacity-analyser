@@ -92,6 +92,40 @@ describe('CommercialObjectiveDecision', () => {
     expect(html).not.toMatch(/\d+(?:\.\d+)?% suitable/i);
   });
 
+  it('renders operational evidence and explicit unassessed semantics without false values', () => {
+    const model = viewModel();
+    model.comparison.options[0].evidence = {
+      ...model.comparison.options[0].evidence,
+      mobilityFit: {
+        value: false,
+        nature: 'inferred',
+        source: 'LEO selected terminal profile (OW70L)',
+        note: 'Fixed-installation equipment.',
+      },
+      contention: {
+        value: 7,
+        unit: 'equivalent active sessions',
+        nature: 'estimated',
+        source: 'LEO simulated beam-load model',
+        note: 'Not operator telemetry.',
+      },
+      dutyCycle: {
+        value: null,
+        unit: '% usable time',
+        nature: 'estimated',
+        source: 'LEO route evidence',
+        note: 'Not assessed: no canonical duty-cycle source.',
+      },
+    };
+
+    const html = renderToStaticMarkup(<CommercialRecommendationEvidence viewModel={model} />);
+    expect(html).toContain('Not compatible');
+    expect(html).toContain('7 equivalent active sessions');
+    expect(html).toContain('Not operator telemetry');
+    expect(html).toContain('Incomplete');
+    expect(html).toContain('no canonical duty-cycle source');
+  });
+
   it('shows the engineering scoring breakdown as relative shares, not suitability', () => {
     const model = viewModel({
       commercialIntent: { objective: 'REALTIME', trafficDirection: 'BIDIRECTIONAL' },

@@ -28,6 +28,7 @@ import {
 import { logStarGatewayCanaryDev, pickStarGatewayReferenceCoverage } from './geoStarGatewaySelection';
 import type { TerminalRFClassId, TerminalRFCustomParams } from './geoTerminalRFModel';
 import type { GeoPointStatus } from './selectedPointStatus';
+import type { NetworkLayerResult } from './geoNetworkLayer';
 
 const GEO_LINK_MARGIN_STABILITY = {
   medium: 2,
@@ -64,6 +65,14 @@ export interface GeoRouteAnalysisViewModel {
   geoMetrics: MobileLinkMetrics | null;
   meshMetrics: MeshLinkMetrics | null;
   geoSiteToSitePath: GeoSiteToSitePathSummary | null;
+  /**
+   * Existing topology-level sharing assumptions. Exposed for decision-support
+   * evidence only; these are modeled defaults/overrides, not operator load.
+   */
+  networkLayer: {
+    forward: NetworkLayerResult;
+    reverse?: NetworkLayerResult;
+  } | null;
   starGatewayResolutionDiagnostic?: StarTrafficGatewayDiagnostic | null;
 }
 
@@ -266,6 +275,7 @@ export function buildGeoRouteAnalysisViewModel(input: GeoRouteAnalysisInput): Ge
     geoMetrics: null,
     meshMetrics: null,
     geoSiteToSitePath: null,
+    networkLayer: null,
   });
 
   if (!input.activePoint) return pending('Select a location to calculate GEO service.');
@@ -672,6 +682,7 @@ export function buildGeoRouteAnalysisViewModel(input: GeoRouteAnalysisInput): Ge
     geoMetrics,
     meshMetrics,
     geoSiteToSitePath,
+    networkLayer: dualSegmentResult?.networkLayer ?? null,
     starGatewayResolutionDiagnostic: starGatewaySelection?.diagnostic ?? null,
   };
 }

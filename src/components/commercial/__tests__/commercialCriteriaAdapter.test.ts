@@ -92,4 +92,41 @@ describe('buildCommercialCriteria — directions and bounds', () => {
     expect(c.theoreticalDownlinkMbps).toBeNull(); // NaN
     expect(c.evidence.latency).toBeUndefined(); // infinite RTT
   });
+
+  it('validates operational evidence while retaining explicit unavailable reasons', () => {
+    const c = buildCommercialCriteria({
+      technology: 'leo',
+      operationalEvidence: {
+        mobilityFit: {
+          value: true,
+          nature: 'inferred',
+          source: 'Selected mobile terminal',
+        },
+        contention: {
+          value: 8,
+          unit: 'equivalent active sessions',
+          nature: 'estimated',
+          source: 'Simulated beam load',
+        },
+        dutyCycle: {
+          value: null,
+          unit: '% usable time',
+          nature: 'estimated',
+          source: 'No canonical source',
+          note: 'Not assessed.',
+        },
+        serviceDiversity: {
+          value: 2,
+          nature: 'inferred',
+          source: 'Invalid fixture',
+        },
+      },
+    });
+    expect(c.mobilityCompatible).toBe(true);
+    expect(c.contentionRatio).toBe(8);
+    expect(c.dutyCycle).toBeNull();
+    expect(c.evidence.dutyCycle?.note).toBe('Not assessed.');
+    expect(c.serviceDiversity).toBeNull();
+    expect(c.evidence.serviceDiversity?.value).toBeNull();
+  });
 });

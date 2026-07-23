@@ -415,14 +415,20 @@ export function buildObjectiveRecommendation(
   const survivors = [{ option: geo, gate: geoGate }, { option: leo, gate: leoGate }].filter((s) => s.gate.passed);
 
   if (survivors.length === 0) {
+    const bothRoutesUnavailable = geoGate.reason === 'no deliverable route' && leoGate.reason === 'no deliverable route';
+    const gateSummary = `GEO: ${geoGate.reason ?? 'gate failed'}; LEO: ${leoGate.reason ?? 'gate failed'}`;
     return {
       technology: 'not_available',
       reasonCategory: 'INSUFFICIENT_DATA',
       label: 'Not Available',
       chipLabel: 'No viable recommendation',
-      reason: 'No deliverable route for either technology',
-      message: `Neither technology passes the ${OBJECTIVE_LABEL[objective]} gates`,
-      expectedExperience: 'No active service path available.',
+      reason: bothRoutesUnavailable
+        ? 'No deliverable route for either technology'
+        : `Neither technology passes the ${OBJECTIVE_LABEL[objective]} gates`,
+      message: gateSummary,
+      expectedExperience: bothRoutesUnavailable
+        ? 'No active service path available.'
+        : 'Change the selected terminal or scenario constraints before comparing technologies.',
       objective,
       assessmentBasis: ASSESSMENT_BASIS,
     };
@@ -467,33 +473,55 @@ export function buildObjectiveRecommendation(
   const gap = Math.abs(comparison.relativeScoreGeo - comparison.relativeScoreLeo);
   const gateCertainty = gateCertaintyOf(geo, leo);
 
-  // RESILIENCE — the only objective allowed to auto-produce a diversity verdict
-  // when both routes are deliverable. Labelled "technology diversity" because
-  // infrastructure independence is not proven here.
+  // RESILIENCE — the only objective allowed to auto-produce a hybrid verdict
+  // when both routes are deliverable. Confidence and wording are driven by the
+  // pairwise independence assessment; per-option diversity is never fabricated.
   if (objective === 'RESILIENCE') {
-    const coverage = comparison.evidenceCoverage;
-    const level = coverage >= HIGH_COVERAGE ? 'High' : coverage >= MIN_COVERAGE ? 'Medium' : 'Low';
+    const resilience = context?.resilienceAssessment;
+    const assessedCoverage = resilience && resilience.totalDomainCount > 0
+      ? resilience.assessedDomainCount / resilience.totalDomainCount
+      : 0;
+    const independent = resilience?.independentDomains ?? ['Distinct GEO and LEO technology paths'];
+    const shared = resilience?.sharedRiskDomains ?? [];
+    const unknown = resilience?.unknownDomains ?? ['Independent infrastructure domains not verified'];
+    // With the current evidence model, operator/control-plane and terrestrial
+    // dependencies are intentionally unknown, so High cannot be reached by
+    // architecture labels alone.
+    const level: CommercialRecommendationConfidence['level'] =
+      independent.length > 0 && assessedCoverage >= MIN_COVERAGE ? 'Medium' : 'Low';
+    const score = Math.round(Math.min(100, 30 + 70 * assessedCoverage));
+    const verifiedSummary = resilience
+      ? `${independent.length} independent domain${independent.length === 1 ? '' : 's'} identified; ${unknown.length} remain unverified`
+      : 'infrastructure independence is not yet proven';
     return {
       technology: 'hybrid',
       reasonCategory: 'BEST_RESILIENCE',
       label: 'Technology diversity',
       chipLabel: 'Technology diversity',
       reason: 'Both GEO and LEO routes are deliverable',
-      message: 'GEO and LEO provide technology diversity; infrastructure independence is not yet proven',
-      expectedExperience: 'Technology diversity across GEO and LEO.',
+      message: `GEO and LEO provide orbital technology diversity; ${verifiedSummary}`,
+      expectedExperience: 'Potential continuity through a combined GEO and LEO architecture, subject to the unverified common-risk domains.',
       objective,
       assessmentBasis: ASSESSMENT_BASIS,
-      favorableFactors: ['Both GEO and LEO routes are deliverable'],
-      limitingFactors: ['Independent-infrastructure resilience not verified'],
+      // Deliverability is already the reason above; keep the factor list for
+      // actual independence domains so the UI does not hide a material domain
+      // behind a redundant first row.
+      favorableFactors: independent,
+      limitingFactors: [...shared, ...unknown],
       commonCriteria: commonLabels(comparison),
       nonComparableCriteria: nonComparableLabels(comparison),
       unknownCriteria: unknownLabels(comparison),
       confidence: {
         level,
-        score: Math.round(coverage * 100),
+        score,
         reasons: [
           'Both routes are deliverable',
-          `Weighted evidence coverage ${Math.round(coverage * 100)}%`,
+          resilience
+            ? `Independence evidence covers ${resilience.assessedDomainCount}/${resilience.totalDomainCount} risk domains`
+            : 'Pairwise infrastructure evidence is not connected',
+          shared.length
+            ? `${shared.length} shared-risk domain${shared.length === 1 ? '' : 's'} identified`
+            : 'No shared-risk domain identified from the available evidence',
         ],
       },
     };

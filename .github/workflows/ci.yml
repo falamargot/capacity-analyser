@@ -53,8 +53,8 @@ jobs:
   typecheck:
     name: Typecheck (baseline ratchet)
     runs-on: ubuntu-latest
-    # The codebase carries a pre-existing TypeScript error baseline (141 as of
-    # 2026-07-22, down from 199 after the TS-1 audit's fixes — see
+    # The codebase carries a pre-existing TypeScript error baseline (140 as of
+    # 2026-07-23, down from 199 after the TS-1 audit's fixes — see
     # docs/Capacity_Analyzer_Production_Code_Audit.md TS-1) that hasn't been
     # fully burned down yet. Rather than block on zero (unreachable today) or
     # not gate at all (lets new errors land silently), this step ratchets:
@@ -71,7 +71,7 @@ jobs:
       - name: Typecheck against error baseline
         env:
           # Lower this whenever the count drops (the step tells you the new value).
-          TYPECHECK_BASELINE: 141
+          TYPECHECK_BASELINE: 140
         run: |
           # tsc exits non-zero when diagnostics exist. Preserve that status so an
           # invocation/configuration crash cannot be mistaken for a drop to zero.

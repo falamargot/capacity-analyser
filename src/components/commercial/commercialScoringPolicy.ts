@@ -32,7 +32,13 @@ export const CRITERION_DIRECTION: Record<CommercialCriterionId, CriterionDirecti
  * that is not cross-tech comparable is kept as evidence for explanation but
  * excluded from the shared comparison base, even when both technologies carry a
  * value. Duty cycle, contention and service diversity have no established common
- * GEO/LEO semantics in E2a and stay non-comparable until that is proven.
+ * GEO/LEO scoring semantics:
+ * - duty cycle has no canonical source (handover/availability are not proxies),
+ * - contention is a GEO topology assumption versus a LEO simulated-session
+ *   estimate, so both are explanatory but not numerically comparable,
+ * - service diversity is pairwise architecture evidence, not a per-orbit score.
+ * They remain outside the shared score until equivalent operator-grade inputs
+ * exist for both technologies.
  */
 export const CROSS_TECH_COMPARABLE: Record<CommercialCriterionId, boolean> = {
   regulatory: true,

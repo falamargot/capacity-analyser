@@ -95,4 +95,9 @@ describe('buildGeoRouteAnalysisViewModel STAR latency (ENG/COMM parity)', () => 
       expect(viewModel.routeSummary).toContain(`latency ${Math.round(viewModel.latencyMs!)} ms`);
     }
   });
+
+  it('exposes the existing network-layer sharing assumption without recomputing it', () => {
+    expect(viewModel.networkLayer?.forward.contentionRatio).toBe(1);
+    expect(viewModel.networkLayer?.forward.protocolEfficiency).toBe(1);
+  });
 });

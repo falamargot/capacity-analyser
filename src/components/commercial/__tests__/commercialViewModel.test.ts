@@ -26,7 +26,8 @@ function buildInput(evidence: ActiveLeoRouteEvidence): Parameters<typeof buildCo
     selectedCoverage: null,
     weatherType: 'clear',
     weatherTypeB: 'clear',
-    leoTerminalType: 'ow70l',
+    leoTerminalType: 'fixed',
+    geoTerminalType: 'fixed',
   };
 }
 
@@ -156,6 +157,8 @@ describe('commercial objective live wiring', () => {
     });
     expect(viewModel.recommendation.objective).toBeUndefined();
     expect(viewModel.recommendation.assessmentBasis).toBeUndefined();
+    expect(viewModel.comparison.options.every((option) => option.mobilityCompatible == null)).toBe(true);
+    expect(viewModel.comparison.options.every((option) => option.evidence?.contention == null)).toBe(true);
   });
 
   it('uses objective-aware scoring and labels simulated regulatory evidence honestly', () => {
@@ -186,7 +189,7 @@ describe('commercial objective live wiring', () => {
     expect(geo?.evidence?.regulatory).toBeUndefined();
   });
 
-  it('does not invent mobility compatibility from the LEO orbit', () => {
+  it('derives mobility compatibility from the selected terminal profiles, never from orbit', () => {
     const input = buildInput(evidence(true));
     input.metrics = {
       geo: { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 },
@@ -196,9 +199,74 @@ describe('commercial objective live wiring', () => {
 
     const viewModel = buildCommercialScenarioViewModel(input);
 
-    expect(viewModel.comparison.options.every((option) => option.mobilityCompatible == null)).toBe(true);
-    expect(viewModel.recommendation.technology).toBe('insufficient_data');
-    expect(viewModel.recommendation.reason).toMatch(/mobility compatibility/i);
+    expect(viewModel.comparison.options.every((option) => option.mobilityCompatible === false)).toBe(true);
+    expect(viewModel.comparison.options.every((option) => option.evidence?.mobilityFit?.source.includes('terminal profile'))).toBe(true);
+    expect(viewModel.recommendation.technology).toBe('not_available');
+    expect(viewModel.recommendation.message).toMatch(/terminal not mobility-compatible/i);
+  });
+
+  it('recommends the only route whose selected terminal is explicitly mobile-capable', () => {
+    const input = buildInput(evidence(true));
+    input.metrics = {
+      geo: { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 },
+    } as typeof input.metrics;
+    input.geoPointStatus = 'available';
+    input.commercialObjective = 'MOBILITY';
+    input.leoTerminalType = 'mobile';
+    input.geoTerminalType = 'fixed';
+
+    const viewModel = buildCommercialScenarioViewModel(input);
+    const leo = viewModel.comparison.options.find((option) => option.technology === 'leo');
+    const geo = viewModel.comparison.options.find((option) => option.technology === 'geo');
+
+    expect(leo?.mobilityCompatible).toBe(true);
+    expect(geo?.mobilityCompatible).toBe(false);
+    expect(viewModel.recommendation.technology).toBe('leo');
+    expect(viewModel.recommendation.reason).toMatch(/terminal not mobility-compatible/i);
+  });
+
+  it('does not accept a non-aviation mobile terminal for an aircraft scenario', () => {
+    const input = buildInput(evidence(true));
+    input.metrics = {
+      geo: { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 },
+    } as typeof input.metrics;
+    input.geoPointStatus = 'available';
+    input.activeAnalysisSource = 'aircraft';
+    input.commercialObjective = 'MOBILITY';
+    input.leoTerminalType = 'maritime';
+    input.geoTerminalType = 'aviation';
+
+    const viewModel = buildCommercialScenarioViewModel(input);
+    const leo = viewModel.comparison.options.find((option) => option.technology === 'leo');
+    const geo = viewModel.comparison.options.find((option) => option.technology === 'geo');
+
+    expect(leo?.mobilityCompatible).toBe(false);
+    expect(leo?.evidence?.mobilityFit?.note).toMatch(/aviation terminal/i);
+    expect(geo?.mobilityCompatible).toBe(true);
+    expect(viewModel.recommendation.technology).toBe('geo');
+  });
+
+  it('qualifies resilience with pairwise route-domain evidence instead of a generic claim', () => {
+    const input = buildInput(evidence(true));
+    input.metrics = {
+      geo: { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 },
+    } as typeof input.metrics;
+    input.geoPointStatus = 'available';
+    input.commercialObjective = 'RESILIENCE';
+    input.geoGatewayName = 'Paris Gateway';
+
+    const viewModel = buildCommercialScenarioViewModel(input);
+
+    expect(viewModel.recommendation.technology).toBe('hybrid');
+    expect(viewModel.recommendation.favorableFactors).toEqual(expect.arrayContaining([
+      expect.stringMatching(/orbital service architectures/i),
+      expect.stringMatching(/ground entry points/i),
+    ]));
+    expect(viewModel.recommendation.limitingFactors).toEqual(expect.arrayContaining([
+      expect.stringMatching(/control-plane/i),
+      expect.stringMatching(/backhaul/i),
+    ]));
+    expect(viewModel.recommendation.message).toMatch(/remain unverified/i);
   });
 });
 
@@ -260,6 +328,7 @@ describe('commercial destination narrative (no phantom destination)', () => {
       weatherType: 'clear',
       weatherTypeB: 'clear',
       leoTerminalType: 'fixed',
+      geoTerminalType: 'fixed',
     };
   }
 
