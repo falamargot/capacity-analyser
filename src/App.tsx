@@ -724,6 +724,10 @@ const App: React.FC = () => {
   const decisionSupportEvidenceRequired = commercialMode
     || isCustomerDecisionOpen
     || !!connectivityScenario.commercialObjective;
+  const geoAnalysisEnabled = satelliteScope !== 'LEO' || decisionSupportEvidenceRequired;
+  const leoAnalysisScope = decisionSupportEvidenceRequired
+    ? DECISION_LEO_ANALYSIS_SCOPE
+    : satelliteScope;
   const previousEngineeringFocusKindRef = useRef(engineeringFocusController.focus.kind);
   const customerDecisionLauncherRef = useRef<HTMLButtonElement | null>(null);
   const [isGlobeModePeekPressed, setIsGlobeModePeekPressed] = useState(false);
@@ -1481,7 +1485,7 @@ const App: React.FC = () => {
       return [];
     }
 
-    if (satelliteScope === 'LEO' && !decisionSupportEvidenceRequired) {
+    if (!geoAnalysisEnabled) {
       return [];
     }
 
@@ -1492,17 +1496,16 @@ const App: React.FC = () => {
     );
     return ranked;
   }, [
-    decisionSupportEvidenceRequired,
+    geoAnalysisEnabled,
     geoRFClassIdA,
     geoOperationalSatellites,
-    satelliteScope,
     selectedSelection,
   ]);
 
   // Coverage candidates for Point B (MESH / Point-to-Point modes only).
   const candidateCoveragesB = useMemo(() => {
     if (!LINK_MODE_REQUIRES_POINT_B.has(linkMode) || !pointB) return [];
-    if (satelliteScope === 'LEO' && !decisionSupportEvidenceRequired) return [];
+    if (!geoAnalysisEnabled) return [];
 
     const ranked = rankCandidateCoverages(
       findCandidateCoverages(pointB, geoOperationalSatellites, { terminalRFClassId: geoRFClassIdB }),
@@ -1511,12 +1514,11 @@ const App: React.FC = () => {
     );
     return ranked;
   }, [
-    decisionSupportEvidenceRequired,
+    geoAnalysisEnabled,
     geoRFClassIdB,
     geoOperationalSatellites,
     linkMode,
     pointB,
-    satelliteScope,
   ]);
 
   const eligibleCandidateCoverages = useMemo(() => {
@@ -2331,7 +2333,7 @@ const App: React.FC = () => {
   ]);
 
   const geoPointStatus = useMemo<GeoPointStatus | null>(() => {
-    if (!activeAnalysisPoint || (satelliteScope === 'LEO' && !decisionSupportEvidenceRequired)) {
+    if (!activeAnalysisPoint || !geoAnalysisEnabled) {
       return null;
     }
 
@@ -2376,11 +2378,10 @@ const App: React.FC = () => {
   }, [
     activeAnalysisPoint,
     activeGeoSatellite,
-    decisionSupportEvidenceRequired,
+    geoAnalysisEnabled,
     failedGeoGatewaySiteIds,
     geoOperationalSatellites,
     linkMode,
-    satelliteScope,
     selectedCoverage,
     selectedDownlinkCoverage,
     selectedUplinkCoverage,
@@ -2812,7 +2813,7 @@ const App: React.FC = () => {
     const { autoSelectedLEOSat, servingAssignment } = resolveAutoSelectedSatellites(
       { lat: analyzisPosition.lat, lng: analyzisPosition.lng },
       satellitesForResolutionRef.current,   // stable ref — not a dep
-      decisionSupportEvidenceRequired ? DECISION_LEO_ANALYSIS_SCOPE : satelliteScope,
+      leoAnalysisScope,
       simulationState,
       now,
       failedSnps,
@@ -2824,10 +2825,9 @@ const App: React.FC = () => {
   }, [
     analyzisPosition,
     autoSelectedLEOId,
-    decisionSupportEvidenceRequired,
     failedSnps,
     geoRFClassIdA,
-    satelliteScope,
+    leoAnalysisScope,
     simulationState,
     satellitesForResolutionRef,
   ]); // §1.1 — satellites removed
@@ -2863,7 +2863,7 @@ const App: React.FC = () => {
       const { autoSelectedLEOSat, servingAssignment } = resolveAutoSelectedSatellites(
         { lat: pos.lat, lng: pos.lng },
         satellitesForResolutionRef.current,  // always-fresh satellite positions
-        decisionSupportEvidenceRequired ? DECISION_LEO_ANALYSIS_SCOPE : satelliteScope,
+        leoAnalysisScope,
         simulationState,
         now,
         failedSnps,
@@ -2880,10 +2880,9 @@ const App: React.FC = () => {
   }, [
     analyzisPosition,
     autoSelectedLEOId,
-    decisionSupportEvidenceRequired,
     failedSnps,
     geoRFClassIdA,
-    satelliteScope,
+    leoAnalysisScope,
     simulationState,
     satellitesForResolutionRef,
   ]); // re-arm when position/policy changes
@@ -2903,7 +2902,7 @@ const App: React.FC = () => {
       const { autoSelectedLEOSat, servingAssignment } = resolveAutoSelectedSatellites(
         { lat: pointBLeo.lat, lng: pointBLeo.lng },
         satellitesForResolutionRef.current,
-        decisionSupportEvidenceRequired ? DECISION_LEO_ANALYSIS_SCOPE : satelliteScope,
+        leoAnalysisScope,
         simulationState,
         now,
         failedSnps,
@@ -2919,11 +2918,10 @@ const App: React.FC = () => {
     return () => clearInterval(interval);
   }, [
     autoSelectedLEOIdB,
-    decisionSupportEvidenceRequired,
     failedSnps,
+    leoAnalysisScope,
     leoTopologyMode,
     pointBLeo,
-    satelliteScope,
     satellitesForResolutionRef,
     simulationState,
   ]);
