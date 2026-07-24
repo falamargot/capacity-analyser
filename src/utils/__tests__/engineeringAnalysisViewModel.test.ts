@@ -25,9 +25,9 @@ const expectRenderableWorkspace = (viewModel: EngineeringAnalysisViewModel) => {
   expect(viewModel.quickReferences.length).toBeGreaterThan(0);
   expect(viewModel.truth.causeChain.map((stage) => stage.id)).toEqual([
     'scenario',
+    'service',
     'path',
     'rf',
-    'service',
     'delivery',
   ]);
   for (const step of viewModel.closure.steps) {
@@ -117,11 +117,11 @@ describe('engineering analysis view model', () => {
     });
 
     expect(incomplete.truth.state).toBe('incomplete');
-    expect(incomplete.truth.causeChain[1].state).toBe('not-evaluated');
+    expect(incomplete.truth.causeChain.find((stage) => stage.id === 'path')?.state).toBe('not-evaluated');
     expect(noPath.truth.state).toBe('path-unavailable');
-    expect(noPath.truth.causeChain[1].state).toBe('blocked');
+    expect(noPath.truth.causeChain.find((stage) => stage.id === 'path')?.state).toBe('blocked');
     expect(noBudget.truth.state).toBe('budget-unavailable');
-    expect(noBudget.truth.causeChain[2].state).toBe('pending');
+    expect(noBudget.truth.causeChain.find((stage) => stage.id === 'rf')?.state).toBe('pending');
   });
 
   it('renders a LEO available workspace contract', () => {

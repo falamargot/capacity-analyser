@@ -497,8 +497,6 @@ export function buildGeoEngineeringAnalysisViewModel(input: BuildGeoEngineeringA
     confidenceBreakdown: input.confidence,
     causeChain: [
       causeStage('scenario', 'Scenario', scenarioComplete ? 'passed' : 'blocked', scenarioComplete ? 'Inputs ready' : 'Incomplete', input.scenarioIncompleteReason),
-      causeStage('path', 'Path', !scenarioComplete ? 'not-evaluated' : pathResolved ? 'passed' : 'blocked', !scenarioComplete ? 'Not evaluated' : pathResolved ? 'GEO route resolved' : 'Unavailable', input.pathReason),
-      causeStage('rf', 'Link Budget', !scenarioComplete || !pathResolved ? 'not-evaluated' : !budgetAvailable ? 'pending' : status === 'blocked' ? 'blocked' : status === 'marginal' ? 'warning' : 'passed', !scenarioComplete || !pathResolved ? 'Not evaluated' : !budgetAvailable ? 'Budget unavailable' : status === 'blocked' ? `${fmtDb(marginDb)} · does not close` : status === 'marginal' ? `${fmtDb(marginDb)} · low margin` : `${fmtDb(marginDb)} · closes`, e2e ? `${limitingSegment} is the limiting RF segment` : undefined),
       causeStage(
         'service',
         'Service gates',
@@ -511,6 +509,8 @@ export function buildGeoEngineeringAnalysisViewModel(input: BuildGeoEngineeringA
         input.serviceReason,
         input.serviceEvidence,
       ),
+      causeStage('path', 'Path', !scenarioComplete ? 'not-evaluated' : pathResolved ? 'passed' : 'blocked', !scenarioComplete ? 'Not evaluated' : pathResolved ? 'GEO route resolved' : 'Unavailable', input.pathReason),
+      causeStage('rf', 'Link Budget', !scenarioComplete || !pathResolved ? 'not-evaluated' : !budgetAvailable ? 'pending' : status === 'blocked' ? 'blocked' : status === 'marginal' ? 'warning' : 'passed', !scenarioComplete || !pathResolved ? 'Not evaluated' : !budgetAvailable ? 'Budget unavailable' : status === 'blocked' ? `${fmtDb(marginDb)} · does not close` : status === 'marginal' ? `${fmtDb(marginDb)} · low margin` : `${fmtDb(marginDb)} · closes`, e2e ? `${limitingSegment} is the limiting RF segment` : undefined),
       causeStage('delivery', 'Delivery', !scenarioComplete || !pathResolved || !budgetAvailable || status === 'blocked' || serviceBlocked ? 'not-evaluated' : deliveryConstrained || serviceDegraded ? 'warning' : evidenceUncertain ? 'pending' : 'passed', !scenarioComplete || !pathResolved || !budgetAvailable || status === 'blocked' || serviceBlocked ? 'Not available' : deliveryConstrained ? `${deliveryFactor} limiting` : evidenceUncertain ? 'Evidence uncertain' : `${fmtMbps(displayedThroughput)} delivered`, undefined, deliveryEvidence),
     ],
     nextAction: truthState === 'incomplete'
@@ -926,9 +926,9 @@ export function buildLeoEngineeringAnalysisViewModel(input: BuildLeoEngineeringA
     confidenceBreakdown: input.confidence,
     causeChain: [
       causeStage('scenario', 'Scenario', scenarioComplete ? 'passed' : 'blocked', scenarioComplete ? 'Inputs ready' : 'Incomplete', input.scenarioIncompleteReason),
+      causeStage('service', 'Service gates', !scenarioComplete || !pathResolved || !budgetAvailable || rfBlocked ? 'not-evaluated' : serviceBlocked ? 'blocked' : serviceDegraded ? 'warning' : 'passed', !scenarioComplete || !pathResolved || !budgetAvailable || rfBlocked ? 'Not evaluated' : serviceBlocked ? `${serviceReason} blocks service` : serviceDegraded ? `${serviceReason} degrades service` : 'Allowed', input.serviceReason, input.serviceEvidence),
       causeStage('path', 'Path', !scenarioComplete ? 'not-evaluated' : pathResolved ? 'passed' : 'blocked', !scenarioComplete ? 'Not evaluated' : pathResolved ? 'Satellite and ground path resolved' : 'Unavailable', input.pathReason),
       causeStage('rf', 'Link Budget', !scenarioComplete || !pathResolved ? 'not-evaluated' : !budgetAvailable || inferredRfStatus === 'unavailable' ? 'pending' : rfBlocked ? 'blocked' : rfMarginal ? 'warning' : 'passed', !scenarioComplete || !pathResolved ? 'Not evaluated' : !budgetAvailable || inferredRfStatus === 'unavailable' ? 'Budget unavailable' : rfBlocked ? `${fmtDb(rfMarginDbForSummary)} · ${rfBlockReason} does not close` : rfMarginal ? `${fmtDb(rfMarginDbForSummary)} · low margin` : `${fmtDb(rfMarginDbForSummary)} · closes`),
-      causeStage('service', 'Service gates', !scenarioComplete || !pathResolved || !budgetAvailable || rfBlocked ? 'not-evaluated' : serviceBlocked ? 'blocked' : serviceDegraded ? 'warning' : 'passed', !scenarioComplete || !pathResolved || !budgetAvailable || rfBlocked ? 'Not evaluated' : serviceBlocked ? `${serviceReason} blocks service` : serviceDegraded ? `${serviceReason} degrades service` : 'Allowed', input.serviceReason, input.serviceEvidence),
       causeStage('delivery', 'Delivery', !scenarioComplete || !pathResolved || !budgetAvailable || rfBlocked || serviceBlocked ? 'not-evaluated' : deliveryUnavailable ? 'blocked' : deliveryConstrained || serviceDegraded ? 'warning' : evidenceUncertain ? 'pending' : 'passed', !scenarioComplete || !pathResolved || !budgetAvailable || rfBlocked || serviceBlocked ? 'Not available' : deliveryUnavailable ? 'No delivered throughput' : deliveryConstrained ? `${decisiveFactor ?? 'Constraint'} limiting` : evidenceUncertain ? 'Evidence uncertain' : `${fmtMbps(deliveredThroughput)} delivered`, undefined, deliveryEvidence),
     ],
     nextAction: truthState === 'incomplete'

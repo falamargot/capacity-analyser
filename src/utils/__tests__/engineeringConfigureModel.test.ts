@@ -50,14 +50,14 @@ describe('engineeringConfigureModel', () => {
     const changes = getEngineeringConfigureChanges(baseline, draft);
 
     expect(changes.map((change) => change.label)).toContain('Site A RF profile');
-    expect(getAffectedEngineeringStages(changes)).toEqual(['scenario', 'rf', 'service', 'delivery']);
+    expect(getAffectedEngineeringStages(changes)).toEqual(['scenario', 'service', 'rf', 'delivery']);
   });
 
   it('maps topology changes through the complete Engineering Truth chain', () => {
     const draft: EngineeringConfigureDraft = { ...baseline, geoLinkMode: 'MESH' };
     const changes = getEngineeringConfigureChanges(baseline, draft);
 
-    expect(getAffectedEngineeringStages(changes)).toEqual(['scenario', 'path', 'rf', 'service', 'delivery']);
+    expect(getAffectedEngineeringStages(changes)).toEqual(['scenario', 'service', 'path', 'rf', 'delivery']);
   });
 
   it('tracks custom RF assumptions without treating them as path changes', () => {
@@ -77,7 +77,7 @@ describe('engineeringConfigureModel', () => {
     const changes = getEngineeringConfigureChanges(baseline, draft);
 
     expect(changes.map((change) => change.kind)).toEqual(['advanced-rf']);
-    expect(getAffectedEngineeringStages(changes)).toEqual(['scenario', 'rf', 'service', 'delivery']);
+    expect(getAffectedEngineeringStages(changes)).toEqual(['scenario', 'service', 'rf', 'delivery']);
   });
 
   it('requires only the endpoints and manual candidates used by the active topology', () => {

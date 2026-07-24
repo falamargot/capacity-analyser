@@ -90,6 +90,14 @@ exports[`M0 golden scenario matrix > GEO > 'geo-budget-unavailable' 1`] = `
       {
         "detail": undefined,
         "evidence": undefined,
+        "id": "service",
+        "label": "Service gates",
+        "state": "not-evaluated",
+        "summary": "Not evaluated",
+      },
+      {
+        "detail": undefined,
+        "evidence": undefined,
         "id": "path",
         "label": "Path",
         "state": "passed",
@@ -102,14 +110,6 @@ exports[`M0 golden scenario matrix > GEO > 'geo-budget-unavailable' 1`] = `
         "label": "Link Budget",
         "state": "pending",
         "summary": "Budget unavailable",
-      },
-      {
-        "detail": undefined,
-        "evidence": undefined,
-        "id": "service",
-        "label": "Service gates",
-        "state": "not-evaluated",
-        "summary": "Not evaluated",
       },
       {
         "detail": undefined,
@@ -232,6 +232,14 @@ exports[`M0 golden scenario matrix > GEO > 'geo-incomplete-site-b-required' 1`] 
       {
         "detail": undefined,
         "evidence": undefined,
+        "id": "service",
+        "label": "Service gates",
+        "state": "not-evaluated",
+        "summary": "Not evaluated",
+      },
+      {
+        "detail": undefined,
+        "evidence": undefined,
         "id": "path",
         "label": "Path",
         "state": "not-evaluated",
@@ -242,14 +250,6 @@ exports[`M0 golden scenario matrix > GEO > 'geo-incomplete-site-b-required' 1`] 
         "evidence": undefined,
         "id": "rf",
         "label": "Link Budget",
-        "state": "not-evaluated",
-        "summary": "Not evaluated",
-      },
-      {
-        "detail": undefined,
-        "evidence": undefined,
-        "id": "service",
-        "label": "Service gates",
         "state": "not-evaluated",
         "summary": "Not evaluated",
       },
@@ -439,6 +439,14 @@ exports[`M0 golden scenario matrix > GEO > 'geo-mesh-forward' 1`] = `
         "summary": "Inputs ready",
       },
       {
+        "detail": "Site-to-site GEO uses no shared service gate",
+        "evidence": undefined,
+        "id": "service",
+        "label": "Service gates",
+        "state": "not-evaluated",
+        "summary": "Not evaluated",
+      },
+      {
         "detail": undefined,
         "evidence": undefined,
         "id": "path",
@@ -453,14 +461,6 @@ exports[`M0 golden scenario matrix > GEO > 'geo-mesh-forward' 1`] = `
         "label": "Link Budget",
         "state": "passed",
         "summary": "3.2 dB · closes",
-      },
-      {
-        "detail": "Site-to-site GEO uses no shared service gate",
-        "evidence": undefined,
-        "id": "service",
-        "label": "Service gates",
-        "state": "not-evaluated",
-        "summary": "Not evaluated",
       },
       {
         "detail": undefined,
@@ -684,6 +684,14 @@ exports[`M0 golden scenario matrix > GEO > 'geo-mesh-reverse' 1`] = `
         "summary": "Inputs ready",
       },
       {
+        "detail": "Site-to-site GEO uses no shared service gate",
+        "evidence": undefined,
+        "id": "service",
+        "label": "Service gates",
+        "state": "not-evaluated",
+        "summary": "Not evaluated",
+      },
+      {
         "detail": undefined,
         "evidence": undefined,
         "id": "path",
@@ -698,14 +706,6 @@ exports[`M0 golden scenario matrix > GEO > 'geo-mesh-reverse' 1`] = `
         "label": "Link Budget",
         "state": "passed",
         "summary": "2.6 dB · closes",
-      },
-      {
-        "detail": "Site-to-site GEO uses no shared service gate",
-        "evidence": undefined,
-        "id": "service",
-        "label": "Service gates",
-        "state": "not-evaluated",
-        "summary": "Not evaluated",
       },
       {
         "detail": undefined,
@@ -862,6 +862,14 @@ exports[`M0 golden scenario matrix > GEO > 'geo-path-unavailable-no-gateway' 1`]
         "summary": "Inputs ready",
       },
       {
+        "detail": undefined,
+        "evidence": undefined,
+        "id": "service",
+        "label": "Service gates",
+        "state": "not-evaluated",
+        "summary": "Not evaluated",
+      },
+      {
         "detail": "No eligible traffic gateway path",
         "evidence": undefined,
         "id": "path",
@@ -874,14 +882,6 @@ exports[`M0 golden scenario matrix > GEO > 'geo-path-unavailable-no-gateway' 1`]
         "evidence": undefined,
         "id": "rf",
         "label": "Link Budget",
-        "state": "not-evaluated",
-        "summary": "Not evaluated",
-      },
-      {
-        "detail": undefined,
-        "evidence": undefined,
-        "id": "service",
-        "label": "Service gates",
         "state": "not-evaluated",
         "summary": "Not evaluated",
       },
@@ -1068,6 +1068,14 @@ exports[`M0 golden scenario matrix > GEO > 'geo-point-to-point' 1`] = `
       {
         "detail": undefined,
         "evidence": undefined,
+        "id": "service",
+        "label": "Service gates",
+        "state": "not-evaluated",
+        "summary": "Not evaluated",
+      },
+      {
+        "detail": undefined,
+        "evidence": undefined,
         "id": "path",
         "label": "Path",
         "state": "passed",
@@ -1080,14 +1088,6 @@ exports[`M0 golden scenario matrix > GEO > 'geo-point-to-point' 1`] = `
         "label": "Link Budget",
         "state": "passed",
         "summary": "4.5 dB · closes",
-      },
-      {
-        "detail": undefined,
-        "evidence": undefined,
-        "id": "service",
-        "label": "Service gates",
-        "state": "not-evaluated",
-        "summary": "Not evaluated",
       },
       {
         "detail": undefined,
@@ -1308,6 +1308,14 @@ exports[`M0 golden scenario matrix > GEO > 'geo-star-forward-blocked-negative-ma
       {
         "detail": undefined,
         "evidence": undefined,
+        "id": "service",
+        "label": "Service gates",
+        "state": "not-evaluated",
+        "summary": "Not evaluated",
+      },
+      {
+        "detail": undefined,
+        "evidence": undefined,
         "id": "path",
         "label": "Path",
         "state": "passed",
@@ -1320,14 +1328,6 @@ exports[`M0 golden scenario matrix > GEO > 'geo-star-forward-blocked-negative-ma
         "label": "Link Budget",
         "state": "blocked",
         "summary": "-1.4 dB · does not close",
-      },
-      {
-        "detail": undefined,
-        "evidence": undefined,
-        "id": "service",
-        "label": "Service gates",
-        "state": "not-evaluated",
-        "summary": "Not evaluated",
       },
       {
         "detail": undefined,
@@ -1535,22 +1535,6 @@ exports[`M0 golden scenario matrix > GEO > 'geo-star-forward-constrained' 1`] = 
         "summary": "Inputs ready",
       },
       {
-        "detail": undefined,
-        "evidence": undefined,
-        "id": "path",
-        "label": "Path",
-        "state": "passed",
-        "summary": "GEO route resolved",
-      },
-      {
-        "detail": "Downlink is the limiting RF segment",
-        "evidence": undefined,
-        "id": "rf",
-        "label": "Link Budget",
-        "state": "passed",
-        "summary": "4.5 dB · closes",
-      },
-      {
         "detail": "Traffic gateway Rambouillet serves this beam",
         "evidence": [
           {
@@ -1568,6 +1552,22 @@ exports[`M0 golden scenario matrix > GEO > 'geo-star-forward-constrained' 1`] = 
         "label": "Service gates",
         "state": "passed",
         "summary": "Allowed",
+      },
+      {
+        "detail": undefined,
+        "evidence": undefined,
+        "id": "path",
+        "label": "Path",
+        "state": "passed",
+        "summary": "GEO route resolved",
+      },
+      {
+        "detail": "Downlink is the limiting RF segment",
+        "evidence": undefined,
+        "id": "rf",
+        "label": "Link Budget",
+        "state": "passed",
+        "summary": "4.5 dB · closes",
       },
       {
         "detail": undefined,
@@ -1798,22 +1798,6 @@ exports[`M0 golden scenario matrix > GEO > 'geo-star-return-degraded-low-margin'
         "summary": "Inputs ready",
       },
       {
-        "detail": undefined,
-        "evidence": undefined,
-        "id": "path",
-        "label": "Path",
-        "state": "passed",
-        "summary": "GEO route resolved",
-      },
-      {
-        "detail": "Downlink is the limiting RF segment",
-        "evidence": undefined,
-        "id": "rf",
-        "label": "Link Budget",
-        "state": "warning",
-        "summary": "0.8 dB · low margin",
-      },
-      {
         "detail": "Traffic gateway Rambouillet serves this beam",
         "evidence": [
           {
@@ -1831,6 +1815,22 @@ exports[`M0 golden scenario matrix > GEO > 'geo-star-return-degraded-low-margin'
         "label": "Service gates",
         "state": "passed",
         "summary": "Allowed",
+      },
+      {
+        "detail": undefined,
+        "evidence": undefined,
+        "id": "path",
+        "label": "Path",
+        "state": "passed",
+        "summary": "GEO route resolved",
+      },
+      {
+        "detail": "Downlink is the limiting RF segment",
+        "evidence": undefined,
+        "id": "rf",
+        "label": "Link Budget",
+        "state": "warning",
+        "summary": "0.8 dB · low margin",
       },
       {
         "detail": undefined,
@@ -2017,6 +2017,14 @@ exports[`M0 golden scenario matrix > LEO > 'leo-incomplete-site-b-required' 1`] 
       {
         "detail": undefined,
         "evidence": undefined,
+        "id": "service",
+        "label": "Service gates",
+        "state": "not-evaluated",
+        "summary": "Not evaluated",
+      },
+      {
+        "detail": undefined,
+        "evidence": undefined,
         "id": "path",
         "label": "Path",
         "state": "not-evaluated",
@@ -2027,14 +2035,6 @@ exports[`M0 golden scenario matrix > LEO > 'leo-incomplete-site-b-required' 1`] 
         "evidence": undefined,
         "id": "rf",
         "label": "Link Budget",
-        "state": "not-evaluated",
-        "summary": "Not evaluated",
-      },
-      {
-        "detail": undefined,
-        "evidence": undefined,
-        "id": "service",
-        "label": "Service gates",
         "state": "not-evaluated",
         "summary": "Not evaluated",
       },
@@ -2177,6 +2177,14 @@ exports[`M0 golden scenario matrix > LEO > 'leo-path-unavailable' 1`] = `
       {
         "detail": undefined,
         "evidence": undefined,
+        "id": "service",
+        "label": "Service gates",
+        "state": "not-evaluated",
+        "summary": "Not evaluated",
+      },
+      {
+        "detail": undefined,
+        "evidence": undefined,
         "id": "path",
         "label": "Path",
         "state": "blocked",
@@ -2187,14 +2195,6 @@ exports[`M0 golden scenario matrix > LEO > 'leo-path-unavailable' 1`] = `
         "evidence": undefined,
         "id": "rf",
         "label": "Link Budget",
-        "state": "not-evaluated",
-        "summary": "Not evaluated",
-      },
-      {
-        "detail": undefined,
-        "evidence": undefined,
-        "id": "service",
-        "label": "Service gates",
         "state": "not-evaluated",
         "summary": "Not evaluated",
       },
@@ -2375,22 +2375,6 @@ exports[`M0 golden scenario matrix > LEO > 'leo-single-available' 1`] = `
       },
       {
         "detail": undefined,
-        "evidence": undefined,
-        "id": "path",
-        "label": "Path",
-        "state": "passed",
-        "summary": "Satellite and ground path resolved",
-      },
-      {
-        "detail": undefined,
-        "evidence": undefined,
-        "id": "rf",
-        "label": "Link Budget",
-        "state": "passed",
-        "summary": "19.0 dB · closes",
-      },
-      {
-        "detail": undefined,
         "evidence": [
           {
             "label": "RF",
@@ -2417,6 +2401,22 @@ exports[`M0 golden scenario matrix > LEO > 'leo-single-available' 1`] = `
         "label": "Service gates",
         "state": "passed",
         "summary": "Allowed",
+      },
+      {
+        "detail": undefined,
+        "evidence": undefined,
+        "id": "path",
+        "label": "Path",
+        "state": "passed",
+        "summary": "Satellite and ground path resolved",
+      },
+      {
+        "detail": undefined,
+        "evidence": undefined,
+        "id": "rf",
+        "label": "Link Budget",
+        "state": "passed",
+        "summary": "19.0 dB · closes",
       },
       {
         "detail": undefined,
@@ -2636,6 +2636,14 @@ exports[`M0 golden scenario matrix > LEO > 'leo-single-constrained-beam-sharing'
       {
         "detail": undefined,
         "evidence": undefined,
+        "id": "service",
+        "label": "Service gates",
+        "state": "passed",
+        "summary": "Allowed",
+      },
+      {
+        "detail": undefined,
+        "evidence": undefined,
         "id": "path",
         "label": "Path",
         "state": "passed",
@@ -2648,14 +2656,6 @@ exports[`M0 golden scenario matrix > LEO > 'leo-single-constrained-beam-sharing'
         "label": "Link Budget",
         "state": "passed",
         "summary": "19.0 dB · closes",
-      },
-      {
-        "detail": undefined,
-        "evidence": undefined,
-        "id": "service",
-        "label": "Service gates",
-        "state": "passed",
-        "summary": "Allowed",
       },
       {
         "detail": undefined,
@@ -2863,6 +2863,14 @@ exports[`M0 golden scenario matrix > LEO > 'leo-single-rf-blocked' 1`] = `
       {
         "detail": undefined,
         "evidence": undefined,
+        "id": "service",
+        "label": "Service gates",
+        "state": "not-evaluated",
+        "summary": "Not evaluated",
+      },
+      {
+        "detail": undefined,
+        "evidence": undefined,
         "id": "path",
         "label": "Path",
         "state": "passed",
@@ -2875,14 +2883,6 @@ exports[`M0 golden scenario matrix > LEO > 'leo-single-rf-blocked' 1`] = `
         "label": "Link Budget",
         "state": "blocked",
         "summary": "19.0 dB · No active RF beam at Site A does not close",
-      },
-      {
-        "detail": undefined,
-        "evidence": undefined,
-        "id": "service",
-        "label": "Service gates",
-        "state": "not-evaluated",
-        "summary": "Not evaluated",
       },
       {
         "detail": undefined,
@@ -3065,22 +3065,6 @@ exports[`M0 golden scenario matrix > LEO > 'leo-single-service-blocked-regulator
         "summary": "Inputs ready",
       },
       {
-        "detail": undefined,
-        "evidence": undefined,
-        "id": "path",
-        "label": "Path",
-        "state": "passed",
-        "summary": "Satellite and ground path resolved",
-      },
-      {
-        "detail": undefined,
-        "evidence": undefined,
-        "id": "rf",
-        "label": "Link Budget",
-        "state": "passed",
-        "summary": "19.0 dB · closes",
-      },
-      {
         "detail": "Regulatory restriction",
         "evidence": [
           {
@@ -3098,6 +3082,22 @@ exports[`M0 golden scenario matrix > LEO > 'leo-single-service-blocked-regulator
         "label": "Service gates",
         "state": "blocked",
         "summary": "Regulatory restriction blocks service",
+      },
+      {
+        "detail": undefined,
+        "evidence": undefined,
+        "id": "path",
+        "label": "Path",
+        "state": "passed",
+        "summary": "Satellite and ground path resolved",
+      },
+      {
+        "detail": undefined,
+        "evidence": undefined,
+        "id": "rf",
+        "label": "Link Budget",
+        "state": "passed",
+        "summary": "19.0 dB · closes",
       },
       {
         "detail": undefined,
@@ -3268,6 +3268,14 @@ exports[`M0 golden scenario matrix > LEO > 'leo-site-to-site-a-to-b' 1`] = `
       {
         "detail": undefined,
         "evidence": undefined,
+        "id": "service",
+        "label": "Service gates",
+        "state": "passed",
+        "summary": "Allowed",
+      },
+      {
+        "detail": undefined,
+        "evidence": undefined,
         "id": "path",
         "label": "Path",
         "state": "passed",
@@ -3280,14 +3288,6 @@ exports[`M0 golden scenario matrix > LEO > 'leo-site-to-site-a-to-b' 1`] = `
         "label": "Link Budget",
         "state": "passed",
         "summary": "19.0 dB · closes",
-      },
-      {
-        "detail": undefined,
-        "evidence": undefined,
-        "id": "service",
-        "label": "Service gates",
-        "state": "passed",
-        "summary": "Allowed",
       },
       {
         "detail": undefined,
@@ -3474,6 +3474,14 @@ exports[`M0 golden scenario matrix > LEO > 'leo-site-to-site-b-to-a' 1`] = `
       {
         "detail": undefined,
         "evidence": undefined,
+        "id": "service",
+        "label": "Service gates",
+        "state": "passed",
+        "summary": "Allowed",
+      },
+      {
+        "detail": undefined,
+        "evidence": undefined,
         "id": "path",
         "label": "Path",
         "state": "passed",
@@ -3486,14 +3494,6 @@ exports[`M0 golden scenario matrix > LEO > 'leo-site-to-site-b-to-a' 1`] = `
         "label": "Link Budget",
         "state": "passed",
         "summary": "19.0 dB · closes",
-      },
-      {
-        "detail": undefined,
-        "evidence": undefined,
-        "id": "service",
-        "label": "Service gates",
-        "state": "passed",
-        "summary": "Allowed",
       },
       {
         "detail": undefined,

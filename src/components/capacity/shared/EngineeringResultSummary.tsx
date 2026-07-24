@@ -385,7 +385,7 @@ const EngineeringInspector = ({
       data-engineering-inspector-variant={variant}
       data-engineering-inspector-state={motionState}
       className={variant === 'desktop'
-        ? 'engineering-inspector pointer-events-auto flex h-full min-h-0 w-full flex-col overflow-hidden rounded-l-[24px] border border-slate-200/90 bg-slate-50/98 shadow-[-10px_12px_34px_-28px_rgba(15,23,42,0.7)] backdrop-blur-xl dark:border-slate-600/90 dark:bg-slate-900/98 dark:shadow-[-12px_12px_38px_-28px_rgba(0,0,0,0.95)]'
+        ? 'engineering-inspector pointer-events-auto flex h-fit max-h-full min-h-0 w-full flex-col self-start overflow-hidden rounded-l-[24px] border border-slate-200/90 bg-slate-50/98 shadow-[-10px_12px_34px_-28px_rgba(15,23,42,0.7)] backdrop-blur-xl dark:border-slate-600/90 dark:bg-slate-900/98 dark:shadow-[-12px_12px_38px_-28px_rgba(0,0,0,0.95)]'
         : 'engineering-inspector engineering-inspector-mobile pointer-events-auto flex max-h-[92dvh] min-h-0 w-full max-w-3xl flex-col overflow-hidden rounded-t-[28px] border border-b-0 border-slate-200/90 bg-white shadow-[0_-18px_60px_-28px_rgba(15,23,42,0.65)] dark:border-slate-700 dark:bg-slate-950 dark:shadow-[0_-22px_70px_-28px_rgba(0,0,0,0.92)]'}
       onKeyDown={(event) => {
         if (event.key !== 'Escape') return;
@@ -446,7 +446,7 @@ const EngineeringInspector = ({
         </nav>
       )}
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+      <div data-engineering-inspector-scroll-region="" className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <div key={stage.id} className={`engineering-inspector-content ${variant === 'desktop' ? 'p-5' : 'px-4 pb-5 pt-3 sm:px-5'}`} aria-live="polite">
           <StageEvidenceContent stage={stage} evidence={evidence} summaryEvidence={summaryEvidence} />
           {nextAction && (

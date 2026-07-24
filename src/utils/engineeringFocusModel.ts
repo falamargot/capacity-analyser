@@ -37,9 +37,9 @@ export const EMPTY_ENGINEERING_FOCUS: EngineeringAnalyticalFocus = {
 
 export const ENGINEERING_CAUSE_STAGE_ORDER: EngineeringCauseStageId[] = [
   'scenario',
+  'service',
   'path',
   'rf',
-  'service',
   'delivery',
 ];
 

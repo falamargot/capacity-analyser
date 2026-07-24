@@ -24,9 +24,9 @@ const truth: EngineeringTruth = {
   diagnosticMetrics: [],
   causeChain: [
     { id: 'scenario', label: 'Scenario', state: 'passed', summary: 'Ready' },
+    { id: 'service', label: 'Service gates', state: 'passed', summary: 'Pass' },
     { id: 'path', label: 'Path', state: 'passed', summary: 'Resolved' },
     { id: 'rf', label: 'RF', state: 'passed', summary: 'Closes', detail: '+11.7 dB' },
-    { id: 'service', label: 'Service gates', state: 'passed', summary: 'Pass' },
     { id: 'delivery', label: 'Delivery', state: 'warning', summary: 'Beam sharing', detail: '188 Mbps → 8 Mbps' },
   ],
   nextAction: 'Inspect beam sharing',
@@ -108,6 +108,11 @@ describe('Engineering Cause Chain investigation', () => {
     expect(inspectorHost.textContent).toContain('188 Mbps → 8 Mbps');
     expect(inspectorHost.textContent).toContain('Next investigation: Inspect beam sharing');
     expect(inspectorHost.textContent).not.toContain('Route view');
+    const desktopInspector = inspectorHost.querySelector('[data-engineering-inspector-variant="desktop"]');
+    expect(desktopInspector?.className).toContain('h-fit');
+    expect(desktopInspector?.className).toContain('max-h-full');
+    expect(desktopInspector?.className).not.toContain(' h-full');
+    expect(desktopInspector?.querySelector('[data-engineering-inspector-scroll-region]')).not.toBeNull();
   });
 
   it('keeps the Summary posture compact while retaining the five-stage textual equivalent', async () => {
@@ -125,6 +130,15 @@ describe('Engineering Cause Chain investigation', () => {
     expect(container.innerHTML).toContain('Delivery: Beam sharing');
     expect(container.querySelectorAll('[aria-expanded="false"]')).toHaveLength(5);
     expect(container.textContent).not.toContain('188 Mbps → 8 Mbps');
+    const stageLabels = Array.from(container.querySelectorAll('ol[aria-label="Engineering cause chain"] li'))
+      .map((item) => item.textContent);
+    expect(stageLabels).toEqual([
+      expect.stringContaining('Scenario'),
+      expect.stringContaining('Service gates'),
+      expect.stringContaining('Path'),
+      expect.stringContaining('RF'),
+      expect.stringContaining('Delivery'),
+    ]);
     expect(inspectorHost.childElementCount).toBe(0);
   });
 
@@ -239,6 +253,13 @@ describe('Engineering Cause Chain investigation', () => {
     const stageNavigation = document.querySelector('nav[aria-label="Engineering Inspector Cause Chain stages"]');
     expect(sheet).not.toBeNull();
     expect(stageNavigation?.querySelectorAll('button')).toHaveLength(5);
+    expect(Array.from(stageNavigation?.querySelectorAll('button') ?? []).map((button) => button.textContent)).toEqual([
+      expect.stringContaining('Scenario'),
+      expect.stringContaining('Service gates'),
+      expect.stringContaining('Path'),
+      expect.stringContaining('RF'),
+      expect.stringContaining('Delivery'),
+    ]);
 
     const pathButton = Array.from(stageNavigation?.querySelectorAll('button') ?? []).find((button) => button.textContent?.includes('Path'));
     await act(async () => { pathButton?.click(); });

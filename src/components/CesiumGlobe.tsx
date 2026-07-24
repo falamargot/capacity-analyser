@@ -75,6 +75,11 @@ import { usePositionCallbacks } from './cesium-globe/hooks';
 
 // UI components
 import GlobeIntelligenceRail from './cesium-globe/GlobeIntelligenceRail';
+import ActiveScenarioContext from './cesium-globe/ActiveScenarioContext';
+import {
+    deriveGeoActiveScenarioContext,
+    deriveLeoActiveScenarioContext,
+} from '../utils/activeScenarioContextModel';
 import InspectionCard, { type HoveredEntity } from './cesium-globe/InspectionCard';
 import CountryOverlayLegend from './cesium-globe/CountryOverlayLegend';
 import SiteScreenLabel from './cesium-globe/SiteScreenLabel';
@@ -98,7 +103,6 @@ import type { RegulatoryResult } from '../services/regulatoryService';
 import type { GeoPointStatus } from '../utils/selectedPointStatus';
 import type { SNPConnectedSatellite } from '../services/coverageService';
 import { GROUND_POINT_ALTITUDE_KM } from './cesium-globe/layerHeights';
-import CoverageSwitcherVertical, { type CoverageSwitcherCoverage } from './CoverageSwitcherVertical';
 import type { CountryOverlayMode } from '../types/countryOverlays';
 import type { LinkMode } from '../types/linkMode';
 import type { LeoSiteToSiteResult } from '../utils/leoSiteToSiteModel';
@@ -900,6 +904,8 @@ export interface SelectionAnalysisProps {
     selectedCoverage: CandidateCoverage | null;
     selectedUplinkCoverage: CandidateCoverage | null;
     selectedDownlinkCoverage: CandidateCoverage | null;
+    activeScenarioUplinkCoverage: CandidateCoverage | null;
+    activeScenarioDownlinkCoverage: CandidateCoverage | null;
     selectedSNP: { lat: number; lng: number; name: string } | null;
     selectedGateway: GeoGatewayData | null;
     inspectedSNP: SNPData | null;
@@ -908,8 +914,6 @@ export interface SelectionAnalysisProps {
     selectedRegulatoryResult: RegulatoryResult | null;
     performanceMetrics: MobileAnalysisMetrics | null;
     activeConnectivityTab: 'LEO' | 'GEO';
-    coverageSwitcherCoverages: CoverageSwitcherCoverage[];
-    selectedCoverageId: string;
     visibleGeoCoverageKeys: string[] | undefined;
     selection: Selection;
     endpointSelectionMotion?: {
@@ -985,7 +989,6 @@ export interface CallbackProps {
     onCountryOverlayModeChange: (mode: CountryOverlayMode) => void;
     onSizeScaleChange: (scale: number) => void;
     onSizeScaleReset: () => void;
-    onCoverageSwitcherSelect: (id: string) => void;
 }
 
 interface CesiumGlobeProps {
@@ -1072,7 +1075,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         onCountryOverlayModeChange,
         onSizeScaleChange,
         onSizeScaleReset,
-        onCoverageSwitcherSelect,
     } = callbackProps;
     const {
         selectedPosition,
@@ -1083,6 +1085,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         selectedCoverage,
         selectedUplinkCoverage,
         selectedDownlinkCoverage,
+        activeScenarioUplinkCoverage,
+        activeScenarioDownlinkCoverage,
         selectedSNP,
         selectedGateway,
         inspectedSNP,
@@ -1091,8 +1095,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         selectedRegulatoryResult,
         performanceMetrics,
         activeConnectivityTab,
-        coverageSwitcherCoverages,
-        selectedCoverageId,
         visibleGeoCoverageKeys,
         selection,
         endpointSelectionMotion,
@@ -2613,9 +2615,36 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         countryOverlayMode: effectiveCountryOverlayMode,
         commercialMode,
     });
+    const hasActiveScenario = !!(selectedPosition || selectedAircraft || selectedVessel);
+    const geoActiveScenarioContext = deriveGeoActiveScenarioContext({
+        included: satelliteScope !== 'LEO',
+        hasScenario: hasActiveScenario,
+        status: geoPointStatus,
+        satellite: autoSelectedGEOSatellite,
+        uplinkCoverage: activeScenarioUplinkCoverage,
+        downlinkCoverage: activeScenarioDownlinkCoverage,
+    });
+    const leoActiveScenarioContext = deriveLeoActiveScenarioContext({
+        included: satelliteScope !== 'GEO',
+        hasScenario: hasActiveScenario,
+        siteToSite: !!pointBLeo,
+        result: leoSiteToSiteResult,
+        viewModel: leoServiceViewModel,
+        satelliteA: autoSelectedLEOSatellite ?? null,
+    });
+
     return (
         <div className="relative w-full h-full">
             {/* UI Overlays */}
+            {!commercialMode && (
+                <ActiveScenarioContext
+                    geo={geoActiveScenarioContext}
+                    leo={leoActiveScenarioContext}
+                    isPhone={isPhone}
+                    isFullscreen={isFullscreen}
+                />
+            )}
+
             {!commercialMode && (
                 <CountryOverlayLegend
                     mode={effectiveCountryOverlayMode}
@@ -2669,16 +2698,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 isPhone={isPhone}
                 isMobileViewport={isMobileViewport}
             />
-
-            {!commercialMode && !displayPrefs.isCompactMap && selection.type === 'target' && selection.targetType === 'point' && coverageSwitcherCoverages.length >= 2 && onCoverageSwitcherSelect && (
-                <CoverageSwitcherVertical
-                    coverages={coverageSwitcherCoverages}
-                    selectedId={selectedCoverageId}
-                    onSelect={onCoverageSwitcherSelect}
-                    isPhone={!!isPhone}
-                    isFullscreen={isFullscreen}
-                />
-            )}
 
             {!commercialMode && !displayPrefs.isCompactMap && !isPhone && !isMobileViewport && (satelliteScope === 'GEO' || satelliteScope === 'ALL') && (
                 <GeoGroundSiteLegend />

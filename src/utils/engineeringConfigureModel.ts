@@ -33,16 +33,16 @@ export interface EngineeringConfigureChange {
 
 const STAGES = {
   technology: [] as EngineeringCauseStageId[],
-  topology: ['scenario', 'path', 'rf', 'service', 'delivery'] as EngineeringCauseStageId[],
-  direction: ['scenario', 'path', 'rf', 'service', 'delivery'] as EngineeringCauseStageId[],
-  selection: ['path', 'rf', 'service', 'delivery'] as EngineeringCauseStageId[],
-  location: ['scenario', 'path', 'rf', 'service', 'delivery'] as EngineeringCauseStageId[],
-  terminal: ['scenario', 'rf', 'service', 'delivery'] as EngineeringCauseStageId[],
-  weather: ['scenario', 'rf', 'service', 'delivery'] as EngineeringCauseStageId[],
-  'advanced-rf': ['scenario', 'rf', 'service', 'delivery'] as EngineeringCauseStageId[],
+  topology: ['scenario', 'service', 'path', 'rf', 'delivery'] as EngineeringCauseStageId[],
+  direction: ['scenario', 'service', 'path', 'rf', 'delivery'] as EngineeringCauseStageId[],
+  selection: ['service', 'path', 'rf', 'delivery'] as EngineeringCauseStageId[],
+  location: ['scenario', 'service', 'path', 'rf', 'delivery'] as EngineeringCauseStageId[],
+  terminal: ['scenario', 'service', 'rf', 'delivery'] as EngineeringCauseStageId[],
+  weather: ['scenario', 'service', 'rf', 'delivery'] as EngineeringCauseStageId[],
+  'advanced-rf': ['scenario', 'service', 'rf', 'delivery'] as EngineeringCauseStageId[],
 } satisfies Record<EngineeringConfigureChangeKind, EngineeringCauseStageId[]>;
 
-const STAGE_ORDER: EngineeringCauseStageId[] = ['scenario', 'path', 'rf', 'service', 'delivery'];
+const STAGE_ORDER: EngineeringCauseStageId[] = ['scenario', 'service', 'path', 'rf', 'delivery'];
 
 export function sameEngineeringConfigureLocation(
   left: EngineeringConfigureLocation | null,

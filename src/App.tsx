@@ -40,7 +40,6 @@ import { type TerminalType, type WeatherType, toWeatherCondition } from './compo
 import { SatelliteData } from './types/satellites';
 import type { CandidateCoverage, GEOBeam, SelectedSNP } from './types/analysis';
 import type { Selection } from './types/analysis';
-import type { CoverageSwitcherCoverage } from './components/CoverageSwitcherVertical';
 import { useSatelliteLoader } from './hooks/useSatelliteLoader';
 import { Feature, Geometry, GeoJsonProperties } from 'geojson';
 import {
@@ -1965,23 +1964,6 @@ const App: React.FC = () => {
 
     return selectedDownlinkCoverage ?? selectedUplinkCoverage ?? null;
   }, [linkMode, selectedDownlinkCoverage, selectedUplinkCoverage]);
-  const selectedCoverageId = useMemo(
-    () => (selectedCoverage ? getCandidateCoverageKey(selectedCoverage) : ''),
-    [selectedCoverage]
-  );
-  const coverageSwitcherCoverages = useMemo<CoverageSwitcherCoverage[]>(
-    () => eligibleCandidateCoverages.map((coverage) => ({
-      id: getCandidateCoverageKey(coverage),
-      name: coverage.coverageName,
-      satelliteName: coverage.satelliteName,
-      isUplink: coverage.isUplink,
-      throughput: coverage.throughputEstimate,
-      elevation: coverage.elevation,
-      score: coverage.score,
-    })),
-    [eligibleCandidateCoverages]
-  );
-
   const resolvedSelectedGeoCoverage = useMemo(() => {
     if (!selectedSatellite || selectedSatellite.type !== 'EUTELSAT' || !selectedGeoCoverageName) {
       return null;
@@ -3727,7 +3709,6 @@ const App: React.FC = () => {
     onCountryOverlayModeChange: handleCountryOverlayModeChange,
     onSizeScaleChange: handleSizeScaleChange,
     onSizeScaleReset: handleSizeScaleReset,
-    onCoverageSwitcherSelect: handleSelectTargetCoverageById,
   }), [
     handleAircraftHover,
     handleAircraftSelect,
@@ -3740,7 +3721,6 @@ const App: React.FC = () => {
     handlePointClick,
     handleSatelliteClick,
     handleSatelliteHover,
-    handleSelectTargetCoverageById,
     handleSizeScaleChange,
     handleSizeScaleReset,
     handleSnpClick,
@@ -3795,6 +3775,8 @@ const App: React.FC = () => {
     selectedCoverage,
     selectedUplinkCoverage: globeUplinkCoverage,
     selectedDownlinkCoverage: globeDownlinkCoverage,
+    activeScenarioUplinkCoverage: globeUplinkCoverage ?? selectedUplinkCoverage,
+    activeScenarioDownlinkCoverage: globeDownlinkCoverage ?? selectedDownlinkCoverage,
     selectedSNP,
     selectedGateway,
     inspectedSNP,
@@ -3803,15 +3785,12 @@ const App: React.FC = () => {
     selectedRegulatoryResult: leoRegulatoryResult,
     performanceMetrics: mobileMetrics,
     activeConnectivityTab,
-    coverageSwitcherCoverages,
-    selectedCoverageId,
     visibleGeoCoverageKeys: selectedSelection.type === 'target' ? undefined : visibleManualGeoCoverageKeys,
     selection: selectedSelection,
     endpointSelectionMotion,
   }), [
     activeConnectivityTab,
     activeGeoSatellite,
-    coverageSwitcherCoverages,
     dedicatedSNPForSelectedLEO,
     geoPointStatus,
     globeDownlinkCoverage,
@@ -3820,14 +3799,15 @@ const App: React.FC = () => {
     leoRegulatoryResult,
     mobileMetrics,
     selectedCoverage,
-    selectedCoverageId,
     selectedGEOBeam,
     selectedGateway,
     selectedMoon,
     selectedSNP,
     selectedSatellite,
+    selectedDownlinkCoverage,
     selectedSelection,
     selectedPosition,
+    selectedUplinkCoverage,
     endpointSelectionMotion,
     visibleManualGeoCoverageKeys,
   ]);
@@ -6133,6 +6113,16 @@ const App: React.FC = () => {
                 className={`relative z-40 flex flex-shrink-0 flex-col overflow-visible rounded-[24px] border border-slate-200/80 bg-white/97 shadow-[0_30px_70px_-35px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-950/98 ${isFullscreen ? 'hidden' : ''}`}
                 style={{ width: desktopSidebarWidth }}
               >
+                <div
+                  data-engineering-inspector-host=""
+                  className="pointer-events-none absolute z-[1400] flex items-start justify-end"
+                  style={{
+                    top: 0,
+                    bottom: '0.75rem',
+                    right: `calc(100% + ${desktopLayoutGap}px)`,
+                    width: `min(34.6667rem, calc(66.6667vw - ${(desktopSidebarWidth * 2) / 3}px - ${(desktopLayoutGap * 2) / 3}px - 2rem))`,
+                  }}
+                />
                 <>
                   {!showEngineeringRouteStatus && (
                     <SidebarHeroCard
