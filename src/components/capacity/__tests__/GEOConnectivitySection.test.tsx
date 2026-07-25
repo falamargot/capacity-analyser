@@ -10,6 +10,38 @@ import type { SatelliteData } from '../../../types/satellites';
 import { GEO_GATEWAYS } from '../../globe/GlobeConfig';
 import { resolveStarTrafficGatewayForCoverage, type StarTrafficGatewaySelection } from '../../../utils/geoConnectivityModel';
 import { buildGeoEngineeringAnalysisViewModel } from '../../../utils/engineeringAnalysisViewModel';
+import { activeGeoServiceDirection, resolveGeoRouteDelivery } from '../../../utils/geoDeliveryChain';
+
+/**
+ * Builds the GEO truth the way the app does: the canonical delivery chain first,
+ * then the view model as a projection of it. The builder no longer derives a rate
+ * from the RF result on its own, so a test that wants published throughput must
+ * run the chain, exactly like production.
+ */
+const buildGeoTruthViewModel = (
+  args: Parameters<typeof buildGeoEngineeringAnalysisViewModel>[0],
+) => {
+  const isSiteToSite = args.linkMode === 'MESH' || args.linkMode === 'POINT_TO_POINT';
+  const delivery = args.result
+    ? resolveGeoRouteDelivery({
+        linkMode: args.linkMode,
+        forwardResult: isSiteToSite || args.linkMode === 'STAR_FORWARD' ? args.result : null,
+        reverseResult: isSiteToSite || args.linkMode === 'STAR_RETURN' ? args.result : null,
+        modemA: null,
+        modemB: null,
+      })
+    : null;
+  const active = delivery?.[activeGeoServiceDirection(args.linkMode, args.activeMeshTab)];
+  return buildGeoEngineeringAnalysisViewModel({
+    ...args,
+    deliveredThroughputMbps: active?.throughputMbps ?? undefined,
+    throughputEstimated: active?.isEstimatedCeiling,
+    forwardThroughputMbps: delivery?.forward.throughputMbps ?? undefined,
+    reverseThroughputMbps: delivery?.reverse.throughputMbps ?? undefined,
+    forwardThroughputEstimated: delivery?.forward.isEstimatedCeiling,
+    reverseThroughputEstimated: delivery?.reverse.isEstimatedCeiling,
+  });
+};
 import { EngineeringFocusProvider, type EngineeringFocusController } from '../../../contexts/EngineeringFocusContext';
 import { createEngineeringFocus } from '../../../utils/engineeringFocusModel';
 
@@ -329,7 +361,7 @@ const renderGeoWithStarGateway = ({
 };
 
 const baseProps = {
-  engineeringAnalysisViewModel: buildGeoEngineeringAnalysisViewModel({
+  engineeringAnalysisViewModel: buildGeoTruthViewModel({
     linkMode: 'STAR_FORWARD',
     result: makeStarResult(4.5),
     confidenceLabel: 'High 90/100',
@@ -363,7 +395,7 @@ const renderGeo = (linkMode: LinkMode, dualSegmentResult: DualSegmentResult | nu
       {...baseProps}
       linkMode={linkMode}
       dualSegmentResult={dualSegmentResult}
-      engineeringAnalysisViewModel={buildGeoEngineeringAnalysisViewModel({
+      engineeringAnalysisViewModel={buildGeoTruthViewModel({
         linkMode,
         result: dualSegmentResult,
         confidenceLabel: 'High 90/100',
@@ -439,7 +471,7 @@ describe('GEOConnectivitySection topology render smoke tests', () => {
           {...baseProps}
           linkMode="MESH"
           dualSegmentResult={makeMeshResult(3.2, 2.1)}
-          engineeringAnalysisViewModel={buildGeoEngineeringAnalysisViewModel({
+          engineeringAnalysisViewModel={buildGeoTruthViewModel({
             linkMode: 'MESH',
             result: makeMeshResult(3.2, 2.1),
             confidenceLabel: 'High 90/100',
@@ -591,7 +623,7 @@ describe('GEOConnectivitySection topology render smoke tests', () => {
           dualSegmentResult={makeStarResult(4.5)}
           resolvedGEOConnectivity={makeResolvedGeoConnectivity(satellite, selectedCoverage)}
           geoGeometry={makeLegacyRambouilletGeoGeometry()}
-          engineeringAnalysisViewModel={buildGeoEngineeringAnalysisViewModel({
+          engineeringAnalysisViewModel={buildGeoTruthViewModel({
             linkMode: 'STAR_FORWARD',
             result: makeStarResult(4.5),
             confidenceLabel: 'High 90/100',
@@ -612,7 +644,7 @@ describe('GEOConnectivitySection topology render smoke tests', () => {
           {...baseProps}
           linkMode="MESH"
           dualSegmentResult={makeMeshResult(3.2, 2.1)}
-          engineeringAnalysisViewModel={buildGeoEngineeringAnalysisViewModel({
+          engineeringAnalysisViewModel={buildGeoTruthViewModel({
             linkMode: 'MESH',
             result: makeMeshResult(3.2, 2.1),
             confidenceLabel: 'High 90/100',

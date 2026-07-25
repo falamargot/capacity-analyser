@@ -958,13 +958,17 @@ export function buildActiveLeoRouteEvidence(
   if (input.topology === 'SINGLE_SITE') {
     const downloadMbps = finitePositive(leoPerformance?.downlinkGbps != null ? leoPerformance.downlinkGbps * 1000 : null);
     const uploadMbps = finitePositive(leoPerformance?.uplinkGbps != null ? leoPerformance.uplinkGbps * 1000 : null);
-    // GEO-2: this evidence.rttMs/metrics.rtt field feeds ONLY the commercial
-    // view model's cross-technology comparison (leoRttMs in commercialViewModel.ts,
-    // consumed nowhere else) — kept as one-way latency, matching GEO's rttMs in
-    // the same comparison, so "N× lower latency" and the hybrid tie-break compare
-    // like units. leoPerformance.rtt (a genuine RTT) remains available separately
-    // for anything that needs the true round trip.
-    const rttMs = finitePositive(leoGeometry?.oneWayLatencyMs);
+    // COMM-1: decouple the two latency contracts.
+    //  · oneWayLatencyMs → metrics.rtt, the one-way figure activeRouteViewModel
+    //    labels "One-way".
+    //  · rttMs → the top-level field the commercial view model consumes (scored
+    //    and labeled Response/RTT). GEO's COMM latency is now the true round trip
+    //    too, so the cross-technology comparison stays like-for-like.
+    // NB: leoGeometry.rttTotalMs models network overhead as a one-time end-to-end
+    // cost (see leoConnectivityModel), so rttTotalMs ≠ 2×oneWayLatencyMs by
+    // design; reconciling that overhead convention is tracked separately (#6).
+    const oneWayLatencyMs = finitePositive(leoGeometry?.oneWayLatencyMs);
+    const rttMs = finitePositive(leoGeometry?.rttTotalMs);
     // Canonical gate chain shared with serviceLayer and the S2S model (L-Mo1).
     const decision = deriveLeoServiceDecision({
       regulatoryStatus: input.regulatoryResultA?.status ?? null,
@@ -1013,7 +1017,9 @@ export function buildActiveLeoRouteEvidence(
       routeResult: null,
       metrics: metricsComplete
         ? {
-            rtt: rttMs ?? null,
+            // Legacy field name; carries the one-way figure (COMM-1), labeled
+            // "One-way" by activeRouteViewModel — NOT the round trip.
+            rtt: oneWayLatencyMs ?? null,
             downlinkGbps: downloadMbps != null ? downloadMbps / 1000 : null,
             uplinkGbps: uploadMbps != null ? uploadMbps / 1000 : null,
           }
@@ -1144,10 +1150,14 @@ export function buildActiveLeoRouteEvidence(
 
   const throughputAtoB = finitePositive(routeResult.finalThroughputAtoBMbps);
   const throughputBtoA = finitePositive(routeResult.finalThroughputBtoAMbps);
-  // GEO-2: one-way, not routeResult.rttMs (both legs summed) — see the
-  // SINGLE_SITE branch's identical rationale above. oneWayLatencyAtoBMs is
-  // symmetric by construction (same physical path either direction).
-  const rttMs = finitePositive(routeResult.oneWayLatencyAtoBMs);
+  // COMM-1: two distinct latency contracts, decoupled on purpose.
+  //  · oneWayLatencyMs — the A→B one-way figure (symmetric by construction).
+  //    Feeds metrics.rtt, which activeRouteViewModel labels explicitly "One-way".
+  //  · rttMs — the true round trip (A→B + B→A, per-direction processing
+  //    included). Sole consumer is the commercial view model, which scores it
+  //    and labels it Response/RTT and drives use-case classification.
+  const oneWayLatencyMs = finitePositive(routeResult.oneWayLatencyAtoBMs);
+  const rttMs = finitePositive(routeResult.rttMs);
   const metricsComplete = routeResult.serviceAvailable && (throughputAtoB != null || throughputBtoA != null) && rttMs != null;
   const bottleneck = routeResult.debugSiteA?.mainBottleneck.label && routeResult.debugSiteA.mainBottleneck.label !== 'None'
     ? routeResult.debugSiteA.mainBottleneck.label
@@ -1170,7 +1180,9 @@ export function buildActiveLeoRouteEvidence(
     routeResult,
     metrics: metricsComplete
       ? {
-          rtt: rttMs ?? null,
+          // Legacy field name; carries the ENG one-way figure (see COMM-1 above),
+          // labeled "One-way" by activeRouteViewModel — NOT the round trip.
+          rtt: oneWayLatencyMs ?? null,
           downlinkGbps: throughputAtoB != null ? throughputAtoB / 1000 : null,
           uplinkGbps: throughputBtoA != null ? throughputBtoA / 1000 : null,
         }

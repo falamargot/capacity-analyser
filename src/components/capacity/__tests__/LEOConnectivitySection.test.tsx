@@ -327,7 +327,7 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
     )).not.toThrow();
   });
 
-  it('renders SITE_TO_SITE with only the active direction as the primary throughput', () => {
+  it('renders both SITE_TO_SITE directions in the delivered-service summary', () => {
     const html = renderToStaticMarkup(
       <LEOConnectivitySection
         {...baseProps}
@@ -362,7 +362,9 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
 
     expect(html).toContain('75 Mbps');
     const resultHtml = html.slice(html.indexOf('Review · LEO result'));
-    expect(resultHtml).not.toContain('55 Mbps');
+    expect(resultHtml).toContain('A → B throughput');
+    expect(resultHtml).toContain('B → A throughput');
+    expect(resultHtml).toContain('55 Mbps');
   });
 
   it('renders SITE_TO_SITE without throwing when the route is structurally incomplete', () => {

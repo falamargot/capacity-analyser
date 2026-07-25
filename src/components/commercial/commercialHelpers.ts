@@ -177,26 +177,6 @@ export function hasCompleteDisplayedMetrics(
   return downloadMbps != null && uploadMbps != null && rttMs != null;
 }
 
-export function hasCompleteGeoRouteMetrics(
-  linkMode: LinkMode,
-  route: ReturnType<typeof buildGeoRouteViewModel>,
-  downloadMbps: number | undefined,
-  uploadMbps: number | undefined,
-  latencyMs: number | undefined,
-): boolean {
-  if (linkMode === 'STAR_FORWARD') return downloadMbps != null && latencyMs != null;
-  if (linkMode === 'STAR_RETURN') return uploadMbps != null && latencyMs != null;
-  if (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT') {
-    return route.throughputMbps != null
-      && Number.isFinite(route.throughputMbps)
-      && route.throughputMbps > 0
-      && route.latencyMs != null
-      && Number.isFinite(route.latencyMs)
-      && route.latencyMs > 0;
-  }
-  return hasCompleteDisplayedMetrics(downloadMbps, uploadMbps, latencyMs);
-}
-
 export function optionHasRecommendationEvidence(option: CommercialTechnologyOption): boolean {
   return option.available && option.downloadMbps != null && option.rttMs != null;
 }

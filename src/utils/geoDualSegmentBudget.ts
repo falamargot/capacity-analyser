@@ -17,7 +17,7 @@ import type { GeoRfContext } from '../types/geoRfContext';
 import type { GeoBand } from './geoLinkBudget';
 import type { LinkMode } from '../types/linkMode';
 import type { TrafficTeleportCapability } from './geoGroundInfrastructure';
-import { computeNetworkLayer, type NetworkLayerResult } from './geoNetworkLayer';
+import { computeNetworkLayer, type GeoNetworkPlanningInput, type NetworkLayerResult } from './geoNetworkLayer';
 import {
   DEFAULT_TERMINAL,
   TERMINAL_RETURN_EIRP_DBW,
@@ -30,6 +30,7 @@ import {
   computeDownlinkBudget,
   computeEndToEndBudget,
   getTerminalDownlinkGT,
+  normalizeCnToSymbolRate,
   type EndToEndBudget,
 } from './geoLinkBudget';
 import {
@@ -39,6 +40,17 @@ import {
   type UplinkRequirement,
   type TerminalRFCustomParams,
 } from './geoTerminalRFModel';
+import {
+  directionalWaveformConstraint,
+  type GeoModemProfile,
+} from './geoModemCatalogue';
+import {
+  GEO_PAYLOAD_LOSS_PROFILES,
+  applyGeoPayloadLosses,
+  defaultGeoServicePlanForTopology,
+  type GeoPlanningScenarioId,
+  type GeoServicePlan,
+} from './geoPhysicalAssumptions';
 
 // ─── Segment descriptors ──────────────────────────────────────────────────────
 
@@ -121,6 +133,16 @@ export interface DualSegmentResult {
     forward: NetworkLayerResult;
     reverse?: NetworkLayerResult;
   };
+  physicalAssumptions?: {
+    scenario: GeoPlanningScenarioId;
+    payloadSource: string;
+    servicePlanId: GeoServicePlan['id'];
+  };
+  /** Planning sensitivity, never operational percentiles or an SLA. */
+  planningEnvelope?: {
+    nominal: { forwardMbps: number; reverseMbps?: number };
+    conservative: { forwardMbps: number; reverseMbps?: number };
+  };
 }
 
 export type { NetworkLayerResult };
@@ -156,6 +178,23 @@ export function getDisplayedThroughput(
 export interface MeshEndpointLabels {
   pointA?: string;
   pointB?: string;
+}
+
+export interface GeoRoutePhysicalOptions {
+  /** Endpoint A is the user terminal in STAR and Site A in MESH/P2P. */
+  modemA?: GeoModemProfile | null;
+  /** Gateway modem in STAR, Site B modem in MESH/P2P. */
+  modemB?: GeoModemProfile | null;
+  planningScenario?: GeoPlanningScenarioId;
+  servicePlan?: GeoServicePlan | null;
+  beamLoadFraction?: number;
+  allocatedCapacityFraction?: number;
+  /** Independent feeder-site attenuation. It must never reuse the customer fade implicitly. */
+  gatewayWeatherAdjDb?: number;
+  endpointWeatherAdjDb?: {
+    a?: { uplink?: number; downlink?: number };
+    b?: { uplink?: number; downlink?: number };
+  };
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -220,6 +259,86 @@ const isTerminalCompatibleWithCandidateBand = (
   terminalType: string | undefined,
   band: GeoBand,
 ): boolean => isRFClassCompatibleWithBand(terminalType, band);
+
+const candidateBandwidthMhz = (candidate: CandidateCoverage): number => {
+  const band = (candidate.band ?? 'Ku') as GeoBand;
+  return candidate.bandwidthMhz ?? BAND_PARAMS[band].defaultBwMhz;
+};
+
+const buildDirectionalEndToEndBudget = (
+  uplinkSegment: LinkSegment,
+  downlinkSegment: LinkSegment,
+  sourceModem: GeoModemProfile | null,
+  destinationModem: GeoModemProfile | null,
+  planningScenario: GeoPlanningScenarioId,
+): EndToEndBudget => {
+  const waveform = directionalWaveformConstraint(sourceModem, destinationModem);
+  const bandwidthMhz = Math.min(
+    candidateBandwidthMhz(uplinkSegment.candidate),
+    candidateBandwidthMhz(downlinkSegment.candidate),
+  );
+  const unconstrainedSymbolRateMsps = bandwidthMhz / (1 + waveform.rollOff);
+  const commonSymbolRateMsps = Math.min(
+    unconstrainedSymbolRateMsps,
+    waveform.maxSymbolRateMsps ?? Number.POSITIVE_INFINITY,
+  );
+  const normalizedUplinkCnDb = normalizeCnToSymbolRate(
+    uplinkSegment.effectiveCNDb,
+    candidateBandwidthMhz(uplinkSegment.candidate),
+    commonSymbolRateMsps,
+  );
+  const normalizedDownlinkCnDb = normalizeCnToSymbolRate(
+    downlinkSegment.effectiveCNDb,
+    candidateBandwidthMhz(downlinkSegment.candidate),
+    commonSymbolRateMsps,
+  );
+  const payloadProfile = GEO_PAYLOAD_LOSS_PROFILES[planningScenario];
+  const payload = applyGeoPayloadLosses(normalizedUplinkCnDb, normalizedDownlinkCnDb, payloadProfile);
+  const result = computeEndToEndBudget(
+    payload.uplinkAfterBackoffDb,
+    payload.downlinkAfterBackoffDb,
+    bandwidthMhz,
+    {
+      minSymbolRateMsps: waveform.minSymbolRateMsps,
+      maxSymbolRateMsps: commonSymbolRateMsps,
+      maxModulationOrder: waveform.maxModulationOrder,
+      rollOff: waveform.rollOff,
+      implementationMarginDb: payloadProfile.implementationMarginDb,
+      additionalCarrierRatiosDb: [
+        payloadProfile.carrierToInterferenceDb,
+        payloadProfile.carrierToImdDb,
+        payloadProfile.crossPolarDiscriminationDb,
+      ],
+    },
+  );
+  return {
+    ...result,
+    payloadPenaltyDb: payload.totalEquivalentPenaltyDb,
+    planningScenario,
+  };
+};
+
+const networkPlanningInput = (
+  linkMode: LinkMode,
+  options?: GeoRoutePhysicalOptions,
+): GeoNetworkPlanningInput => ({
+  servicePlan: options?.servicePlan ?? defaultGeoServicePlanForTopology(linkMode),
+  beamLoadFraction: options?.beamLoadFraction,
+  allocatedCapacityFraction: options?.allocatedCapacityFraction,
+});
+
+const networkThroughputForScenario = (
+  e2e: EndToEndBudget,
+  linkMode: LinkMode,
+  options?: GeoRoutePhysicalOptions,
+): number => computeNetworkLayer(
+  e2e.endToEndThroughputMbps,
+  linkMode,
+  undefined,
+  undefined,
+  undefined,
+  networkPlanningInput(linkMode, options),
+).finalThroughputMbps;
 
 /**
  * Computes the dB adjustment needed when the actual transmitter EIRP differs
@@ -425,6 +544,7 @@ export function buildStarForwardResult(
   terminalType?: string,
   customParams?: TerminalRFCustomParams | null,
   trafficTeleportLabel?: string,
+  physicalOptions?: GeoRoutePhysicalOptions,
 ): DualSegmentResult | null {
   const userBand = (downlinkAtUser.band ?? 'Ku') as GeoBand;
   const feederBand = (uplinkAtGateway.band ?? userBand) as GeoBand;
@@ -447,7 +567,7 @@ export function buildStarForwardResult(
     { label: trafficTeleportName, eirpDbw: gatewayEirpDbw },
     { label: uplinkAtGateway.satelliteName },
     gatewayEirpDbw,
-    undefined,
+    physicalOptions?.gatewayWeatherAdjDb,
   );
 
   const downlinkSeg = buildDownlinkSegment(
@@ -459,10 +579,19 @@ export function buildStarForwardResult(
     getTerminalDownlinkGT(userBand),
   );
 
-  const e2e = computeEndToEndBudget(
-    uplinkSeg.effectiveCNDb,
-    downlinkSeg.effectiveCNDb,
-    Math.min(downlinkAtUser.bandwidthMhz ?? 36, uplinkAtGateway.bandwidthMhz ?? 36),
+  const planningScenario = physicalOptions?.planningScenario ?? 'nominal';
+  const e2e = buildDirectionalEndToEndBudget(
+    uplinkSeg,
+    downlinkSeg,
+    physicalOptions?.modemB ?? null,
+    physicalOptions?.modemA ?? null,
+    planningScenario,
+  );
+  const nominalE2e = planningScenario === 'nominal' ? e2e : buildDirectionalEndToEndBudget(
+    uplinkSeg, downlinkSeg, physicalOptions?.modemB ?? null, physicalOptions?.modemA ?? null, 'nominal',
+  );
+  const conservativeE2e = planningScenario === 'conservative' ? e2e : buildDirectionalEndToEndBudget(
+    uplinkSeg, downlinkSeg, physicalOptions?.modemB ?? null, physicalOptions?.modemA ?? null, 'conservative',
   );
 
   // Also compute adjusted uplink segment knowing gateway G/T (for the displayed G/T):
@@ -475,7 +604,23 @@ export function buildStarForwardResult(
       capability: trafficTeleportCapability,
     },
     networkLayer: {
-      forward: computeNetworkLayer(e2e.endToEndThroughputMbps, 'STAR_FORWARD'),
+      forward: computeNetworkLayer(
+        e2e.endToEndThroughputMbps,
+        'STAR_FORWARD',
+        undefined,
+        undefined,
+        undefined,
+        networkPlanningInput('STAR_FORWARD', physicalOptions),
+      ),
+    },
+    physicalAssumptions: {
+      scenario: planningScenario,
+      payloadSource: GEO_PAYLOAD_LOSS_PROFILES[planningScenario].source,
+      servicePlanId: (physicalOptions?.servicePlan ?? defaultGeoServicePlanForTopology('STAR_FORWARD')).id,
+    },
+    planningEnvelope: {
+      nominal: { forwardMbps: networkThroughputForScenario(nominalE2e, 'STAR_FORWARD', physicalOptions) },
+      conservative: { forwardMbps: networkThroughputForScenario(conservativeE2e, 'STAR_FORWARD', physicalOptions) },
     },
   };
 }
@@ -504,6 +649,7 @@ export function buildStarReturnResult(
   terminalType?: string,
   customParams?: TerminalRFCustomParams | null,
   trafficTeleportLabel?: string,
+  physicalOptions?: GeoRoutePhysicalOptions,
 ): DualSegmentResult | null {
   const userBand = (uplinkAtUser.band ?? 'Ku') as GeoBand;
   const feederBand = (downlinkAtGateway.band ?? userBand) as GeoBand;
@@ -521,9 +667,8 @@ export function buildStarReturnResult(
     terminalEirpDbw = bandEirpTable.fixed ?? DEFAULT_TERMINAL.eirpTerminalDbw;
   }
 
-  // Weather is modelled only at the user's location — see buildStarForwardResult
-  // for the same rationale. The uplink (user → satellite) leg gets the fade; the
-  // gateway downlink leg does not.
+  // User and gateway fades are independent. The uplink gets the customer-site
+  // attenuation; the feeder downlink gets the explicitly supplied gateway value.
   const uplinkSeg = buildUplinkSegment(
     uplinkAtUser,
     { label: userLabel ?? 'User terminal', eirpDbw: terminalEirpDbw },
@@ -537,14 +682,23 @@ export function buildStarReturnResult(
     { label: downlinkAtGateway.satelliteName },
     { label: trafficTeleportName, gtDbk: gatewayGTDbk },
     gatewayGTDbk,
-    undefined,
+    physicalOptions?.gatewayWeatherAdjDb,
     getTerminalDownlinkGT(feederBand),
   );
 
-  const e2e = computeEndToEndBudget(
-    uplinkSeg.effectiveCNDb,
-    downlinkSeg.effectiveCNDb,
-    Math.min(uplinkAtUser.bandwidthMhz ?? 36, downlinkAtGateway.bandwidthMhz ?? 36),
+  const planningScenario = physicalOptions?.planningScenario ?? 'nominal';
+  const e2e = buildDirectionalEndToEndBudget(
+    uplinkSeg,
+    downlinkSeg,
+    physicalOptions?.modemA ?? null,
+    physicalOptions?.modemB ?? null,
+    planningScenario,
+  );
+  const nominalE2e = planningScenario === 'nominal' ? e2e : buildDirectionalEndToEndBudget(
+    uplinkSeg, downlinkSeg, physicalOptions?.modemA ?? null, physicalOptions?.modemB ?? null, 'nominal',
+  );
+  const conservativeE2e = planningScenario === 'conservative' ? e2e : buildDirectionalEndToEndBudget(
+    uplinkSeg, downlinkSeg, physicalOptions?.modemA ?? null, physicalOptions?.modemB ?? null, 'conservative',
   );
 
   return {
@@ -554,7 +708,23 @@ export function buildStarReturnResult(
       capability: trafficTeleportCapability,
     },
     networkLayer: {
-      forward: computeNetworkLayer(e2e.endToEndThroughputMbps, 'STAR_RETURN'),
+      forward: computeNetworkLayer(
+        e2e.endToEndThroughputMbps,
+        'STAR_RETURN',
+        undefined,
+        undefined,
+        undefined,
+        networkPlanningInput('STAR_RETURN', physicalOptions),
+      ),
+    },
+    physicalAssumptions: {
+      scenario: planningScenario,
+      payloadSource: GEO_PAYLOAD_LOSS_PROFILES[planningScenario].source,
+      servicePlanId: (physicalOptions?.servicePlan ?? defaultGeoServicePlanForTopology('STAR_RETURN')).id,
+    },
+    planningEnvelope: {
+      nominal: { forwardMbps: networkThroughputForScenario(nominalE2e, 'STAR_RETURN', physicalOptions) },
+      conservative: { forwardMbps: networkThroughputForScenario(conservativeE2e, 'STAR_RETURN', physicalOptions) },
     },
   };
 }
@@ -631,6 +801,7 @@ export function buildMeshResult(
   customParamsA?: TerminalRFCustomParams | null,
   customParamsB?: TerminalRFCustomParams | null,
   linkMode?: LinkMode,
+  physicalOptions?: GeoRoutePhysicalOptions,
 ): DualSegmentResult {
   if (!haveSameBand(uplinkAtA, downlinkAtB, uplinkAtB, downlinkAtA)) {
     throw new Error('MESH GEO link budget requires all segments to use the same RF band.');
@@ -662,20 +833,23 @@ export function buildMeshResult(
     { label: pointALabel, eirpDbw: paramsA.eirpTerminalDbw },
     { label: uplinkAtA.satelliteName },
     paramsA.eirpTerminalDbw,
-    weatherAdjDbA,
+    physicalOptions?.endpointWeatherAdjDb?.a?.uplink ?? weatherAdjDbA,
   );
   const fwDownlinkSeg = buildDownlinkSegment(
     downlinkAtB,
     { label: downlinkAtB.satelliteName },
     { label: pointBLabel, gtDbk: paramsB.gtTerminalDbk },
     paramsB.gtTerminalDbk,
-    weatherAdjDbB,
+    physicalOptions?.endpointWeatherAdjDb?.b?.downlink ?? weatherAdjDbB,
     candidateBaseGt,
   );
-  const fwE2E = computeEndToEndBudget(
-    fwUplinkSeg.effectiveCNDb,
-    fwDownlinkSeg.effectiveCNDb,
-    downlinkAtB.bandwidthMhz ?? uplinkAtA.bandwidthMhz ?? 36,
+  const planningScenario = physicalOptions?.planningScenario ?? 'nominal';
+  const fwE2E = buildDirectionalEndToEndBudget(
+    fwUplinkSeg,
+    fwDownlinkSeg,
+    physicalOptions?.modemA ?? null,
+    physicalOptions?.modemB ?? null,
+    planningScenario,
   );
 
   const rvUplinkSeg = buildUplinkSegment(
@@ -683,20 +857,34 @@ export function buildMeshResult(
     { label: pointBLabel, eirpDbw: paramsB.eirpTerminalDbw },
     { label: uplinkAtB.satelliteName },
     paramsB.eirpTerminalDbw,
-    weatherAdjDbB,
+    physicalOptions?.endpointWeatherAdjDb?.b?.uplink ?? weatherAdjDbB,
   );
   const rvDownlinkSeg = buildDownlinkSegment(
     downlinkAtA,
     { label: downlinkAtA.satelliteName },
     { label: pointALabel, gtDbk: paramsA.gtTerminalDbk },
     paramsA.gtTerminalDbk,
-    weatherAdjDbA,
+    physicalOptions?.endpointWeatherAdjDb?.a?.downlink ?? weatherAdjDbA,
     candidateBaseGt,
   );
-  const rvE2E = computeEndToEndBudget(
-    rvUplinkSeg.effectiveCNDb,
-    rvDownlinkSeg.effectiveCNDb,
-    downlinkAtA.bandwidthMhz ?? uplinkAtB.bandwidthMhz ?? 36,
+  const rvE2E = buildDirectionalEndToEndBudget(
+    rvUplinkSeg,
+    rvDownlinkSeg,
+    physicalOptions?.modemB ?? null,
+    physicalOptions?.modemA ?? null,
+    planningScenario,
+  );
+  const nominalFwE2E = planningScenario === 'nominal' ? fwE2E : buildDirectionalEndToEndBudget(
+    fwUplinkSeg, fwDownlinkSeg, physicalOptions?.modemA ?? null, physicalOptions?.modemB ?? null, 'nominal',
+  );
+  const conservativeFwE2E = planningScenario === 'conservative' ? fwE2E : buildDirectionalEndToEndBudget(
+    fwUplinkSeg, fwDownlinkSeg, physicalOptions?.modemA ?? null, physicalOptions?.modemB ?? null, 'conservative',
+  );
+  const nominalRvE2E = planningScenario === 'nominal' ? rvE2E : buildDirectionalEndToEndBudget(
+    rvUplinkSeg, rvDownlinkSeg, physicalOptions?.modemB ?? null, physicalOptions?.modemA ?? null, 'nominal',
+  );
+  const conservativeRvE2E = planningScenario === 'conservative' ? rvE2E : buildDirectionalEndToEndBudget(
+    rvUplinkSeg, rvDownlinkSeg, physicalOptions?.modemB ?? null, physicalOptions?.modemA ?? null, 'conservative',
   );
 
   const transponderMode = detectTransponderMode(uplinkAtA, downlinkAtB);
@@ -707,8 +895,37 @@ export function buildMeshResult(
     reverse: { uplink: rvUplinkSeg, downlink: rvDownlinkSeg, endToEnd: rvE2E },
     transponderMode,
     networkLayer: {
-      forward: computeNetworkLayer(fwE2E.endToEndThroughputMbps, resolvedMode),
-      reverse: computeNetworkLayer(rvE2E.endToEndThroughputMbps, resolvedMode),
+      forward: computeNetworkLayer(
+        fwE2E.endToEndThroughputMbps,
+        resolvedMode,
+        undefined,
+        undefined,
+        undefined,
+        networkPlanningInput(resolvedMode, physicalOptions),
+      ),
+      reverse: computeNetworkLayer(
+        rvE2E.endToEndThroughputMbps,
+        resolvedMode,
+        undefined,
+        undefined,
+        undefined,
+        networkPlanningInput(resolvedMode, physicalOptions),
+      ),
+    },
+    physicalAssumptions: {
+      scenario: planningScenario,
+      payloadSource: GEO_PAYLOAD_LOSS_PROFILES[planningScenario].source,
+      servicePlanId: (physicalOptions?.servicePlan ?? defaultGeoServicePlanForTopology(resolvedMode)).id,
+    },
+    planningEnvelope: {
+      nominal: {
+        forwardMbps: networkThroughputForScenario(nominalFwE2E, resolvedMode, physicalOptions),
+        reverseMbps: networkThroughputForScenario(nominalRvE2E, resolvedMode, physicalOptions),
+      },
+      conservative: {
+        forwardMbps: networkThroughputForScenario(conservativeFwE2E, resolvedMode, physicalOptions),
+        reverseMbps: networkThroughputForScenario(conservativeRvE2E, resolvedMode, physicalOptions),
+      },
     },
   };
 }

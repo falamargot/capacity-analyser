@@ -43,6 +43,11 @@ describe('engineering analysis view model', () => {
     const viewModel = buildGeoEngineeringAnalysisViewModel({
       linkMode: 'STAR_FORWARD',
       result,
+      // The canonical delivery is the only source of a published rate.
+      deliveredThroughputMbps: 18,
+      throughputEstimated: false,
+      forwardThroughputMbps: 18,
+      forwardThroughputEstimated: false,
       latencyMs: 548,
       availabilityLabel: '99.2%',
       confidenceLabel: 'High 89/100',
@@ -62,6 +67,50 @@ describe('engineering analysis view model', () => {
     const deliveredStep = viewModel.closure.steps.find((step) => step.label === 'Delivered');
     expect(deliveredStep?.inputMbps).toBe(172);
     expect(deliveredStep?.outputMbps).toBe(18);
+  });
+
+  it('publishes ONLY the canonical delivery — it never re-derives a rate from the RF result', () => {
+    const result = makeGeoResult(4.5); // forward RF final = 18 Mbps
+
+    // With no canonical delivery supplied the builder publishes NO throughput.
+    // It used to fall back to the raw RF end-to-end and label it "delivered",
+    // which is an un-modem-limited figure presented as a guaranteed rate.
+    const withoutDelivery = buildGeoEngineeringAnalysisViewModel({ linkMode: 'MESH', result });
+    const publishedRates = withoutDelivery.truth.primaryMetrics
+      .filter((metric) => /throughput/i.test(metric.label))
+      .map((metric) => metric.value);
+    expect(publishedRates.every((value) => value == null)).toBe(true);
+    // In particular it never republishes the 18 Mbps RF figure as a delivered rate.
+    expect(publishedRates).not.toContain(18);
+
+    // The modem-limited figure is the only source of a published rate.
+    const capped = buildGeoEngineeringAnalysisViewModel({
+      linkMode: 'MESH',
+      result,
+      deliveredThroughputMbps: 7,
+      forwardThroughputMbps: 7,
+    });
+    expect(capped.truth.primaryMetrics[0].value).toBe(7);
+  });
+
+  it('#4 labeling: MESH estimated ceiling is NOT presented as delivered', () => {
+    const result = makeGeoResult(4.5);
+
+    const delivered = buildGeoEngineeringAnalysisViewModel({
+      linkMode: 'MESH', result, deliveredThroughputMbps: 7, throughputEstimated: false,
+      forwardThroughputMbps: 7, forwardThroughputEstimated: false,
+    });
+    expect(delivered.truth.primaryMetrics[0].provenance).toBe('delivered');
+    expect(delivered.truth.summary).toContain('delivered');
+
+    const estimated = buildGeoEngineeringAnalysisViewModel({
+      linkMode: 'MESH', result, deliveredThroughputMbps: 7, throughputEstimated: true,
+      forwardThroughputMbps: 7, forwardThroughputEstimated: true,
+    });
+    expect(estimated.truth.primaryMetrics[0].provenance).toBe('estimated-ceiling');
+    expect(estimated.truth.primaryMetrics[0].value).toBe(7);
+    expect(estimated.truth.summary).toContain('estimated ceiling');
+    expect(estimated.truth.summary).not.toContain('7 Mbps delivered');
   });
 
   it('renders a GEO blocked workspace contract', () => {
@@ -251,6 +300,71 @@ describe('engineering analysis view model', () => {
       expect(viewModel.details[0].sections.length).toBeGreaterThan(0);
       expectRenderableWorkspace(viewModel);
     });
+
+    const leoThroughputs = viewModels[1].truth.primaryMetrics
+      .filter((metric) => metric.label.includes('throughput'));
+    expect(leoThroughputs.map((metric) => [metric.label, metric.value])).toEqual([
+      ['A → B throughput', 12],
+      ['B → A throughput', 7],
+    ]);
+  });
+
+  // Regression guard for the ENG/COMM split: the headline summary and the
+  // per-direction metric tiles render in the SAME panel, so if they are fed from
+  // two different modem chains the user sees "400 Mbps estimated ceiling" above a
+  // tile reading "150 Mbps · Delivered" for the same direction.
+  it('keeps the summary and the active-direction metric on one consistent figure', () => {
+    const forDirection = (
+      linkMode: 'STAR_FORWARD' | 'STAR_RETURN' | 'MESH',
+      activeMeshTab: 'forward' | 'reverse',
+      expectedLabel: string,
+    ) => {
+      const viewModel = buildGeoEngineeringAnalysisViewModel({
+        linkMode,
+        result: makeGeoResult(4.5),
+        activeMeshTab,
+        // One canonical delivery drives every prop, exactly as the hook now wires it.
+        deliveredThroughputMbps: activeMeshTab === 'reverse' ? 31 : 35,
+        throughputEstimated: activeMeshTab === 'reverse' ? false : true,
+        forwardThroughputMbps: 35,
+        reverseThroughputMbps: 31,
+        forwardThroughputEstimated: true,
+        reverseThroughputEstimated: false,
+      });
+
+      const active = viewModel.truth.primaryMetrics.find((metric) => metric.label === expectedLabel);
+      expect(active).toBeTruthy();
+      // The summary must quote the active direction's rate...
+      expect(viewModel.truth.summary).toContain(active!.display);
+      // ...and agree with it about delivered vs estimated.
+      expect(viewModel.truth.summary).toContain(
+        active!.provenance === 'estimated-ceiling' ? 'estimated ceiling' : 'delivered',
+      );
+      return active!;
+    };
+
+    expect(forDirection('MESH', 'forward', 'A → B throughput').value).toBe(35);
+    expect(forDirection('MESH', 'reverse', 'B → A throughput').value).toBe(31);
+    expect(forDirection('STAR_FORWARD', 'forward', 'Downlink throughput').value).toBe(35);
+    expect(forDirection('STAR_RETURN', 'reverse', 'Uplink throughput').value).toBe(31);
+  });
+
+  it('publishes both GEO service directions without positional inference', () => {
+    const viewModel = buildGeoEngineeringAnalysisViewModel({
+      linkMode: 'MESH',
+      result: makeGeoResult(4.5),
+      deliveredThroughputMbps: 35,
+      forwardThroughputMbps: 35,
+      reverseThroughputMbps: 31,
+      forwardThroughputEstimated: true,
+      reverseThroughputEstimated: false,
+    });
+
+    const throughputs = viewModel.truth.primaryMetrics.filter((metric) => metric.label.includes('throughput'));
+    expect(throughputs.map((metric) => [metric.label, metric.value, metric.provenance])).toEqual([
+      ['A → B throughput', 35, 'estimated-ceiling'],
+      ['B → A throughput', 31, 'delivered'],
+    ]);
   });
 
   describe('Phase 1 topology and state matrix', () => {

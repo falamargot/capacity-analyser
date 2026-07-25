@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { analyzeLeoConnectivity, DEFAULT_LEO_OVERHEAD_MS } from '../leoConnectivityModel';
 
-// LEO-1 regression: single-site LEO latency must be a genuine one-way figure
-// (matching GEO's convention and the LEO site-to-site path's oneWayLatencyAtoB/
-// BtoAMs), not half of rttTotalMs — overhead is a one-time cost, not doubled,
-// so oneWayLatencyMs must be MORE than half of rttTotalMs.
+// #6 regression: single-site LEO latency is a genuine one-way figure
+// (radio + full network overhead + one-way fiber). The round trip charges the
+// same propagation, overhead, and fiber leg per traversal, so the invariant is
+// rttTotalMs = 2 × oneWayLatencyMs — matching the S2S model's convention.
 describe('analyzeLeoConnectivity — oneWayLatencyMs', () => {
   const args = {
     userToSatelliteDistanceKm: 1000,
@@ -14,17 +14,14 @@ describe('analyzeLeoConnectivity — oneWayLatencyMs', () => {
     snpToPopFiberDelayMs: 15,
   };
 
-  it('is oneWayRadioMs + overhead total + one-way fiber (not rttTotalMs / 2)', () => {
+  it('is oneWayRadioMs + overhead total + one-way fiber, and exactly half of rttTotalMs', () => {
     const result = analyzeLeoConnectivity(args);
 
     const expectedOneWay = result.oneWayRadioMs + result.overheadMs.total + args.snpToPopFiberDelayMs;
     expect(result.oneWayLatencyMs).toBeCloseTo(expectedOneWay, 5);
 
-    // Overhead is charged once in oneWayLatencyMs but is NOT doubled in
-    // rttTotalMs either (only propagation and fiber double), so the one-way
-    // figure is more than half the round trip, not exactly half.
-    expect(result.oneWayLatencyMs).toBeGreaterThan(result.rttTotalMs / 2);
-    expect(result.oneWayLatencyMs).toBeLessThan(result.rttTotalMs);
+    // #6 invariant: RTT is the round trip, so it is exactly twice the one-way.
+    expect(result.rttTotalMs).toBeCloseTo(result.oneWayLatencyMs * 2, 5);
   });
 
   it('doubling propagation distance increases oneWayLatencyMs by the propagation delta only', () => {

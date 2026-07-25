@@ -97,4 +97,26 @@ describe('domain confidence builders', () => {
     expect(confidence.level).toBe('High');
     expect(confidence.factors.find((factor) => factor.id === 'capacity-class')?.reason).toBe('Satellite payload capacity class identified');
   });
+
+  it('#7: an unconfirmed MESH cross-connect caps GEO confidence below High and flags it', () => {
+    const fullEvidence = {
+      mode: 'ENG' as const,
+      topology: 'Site-to-Site' as const,
+      coverageAvailable: true,
+      rfAvailable: true,
+      publicFrequencyEvidence: true,
+      gatewayResolved: true,
+      capacityClassKnown: true,
+      regulatoryKnown: true,
+      routePending: false,
+    };
+
+    const confirmed = buildGeoConfidence(fullEvidence);
+    expect(confirmed.level).toBe('High');
+
+    const crossConnect = buildGeoConfidence({ ...fullEvidence, crossConnectUnconfirmed: true });
+    expect(crossConnect.score).toBeLessThanOrEqual(60);
+    expect(crossConnect.level).not.toBe('High');
+    expect(crossConnect.caps.some((c) => c.id === 'crossconnect-unconfirmed')).toBe(true);
+  });
 });

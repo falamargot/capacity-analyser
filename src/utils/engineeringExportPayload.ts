@@ -7,7 +7,6 @@ import { buildDataProvenance, type DataNature, type DataProvenanceDescriptor } f
 import type { PDFConnectionDetails, PDFEvidenceSummary } from './pdfExport';
 import type { ExportButtonPayload } from '../components/ExportButton';
 import type { EngineeringTruthSet } from './engineeringAnalysisViewModel';
-import type { LinkMode } from '../types/linkMode';
 import type { SatelliteScope } from '../components/SatelliteScopeFilter';
 import type {
   GEOGeometry,
@@ -15,16 +14,24 @@ import type {
   LEOPerformance,
   ResolvedGEOConnectivity,
   ResolvedLEOConnectivity,
-  TerminalType,
   WeatherType,
 } from '../components/capacity';
-import { TERMINAL_PROFILES } from '../components/capacity';
 import type { LeoTerminalProfile } from '../config/leoTerminals';
 import type { CandidateCoverage } from '../types/analysis';
 import type { BeamLoadResult } from './capacityLayer';
 import type { LeoConnectivityResult } from './leoConnectivityModel';
 import type { ActiveLeoPerformance } from './activeLeoRouteEvidence';
 import type { LeoSiteToSiteResult } from './leoSiteToSiteModel';
+import type { CanonicalRouteMetricSet } from './canonicalRouteMetrics';
+import type { GeoPerformanceEstimate } from '../types/geoPerformance';
+
+export type { GeoPerformanceEstimate };
+import {
+  effectiveRxCapMbps,
+  effectiveTxCapMbps,
+  getGeoModemProfile,
+  type GeoModemId,
+} from './geoModemCatalogue';
 
 /**
  * Pure builders for the PDF/export payload — extracted verbatim from
@@ -32,15 +39,6 @@ import type { LeoSiteToSiteResult } from './leoSiteToSiteModel';
  * functions must never derive an engineering outcome themselves: every value
  * is read from the already-published analysis results.
  */
-
-export interface GeoPerformanceEstimate {
-  downlinkGbps: number;
-  uplinkGbps: number;
-  stability: string;
-  performanceFactor: number;
-  weatherFactor: number;
-  weatherLabel: string;
-}
 
 export interface MobileLeoMetricsSummary {
   rtt?: number | null;
@@ -288,20 +286,45 @@ export function buildLeoPdfDetails({
 export interface BuildGeoPdfDetailsInputs {
   resolvedGEOConnectivity: ResolvedGEOConnectivity | null;
   geoGeometry: GEOGeometry | null;
-  geoTerminalType: TerminalType;
   analysisSource?: 'earth' | 'aircraft';
   aircraftCallsign?: string;
   geoPerformance: GeoPerformanceEstimate | null;
+  canonicalRouteMetrics?: CanonicalRouteMetricSet['GEO'] | null;
+  geoModemIdA?: GeoModemId | null;
+  geoModemIdB?: GeoModemId | null;
 }
 
 export function buildGeoPdfDetails({
   resolvedGEOConnectivity,
   geoGeometry,
-  geoTerminalType,
   analysisSource,
   aircraftCallsign,
   geoPerformance,
+  canonicalRouteMetrics,
+  geoModemIdA,
+  geoModemIdB,
 }: BuildGeoPdfDetailsInputs): PDFConnectionDetails | null {
+  const modemA = getGeoModemProfile(geoModemIdA);
+  const modemB = getGeoModemProfile(geoModemIdB);
+  // An unpublished ceiling stays null. `?? 0` here printed "Terminal max downlink:
+  // 0 Mbps" for modems whose datasheet quotes no usable maximum (iQ 200's floor-only
+  // "300+", the CDM-780's "several Gbps") — inventing a hard zero where the whole
+  // catalogue contract is that an uncited ceiling is simply unknown.
+  const capGbps = (capMbps: number | null): number | null => (capMbps != null ? capMbps / 1000 : null);
+  const customerRxGbps = modemA ? capGbps(effectiveRxCapMbps(modemA)) : null;
+  const customerTxGbps = modemA ? capGbps(effectiveTxCapMbps(modemA)) : null;
+  const modemNotes = [
+    modemA ? `Endpoint A modem: ${modemA.label} · ${modemA.source} · ${modemA.datasheetRevision}` : 'Endpoint A modem: not selected',
+    modemB ? `Endpoint B / gateway modem: ${modemB.label} · ${modemB.source} · ${modemB.datasheetRevision}` : 'Endpoint B / gateway modem: not selected',
+  ];
+  const planningNotes = [
+    canonicalRouteMetrics?.forward.planningRangeMbps
+      ? `A→B planning range: ${canonicalRouteMetrics.forward.planningRangeMbps.conservative?.toFixed(1) ?? '--'}–${canonicalRouteMetrics.forward.planningRangeMbps.nominal?.toFixed(1) ?? '--'} Mbps (conservative–nominal)`
+      : null,
+    canonicalRouteMetrics?.reverse.planningRangeMbps
+      ? `B→A planning range: ${canonicalRouteMetrics.reverse.planningRangeMbps.conservative?.toFixed(1) ?? '--'}–${canonicalRouteMetrics.reverse.planningRangeMbps.nominal?.toFixed(1) ?? '--'} Mbps (conservative–nominal)`
+      : null,
+  ].filter((note): note is string => note != null);
   if (!resolvedGEOConnectivity || !geoGeometry) {
     return {
       radioPath: 'No GEO visibility or beam coverage',
@@ -311,9 +334,9 @@ export function buildGeoPdfDetails({
         rttMs: null,
         downlinkGbps: null,
         uplinkGbps: null,
-        maxDlGbps: TERMINAL_PROFILES[geoTerminalType].maxDlGbps,
-        maxUlGbps: TERMINAL_PROFILES[geoTerminalType].maxUlGbps,
-        notes: ['No GEO coverage available'],
+        maxDlGbps: customerRxGbps,
+        maxUlGbps: customerTxGbps,
+        notes: ['No GEO coverage available', ...modemNotes, ...planningNotes],
       },
     };
   }
@@ -364,14 +387,20 @@ export function buildGeoPdfDetails({
     },
     performance: {
       rttLabel: 'End-to-End GEO RTT',
-      rttMs: geoGeometry.rttTotalMs,
-      downlinkGbps: geoPerformance?.downlinkGbps ?? null,
-      uplinkGbps: geoPerformance?.uplinkGbps ?? null,
-      maxDlGbps: TERMINAL_PROFILES[geoTerminalType].maxDlGbps,
-      maxUlGbps: TERMINAL_PROFILES[geoTerminalType].maxUlGbps,
+      rttMs: canonicalRouteMetrics?.rttMs ?? geoGeometry.rttTotalMs,
+      downlinkGbps: canonicalRouteMetrics?.forward.throughputMbps != null
+        ? canonicalRouteMetrics.forward.throughputMbps / 1000
+        : geoPerformance?.downlinkGbps ?? null,
+      uplinkGbps: canonicalRouteMetrics?.reverse.throughputMbps != null
+        ? canonicalRouteMetrics.reverse.throughputMbps / 1000
+        : geoPerformance?.uplinkGbps ?? null,
+      maxDlGbps: customerRxGbps,
+      maxUlGbps: customerTxGbps,
+      downlinkEstimated: canonicalRouteMetrics?.forward.estimated ?? geoPerformance?.downloadEstimated ?? geoPerformance?.throughputEstimated,
+      uplinkEstimated: canonicalRouteMetrics?.reverse.estimated ?? geoPerformance?.uploadEstimated ?? geoPerformance?.throughputEstimated,
       stability: geoGeometry.isUserLinkUnstable ? 'Unstable' : geoPerformance?.stability ?? null,
       performanceFactor: geoPerformance?.performanceFactor ?? null,
-      notes: geoPerformance ? [`Basis: ${geoPerformance.weatherLabel}`] : [],
+      notes: [...(geoPerformance ? [`Basis: ${geoPerformance.weatherLabel}`] : []), ...modemNotes, ...planningNotes],
     },
   };
 }
@@ -391,12 +420,12 @@ export interface BuildEngineeringExportPayloadInputs {
   resolvedGEOConnectivity: ResolvedGEOConnectivity | null;
   geoGeometry: GEOGeometry | null;
   geoPerformance: GeoPerformanceEstimate | null;
+  canonicalRouteMetrics?: CanonicalRouteMetricSet;
+  geoModemIdA?: GeoModemId | null;
+  geoModemIdB?: GeoModemId | null;
   selectedLeoTerminalProfile?: LeoTerminalProfile | null;
-  geoTerminalType?: TerminalType;
   geoCoverage?: CandidateCoverage | null;
   beamLoadResult?: BeamLoadResult | null;
-  linkMode: LinkMode;
-  activeMeshTab?: 'forward' | 'reverse';
   leoPdfDetails: PDFConnectionDetails | null;
   geoPdfDetails: PDFConnectionDetails | null;
   globeRef?: RefObject<HTMLDivElement | null>;
@@ -418,12 +447,12 @@ export function buildEngineeringExportPayload({
   resolvedGEOConnectivity,
   geoGeometry,
   geoPerformance,
+  canonicalRouteMetrics,
+  geoModemIdA,
+  geoModemIdB,
   selectedLeoTerminalProfile,
-  geoTerminalType = 'fixed',
   geoCoverage = null,
   beamLoadResult = null,
-  linkMode,
-  activeMeshTab,
   leoPdfDetails,
   geoPdfDetails,
   globeRef,
@@ -443,10 +472,11 @@ export function buildEngineeringExportPayload({
     ? throughputMetrics.map((metric) => `${metric.label}: ${metric.display}`).join(' / ')
     : chosenTruth?.headline ?? 'No deliverable performance';
   const leoTruthThroughputs = engineeringTruths.LEO?.primaryMetrics.filter((metric) => /throughput/i.test(metric.label)) ?? [];
-  const geoTruthThroughputs = engineeringTruths.GEO?.primaryMetrics.filter((metric) => /throughput/i.test(metric.label)) ?? [];
   const leoDownlinkMbps = leoTruthThroughputs.find((metric) => /downlink/i.test(metric.label))?.value ?? leoTruthThroughputs[0]?.value ?? null;
   const leoUplinkMbps = leoTruthThroughputs.find((metric) => /uplink/i.test(metric.label))?.value ?? null;
-  const geoForwardMbps = geoTruthThroughputs[0]?.value ?? null;
+  const geoCanonical = canonicalRouteMetrics?.GEO;
+  const geoForwardMbps = geoCanonical?.forward.throughputMbps ?? null;
+  const geoReverseMbps = geoCanonical?.reverse.throughputMbps ?? null;
   const availabilityContext = buildLinkAvailabilityContext({
     architecture: preferLeo ? 'LEO' : 'GEO',
     weatherType,
@@ -476,10 +506,12 @@ export function buildEngineeringExportPayload({
             : 'Representative generic planning profile',
       }
     : {
-        source: `Capacity Analyzer GEO terminal assumption · ${TERMINAL_PROFILES[geoTerminalType].label}`,
+        source: [getGeoModemProfile(geoModemIdA)?.label, getGeoModemProfile(geoModemIdB)?.label].filter(Boolean).join(' ↔ ') || 'No GEO modem selected',
         nature: 'estimated',
         asOf: null,
-        note: 'Representative planning profile, not a selected equipment datasheet',
+        note: getGeoModemProfile(geoModemIdA) && getGeoModemProfile(geoModemIdB)
+          ? 'Selected endpoint modem catalogue profiles; verify topology and published directional limits.'
+          : 'Missing endpoint modem: RF throughput remains an estimated ceiling.',
       };
   const coverageFrequency: DataProvenanceDescriptor | undefined = !preferLeo && geoCoverage
     ? {
@@ -544,11 +576,12 @@ export function buildEngineeringExportPayload({
       serviceState: geoTruth?.state ?? 'incomplete',
       serviceReason: geoTruth?.headline,
       elevation: geoGeometry?.userToSatellite.elevationDeg ?? null,
-      rtt: geoGeometry?.rttTotalMs ?? null,
-      downlinkGbps: linkMode === 'STAR_RETURN' || activeMeshTab === 'reverse' || geoForwardMbps == null || geoForwardMbps <= 0 ? null : geoForwardMbps / 1000,
-      uplinkGbps: linkMode === 'STAR_RETURN' || activeMeshTab === 'reverse'
-        ? (geoForwardMbps != null && geoForwardMbps > 0 ? geoForwardMbps / 1000 : null)
-        : null,
+      rtt: geoCanonical?.rttMs ?? geoGeometry?.rttTotalMs ?? null,
+      downlinkGbps: geoForwardMbps != null && geoForwardMbps > 0 ? geoForwardMbps / 1000 : null,
+      uplinkGbps: geoReverseMbps != null && geoReverseMbps > 0 ? geoReverseMbps / 1000 : null,
+      downloadEstimated: geoCanonical?.forward.estimated,
+      uploadEstimated: geoCanonical?.reverse.estimated,
+      throughputEstimated: geoCanonical?.forward.estimated === true || geoCanonical?.reverse.estimated === true,
       stability: (() => {
         return geoGeometry?.isUserLinkUnstable ? 'Unstable' : geoPerformance?.stability ?? 'Unstable';
       })(),

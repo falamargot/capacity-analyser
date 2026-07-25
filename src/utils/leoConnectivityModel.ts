@@ -21,15 +21,17 @@ const DEFAULT_RANGES = {
   minUserTerminalElevationDeg: MIN_USER_TERMINAL_ELEVATION_DEG,
   minSnpGatewayElevationDeg: MIN_SNP_GATEWAY_ELEVATION_DEG,
   /**
-   * Minimum plausible RTT: 4-hop radio (~16 ms) + overhead (~20 ms) + fiber RTT
-   * (≥ ~10 ms with the per-SNP PoP-derived fiber leg, floor 5 ms one-way) ≈ 46 ms.
-   * OneWeb publicly targets <70 ms; APNIC measured ~50 ms minimum from eastern
-   * US (SNP closest to a PoP) — which is exactly the short-fiber case the
-   * per-SNP model now represents.
+   * Minimum plausible RTT under the per-traversal overhead convention (#6, RTT =
+   * 2 × one-way): 4-hop radio (~16 ms) + overhead ×2 (~40 ms) + fiber RTT (≥ ~10 ms
+   * with the per-SNP PoP-derived fiber leg, floor 5 ms one-way) ≈ 66 ms. Bounds
+   * widened accordingly (previously ~46 ms when overhead was charged once). OneWeb
+   * publicly targets <70 ms and APNIC measured ~50 ms one-way-ish minimums; those
+   * best-case figures sit near/just below this model's lower bound, which now
+   * charges return-path processing explicitly like the S2S model.
    */
-  expectedRttMinMs: 45,
-  expectedRttMaxMs: 140,
-  suspiciousLowRttMs: 40,
+  expectedRttMinMs: 60,
+  expectedRttMaxMs: 170,
+  suspiciousLowRttMs: 55,
 };
 
 interface AnalyzeLeoConnectivityArgs {
@@ -63,10 +65,11 @@ export interface LeoConnectivityResult {
   rttTotalMs: number;
   /**
    * One-way user latency: radio propagation (user → satellite → SNP) + network
-   * overhead + one-way SNP↔PoP fiber leg. NOT half of rttTotalMs — overhead is
-   * a one-time cost, not doubled, so this is slightly more than rttTotalMs / 2.
-   * Matches the GEO one-way-latency convention (propagation + overheadMs.total);
-   * use this for any user-facing "latency" figure — rttTotalMs is a round trip.
+   * overhead + one-way SNP↔PoP fiber leg. Exactly half of rttTotalMs (#6): the
+   * round trip charges the same propagation, overhead, and fiber leg per traversal,
+   * so rttTotalMs = 2 × oneWayLatencyMs. Matches the GEO one-way-latency convention
+   * (propagation + overheadMs.total); use this for any user-facing "latency" figure
+   * — rttTotalMs is the round trip.
    */
   oneWayLatencyMs: number;
   warnings: string[];
@@ -105,8 +108,15 @@ export function analyzeLeoConnectivity({
   // No-ISL architecture: traffic transits SNP → fiber → internet PoP (round-trip).
   const snpToPopFiberRttMs = 2 * snpToPopFiberDelayMs;
 
-  const rttTotalMs = rttPropagationMs + networkOverheadTotalMs + snpToPopFiberRttMs;
+  // One-way user latency: radio propagation + full network overhead + one-way
+  // fiber leg.
   const oneWayLatencyMs = oneWayRadioMs + networkOverheadTotalMs + snpToPopFiberDelayMs;
+  // RTT is the round trip — forward + return — each traversal incurring the same
+  // propagation, network overhead, and fiber leg. Enforce RTT = 2 × one-way (#6)
+  // so the two figures are a coherent contract and network overhead is charged
+  // per traversal, not once. This matches the S2S model, whose rttMs is likewise
+  // oneWayAtoB + oneWayBtoA — one convention across both LEO latency models.
+  const rttTotalMs = 2 * oneWayLatencyMs;
 
   const warnings: string[] = [];
   const isUserLinkUnstable = userToSatelliteElevationDeg < DEFAULT_RANGES.minUserTerminalElevationDeg;

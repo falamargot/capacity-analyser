@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import type { CandidateCoverage } from '../../types/analysis';
 import type { EngineeringConfigureDraft } from '../../types/engineeringConfigure';
+import { getCandidateCoverageKey } from '../../utils/geoCoverageSelection';
 import HeaderScenarioBuilder, { HeaderRouteStatusPanel, type HeaderRouteStatusItem, type SiteConfig } from './HeaderScenarioBuilder';
 
 const route: HeaderRouteStatusItem = {
@@ -153,6 +154,58 @@ describe('HeaderScenarioBuilder engineering Configure workflow', () => {
 
     expect(markup).toContain('E21B Europe A West Transmit');
     expect(markup).not.toContain('EUTELSAT 21B · 4');
+  });
+
+  it('only offers site-to-site beams whose satellite is selectable on both active legs', () => {
+    const candidate = (
+      satelliteId: string,
+      coverageKey: string,
+      coverageName: string,
+      isUplink: boolean,
+    ) => ({
+      satelliteId,
+      satelliteName: satelliteId,
+      coverageKey,
+      coverageName,
+      beamName: coverageName,
+      beamId: coverageKey,
+      isUplink,
+      isSynthesized: false,
+    }) as CandidateCoverage;
+    const uplinkE16A = candidate('E16A', 'ul-e16a', 'E16A Africa East Receive', true);
+    const uplinkE21B = candidate('E21B', 'ul-e21b', 'E21B Western Receive', true);
+    const downlinkE16A = candidate('E16A', 'dl-e16a', 'E16A Europe A West Transmit', false);
+    const downlinkE21B = candidate('E21B', 'dl-e21b', 'E21B Western Transmit', false);
+    const downlinkE10B = candidate('E10B', 'dl-e10b', 'E10B Widebeam Transmit', false);
+
+    const markup = renderToStaticMarkup(
+      <HeaderScenarioBuilder
+        siteA={site('Origin', 'Mauritania')}
+        siteB={site('Destination', 'Golmayo')}
+        onSwap={() => undefined}
+        engineeringConfigure={{
+          baseline: {
+            ...configureBaseline,
+            geoLinkMode: 'POINT_TO_POINT',
+            selectionPolicy: 'manual',
+            geoUplinkKeyA: getCandidateCoverageKey(uplinkE16A),
+            geoDownlinkKeyB: getCandidateCoverageKey(downlinkE16A),
+          },
+          truths: {},
+          candidates: {
+            siteA: [uplinkE16A, uplinkE21B],
+            siteB: [downlinkE16A, downlinkE21B, downlinkE10B],
+          },
+          onApply: () => undefined,
+        }}
+      />,
+    );
+
+    expect(markup).toContain('E16A Africa East Receive');
+    expect(markup).toContain('E21B Western Receive');
+    expect(markup).toContain('E16A Europe A West Transmit');
+    expect(markup).toContain('E21B Western Transmit');
+    expect(markup).not.toContain('E10B Widebeam Transmit');
   });
 });
 

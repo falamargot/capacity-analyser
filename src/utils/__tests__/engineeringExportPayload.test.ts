@@ -135,10 +135,40 @@ const geoPerformance: GeoPerformanceEstimate = {
   weatherLabel: 'Selected link budget',
 };
 
+const canonicalRouteMetrics = {
+  GEO: {
+    technology: 'GEO' as const,
+    topology: 'STAR_FORWARD',
+    activeDirection: 'forward' as const,
+    forward: { throughputMbps: 18, oneWayLatencyMs: 274.2, estimated: false, available: true, limitingFactor: null },
+    reverse: { throughputMbps: 9, oneWayLatencyMs: 274.2, estimated: false, available: true, limitingFactor: null },
+    rttMs: 548.4,
+    state: 'constrained' as const,
+    stateReason: 'Shared capacity',
+  },
+  LEO: {
+    technology: 'LEO' as const,
+    topology: 'SINGLE_SITE',
+    activeDirection: 'forward' as const,
+    forward: { throughputMbps: 18, oneWayLatencyMs: 36, estimated: false, available: true, limitingFactor: null },
+    reverse: { throughputMbps: 12, oneWayLatencyMs: 36, estimated: false, available: true, limitingFactor: null },
+    rttMs: 72,
+    state: 'available' as const,
+    stateReason: null,
+  },
+};
+
 const truths: EngineeringTruthSet = {
   GEO: buildGeoEngineeringAnalysisViewModel({
     linkMode: 'STAR_FORWARD',
     result: makeGeoResult(4.5),
+    // The truth publishes only what the canonical delivery chain produced.
+    deliveredThroughputMbps: canonicalRouteMetrics.GEO.forward.throughputMbps,
+    throughputEstimated: canonicalRouteMetrics.GEO.forward.estimated,
+    forwardThroughputMbps: canonicalRouteMetrics.GEO.forward.throughputMbps,
+    reverseThroughputMbps: canonicalRouteMetrics.GEO.reverse.throughputMbps,
+    forwardThroughputEstimated: canonicalRouteMetrics.GEO.forward.estimated,
+    reverseThroughputEstimated: canonicalRouteMetrics.GEO.reverse.estimated,
     satelliteName: 'EUTELSAT TEST',
     latencyMs: 548,
     confidenceLabel: 'High 89/100',
@@ -170,6 +200,41 @@ const geoPdfDetails = buildGeoPdfDetails({
   geoGeometry,
   geoTerminalType: 'fixed',
   geoPerformance,
+  canonicalRouteMetrics: canonicalRouteMetrics.GEO,
+  geoModemIdA: 'idirect_mdm5010',
+  geoModemIdB: 'idirect_mdm2510',
+});
+
+describe('GEO PDF terminal ceilings', () => {
+  it('leaves an unpublished modem ceiling null instead of printing a hard 0', () => {
+    // iQ 200 publishes "300+ Mbps" — a floor, not a maximum — so it has no usable
+    // ceiling. `?? 0` here previously exported "Terminal max downlink: 0 Mbps".
+    const details = buildGeoPdfDetails({
+      resolvedGEOConnectivity: resolvedGeo,
+      geoGeometry,
+      geoPerformance,
+      canonicalRouteMetrics: canonicalRouteMetrics.GEO,
+      geoModemIdA: 'idirect_iq200',
+      geoModemIdB: 'idirect_mdm2510',
+    });
+
+    expect(details?.performance?.maxDlGbps).toBeNull();
+    expect(details?.performance?.maxUlGbps).toBeNull();
+  });
+
+  it('reports a published directional ceiling in Gbps', () => {
+    const details = buildGeoPdfDetails({
+      resolvedGEOConnectivity: resolvedGeo,
+      geoGeometry,
+      geoPerformance,
+      canonicalRouteMetrics: canonicalRouteMetrics.GEO,
+      geoModemIdA: 'idirect_mdm5010',
+      geoModemIdB: 'idirect_mdm2510',
+    });
+
+    expect(details?.performance?.maxDlGbps).toBeCloseTo(0.8, 9);
+    expect(details?.performance?.maxUlGbps).toBeCloseTo(0.3, 9);
+  });
 });
 
 describe('M2 export payload golden', () => {
@@ -216,6 +281,9 @@ describe('M2 export payload golden', () => {
       resolvedGEOConnectivity: resolvedGeo,
       geoGeometry,
       geoPerformance,
+      canonicalRouteMetrics,
+      geoModemIdA: 'idirect_mdm5010',
+      geoModemIdB: 'idirect_mdm2510',
       selectedLeoTerminalProfile: getLeoTerminalProfile('fixed'),
       linkMode: 'STAR_FORWARD',
       leoPdfDetails,
@@ -237,6 +305,9 @@ describe('M2 export payload golden', () => {
       resolvedGEOConnectivity: resolvedGeo,
       geoGeometry,
       geoPerformance,
+      canonicalRouteMetrics,
+      geoModemIdA: 'idirect_mdm5010',
+      geoModemIdB: 'idirect_mdm2510',
       linkMode: 'STAR_RETURN',
       leoPdfDetails: null,
       geoPdfDetails,

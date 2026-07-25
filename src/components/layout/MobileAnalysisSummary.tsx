@@ -747,18 +747,25 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                         ? (metrics.mesh.reverseMbps != null ? metrics.mesh.reverseMbps / 1000 : null)
                         : (metrics.mesh.forwardMbps != null ? metrics.mesh.forwardMbps / 1000 : null),
                     uplinkGbps: null,
+                    downlinkEstimated: activeMeshTab === 'reverse'
+                        ? metrics.mesh.reverseEstimatedCeiling === true
+                        : metrics.mesh.forwardEstimatedCeiling === true,
+                    uplinkEstimated: false,
                 }
                 : null;
+            const displayedGeoMetrics = meshDisplayMetrics ?? metrics?.geo;
+            const downloadIsEstimated = displayedGeoMetrics?.downlinkEstimated === true;
+            const uploadIsEstimated = displayedGeoMetrics?.uplinkEstimated === true;
             cards.push({
                 key: 'geo',
                 label: 'GEO',
-                metrics: geoDeliveryAvailable ? (meshDisplayMetrics ?? metrics?.geo) : null,
+                metrics: geoDeliveryAvailable ? displayedGeoMetrics : null,
                 accentClassName: 'text-blue-600 dark:text-blue-300',
                 borderClassName: 'border-blue-200/80 dark:border-blue-400/20',
                 topologyLabel: onLinkModeChange ? undefined : `Topology · ${LINK_MODE_LABELS[linkMode]}`,
                 latencyLabel: isMeshMode ? `${selectedRouteLabel} latency` : 'Latency',
-                downlinkLabel: isMeshMode ? selectedRouteLabel : isStarForward ? 'Forward link' : 'Downlink',
-                uplinkLabel: isMeshMode ? 'Return' : isStarReturn ? 'Return link' : 'Uplink',
+                downlinkLabel: isMeshMode ? `${selectedRouteLabel}${downloadIsEstimated ? ' (est.)' : ''}` : isStarForward ? `Forward link${downloadIsEstimated ? ' (est.)' : ''}` : 'Downlink',
+                uplinkLabel: isMeshMode ? 'Return' : isStarReturn ? `Return link${uploadIsEstimated ? ' (est.)' : ''}` : 'Uplink',
                 linkModeControls: onLinkModeChange ? {
                     activeMode: linkMode,
                     onChange: onLinkModeChange,

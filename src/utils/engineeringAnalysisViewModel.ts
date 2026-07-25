@@ -1,7 +1,7 @@
 import type { LinkMode } from '../types/linkMode';
 import type { LeoThroughputLeg, LeoThroughputResult } from '../types/leoThroughput';
 import type { LeoSiteToSiteResult } from './leoSiteToSiteModel';
-import { getDisplayedThroughput, type DualSegmentResult } from './geoDualSegmentBudget';
+import type { DualSegmentResult } from './geoDualSegmentBudget';
 import { fmtDb, fmtMbps, fmtMs, fmtThroughputLoss, parsePct, parseConfidence, type PredictionConfidenceSummary } from './engineeringFormat';
 import type { PredictionConfidence } from './predictionConfidence';
 import { deriveLegLinkMarginDb } from './leoBottleneck';
@@ -21,7 +21,7 @@ export type EngineeringServiceState =
   | 'uncertain';
 
 export type EngineeringEvidenceState = 'passed' | 'warning' | 'blocked' | 'pending' | 'not-evaluated';
-export type EngineeringMetricProvenance = 'delivered' | 'rf-potential' | 'diagnostic' | 'unavailable';
+export type EngineeringMetricProvenance = 'delivered' | 'estimated-ceiling' | 'rf-potential' | 'diagnostic' | 'unavailable';
 export type EngineeringCauseStageId = 'scenario' | 'path' | 'rf' | 'service' | 'delivery';
 
 export interface EngineeringEvidenceItem {
@@ -167,6 +167,25 @@ export interface EngineeringAnalysisViewModel {
 export interface BuildGeoEngineeringAnalysisInput {
   linkMode: LinkMode;
   result: DualSegmentResult | null;
+  /**
+   * #4: modem-limited delivered/estimated throughput (Mbps) for the active direction,
+   * from the canonical chain (meshMetrics for MESH; geoEffectivePerformance's modem
+   * cap for STAR). When provided it overrides the raw RF `getDisplayedThroughput` so
+   * the ENG inspector truth — and the PDF export that reads that truth — consume the
+   * modem-limited figure, not the uncapped RF. Omit (undefined) to keep the raw RF.
+   */
+  deliveredThroughputMbps?: number | null;
+  /**
+   * #4: true when the throughput above is a modem-unbounded ESTIMATED CEILING (no
+   * known directional modem cap bounding both ends), not a delivered rate. Labels the
+   * throughput metric/headline as "estimated ceiling" rather than "delivered".
+   */
+  throughputEstimated?: boolean;
+  /** Canonical service directions for summary/header/export consumers. */
+  forwardThroughputMbps?: number | null;
+  reverseThroughputMbps?: number | null;
+  forwardThroughputEstimated?: boolean;
+  reverseThroughputEstimated?: boolean;
   activeMeshTab?: 'forward' | 'reverse';
   satelliteName?: string;
   latencyMs?: number | null;
@@ -340,17 +359,33 @@ const leoLegLimitLabel = (leg: LeoThroughputLeg | null) => {
 };
 
 export function buildGeoEngineeringAnalysisViewModel(input: BuildGeoEngineeringAnalysisInput): EngineeringAnalysisViewModel {
-  const activeDirection = input.activeMeshTab === 'reverse' && input.result?.reverse ? 'reverse' : 'forward';
-  const activePath = activeDirection === 'reverse' ? input.result?.reverse : input.result?.forward;
+  // NOTE: this is the RESULT-SLOT direction — which leg of the DualSegmentResult to
+  // read — NOT the service direction. A STAR result stores its single modeled
+  // direction in `.forward`, so a STAR_RETURN route resolves to the 'forward' SLOT
+  // while its SERVICE direction is 'reverse'. The service direction is decided once,
+  // upstream, by `activeGeoServiceDirection`; the caller passes the numbers it
+  // selected with that rule via the explicit throughput props below. Never use this
+  // local to pick a service-direction figure.
+  const resultSlot = input.activeMeshTab === 'reverse' && input.result?.reverse ? 'reverse' : 'forward';
+  const activePath = resultSlot === 'reverse' ? input.result?.reverse : input.result?.forward;
   const e2e = activePath?.endToEnd ?? null;
-  const activeNetworkLayer = activeDirection === 'reverse'
+  const activeNetworkLayer = resultSlot === 'reverse'
     ? input.result?.networkLayer?.reverse
     : input.result?.networkLayer?.forward;
   const marginDb = e2e?.endToEndLinkMarginDb ?? null;
   const status = geoStatusFromMargin(marginDb);
   const limitingSegment = e2e?.limitingSegment === 'uplink' ? 'Uplink' : e2e?.limitingSegment === 'downlink' ? 'Downlink' : '--';
   const limitLabel = networkLimitLabel(activeNetworkLayer?.limitingFactor);
-  const displayedThroughput = input.result ? getDisplayedThroughput(input.result, activeDirection) : null;
+  // The throughput is whatever the canonical delivery chain produced for the active
+  // service direction. There is deliberately NO fallback to the raw RF figure: a
+  // number derived here would be un-modem-limited yet labelled "delivered", which is
+  // exactly the contract this builder is supposed to have stopped publishing.
+  const displayedThroughput = input.deliveredThroughputMbps ?? null;
+  // #4 labeling: a figure with no known modem cap bounding both ends is an estimated
+  // ceiling, not a delivered rate — never present it as delivered.
+  const throughputProvenance: EngineeringMetricProvenance =
+    input.throughputEstimated === true ? 'estimated-ceiling' : 'delivered';
+  const deliveredWord = throughputProvenance === 'estimated-ceiling' ? 'estimated ceiling' : 'delivered';
   const title = input.satelliteName ?? input.result?.forward.uplink.candidate.satelliteName ?? 'GEO engineering analysis';
   const confidence = parseConfidence(input.confidenceLabel, input.confidenceDetail);
   const scenarioComplete = input.scenarioComplete ?? true;
@@ -426,15 +461,51 @@ export function buildGeoEngineeringAnalysisViewModel(input: BuildGeoEngineeringA
                 : 'Service available';
 
   const canDeliver = isEngineeringDeliveryState(truthState);
-  const primaryMetrics: EngineeringTruthMetric[] = canDeliver
+  const isGeoSiteToSite = input.linkMode === 'MESH' || input.linkMode === 'POINT_TO_POINT';
+  const forwardThroughput = input.forwardThroughputMbps ?? null;
+  const reverseThroughput = input.reverseThroughputMbps ?? null;
+  const forwardThroughputEstimated = input.forwardThroughputEstimated
+    ?? (resultSlot === 'forward' && input.throughputEstimated === true);
+  const reverseThroughputEstimated = input.reverseThroughputEstimated
+    ?? (resultSlot === 'reverse' && input.throughputEstimated === true);
+  const deliveredThroughputDetail = activeNetworkLayer
+    ? 'Final rate after protocol and network constraints'
+    : 'RF-derived end-to-end rate';
+  const directionalThroughputMetrics = isGeoSiteToSite || input.forwardThroughputMbps !== undefined || input.reverseThroughputMbps !== undefined
     ? [
         metric(
-          activeDirection === 'reverse' ? 'B → A throughput' : input.linkMode === 'STAR_RETURN' ? 'Return throughput' : input.linkMode === 'STAR_FORWARD' ? 'Forward throughput' : 'A → B throughput',
+          isGeoSiteToSite ? 'A → B throughput' : 'Downlink throughput',
+          forwardThroughput,
+          fmtMbps(forwardThroughput),
+          forwardThroughputEstimated ? 'estimated-ceiling' : 'delivered',
+          forwardThroughputEstimated
+            ? 'RF-limited estimated ceiling — no modem cap at both ends'
+            : deliveredThroughputDetail,
+        ),
+        metric(
+          isGeoSiteToSite ? 'B → A throughput' : 'Uplink throughput',
+          reverseThroughput,
+          fmtMbps(reverseThroughput),
+          reverseThroughputEstimated ? 'estimated-ceiling' : 'delivered',
+          reverseThroughputEstimated
+            ? 'RF-limited estimated ceiling — no modem cap at both ends'
+            : deliveredThroughputDetail,
+        ),
+      ]
+    : [
+        metric(
+          resultSlot === 'reverse' ? 'B → A throughput' : input.linkMode === 'STAR_RETURN' ? 'Return throughput' : input.linkMode === 'STAR_FORWARD' ? 'Forward throughput' : 'A → B throughput',
           displayedThroughput,
           fmtMbps(displayedThroughput),
-          'delivered',
-          activeNetworkLayer ? 'Final rate after protocol and network constraints' : 'RF-derived end-to-end rate',
+          throughputProvenance,
+          throughputProvenance === 'estimated-ceiling'
+            ? 'RF-limited estimated ceiling — no modem cap at both ends'
+            : activeNetworkLayer ? 'Final rate after protocol and network constraints' : 'RF-derived end-to-end rate',
         ),
+      ];
+  const primaryMetrics: EngineeringTruthMetric[] = canDeliver
+    ? [
+        ...directionalThroughputMetrics,
         metric(input.latencyLabel ?? 'Latency', input.latencyMs, fmtMs(input.latencyMs), 'delivered'),
         ...(() => {
           const availability = splitAvailabilityLabel(input.availabilityLabel);
@@ -448,9 +519,7 @@ export function buildGeoEngineeringAnalysisViewModel(input: BuildGeoEngineeringA
         metric('RF margin', marginDb, fmtDb(marginDb), 'diagnostic', `${limitingSegment} is limiting`),
       ]
     : [];
-  // Delivery cause-stage evidence — previously never populated by this
-  // builder, leaving the Inspector's "Delivered service evidence" primary
-  // block always empty.
+  // Delivery/ceiling evidence for the active direction.
   const deliveryEvidence: EngineeringEvidenceItem[] = canDeliver && activeNetworkLayer
     ? [
         {
@@ -481,7 +550,7 @@ export function buildGeoEngineeringAnalysisViewModel(input: BuildGeoEngineeringA
       : 'neutral',
     headline: truthHeadline,
     summary: canDeliver
-      ? `${fmtMbps(displayedThroughput)} delivered${input.latencyMs != null ? ` · ${fmtMs(input.latencyMs)} ${input.latencyLabel?.toLowerCase() ?? 'latency'}` : ''}.`
+      ? `${fmtMbps(displayedThroughput)} ${deliveredWord}${input.latencyMs != null ? ` · ${fmtMs(input.latencyMs)} ${input.latencyLabel?.toLowerCase() ?? 'latency'}` : ''}.`
       : truthState === 'blocked'
         ? 'No delivered throughput is available. RF evidence remains available for diagnosis.'
         : truthState === 'budget-unavailable'
@@ -511,7 +580,7 @@ export function buildGeoEngineeringAnalysisViewModel(input: BuildGeoEngineeringA
       ),
       causeStage('path', 'Path', !scenarioComplete ? 'not-evaluated' : pathResolved ? 'passed' : 'blocked', !scenarioComplete ? 'Not evaluated' : pathResolved ? 'GEO route resolved' : 'Unavailable', input.pathReason),
       causeStage('rf', 'Link Budget', !scenarioComplete || !pathResolved ? 'not-evaluated' : !budgetAvailable ? 'pending' : status === 'blocked' ? 'blocked' : status === 'marginal' ? 'warning' : 'passed', !scenarioComplete || !pathResolved ? 'Not evaluated' : !budgetAvailable ? 'Budget unavailable' : status === 'blocked' ? `${fmtDb(marginDb)} · does not close` : status === 'marginal' ? `${fmtDb(marginDb)} · low margin` : `${fmtDb(marginDb)} · closes`, e2e ? `${limitingSegment} is the limiting RF segment` : undefined),
-      causeStage('delivery', 'Delivery', !scenarioComplete || !pathResolved || !budgetAvailable || status === 'blocked' || serviceBlocked ? 'not-evaluated' : deliveryConstrained || serviceDegraded ? 'warning' : evidenceUncertain ? 'pending' : 'passed', !scenarioComplete || !pathResolved || !budgetAvailable || status === 'blocked' || serviceBlocked ? 'Not available' : deliveryConstrained ? `${deliveryFactor} limiting` : evidenceUncertain ? 'Evidence uncertain' : `${fmtMbps(displayedThroughput)} delivered`, undefined, deliveryEvidence),
+      causeStage('delivery', 'Delivery', !scenarioComplete || !pathResolved || !budgetAvailable || status === 'blocked' || serviceBlocked ? 'not-evaluated' : deliveryConstrained || serviceDegraded ? 'warning' : evidenceUncertain ? 'pending' : 'passed', !scenarioComplete || !pathResolved || !budgetAvailable || status === 'blocked' || serviceBlocked ? 'Not available' : deliveryConstrained ? `${deliveryFactor} limiting` : evidenceUncertain ? 'Evidence uncertain' : `${fmtMbps(displayedThroughput)} ${deliveredWord}`, undefined, deliveryEvidence),
     ],
     nextAction: truthState === 'incomplete'
       ? 'Complete the missing endpoint or scenario input.'
@@ -601,9 +670,11 @@ export function buildGeoEngineeringAnalysisViewModel(input: BuildGeoEngineeringA
         tone: activeNetworkLayer.protocolEfficiency >= 0.9 ? 'good' : 'warn',
       },
       {
-        label: 'Delivered',
+        label: throughputProvenance === 'estimated-ceiling' ? 'Estimated ceiling' : 'Delivered',
         value: fmtMbps(activeNetworkLayer.finalThroughputMbps),
-        detail: limitLabel ? `Limit: ${limitLabel}` : 'Final user throughput',
+        detail: throughputProvenance === 'estimated-ceiling'
+          ? 'RF/network ceiling; endpoint modem chain is incomplete'
+          : limitLabel ? `Limit: ${limitLabel}` : 'Final user throughput',
         input: fmtMbps(activeNetworkLayer.protocolAdjustedMbps),
         transformation: limitLabel && limitLabel !== 'none' ? `Apply ${limitLabel} constraint.` : 'No additional terminal cap applies.',
         output: fmtMbps(activeNetworkLayer.finalThroughputMbps),
@@ -837,14 +908,33 @@ export function buildLeoEngineeringAnalysisViewModel(input: BuildLeoEngineeringA
   const displayedLatency = isS2S ? primaryLatencyMs : input.latencyMs;
   const primaryMetrics: EngineeringTruthMetric[] = canDeliver
     ? [
-        metric(
-          isS2S ? `${s2sDirectionLabel} throughput` : 'Downlink throughput',
-          isS2S ? primaryThroughputMbps : singleFinalDl,
-          fmtMbps(isS2S ? primaryThroughputMbps : singleFinalDl),
-          'delivered',
-          'Final rate after RF, sharing, feeder, handover, and terminal constraints',
-        ),
-        ...(!isS2S ? [metric('Uplink throughput', singleFinalUl, fmtMbps(singleFinalUl), 'delivered')] : []),
+        ...(isS2S
+          ? [
+              metric(
+                'A → B throughput',
+                input.siteToSiteResult?.finalThroughputAtoBMbps ?? null,
+                fmtMbps(input.siteToSiteResult?.finalThroughputAtoBMbps),
+                'delivered',
+                'Final rate after RF, sharing, feeder, handover, and terminal constraints',
+              ),
+              metric(
+                'B → A throughput',
+                input.siteToSiteResult?.finalThroughputBtoAMbps ?? null,
+                fmtMbps(input.siteToSiteResult?.finalThroughputBtoAMbps),
+                'delivered',
+                'Final rate after RF, sharing, feeder, handover, and terminal constraints',
+              ),
+            ]
+          : [
+              metric(
+                'Downlink throughput',
+                singleFinalDl,
+                fmtMbps(singleFinalDl),
+                'delivered',
+                'Final rate after RF, sharing, feeder, handover, and terminal constraints',
+              ),
+              metric('Uplink throughput', singleFinalUl, fmtMbps(singleFinalUl), 'delivered'),
+            ]),
         metric(input.latencyLabel ?? (isS2S ? `${s2sDirectionLabel} latency` : 'End-to-end RTT'), displayedLatency, fmtMs(displayedLatency), 'delivered'),
         ...(() => {
           const availability = splitAvailabilityLabel(input.availabilityLabel);

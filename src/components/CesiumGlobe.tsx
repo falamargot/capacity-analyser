@@ -3105,7 +3105,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 const { tone: siteATone, label: siteALabel } = commercialSegmentDisplay(accessStatus);
                 // Use site-level throughput; show as "ms Latency" (not RTT).
                 const performanceLine = [
-                    commercialViewModel.downloadMbps ? `${Math.round(commercialViewModel.downloadMbps)} Mbps` : null,
+                    commercialViewModel.downloadMbps ? `${Math.round(commercialViewModel.downloadMbps)} Mbps${commercialViewModel.downloadEstimated ? ' (est.)' : ''}` : null,
                     commercialViewModel.rttMs ? `${Math.round(commercialViewModel.rttMs)} ms Latency` : null,
                 ].filter(Boolean).join(' · ');
                 const narrativeText = accessSegment?.story ?? commercialViewModel.serviceMessage ?? siteALabel;
@@ -3182,7 +3182,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 const { tone: siteBTone, label: siteBLabel } = commercialSegmentDisplay(destinationStatus);
                 // Show as "ms Latency" (not RTT).
                 const performanceLine = [
-                    commercialViewModel.uploadMbps ? `${Math.round(commercialViewModel.uploadMbps)} Mbps` : null,
+                    commercialViewModel.uploadMbps ? `${Math.round(commercialViewModel.uploadMbps)} Mbps${commercialViewModel.uploadEstimated ? ' (est.)' : ''}` : null,
                     commercialViewModel.rttMs ? `${Math.round(commercialViewModel.rttMs)} ms Latency` : null,
                 ].filter(Boolean).join(' · ');
                 const narrativeText = destinationSegment?.story ?? commercialViewModel.serviceMessage ?? siteBLabel;

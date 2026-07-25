@@ -465,17 +465,23 @@ export function computeLeoSiteToSiteResult(args: ComputeLeoSiteToSiteArgs): LeoS
   const rttMs = oneWayLatencyAtoBMs + oneWayLatencyBtoAMs;
 
   // ── Throughput ────────────────────────────────────────────────────────────
-  // A→B direction: terminal A transmits (uplink at A), terminal B receives (downlink at B)
-  const accessThroughputAtoBMbps =
-    ulThroughputAMbps != null && dlThroughputBMbps != null
-      ? Math.min(ulThroughputAMbps, dlThroughputBMbps)
-      : (ulThroughputAMbps ?? dlThroughputBMbps ?? null);
+  // Strict two-leg closure (#3): a direction's end-to-end rate is min(its uplink
+  // leg, its downlink leg). BOTH legs must be present and positive — a lone leg is
+  // not a valid end-to-end throughput, so the direction is null (not a single-leg
+  // fallback) when either leg is missing or non-positive. This nulls the direction
+  // rather than publishing a rate that was never closed across both RF hops.
+  const closeDirection = (
+    txLegMbps: number | null,
+    rxLegMbps: number | null,
+  ): number | null =>
+    txLegMbps != null && txLegMbps > 0 && rxLegMbps != null && rxLegMbps > 0
+      ? Math.min(txLegMbps, rxLegMbps)
+      : null;
 
-  // B→A direction: terminal B transmits (uplink at B), terminal A receives (downlink at A)
-  const accessThroughputBtoAMbps =
-    ulThroughputBMbps != null && dlThroughputAMbps != null
-      ? Math.min(ulThroughputBMbps, dlThroughputAMbps)
-      : (ulThroughputBMbps ?? dlThroughputAMbps ?? null);
+  // A→B: terminal A transmits (uplink at A), terminal B receives (downlink at B).
+  const accessThroughputAtoBMbps = closeDirection(ulThroughputAMbps, dlThroughputBMbps);
+  // B→A: terminal B transmits (uplink at B), terminal A receives (downlink at A).
+  const accessThroughputBtoAMbps = closeDirection(ulThroughputBMbps, dlThroughputAMbps);
 
   const finalThroughputAtoBMbps = accessThroughputAtoBMbps;
   const finalThroughputBtoAMbps = accessThroughputBtoAMbps;

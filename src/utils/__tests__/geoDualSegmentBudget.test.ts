@@ -20,6 +20,7 @@ import {
 } from '../geoDualSegmentBudget';
 import { resolveTerminalRFParams } from '../geoTerminalRFModel';
 import type { TerminalRFCustomParams } from '../geoTerminalRFModel';
+import { getGeoModemProfile } from '../geoModemCatalogue';
 
 // ─── Test fixtures ─────────────────────────────────────────────────────────────
 
@@ -102,6 +103,38 @@ const GATEWAY: TrafficTeleportCapability = {
   rfCapabilities: [],
   eligibleServiceClasses: ['STAR_FORWARD', 'STAR_RETURN'],
 };
+
+describe('P2 end-to-end waveform and planning envelope', () => {
+  it('uses the common modem symbol-rate ceiling and exposes nominal/conservative results', () => {
+    const result = buildMeshResult(
+      makeUlCandidate({ bandwidthMhz: 36 }),
+      makeDlCandidate({ bandwidthMhz: 36 }),
+      makeUlCandidate({ bandwidthMhz: 36, coverageKey: 'SAT-1::ul-b' }),
+      makeDlCandidate({ bandwidthMhz: 36, coverageKey: 'SAT-1::dl-a' }),
+      undefined,
+      'ku_standard_vsat',
+      'ku_standard_vsat',
+      0,
+      0,
+      null,
+      null,
+      'MESH',
+      {
+        modemA: getGeoModemProfile('idirect_iq200'),
+        modemB: getGeoModemProfile('comtech_cdm780'),
+      },
+    );
+
+    expect(result.forward.endToEnd.symbolRateMsps).toBe(15);
+    expect(result.forward.endToEnd.endToEndModcod).not.toMatch(/32APSK|64APSK|128APSK|256APSK/);
+    expect(result.planningEnvelope?.nominal.forwardMbps).toBeGreaterThanOrEqual(
+      result.planningEnvelope?.conservative.forwardMbps ?? Number.POSITIVE_INFINITY,
+    );
+    expect(result.planningEnvelope?.nominal.reverseMbps).toBeGreaterThanOrEqual(
+      result.planningEnvelope?.conservative.reverseMbps ?? Number.POSITIVE_INFINITY,
+    );
+  });
+});
 
 // ─── A. STAR_FORWARD ──────────────────────────────────────────────────────────
 

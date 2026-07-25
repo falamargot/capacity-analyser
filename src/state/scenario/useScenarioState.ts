@@ -3,6 +3,7 @@ import type { LinkMode } from '../../types/linkMode';
 import type { TerminalType, WeatherType } from '../../components/capacity';
 import type { TerminalRFClassId, TerminalRFCustomParams } from '../../utils/geoTerminalRFModel';
 import { USE_CASE_DEFAULT_RF_CLASS } from '../../utils/geoTerminalRFModel';
+import type { GeoModemId } from '../../utils/geoModemCatalogue';
 import { getLeoTerminalProfile } from '../../config/leoTerminals';
 
 /**
@@ -35,6 +36,9 @@ export interface EngineeringScenarioState {
   geoRFClassIdB: TerminalRFClassId;
   geoRFCustomParamsA: TerminalRFCustomParams | null;
   geoRFCustomParamsB: TerminalRFCustomParams | null;
+  /** #4: selected GEO modem at endpoint A/B (null ⇒ no modem → RF is an estimated ceiling). */
+  geoModemIdA: GeoModemId | null;
+  geoModemIdB: GeoModemId | null;
   weatherType: WeatherType;
   weatherTypeB: WeatherType;
   autoWeatherEnabled: boolean;
@@ -66,6 +70,8 @@ export function createInitialScenarioState(
     geoRFClassIdB: USE_CASE_DEFAULT_RF_CLASS.fixed.Ku,
     geoRFCustomParamsA: null,
     geoRFCustomParamsB: null,
+    geoModemIdA: null,
+    geoModemIdB: null,
     weatherType: 'clear',
     weatherTypeB: 'clear',
     autoWeatherEnabled: true,
@@ -136,6 +142,8 @@ export function useScenarioState(initialOverrides?: Partial<EngineeringScenarioS
       setGeoRFClassIdB: set('geoRFClassIdB'),
       setGeoRFCustomParamsA: set('geoRFCustomParamsA'),
       setGeoRFCustomParamsB: set('geoRFCustomParamsB'),
+      setGeoModemIdA: set('geoModemIdA'),
+      setGeoModemIdB: set('geoModemIdB'),
       setWeatherType: set('weatherType'),
       setWeatherTypeB: set('weatherTypeB'),
       setAutoWeatherEnabled: set('autoWeatherEnabled'),

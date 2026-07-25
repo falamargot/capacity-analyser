@@ -200,59 +200,88 @@ export const DVB_S2X_ROLL_OFF = 0.15;
 
 const BOLTZMANN_CONSTANT_DBW_PER_K_PER_HZ = -228.6;
 
-interface ModcodEntry {
+export interface ModcodEntry {
   name: string;
+  modulationOrder: 4 | 8 | 16 | 32 | 64 | 128 | 256;
   requiredCnDb: number;
   efficiency: number;
 }
 
-const DVB_S2X_MODCODS: ModcodEntry[] = [
+/**
+ * One explicit threshold convention for the GEO model:
+ * - ratio: Es/N0 (the code's historical `cnDb` name is retained for compatibility);
+ * - waveform: DVB-S2X normal FECFRAME, pilots ON;
+ * - target: QEF PER 1e-7;
+ * - reference implementation: Comtech CDM-780 table measured at 30 Msps,
+ *   20% roll-off in AWGN, dated 2023-07-25.
+ *
+ * ETSI EN 302 307-2 defines the waveform/MODCODs; implementation thresholds are
+ * receiver-specific. Using one published receiver table avoids mixing Eb/N0,
+ * Es/N0, PER targets and frame/pilot conventions.
+ */
+export const DVB_S2X_MODCOD_CONVENTION = {
+  id: 'dvb-s2x-comtech-cdm780-qef-esn0-2023-07-25',
+  ratio: 'Es/N0',
+  target: 'QEF PER 1e-7',
+  frame: 'Normal FECFRAME',
+  pilots: 'ON',
+  measurement: '30 Msps · 20% roll-off · AWGN',
+  standard: 'ETSI EN 302 307-2',
+  sourceUrl: 'https://comtech.com/wp-content/uploads/2023/07/ds-CDM780.pdf',
+} as const;
+
+export const DVB_S2X_MODCODS: readonly ModcodEntry[] = [
   // ── QPSK ──────────────────────────────────────────────────────────────────
-  { name: 'QPSK 1/4', requiredCnDb: -2.35, efficiency: 0.49 },
-  { name: 'QPSK 1/3', requiredCnDb: -1.24, efficiency: 0.66 },
-  { name: 'QPSK 2/5', requiredCnDb: -0.30, efficiency: 0.79 },
-  { name: 'QPSK 1/2', requiredCnDb:  1.00, efficiency: 0.99 },
-  { name: 'QPSK 3/5', requiredCnDb:  2.23, efficiency: 1.19 },
-  { name: 'QPSK 2/3', requiredCnDb:  3.10, efficiency: 1.32 },
-  { name: 'QPSK 3/4', requiredCnDb:  4.03, efficiency: 1.49 },
-  { name: 'QPSK 4/5', requiredCnDb:  4.68, efficiency: 1.59 },
-  { name: 'QPSK 5/6', requiredCnDb:  5.18, efficiency: 1.65 },
+  { name: 'QPSK 1/4', modulationOrder: 4, requiredCnDb: -2.10, efficiency: 0.48 },
+  { name: 'QPSK 1/3', modulationOrder: 4, requiredCnDb: -1.00, efficiency: 0.64 },
+  { name: 'QPSK 2/5', modulationOrder: 4, requiredCnDb: -0.10, efficiency: 0.77 },
+  { name: 'QPSK 1/2', modulationOrder: 4, requiredCnDb:  1.30, efficiency: 0.97 },
+  { name: 'QPSK 3/5', modulationOrder: 4, requiredCnDb:  2.50, efficiency: 1.16 },
+  { name: 'QPSK 2/3', modulationOrder: 4, requiredCnDb:  3.30, efficiency: 1.29 },
+  { name: 'QPSK 3/4', modulationOrder: 4, requiredCnDb:  4.30, efficiency: 1.45 },
+  { name: 'QPSK 4/5', modulationOrder: 4, requiredCnDb:  4.90, efficiency: 1.55 },
+  { name: 'QPSK 5/6', modulationOrder: 4, requiredCnDb:  5.40, efficiency: 1.62 },
   // ── 8PSK ──────────────────────────────────────────────────────────────────
-  { name: '8PSK 3/5', requiredCnDb:  5.50, efficiency: 1.78 },
-  { name: '8PSK 2/3', requiredCnDb:  6.62, efficiency: 1.98 },
-  { name: '8PSK 3/4', requiredCnDb:  7.91, efficiency: 2.23 },
-  { name: '8PSK 5/6', requiredCnDb:  9.35, efficiency: 2.48 },
+  { name: '8PSK 3/5', modulationOrder: 8, requiredCnDb:  6.10, efficiency: 1.74 },
+  { name: '8PSK 2/3', modulationOrder: 8, requiredCnDb:  6.50, efficiency: 1.94 },
+  { name: '8PSK 3/4', modulationOrder: 8, requiredCnDb:  8.20, efficiency: 2.18 },
+  { name: '8PSK 5/6', modulationOrder: 8, requiredCnDb:  9.60, efficiency: 2.42 },
   // ── 16APSK ────────────────────────────────────────────────────────────────
-  { name: '16APSK 2/3', requiredCnDb:  8.97, efficiency: 2.64 },
-  { name: '16APSK 3/4', requiredCnDb: 10.21, efficiency: 2.97 },
-  { name: '16APSK 4/5', requiredCnDb: 11.03, efficiency: 3.17 },
-  { name: '16APSK 5/6', requiredCnDb: 11.61, efficiency: 3.30 },
-  { name: '16APSK 8/9', requiredCnDb: 12.89, efficiency: 3.52 },
+  { name: '16APSK 2/3', modulationOrder: 16, requiredCnDb:  9.50, efficiency: 2.58 },
+  { name: '16APSK 3/4', modulationOrder: 16, requiredCnDb: 10.60, efficiency: 2.90 },
+  { name: '16APSK 4/5', modulationOrder: 16, requiredCnDb: 11.40, efficiency: 3.09 },
+  { name: '16APSK 5/6', modulationOrder: 16, requiredCnDb: 12.00, efficiency: 3.22 },
+  { name: '16APSK 8/9', modulationOrder: 16, requiredCnDb: 13.20, efficiency: 3.44 },
   // ── 32APSK ────────────────────────────────────────────────────────────────
-  { name: '32APSK 3/4', requiredCnDb: 12.73, efficiency: 3.70 },
-  { name: '32APSK 4/5', requiredCnDb: 13.64, efficiency: 3.95 },
-  { name: '32APSK 5/6', requiredCnDb: 14.28, efficiency: 4.12 },
-  { name: '32APSK 8/9', requiredCnDb: 15.69, efficiency: 4.40 },
+  { name: '32APSK 3/4', modulationOrder: 32, requiredCnDb: 13.20, efficiency: 3.62 },
+  { name: '32APSK 4/5', modulationOrder: 32, requiredCnDb: 14.00, efficiency: 3.87 },
+  { name: '32APSK 5/6', modulationOrder: 32, requiredCnDb: 14.80, efficiency: 4.03 },
+  { name: '32APSK 8/9', modulationOrder: 32, requiredCnDb: 16.20, efficiency: 4.30 },
   // ── 64APSK / 128APSK / 256APSK — DVB-S2X high-order ──────────────────────
   //
-  // Source: ETSI EN 302 307-2 (DVB-S2X), Annex E simulation data.
-  // C/N thresholds at quasi-error-free (10⁻⁷ PER), long FECFRAME.
-  // Efficiency values account for LDPC + pilot overhead (~1 % below raw
-  // bits-per-symbol × code-rate).
+  // Thresholds follow the same published receiver table as every entry above
+  // (see DVB_S2X_MODCOD_CONVENTION): Es/N0, QEF PER 1e-7, normal FECFRAME,
+  // pilots on. ETSI EN 302 307-2 defines the waveform; the numbers are the
+  // reference receiver's.
   //
   // Applicability:
   //   64APSK   — achievable on Ka-band HTS spot beams (strong downlink, clear sky).
   //   128APSK  — gateway-to-gateway or feeder links; requires high sat EIRP.
-  //   256APSK 32/45 — near-laboratory conditions; C/N ≥ 22.68 dB is rare on
+  //   256APSK 32/45 — near-laboratory conditions; Es/N0 ≥ 20.0 dB is rare on
   //                   consumer downlinks but reachable on professional feeder links.
   //
-  // 256APSK 29/45 (C/N ≈ 21.66 dB, efficiency ≈ 5.09 b/s/Hz) is intentionally
-  // omitted: it is permanently dominated by 128APSK 3/4 (efficiency 5.17 at
-  // C/N ≥ 19.57 dB) and would never be selected by the MODCOD resolver.
-  { name: '64APSK 4/5',    requiredCnDb: 16.99, efficiency: 4.80 },
-  { name: '64APSK 5/6',    requiredCnDb: 17.73, efficiency: 5.00 },
-  { name: '128APSK 3/4',   requiredCnDb: 19.57, efficiency: 5.17 },
-  { name: '256APSK 32/45', requiredCnDb: 22.68, efficiency: 5.62 },
+  // 256APSK 29/45 is intentionally omitted: it is permanently dominated by
+  // 128APSK 3/4 and would never be selected by the MODCOD resolver.
+  //
+  // Note on dominated entries that ARE kept: under this table 8PSK 5/6 and
+  // 16APSK 8/9 are each dominated by the next constellation up (16APSK 2/3 and
+  // 32APSK 3/4 respectively), so an unconstrained lookup never returns them.
+  // They stay because `maxModulationOrder` makes them reachable again — a modem
+  // capped at 8PSK or 16APSK selects exactly these.
+  { name: '64APSK 4/5',    modulationOrder: 64, requiredCnDb: 16.30, efficiency: 4.63 },
+  { name: '64APSK 5/6',    modulationOrder: 64, requiredCnDb: 16.90, efficiency: 4.82 },
+  { name: '128APSK 3/4',   modulationOrder: 128, requiredCnDb: 18.80, efficiency: 5.05 },
+  { name: '256APSK 32/45', modulationOrder: 256, requiredCnDb: 20.00, efficiency: 5.47 },
 ];
 
 const LOWEST_MODCOD = DVB_S2X_MODCODS[0];
@@ -277,10 +306,26 @@ const computeFsplDb = (slantRangeKm: number, frequencyGhz: number): number => (
   147.55
 );
 
-const resolveModcod = (cnDb: number): ModcodEntry | null => {
+export interface GeoWaveformConstraints {
+  minSymbolRateMsps?: number | null;
+  maxSymbolRateMsps?: number | null;
+  maxModulationOrder?: ModcodEntry['modulationOrder'] | null;
+  rollOff?: number;
+  implementationMarginDb?: number;
+  additionalCarrierRatiosDb?: readonly number[];
+}
+
+const resolveModcod = (
+  cnDb: number,
+  constraints?: GeoWaveformConstraints,
+): ModcodEntry | null => {
   let best: ModcodEntry | null = null;
 
   for (const modcod of DVB_S2X_MODCODS) {
+    if (
+      constraints?.maxModulationOrder != null
+      && modcod.modulationOrder > constraints.maxModulationOrder
+    ) continue;
     if (cnDb >= modcod.requiredCnDb) {
       if (!best || modcod.efficiency > best.efficiency) {
         best = modcod;
@@ -291,8 +336,11 @@ const resolveModcod = (cnDb: number): ModcodEntry | null => {
   return best;
 };
 
-export function lookupModcod(cnDb: number): { name: string; efficiency: number; requiredCnDb: number } {
-  const modcod = resolveModcod(cnDb);
+export function lookupModcod(
+  cnDb: number,
+  constraints?: GeoWaveformConstraints,
+): { name: string; efficiency: number; requiredCnDb: number } {
+  const modcod = resolveModcod(cnDb - (constraints?.implementationMarginDb ?? 0), constraints);
   if (!modcod) {
     return { name: 'Below threshold', efficiency: 0, requiredCnDb: LOWEST_MODCOD.requiredCnDb };
   }
@@ -363,6 +411,11 @@ export interface EndToEndBudget {
   endToEndThroughputMbps: number;
   endToEndLinkMarginDb: number;
   bandwidthMhz: number;
+  symbolRateMsps: number;
+  rollOff: number;
+  modcodConventionId: string;
+  payloadPenaltyDb?: number;
+  planningScenario?: 'nominal' | 'conservative';
 }
 
 /**
@@ -374,10 +427,14 @@ export interface EndToEndBudget {
  * All arguments and the return value are in dB.
  */
 export function combineEndToEndCNDb(uplinkCNDb: number, downlinkCNDb: number): number {
-  const cnUpLinear   = Math.pow(10, uplinkCNDb   / 10);
-  const cnDownLinear = Math.pow(10, downlinkCNDb / 10);
-  const cnTotalLinear = 1 / (1 / cnUpLinear + 1 / cnDownLinear);
-  return 10 * Math.log10(cnTotalLinear);
+  return combineCarrierRatiosDb([uplinkCNDb, downlinkCNDb]);
+}
+
+export function combineCarrierRatiosDb(ratiosDb: readonly number[]): number {
+  const reciprocalSum = ratiosDb.reduce((sum, ratioDb) => (
+    sum + (1 / Math.pow(10, ratioDb / 10))
+  ), 0);
+  return reciprocalSum > 0 ? 10 * Math.log10(1 / reciprocalSum) : Number.NEGATIVE_INFINITY;
 }
 
 /**
@@ -387,10 +444,24 @@ export function computeEndToEndBudget(
   uplinkCNDb: number,
   downlinkCNDb: number,
   bandwidthMhz: number,
+  constraints?: GeoWaveformConstraints,
 ): EndToEndBudget {
-  const e2eCNDb = combineEndToEndCNDb(uplinkCNDb, downlinkCNDb);
-  const modcod  = lookupModcod(e2eCNDb);
-  const symbolRateMhz = bandwidthMhz / (1 + DVB_S2X_ROLL_OFF);
+  const rollOff = constraints?.rollOff ?? DVB_S2X_ROLL_OFF;
+  const carrierSymbolRateMsps = bandwidthMhz / (1 + rollOff);
+  const symbolRateMhz = Math.min(
+    carrierSymbolRateMsps,
+    constraints?.maxSymbolRateMsps ?? Number.POSITIVE_INFINITY,
+  );
+  const belowMinimum = constraints?.minSymbolRateMsps != null
+    && symbolRateMhz < constraints.minSymbolRateMsps;
+  const e2eCNDb = combineCarrierRatiosDb([
+    uplinkCNDb,
+    downlinkCNDb,
+    ...(constraints?.additionalCarrierRatiosDb ?? []),
+  ]) - (constraints?.implementationMarginDb ?? 0);
+  const modcod = belowMinimum
+    ? { name: 'Below modem symbol-rate range', efficiency: 0, requiredCnDb: LOWEST_MODCOD.requiredCnDb }
+    : lookupModcod(e2eCNDb, { ...constraints, implementationMarginDb: 0 });
 
   return {
     uplinkCNDb,
@@ -402,7 +473,25 @@ export function computeEndToEndBudget(
     endToEndThroughputMbps: modcod.efficiency * symbolRateMhz,
     endToEndLinkMarginDb: e2eCNDb - modcod.requiredCnDb,
     bandwidthMhz,
+    symbolRateMsps: symbolRateMhz,
+    rollOff,
+    modcodConventionId: DVB_S2X_MODCOD_CONVENTION.id,
   };
+}
+
+/** Convert a segment C/N measured at one symbol rate to the common route rate. */
+export function normalizeCnToSymbolRate(
+  cnDb: number,
+  originalBandwidthMhz: number,
+  targetSymbolRateMsps: number,
+  originalRollOff = DVB_S2X_ROLL_OFF,
+): number {
+  if (targetSymbolRateMsps <= 0) return Number.NEGATIVE_INFINITY;
+  // Segment cnDb is already Es/N0 at its original symbol rate (computeLinkBudget
+  // uses occupied BW / (1 + roll-off)). Renormalize the noise bandwidth to the
+  // common route symbol rate.
+  const originalSymbolRateMsps = originalBandwidthMhz / (1 + originalRollOff);
+  return cnDb + (10 * Math.log10(originalSymbolRateMsps / targetSymbolRateMsps));
 }
 
 const computeLinkBudget = (

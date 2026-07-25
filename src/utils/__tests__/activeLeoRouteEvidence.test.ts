@@ -282,13 +282,13 @@ describe('LEO-2 — geometry is the ONE canonical single-site latency computatio
     expect(evidence.leoPerformance?.rtt).toBeCloseTo(evidence.geometry!.rttTotalMs, 6);
   });
 
-  it('geometry.oneWayLatencyMs is a genuine one-way figure, strictly between half and the full RTT', () => {
+  it('geometry.oneWayLatencyMs is a genuine one-way figure, exactly half the RTT (#6)', () => {
     const evidence = buildActiveLeoRouteEvidence(buildEvidenceInput(), createActiveLeoRouteEvidenceState());
 
     expect(evidence.geometry).toBeTruthy();
     const { oneWayLatencyMs, rttTotalMs } = evidence.geometry!;
-    expect(oneWayLatencyMs).toBeGreaterThan(rttTotalMs / 2);
-    expect(oneWayLatencyMs).toBeLessThan(rttTotalMs);
+    expect(oneWayLatencyMs).toBeGreaterThan(0);
+    expect(rttTotalMs).toBeCloseTo(oneWayLatencyMs * 2, 5);
   });
 
   it('is null for SITE_TO_SITE, which has its own equivalent breakdown via routeResult', () => {
@@ -307,21 +307,26 @@ describe('LEO-2 — geometry is the ONE canonical single-site latency computatio
   });
 });
 
-// ── GEO-2 — evidence.rttMs/metrics.rtt are one-way, matching GEO's comparison ─
+// ── COMM-1 — evidence.rttMs is the true round trip; metrics.rtt stays one-way ──
+// The commercial view model scores and labels the top-level evidence.rttMs as
+// Response/RTT, so it must be a genuine round trip. The nested metrics.rtt is the
+// ENG figure activeRouteViewModel labels "One-way", so it must stay one-way.
 
-describe('GEO-2 — evidence.rttMs is one-way, not a round trip (commercial cross-tech comparison)', () => {
-  it('SINGLE_SITE: evidence.rttMs equals geometry.oneWayLatencyMs, not leoPerformance.rtt (a true RTT)', () => {
+describe('COMM-1 — evidence.rttMs is a round trip; metrics.rtt stays one-way', () => {
+  it('SINGLE_SITE: evidence.rttMs equals geometry.rttTotalMs (true RTT); metrics.rtt stays one-way', () => {
     const evidence = buildActiveLeoRouteEvidence(buildEvidenceInput(), createActiveLeoRouteEvidenceState());
 
     expect(evidence.geometry).toBeTruthy();
-    expect(evidence.rttMs).toBeCloseTo(evidence.geometry!.oneWayLatencyMs, 6);
+    // Top-level rttMs (consumed by COMM) is the round trip.
+    expect(evidence.rttMs).toBeCloseTo(evidence.geometry!.rttTotalMs, 6);
+    expect(evidence.rttMs).toBeCloseTo(evidence.leoPerformance!.rtt!, 6);
+    // metrics.rtt (the ENG "One-way" figure) stays one-way.
     expect(evidence.metrics?.rtt).toBeCloseTo(evidence.geometry!.oneWayLatencyMs, 6);
-    // Would have been ~2x this value before the fix (leoPerformance.rtt is a
-    // genuine round trip) — assert it's meaningfully less, not just close.
-    expect(evidence.rttMs).toBeLessThan(evidence.leoPerformance!.rtt! * 0.75);
+    // The two contracts must differ: RTT meaningfully larger than one-way.
+    expect(evidence.rttMs!).toBeGreaterThan(evidence.metrics!.rtt! * 1.2);
   });
 
-  it('SITE_TO_SITE: evidence.rttMs equals routeResult.oneWayLatencyAtoBMs, not routeResult.rttMs (both legs summed)', () => {
+  it('SITE_TO_SITE: evidence.rttMs equals routeResult.rttMs (both legs); metrics.rtt stays one-way', () => {
     const sat = makeSatellite();
     const evidence = buildActiveLeoRouteEvidence(buildEvidenceInput({
       topology: 'SITE_TO_SITE' as const,
@@ -334,7 +339,12 @@ describe('GEO-2 — evidence.rttMs is one-way, not a round trip (commercial cros
     }), createActiveLeoRouteEvidenceState());
 
     expect(evidence.routeResult).toBeTruthy();
-    expect(evidence.rttMs).toBeCloseTo(evidence.routeResult!.oneWayLatencyAtoBMs, 6);
-    expect(evidence.rttMs).toBeLessThan(evidence.routeResult!.rttMs * 0.75);
+    expect(evidence.metrics).toBeTruthy();
+    // Top-level rttMs (consumed by COMM) is the full round trip (A→B + B→A).
+    expect(evidence.rttMs).toBeCloseTo(evidence.routeResult!.rttMs, 6);
+    // metrics.rtt (the ENG "One-way" figure) stays the A→B one-way leg.
+    expect(evidence.metrics?.rtt).toBeCloseTo(evidence.routeResult!.oneWayLatencyAtoBMs, 6);
+    // Symmetric route ⇒ RTT is ~2× the one-way leg.
+    expect(evidence.rttMs!).toBeGreaterThan(evidence.metrics!.rtt! * 1.2);
   });
 });

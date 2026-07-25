@@ -160,8 +160,8 @@ function CompactKpiBar({ viewModel }: { viewModel: CommercialScenarioViewModel }
       <div className="mt-2 rounded-lg border border-slate-800/60 bg-slate-900/36 px-3 py-2">
         <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500">What the customer gets</div>
         <div className="mt-1.5 grid grid-cols-4 gap-1.5">
-          <CommercialKpiTile value={formatMbps(viewModel.downloadMbps)} label="Download" sublabel={dlTier.label !== '--' ? dlTier.label : undefined} sublabelTone={dlTier.tone} />
-          <CommercialKpiTile value={formatMbps(viewModel.uploadMbps)} label="Upload" sublabel={ulTier.label !== '--' ? ulTier.label : undefined} sublabelTone={ulTier.tone} />
+          <CommercialKpiTile value={formatMbps(viewModel.downloadMbps)} label="Download" sublabel={viewModel.downloadEstimated ? 'Est. ceiling' : (dlTier.label !== '--' ? dlTier.label : undefined)} sublabelTone={viewModel.downloadEstimated ? 'warning' : dlTier.tone} />
+          <CommercialKpiTile value={formatMbps(viewModel.uploadMbps)} label="Upload" sublabel={viewModel.uploadEstimated ? 'Est. ceiling' : (ulTier.label !== '--' ? ulTier.label : undefined)} sublabelTone={viewModel.uploadEstimated ? 'warning' : ulTier.tone} />
           <CommercialKpiTile value={formatMs(viewModel.rttMs)} label="Latency" sublabel={rttTier.label !== '--' ? rttTier.label : undefined} sublabelTone={rttTier.tone} />
           <CommercialKpiTile value={viewModel.availabilityPct != null ? `${viewModel.availabilityPct.toFixed(1)}%` : '--'} label="Indicative availability" sublabel={relTier.label !== '--' ? relTier.label : undefined} sublabelTone={relTier.tone} />
         </div>
@@ -195,9 +195,9 @@ function CompactKpiBar({ viewModel }: { viewModel: CommercialScenarioViewModel }
                     <span className="truncate">{differentiator}</span>
                   </div>
                   <div className="mt-1 grid grid-cols-3 gap-1">
-                    <CommercialKpiTile value={formatMbps(option.downloadMbps)} label="Download" />
+                    <CommercialKpiTile value={formatMbps(option.downloadMbps)} label="Download" sublabel={option.downloadEstimated ? 'Est. ceiling' : undefined} sublabelTone="warning" />
                     <CommercialKpiTile value={formatMs(option.rttMs)} label="Latency" />
-                    <CommercialKpiTile value={option.available ? `${formatMbps(option.uploadMbps)}` : '--'} label="Upload" />
+                    <CommercialKpiTile value={option.available ? `${formatMbps(option.uploadMbps)}` : '--'} label="Upload" sublabel={option.uploadEstimated ? 'Est. ceiling' : undefined} sublabelTone="warning" />
                   </div>
                 </div>
               );
@@ -274,14 +274,14 @@ function FullKpiBar({ viewModel }: { viewModel: CommercialScenarioViewModel }) {
             <CommercialKpiTile
               value={formatMbps(viewModel.downloadMbps)}
               label="Download speed"
-              sublabel={dlTier.label !== '--' ? dlTier.label : undefined}
-              sublabelTone={dlTier.tone}
+              sublabel={viewModel.downloadEstimated ? 'Est. ceiling' : (dlTier.label !== '--' ? dlTier.label : undefined)}
+              sublabelTone={viewModel.downloadEstimated ? 'warning' : dlTier.tone}
             />
             <CommercialKpiTile
               value={formatMbps(viewModel.uploadMbps)}
               label="Upload speed"
-              sublabel={ulTier.label !== '--' ? ulTier.label : undefined}
-              sublabelTone={ulTier.tone}
+              sublabel={viewModel.uploadEstimated ? 'Est. ceiling' : (ulTier.label !== '--' ? ulTier.label : undefined)}
+              sublabelTone={viewModel.uploadEstimated ? 'warning' : ulTier.tone}
             />
             <CommercialKpiTile
               value={formatMs(viewModel.rttMs)}

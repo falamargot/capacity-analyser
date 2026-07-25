@@ -1,6 +1,8 @@
-import { memo, useState, useMemo, useEffect, type ReactNode } from 'react';
+import { memo, useState, useMemo, useEffect } from 'react';
 import CoverageSelector from '../CoverageSelector';
 import TerminalConfig, { type WeatherType } from './TerminalConfig';
+import GeoModemSelect from './GeoModemSelect';
+import type { GeoModemId } from '../../utils/geoModemCatalogue';
 import type { SatelliteData } from '../../types/satellites';
 import type { CandidateCoverage } from '../../types/analysis';
 import type { TerminalType, TerminalRFClassId, TerminalRFCustomParams } from './TerminalConfig';
@@ -15,9 +17,11 @@ import { getGatewayTrafficStatusNote, getPrimaryControlRoleLabel } from '../glob
 import { formatCoordinates } from '../../utils/formatters';
 import { buildGeoConfidence, type PredictionConfidence } from '../../utils/predictionConfidence';
 import { estimateGeoSatelliteCapacity } from '../../utils/geoCapacityModel';
-import { buildLinkAvailabilityContext, formatLinkAvailabilityContext } from '../../utils/linkAvailabilityContext';
-import { isEngineeringDeliveryState, type EngineeringAnalysisViewModel } from '../../utils/engineeringAnalysisViewModel';
-import { fmtDb, fmtMbps, fmtMs } from '../../utils/engineeringFormat';
+import { buildLinkAvailabilityContext } from '../../utils/linkAvailabilityContext';
+import {
+  isEngineeringDeliveryState,
+  type EngineeringAnalysisViewModel,
+} from '../../utils/engineeringAnalysisViewModel';
 import { ENGINEERING_TERMS } from '../../constants/engineeringTerminology';
 import LatencyBreakdownCard from './shared/LatencyBreakdownCard';
 import LayerHeading from './shared/LayerHeading';
@@ -25,17 +29,6 @@ import EngineeringResultSummary from './shared/EngineeringResultSummary';
 import { EngineeringDeliveryEvidence, EngineeringEvidenceSummary, EngineeringRfDecisionEvidence, EngineeringScenarioEvidence } from './shared/EngineeringStageEvidence';
 
 // ─── Sub-component: Link budget cockpit + detail drawer ──────────────────────
-
-const displayableBeamOrCoverageName = (
-  beamName: string | undefined,
-  coverageName: string | undefined,
-  fallback: string,
-) => {
-  const trimmedBeamName = beamName?.trim();
-  return trimmedBeamName && !Number.isFinite(Number(trimmedBeamName))
-    ? trimmedBeamName
-    : coverageName ?? fallback;
-};
 
 const DirectionPill = ({ dir, aggregate = false }: { dir: string; aggregate?: boolean }) => (
   <span className={`ml-1.5 inline-flex shrink-0 items-center rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${
@@ -52,7 +45,8 @@ interface GeoLinkBudgetEvidenceProps {
   onMeshTabChange?: (tab: 'forward' | 'reverse') => void;
   satelliteName?: string;
   satellite?: SatelliteData | null;
-  viewModel?: EngineeringAnalysisViewModel;
+  /** Published engineering truth. Required: this component is a projection, not a builder. */
+  viewModel: EngineeringAnalysisViewModel;
   latencyMs?: number | null;
   latencyLabel?: string;
   availabilityLabel?: string;
@@ -85,21 +79,11 @@ const GeoLinkBudgetEvidence = ({
   confidence,
   coverageLabels,
   satellite,
-  viewModel: providedViewModel,
+  // The published truth is REQUIRED. This component used to fall back to building
+  // its own view model with no delivery inputs, which rendered raw un-modem-limited
+  // RF labelled "delivered" — the pre-canonical contract, kept alive in a branch.
+  viewModel,
 }: GeoLinkBudgetEvidenceProps) => {
-  const viewModel = providedViewModel ?? buildGeoEngineeringAnalysisViewModel({
-    linkMode,
-    result,
-    activeMeshTab,
-    satelliteName,
-    latencyMs,
-    latencyLabel,
-    availabilityLabel,
-    confidenceLabel,
-    confidenceDetail,
-    confidence,
-  });
-
   return (
     <div className="min-w-0 space-y-2.5" data-engineering-embedded-evidence={viewModel.mode}>
       <EngineeringRfDecisionEvidence viewModel={viewModel} />
@@ -246,6 +230,11 @@ interface GEOConnectivitySectionProps {
   rfClassIdB?: TerminalRFClassId;
   onRFClassIdBChange?: (id: TerminalRFClassId) => void;
   rfPresetDisplayLabelB?: string;
+  /** #4: per-endpoint GEO modem (MESH/P2P). null ⇒ RF is an estimated ceiling. */
+  modemIdA?: GeoModemId | null;
+  onModemIdAChange?: (id: GeoModemId | null) => void;
+  modemIdB?: GeoModemId | null;
+  onModemIdBChange?: (id: GeoModemId | null) => void;
   rfCustomParamsA?: TerminalRFCustomParams | null;
   onRFCustomParamsAChange?: (params: TerminalRFCustomParams | null) => void;
   rfCustomParamsB?: TerminalRFCustomParams | null;
@@ -306,6 +295,10 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   rfClassIdB,
   onRFClassIdBChange,
   rfPresetDisplayLabelB,
+  modemIdA = null,
+  onModemIdAChange,
+  modemIdB = null,
+  onModemIdBChange,
   rfCustomParamsA,
   onRFCustomParamsAChange,
   rfCustomParamsB,
@@ -340,6 +333,9 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
     // that isn't available here.
     regulatoryKnown: false,
     routePending: false,
+    // #7: unconfirmed MESH payload cross-connect (sites on different beams).
+    crossConnectUnconfirmed: (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT')
+      && dualSegmentResult?.transponderMode === 'cross-connect',
   });
   const availabilityContext = buildLinkAvailabilityContext({
     architecture: 'GEO',
@@ -780,8 +776,34 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                 advancedDetailsOnly
               />
             </div>
+            {(onModemIdAChange || onModemIdBChange) && (
+              <div className="mt-2 rounded-lg border border-slate-200/70 bg-slate-50/60 p-2 dark:border-slate-700/60 dark:bg-slate-900/40">
+                <div className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+                  GEO modem · caps the RF ceiling to hardware TX/RX
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {onModemIdAChange && (
+                    <GeoModemSelect
+                      label="Site A modem"
+                      value={modemIdA}
+                      onChange={onModemIdAChange}
+                      topology={linkMode === 'POINT_TO_POINT' ? 'POINT_TO_POINT' : 'MESH'}
+                    />
+                  )}
+                  {onModemIdBChange && (
+                    <GeoModemSelect
+                      label="Site B modem"
+                      value={modemIdB}
+                      onChange={onModemIdBChange}
+                      topology={linkMode === 'POINT_TO_POINT' ? 'POINT_TO_POINT' : 'MESH'}
+                    />
+                  )}
+                </div>
+              </div>
+            )}
           </>
         ) : (
+          <>
           <div className="grid grid-cols-2 items-stretch gap-2">
             {isStarForward ? (
               <>
@@ -881,6 +903,32 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
               </>
             )}
           </div>
+          {(onModemIdAChange || onModemIdBChange) && (
+            <div className="col-span-2 mt-2 rounded-lg border border-slate-200/70 bg-slate-50/60 p-2 dark:border-slate-700/60 dark:bg-slate-900/40">
+              <div className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+                STAR modem chain · both ends are required for a delivered rate
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {onModemIdAChange && (
+                  <GeoModemSelect
+                    label="Customer modem"
+                    value={modemIdA}
+                    onChange={onModemIdAChange}
+                    topology="STAR"
+                  />
+                )}
+                {onModemIdBChange && (
+                  <GeoModemSelect
+                    label="Gateway modem"
+                    value={modemIdB}
+                    onChange={onModemIdBChange}
+                    topology="STAR"
+                  />
+                )}
+              </div>
+            </div>
+          )}
+          </>
         )}
       </div>
     </>

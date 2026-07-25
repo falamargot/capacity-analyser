@@ -11,7 +11,10 @@ import type { CandidateCoverage } from '../../types/analysis';
 import type { EngineeringConfigureCandidates, EngineeringConfigureDraft, EngineeringConfigureSite } from '../../types/engineeringConfigure';
 import type { EngineeringTruthSet, EngineeringVerdictTone } from '../../utils/engineeringAnalysisViewModel';
 import { getCandidateCoverageDisplayName, getCandidateCoverageKey } from '../../utils/geoCoverageSelection';
-import { getEngineeringGeoManualSelectionKeys } from '../../utils/engineeringConfigureModel';
+import {
+  getEngineeringGeoManualSelectionKeys,
+  synchronizeEngineeringGeoManualSelection,
+} from '../../utils/engineeringConfigureModel';
 import { handleRadioGroupKeyDown } from '../capacity/shared/radioGroupKeyboard';
 import InlineLocationSearchInput from '../commercial/InlineLocationSearchInput';
 import InlineSearchResultsPopover from '../commercial/InlineSearchResultsPopover';
@@ -675,14 +678,20 @@ function HeaderCandidateSelect({
   uplink,
   selectedKey,
   onChange,
+  validSatelliteIds,
 }: {
   label: string;
   candidates: CandidateCoverage[];
   uplink: boolean;
   selectedKey: string | null;
   onChange: (key: string | null) => void;
+  validSatelliteIds?: ReadonlySet<string>;
 }) {
-  const options = candidates.filter((candidate) => candidate.isUplink === uplink && !candidate.isSynthesized);
+  const options = candidates.filter((candidate) => (
+    candidate.isUplink === uplink
+    && !candidate.isSynthesized
+    && (!validSatelliteIds || validSatelliteIds.has(candidate.satelliteId))
+  ));
   return (
     <label className="grid min-w-0 grid-cols-[auto_minmax(8rem,1fr)] items-center gap-1.5">
       <span className="text-[8px] font-black uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400">{label}</span>
@@ -808,21 +817,43 @@ function EngineeringHeaderScenarioBuilder({
     }));
   };
 
-  const activeManualSelectors = isGeo && draft.selectionPolicy === 'manual'
-    ? draft.geoLinkMode === 'STAR_FORWARD'
-      ? [{ label: 'Site A downlink', site: 'siteA' as const, uplink: false, key: 'geoDownlinkKeyA' as const }]
-      : draft.geoLinkMode === 'STAR_RETURN'
-        ? [{ label: 'Site A uplink', site: 'siteA' as const, uplink: true, key: 'geoUplinkKeyA' as const }]
-        : draft.direction === 'forward'
-          ? [
-              { label: 'A uplink', site: 'siteA' as const, uplink: true, key: 'geoUplinkKeyA' as const },
-              { label: 'B downlink', site: 'siteB' as const, uplink: false, key: 'geoDownlinkKeyB' as const },
-            ]
-          : [
-              { label: 'B uplink', site: 'siteB' as const, uplink: true, key: 'geoUplinkKeyB' as const },
-              { label: 'A downlink', site: 'siteA' as const, uplink: false, key: 'geoDownlinkKeyA' as const },
-            ]
-    : [];
+  const activeManualSelectors = useMemo(() => (
+    isGeo && draft.selectionPolicy === 'manual'
+      ? draft.geoLinkMode === 'STAR_FORWARD'
+        ? [{ label: 'Site A downlink', site: 'siteA' as const, uplink: false, key: 'geoDownlinkKeyA' as const }]
+        : draft.geoLinkMode === 'STAR_RETURN'
+          ? [{ label: 'Site A uplink', site: 'siteA' as const, uplink: true, key: 'geoUplinkKeyA' as const }]
+          : draft.direction === 'forward'
+            ? [
+                { label: 'A uplink', site: 'siteA' as const, uplink: true, key: 'geoUplinkKeyA' as const },
+                { label: 'B downlink', site: 'siteB' as const, uplink: false, key: 'geoDownlinkKeyB' as const },
+              ]
+            : [
+                { label: 'B uplink', site: 'siteB' as const, uplink: true, key: 'geoUplinkKeyB' as const },
+                { label: 'A downlink', site: 'siteA' as const, uplink: false, key: 'geoDownlinkKeyA' as const },
+              ]
+      : []
+  ), [isGeo, draft.selectionPolicy, draft.geoLinkMode, draft.direction]);
+  // Satellites reachable on BOTH active legs. Memoized: it builds two Sets over the
+  // full candidate pools, and this component re-renders on every header interaction.
+  const validManualSatelliteIds = useMemo(() => {
+    if (activeManualSelectors.length !== 2) return undefined;
+    const [first, second] = activeManualSelectors;
+    const secondSatelliteIds = new Set(
+      candidates[second.site]
+        .filter((candidate) => candidate.isUplink === second.uplink && !candidate.isSynthesized)
+        .map((candidate) => candidate.satelliteId),
+    );
+    return new Set(
+      candidates[first.site]
+        .filter((candidate) => (
+          candidate.isUplink === first.uplink
+          && !candidate.isSynthesized
+          && secondSatelliteIds.has(candidate.satelliteId)
+        ))
+        .map((candidate) => candidate.satelliteId),
+    );
+  }, [activeManualSelectors, candidates]);
 
   return (
     <fieldset
@@ -934,7 +965,10 @@ function EngineeringHeaderScenarioBuilder({
               candidates={candidates[selector.site]}
               uplink={selector.uplink}
               selectedKey={draft[selector.key]}
-              onChange={(key) => apply((current) => ({ ...current, [selector.key]: key }))}
+              validSatelliteIds={validManualSatelliteIds}
+              onChange={(key) => apply((current) => (
+                synchronizeEngineeringGeoManualSelection(current, candidates, selector.key, key)
+              ))}
             />
           ))}
           <span className="sr-only">Coverage selections apply immediately.</span>

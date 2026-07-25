@@ -30,7 +30,7 @@ const kvhts: SatelliteData = {
   id: '53765',
   name: 'EUTELSAT KONNECT VHTS',
   noradId: '53765',
-  coverageFileId: undefined,
+  coverageFileId: 'test-kvhts',
   type: 'EUTELSAT',
   orbitType: 'GEO',
   opsStatus: 'operational',
@@ -99,5 +99,116 @@ describe('buildGeoRouteAnalysisViewModel STAR latency (ENG/COMM parity)', () => 
   it('exposes the existing network-layer sharing assumption without recomputing it', () => {
     expect(viewModel.networkLayer?.forward.contentionRatio).toBe(1);
     expect(viewModel.networkLayer?.forward.protocolEfficiency).toBe(1);
+  });
+
+  // ENG and COMM now resolve STAR through the same geoDeliveryChain helper, so the
+  // gateway modem (endpoint B) bounds the download here exactly as it does in the
+  // inspector. This pins the COMM half of that contract.
+  it('bounds the STAR download by the selected gateway modem', () => {
+    const starInput = (geoModemIdB: 'idirect_mdm2510' | null) => buildGeoRouteAnalysisViewModel({
+      activePoint: paris,
+      pointB: null,
+      satellites: [kvhts],
+      satelliteScope: 'GEO',
+      linkMode: 'STAR_FORWARD',
+      activeMeshTab: 'forward',
+      candidateCoverages,
+      candidateCoveragesB: [],
+      selectedCoverage: downlink,
+      selectedUplinkCoverage: null,
+      selectedDownlinkCoverage: downlink,
+      selectedUplinkCoverageB: null,
+      selectedDownlinkCoverageB: null,
+      geoRFClassIdA: null,
+      geoRFClassIdB: null,
+      geoRFCustomParamsA: null,
+      geoRFCustomParamsB: null,
+      geoModemIdA: 'idirect_mdm5010',
+      geoModemIdB,
+      geoTerminalType: 'fixed',
+      geoTerminalTypeB: 'fixed',
+      weatherType: 'clear',
+      weatherTypeB: 'clear',
+    });
+
+    const withGateway = starInput('idirect_mdm2510');
+    const withoutGateway = starInput(null);
+
+    // Gateway unselected ⇒ one end unknown ⇒ estimated ceiling, never "delivered".
+    expect(withoutGateway.geoMetrics?.downlinkEstimated).toBe(true);
+
+    expect(withGateway.geoMetrics?.downlinkGbps).not.toBeNull();
+    if (withGateway.geoMetrics?.downlinkGbps != null) {
+      // Both ends known ⇒ a delivered rate, capped at the gateway's 150 Mbps.
+      expect(withGateway.geoMetrics.downlinkEstimated).toBe(false);
+      expect(withGateway.geoMetrics.downlinkGbps).toBeLessThanOrEqual(0.15);
+      expect(withGateway.geoMetrics.downlinkGbps)
+        .toBeLessThanOrEqual(withoutGateway.geoMetrics?.downlinkGbps ?? Infinity);
+    }
+  });
+
+  it('invalidates the calculation signature when modem or custom RF inputs change', () => {
+    const withModem = buildGeoRouteAnalysisViewModel({
+      activePoint: paris,
+      pointB: null,
+      satellites: [kvhts],
+      satelliteScope: 'GEO',
+      linkMode: 'STAR_FORWARD',
+      activeMeshTab: 'forward',
+      candidateCoverages,
+      candidateCoveragesB: [],
+      selectedCoverage: downlink,
+      selectedUplinkCoverage: null,
+      selectedDownlinkCoverage: downlink,
+      selectedUplinkCoverageB: null,
+      selectedDownlinkCoverageB: null,
+      geoRFClassIdA: null,
+      geoRFClassIdB: null,
+      geoRFCustomParamsA: null,
+      geoRFCustomParamsB: null,
+      geoModemIdA: 'idirect_mdm5010',
+      geoModemIdB: 'idirect_mdm2510',
+      geoTerminalType: 'fixed',
+      geoTerminalTypeB: 'fixed',
+      weatherType: 'clear',
+      weatherTypeB: 'clear',
+    });
+
+    expect(withModem.inputSignature).not.toBe(viewModel.inputSignature);
+    expect(withModem.inputSignature).toContain('modemCatalogue:');
+    expect(withModem.inputSignature).toContain('physicalModel:');
+    expect(withModem.inputSignature).toContain('modcod:');
+  });
+
+  it('keeps unpublished MESH capability unverified instead of inventing a hard block', () => {
+    const mesh = buildGeoRouteAnalysisViewModel({
+      activePoint: paris,
+      pointB: paris,
+      satellites: [kvhts],
+      satelliteScope: 'GEO',
+      linkMode: 'MESH',
+      activeMeshTab: 'forward',
+      candidateCoverages,
+      candidateCoveragesB: candidateCoverages,
+      selectedCoverage: downlink,
+      selectedUplinkCoverage: null,
+      selectedDownlinkCoverage: downlink,
+      selectedUplinkCoverageB: null,
+      selectedDownlinkCoverageB: downlink,
+      geoRFClassIdA: null,
+      geoRFClassIdB: null,
+      geoRFCustomParamsA: null,
+      geoRFCustomParamsB: null,
+      geoModemIdA: 'idirect_iq200',
+      geoModemIdB: 'idirect_mdm2510',
+      geoTerminalType: 'fixed',
+      geoTerminalTypeB: 'fixed',
+      weatherType: 'clear',
+      weatherTypeB: 'clear',
+    });
+
+    expect(mesh.meshTopology?.unverified).toBe(true);
+    expect(mesh.meshTopology?.incompatibleModemIds).toEqual([]);
+    expect(mesh.meshTopology?.reason).toMatch(/not published/);
   });
 });

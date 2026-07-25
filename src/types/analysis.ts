@@ -133,6 +133,8 @@ export interface MobileLinkMetrics {
     rtt: number | null;
     downlinkGbps: number | null;
     uplinkGbps: number | null;
+    downlinkEstimated?: boolean;
+    uplinkEstimated?: boolean;
 }
 
 export interface MeshLinkMetrics {
@@ -144,6 +146,14 @@ export interface MeshLinkMetrics {
     reverseLatencyMs: number | null;
     /** Legacy 4-hop diagnostic reference; not used as selected route latency. */
     rttMs: number | null;
+    /**
+     * #4: true when the direction's throughput is a pure RF estimated ceiling
+     * (no GEO modem selected on either endpoint), NOT a modem-limited delivered
+     * rate. UIs must not present an estimated ceiling as guaranteed throughput.
+     * Absent/false ⇒ at least one endpoint modem constrained the figure.
+     */
+    forwardEstimatedCeiling?: boolean;
+    reverseEstimatedCeiling?: boolean;
 }
 
 export interface GeoSiteToSitePathSummary {

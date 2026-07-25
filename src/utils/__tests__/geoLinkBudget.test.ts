@@ -12,7 +12,7 @@ describe('geoLinkBudget', () => {
     expect(lookupModcod(-3)).toEqual({
       name: 'Below threshold',
       efficiency: 0,
-      requiredCnDb: -2.35,
+      requiredCnDb: -2.1,
     });
   });
 
@@ -93,47 +93,47 @@ describe('band-specific terminal downlink G/T', () => {
 describe('DVB-S2X high-order MODCODs (64APSK / 128APSK / 256APSK)', () => {
   // ── Selection at switching boundaries ──────────────────────────────────────
 
-  it('below 16.99 dB C/N the highest MODCOD is still 32APSK 8/9 (unchanged ceiling)', () => {
-    const result = lookupModcod(16.5);
+  it('below 16.3 dB Es/N0 the highest MODCOD is 32APSK 8/9', () => {
+    const result = lookupModcod(16.2);
     expect(result.name).toBe('32APSK 8/9');
-    expect(result.efficiency).toBe(4.40);
+    expect(result.efficiency).toBe(4.30);
   });
 
-  it('at 16.99 dB C/N selects 64APSK 4/5 (new entry replaces 32APSK 8/9 as ceiling)', () => {
-    const result = lookupModcod(16.99);
+  it('at 16.3 dB Es/N0 selects the CDM-780 64APSK 4/5 threshold', () => {
+    const result = lookupModcod(16.3);
     expect(result.name).toBe('64APSK 4/5');
-    expect(result.efficiency).toBe(4.80);
+    expect(result.efficiency).toBe(4.63);
   });
 
-  it('in [17.73, 19.57) dB C/N selects 64APSK 5/6', () => {
-    for (const cn of [17.73, 18.0, 19.0, 19.56]) {
+  it('in [16.9, 18.8) dB Es/N0 selects 64APSK 5/6', () => {
+    for (const cn of [16.9, 17.5, 18.79]) {
       const result = lookupModcod(cn);
       expect(result.name).toBe('64APSK 5/6');
-      expect(result.efficiency).toBe(5.00);
+      expect(result.efficiency).toBe(4.82);
     }
   });
 
-  it('at 19.57 dB C/N selects 128APSK 3/4', () => {
-    const result = lookupModcod(19.57);
+  it('at 18.8 dB Es/N0 selects 128APSK 3/4', () => {
+    const result = lookupModcod(18.8);
     expect(result.name).toBe('128APSK 3/4');
-    expect(result.efficiency).toBe(5.17);
+    expect(result.efficiency).toBe(5.05);
   });
 
-  it('in [19.57, 22.68) dB C/N selects 128APSK 3/4', () => {
-    for (const cn of [20.0, 21.0, 22.0, 22.67]) {
+  it('in [18.8, 20.0) dB Es/N0 selects 128APSK 3/4', () => {
+    for (const cn of [18.8, 19.0, 19.99]) {
       const result = lookupModcod(cn);
       expect(result.name).toBe('128APSK 3/4');
     }
   });
 
-  it('at 22.68 dB C/N selects 256APSK 32/45 (new ceiling)', () => {
-    const result = lookupModcod(22.68);
+  it('at 20 dB Es/N0 selects 256APSK 32/45', () => {
+    const result = lookupModcod(20);
     expect(result.name).toBe('256APSK 32/45');
-    expect(result.efficiency).toBe(5.62);
+    expect(result.efficiency).toBe(5.47);
   });
 
   it('256APSK 32/45 remains the ceiling at arbitrarily high C/N', () => {
-    expect(lookupModcod(30)).toMatchObject({ name: '256APSK 32/45', efficiency: 5.62 });
+    expect(lookupModcod(30)).toMatchObject({ name: '256APSK 32/45', efficiency: 5.47 });
   });
 
   // ── Efficiency staircase — no reversals ────────────────────────────────────
@@ -145,6 +145,11 @@ describe('DVB-S2X high-order MODCODs (64APSK / 128APSK / 256APSK)', () => {
       expect(efficiency).toBeGreaterThanOrEqual(prevEfficiency);
       prevEfficiency = efficiency;
     }
+  });
+
+  it('never selects a MODCOD above the selected modem constellation limit', () => {
+    const result = lookupModcod(30, { maxModulationOrder: 16 });
+    expect(result.name).toBe('16APSK 8/9');
   });
 
   // ── Ka-band throughput impact ─────────────────────────────────────────────
@@ -166,8 +171,8 @@ describe('DVB-S2X high-order MODCODs (64APSK / 128APSK / 256APSK)', () => {
 
   it('Ka-band 250 MHz spot: 64APSK 4/5 exceeds old 32APSK 8/9 ceiling', () => {
     const kaGT = getTerminalDownlinkGT('Ka');
-    const legacy = computeDownlinkBudget(70.0, kaGT, 35_786, 19.7, 250, 2.0);
-    const new64  = computeDownlinkBudget(70.2, kaGT, 35_786, 19.7, 250, 2.0);
+    const legacy = computeDownlinkBudget(69.4, kaGT, 35_786, 19.7, 250, 2.0);
+    const new64  = computeDownlinkBudget(69.5, kaGT, 35_786, 19.7, 250, 2.0);
 
     expect(legacy.modcod).toBe('32APSK 8/9');
     expect(new64.modcod).toBe('64APSK 4/5');
@@ -176,11 +181,11 @@ describe('DVB-S2X high-order MODCODs (64APSK / 128APSK / 256APSK)', () => {
 
   it('Ka-band throughput increases logically across all new MODCOD tiers', () => {
     const kaGT = getTerminalDownlinkGT('Ka');
-    const tier32apsk  = computeDownlinkBudget(70.0, kaGT, 35_786, 19.7, 250, 2.0);
-    const tier64a45   = computeDownlinkBudget(70.2, kaGT, 35_786, 19.7, 250, 2.0);
-    const tier64a56   = computeDownlinkBudget(71.0, kaGT, 35_786, 19.7, 250, 2.0);
-    const tier128apsk = computeDownlinkBudget(73.0, kaGT, 35_786, 19.7, 250, 2.0);
-    const tier256apsk = computeDownlinkBudget(76.0, kaGT, 35_786, 19.7, 250, 2.0);
+    const tier32apsk  = computeDownlinkBudget(69.4, kaGT, 35_786, 19.7, 250, 2.0);
+    const tier64a45   = computeDownlinkBudget(69.5, kaGT, 35_786, 19.7, 250, 2.0);
+    const tier64a56   = computeDownlinkBudget(70.3, kaGT, 35_786, 19.7, 250, 2.0);
+    const tier128apsk = computeDownlinkBudget(72.1, kaGT, 35_786, 19.7, 250, 2.0);
+    const tier256apsk = computeDownlinkBudget(73.3, kaGT, 35_786, 19.7, 250, 2.0);
 
     expect(tier64a45.modcod).toBe('64APSK 4/5');
     expect(tier64a56.modcod).toBe('64APSK 5/6');
@@ -194,11 +199,11 @@ describe('DVB-S2X high-order MODCODs (64APSK / 128APSK / 256APSK)', () => {
   });
 
   it('Ka-band 250 MHz symbol rate is consistent with roll-off constant', () => {
-    // At 256APSK 32/45 (5.62 b/s/Hz): symbol_rate * efficiency ≈ 1222 Mbps.
+    // At 256APSK 32/45 (5.47 b/s/Hz): symbol_rate * efficiency.
     const kaGT = getTerminalDownlinkGT('Ka');
     const result = computeDownlinkBudget(76.0, kaGT, 35_786, 19.7, 250, 2.0);
     const expectedSymbolRateMsps = 250 / (1 + DVB_S2X_ROLL_OFF);
-    const expectedThroughputMbps = expectedSymbolRateMsps * 5.62;
+    const expectedThroughputMbps = expectedSymbolRateMsps * 5.47;
 
     expect(result.modcod).toBe('256APSK 32/45');
     expect(result.achievableThroughputMbps).toBeCloseTo(expectedThroughputMbps, 0);

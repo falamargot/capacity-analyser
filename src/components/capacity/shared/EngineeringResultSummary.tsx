@@ -88,6 +88,7 @@ const stageStyles: Record<EngineeringEvidenceState, { icon: typeof Check; iconCl
 
 const provenanceLabel: Record<EngineeringTruthMetric['provenance'], string> = {
   delivered: 'Delivered',
+  'estimated-ceiling': 'Estimated ceiling',
   'rf-potential': 'RF potential',
   diagnostic: 'Diagnostic only',
   unavailable: 'Unavailable',
@@ -104,7 +105,7 @@ const MetricTile = ({ metric, diagnostic = false }: { metric: EngineeringTruthMe
       <span className="min-w-0 flex-1 text-[9px] font-bold uppercase leading-3 tracking-[0.12em] text-slate-500 dark:text-slate-400">
         {metric.label}
       </span>
-      {diagnostic && (
+      {(diagnostic || metric.provenance === 'estimated-ceiling') && (
         <span className="shrink-0 rounded-full bg-amber-100/70 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide text-amber-700/90 dark:bg-amber-500/10 dark:text-amber-300/90">
           {provenanceLabel[metric.provenance]}
         </span>

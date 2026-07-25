@@ -86,7 +86,16 @@ export interface CommercialTechnologyOption {
   available: boolean;
   downloadMbps?: number;
   uploadMbps?: number;
+  /** Active service direction one-way latency used by LAT-labelled surfaces. */
+  oneWayLatencyMs?: number;
   rttMs?: number;
+  downloadEstimated?: boolean;
+  uploadEstimated?: boolean;
+  /**
+   * #4: true when the throughput is an RF-limited ESTIMATED CEILING (no known modem
+   * cap at both endpoints), not a delivered rate. UIs must mark it as estimated.
+   */
+  throughputEstimated?: boolean;
   routeSummary?: string;
   limitingFactor?: string;
   technicalLimitingFactor?: string;
@@ -183,6 +192,10 @@ export interface CommercialScenarioViewModel {
   downloadMbps?: number;
   uploadMbps?: number;
   rttMs?: number;
+  downloadEstimated?: boolean;
+  uploadEstimated?: boolean;
+  /** #4: throughput above is an RF-limited estimated ceiling, not a delivered rate. */
+  throughputEstimated?: boolean;
   availabilityPct?: number;
   primaryWarning?: string;
   bottleneck?: string;

@@ -3,13 +3,57 @@ import type { ActiveLeoRouteEvidence } from '../../../utils/activeLeoRouteEviden
 import type { LeoSiteToSiteResult } from '../../../utils/leoSiteToSiteModel';
 import { buildCommercialScenarioViewModel } from '../commercialViewModel';
 import {
+  canonicalDirectionalMetric,
+  type CanonicalRouteMetricSet,
+} from '../../../utils/canonicalRouteMetrics';
+import {
   buildCommercialNarrativeCardModel,
   recommendationHeroEyebrow,
   recommendationViewRole,
 } from '../commercialNarrativeModel';
 
+/**
+ * Canonical metrics mirroring what useEngineeringAnalysis publishes for these
+ * fixtures. `canonicalRouteMetrics` is a REQUIRED input: COMM has no fallback that
+ * can re-derive physical truth on its own, so every test states it explicitly.
+ */
+function canonicalFor(evidence: ActiveLeoRouteEvidence): CanonicalRouteMetricSet {
+  const available = evidence.available === true;
+  return {
+    LEO: {
+      technology: 'LEO',
+      topology: 'SITE_TO_SITE',
+      activeDirection: 'forward',
+      forward: canonicalDirectionalMetric({
+        throughputMbps: evidence.downloadMbps,
+        oneWayLatencyMs: evidence.rttMs != null ? evidence.rttMs / 2 : null,
+        estimated: false,
+      }),
+      reverse: canonicalDirectionalMetric({
+        throughputMbps: evidence.uploadMbps,
+        oneWayLatencyMs: evidence.rttMs != null ? evidence.rttMs / 2 : null,
+        estimated: false,
+      }),
+      rttMs: evidence.rttMs ?? null,
+      state: available ? 'available' : 'blocked',
+      stateReason: null,
+    },
+    GEO: {
+      technology: 'GEO',
+      topology: 'STAR_FORWARD',
+      activeDirection: 'forward',
+      forward: canonicalDirectionalMetric({}),
+      reverse: canonicalDirectionalMetric({}),
+      rttMs: null,
+      state: 'path-unavailable',
+      stateReason: null,
+    },
+  };
+}
+
 function buildInput(evidence: ActiveLeoRouteEvidence): Parameters<typeof buildCommercialScenarioViewModel>[0] {
   return {
+    canonicalRouteMetrics: canonicalFor(evidence),
     activeTechnology: 'LEO',
     activeMeshTab: 'forward',
     activeAnalysisPoint: { lat: 48.8566, lng: 2.3522 },
@@ -64,7 +108,80 @@ function evidence(available: boolean): ActiveLeoRouteEvidence {
   } as ActiveLeoRouteEvidence;
 }
 
+/**
+ * Declares one GEO scenario on both the legacy metrics shape and the canonical
+ * metrics, the way the real analysis publishes them together. COMM no longer has a
+ * fallback that can invent GEO truth from `metrics.geo` alone, so a test that wants a
+ * GEO route must say so canonically.
+ */
+function applyGeoRoute(
+  input: Parameters<typeof buildCommercialScenarioViewModel>[0],
+  geo: { downlinkGbps: number; uplinkGbps: number; rtt: number },
+  status: 'available' | 'out_of_coverage',
+) {
+  input.metrics = { geo } as typeof input.metrics;
+  input.geoPointStatus = status;
+  input.canonicalRouteMetrics = {
+    ...input.canonicalRouteMetrics,
+    GEO: {
+      technology: 'GEO',
+      topology: 'STAR_FORWARD',
+      activeDirection: 'forward',
+      forward: canonicalDirectionalMetric({
+        throughputMbps: status === 'available' ? geo.downlinkGbps * 1000 : null,
+        oneWayLatencyMs: status === 'available' ? geo.rtt : null,
+        estimated: false,
+      }),
+      reverse: canonicalDirectionalMetric({
+        throughputMbps: status === 'available' ? geo.uplinkGbps * 1000 : null,
+        oneWayLatencyMs: status === 'available' ? geo.rtt : null,
+        estimated: false,
+      }),
+      rttMs: status === 'available' ? geo.rtt * 2 : null,
+      state: status === 'available' ? 'available' : 'path-unavailable',
+      stateReason: null,
+    },
+  };
+}
+
 describe('commercial final LEO service decision', () => {
+  it('consumes the same canonical directions and degraded physical state as ENG', () => {
+    const input = buildInput(evidence(true));
+    input.canonicalRouteMetrics = {
+      LEO: {
+        technology: 'LEO',
+        topology: 'SITE_TO_SITE',
+        activeDirection: 'forward',
+        forward: canonicalDirectionalMetric({ throughputMbps: 9, oneWayLatencyMs: 55 }),
+        reverse: canonicalDirectionalMetric({ throughputMbps: 6, oneWayLatencyMs: 56 }),
+        rttMs: 111,
+        state: 'degraded',
+        stateReason: 'RF margin is low',
+      },
+      GEO: {
+        technology: 'GEO',
+        topology: 'MESH',
+        activeDirection: 'forward',
+        forward: canonicalDirectionalMetric({}),
+        reverse: canonicalDirectionalMetric({}),
+        rttMs: null,
+        state: 'path-unavailable',
+        stateReason: 'No GEO path',
+      },
+    } satisfies CanonicalRouteMetricSet;
+
+    const viewModel = buildCommercialScenarioViewModel(input);
+    const leo = viewModel.comparison.options.find((option) => option.technology === 'leo');
+
+    expect(leo).toEqual(expect.objectContaining({
+      status: 'degraded',
+      downloadMbps: 9,
+      uploadMbps: 6,
+      oneWayLatencyMs: 55,
+      rttMs: 111,
+    }));
+  });
+
   it('suppresses stale no-path wording when final evidence is active', () => {
     const viewModel = buildCommercialScenarioViewModel(buildInput(evidence(true)));
 
@@ -93,10 +210,7 @@ describe('commercial final LEO service decision', () => {
 describe('commercial deliverable-metric gating', () => {
   it('does not expose GEO diagnostic values as customer KPIs on a blocked route', () => {
     const input = buildInput(evidence(false));
-    input.metrics = {
-      geo: { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 },
-    } as typeof input.metrics;
-    input.geoPointStatus = 'out_of_coverage';
+    applyGeoRoute(input, { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 }, 'out_of_coverage');
 
     const viewModel = buildCommercialScenarioViewModel(input);
     const geo = viewModel.comparison.options.find((option) => option.technology === 'geo');
@@ -124,10 +238,7 @@ describe('commercial indicative availability (Reliability tile wiring)', () => {
 
   it('keeps availability and delivered throughput separate per technology', () => {
     const input = buildInput(evidence(true));
-    input.metrics = {
-      geo: { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 },
-    } as typeof input.metrics;
-    input.geoPointStatus = 'available';
+    applyGeoRoute(input, { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 }, 'available');
 
     const viewModel = buildCommercialScenarioViewModel(input);
     const leo = viewModel.comparison.options.find((option) => option.technology === 'leo');
@@ -163,10 +274,7 @@ describe('commercial objective live wiring', () => {
 
   it('uses objective-aware scoring and labels simulated regulatory evidence honestly', () => {
     const input = buildInput(evidence(true));
-    input.metrics = {
-      geo: { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 },
-    } as typeof input.metrics;
-    input.geoPointStatus = 'available';
+    applyGeoRoute(input, { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 }, 'available');
     input.commercialObjective = 'REALTIME';
     input.leoRegulatoryResult = {
       status: 'ALLOWED_CONFIRMED',
@@ -191,10 +299,7 @@ describe('commercial objective live wiring', () => {
 
   it('derives mobility compatibility from the selected terminal profiles, never from orbit', () => {
     const input = buildInput(evidence(true));
-    input.metrics = {
-      geo: { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 },
-    } as typeof input.metrics;
-    input.geoPointStatus = 'available';
+    applyGeoRoute(input, { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 }, 'available');
     input.commercialObjective = 'MOBILITY';
 
     const viewModel = buildCommercialScenarioViewModel(input);
@@ -207,10 +312,7 @@ describe('commercial objective live wiring', () => {
 
   it('recommends the only route whose selected terminal is explicitly mobile-capable', () => {
     const input = buildInput(evidence(true));
-    input.metrics = {
-      geo: { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 },
-    } as typeof input.metrics;
-    input.geoPointStatus = 'available';
+    applyGeoRoute(input, { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 }, 'available');
     input.commercialObjective = 'MOBILITY';
     input.leoTerminalType = 'mobile';
     input.geoTerminalType = 'fixed';
@@ -227,10 +329,7 @@ describe('commercial objective live wiring', () => {
 
   it('does not accept a non-aviation mobile terminal for an aircraft scenario', () => {
     const input = buildInput(evidence(true));
-    input.metrics = {
-      geo: { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 },
-    } as typeof input.metrics;
-    input.geoPointStatus = 'available';
+    applyGeoRoute(input, { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 }, 'available');
     input.activeAnalysisSource = 'aircraft';
     input.commercialObjective = 'MOBILITY';
     input.leoTerminalType = 'maritime';
@@ -248,10 +347,7 @@ describe('commercial objective live wiring', () => {
 
   it('qualifies resilience with pairwise route-domain evidence instead of a generic claim', () => {
     const input = buildInput(evidence(true));
-    input.metrics = {
-      geo: { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 },
-    } as typeof input.metrics;
-    input.geoPointStatus = 'available';
+    applyGeoRoute(input, { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 }, 'available');
     input.commercialObjective = 'RESILIENCE';
     input.geoGatewayName = 'Paris Gateway';
 
@@ -271,10 +367,7 @@ describe('commercial objective live wiring', () => {
 
   it('compares a true LEO Site-to-Site route with a deliverable GEO route for BROADCAST', () => {
     const input = buildInput(evidence(true));
-    input.metrics = {
-      geo: { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 },
-    } as typeof input.metrics;
-    input.geoPointStatus = 'available';
+    applyGeoRoute(input, { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 }, 'available');
     input.commercialObjective = 'BROADCAST';
     input.commercialTrafficDirection = 'DOWNLINK';
 
@@ -292,10 +385,7 @@ describe('commercial objective live wiring', () => {
 
   it('never recommends a route blocked by the regulatory planning gate', () => {
     const input = buildInput(evidence(true));
-    input.metrics = {
-      geo: { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 },
-    } as typeof input.metrics;
-    input.geoPointStatus = 'available';
+    applyGeoRoute(input, { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 }, 'available');
     input.commercialObjective = 'REALTIME';
     input.leoRegulatoryResult = {
       status: 'BLOCKED',
@@ -365,6 +455,28 @@ describe('commercial destination narrative (no phantom destination)', () => {
       resolvedAutoLEO: null,
       // STAR_FORWARD single-site: available route with coverage at the origin only.
       metrics: { geo: { downlinkGbps: 0.12, rtt: 240 } } as Parameters<typeof buildCommercialScenarioViewModel>[0]['metrics'],
+      canonicalRouteMetrics: {
+        LEO: {
+          technology: 'LEO',
+          topology: 'SINGLE_SITE',
+          activeDirection: 'forward',
+          forward: canonicalDirectionalMetric({}),
+          reverse: canonicalDirectionalMetric({}),
+          rttMs: null,
+          state: 'path-unavailable',
+          stateReason: null,
+        },
+        GEO: {
+          technology: 'GEO',
+          topology: 'STAR_FORWARD',
+          activeDirection: 'forward',
+          forward: canonicalDirectionalMetric({ throughputMbps: 120, oneWayLatencyMs: 240, estimated: false }),
+          reverse: canonicalDirectionalMetric({ throughputMbps: 30, oneWayLatencyMs: 240, estimated: false }),
+          rttMs: 480,
+          state: 'available',
+          stateReason: null,
+        },
+      } satisfies CanonicalRouteMetricSet,
       leoTopologyMode: 'SINGLE_SITE',
       activeLeoRouteEvidence: null,
       geoPointStatus: 'available',

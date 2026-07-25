@@ -11,6 +11,10 @@ export interface PerformanceData {
   rtt: number | null;
   downlinkGbps: number | null;
   uplinkGbps: number | null;
+  downloadEstimated?: boolean;
+  uploadEstimated?: boolean;
+  /** Legacy aggregate, derived from the two directional flags. */
+  throughputEstimated?: boolean;
   elevation: number | null;
   stability: string;
   distance: number | null;
@@ -45,8 +49,10 @@ export interface PDFPerformanceDetails {
   rttMs: number | null;
   downlinkGbps: number | null;
   uplinkGbps: number | null;
-  maxDlGbps: number;
-  maxUlGbps: number;
+  maxDlGbps: number | null;
+  maxUlGbps: number | null;
+  downlinkEstimated?: boolean;
+  uplinkEstimated?: boolean;
   stability?: string | null;
   performanceFactor?: number | null;
   notes?: string[];
@@ -382,8 +388,8 @@ function createComparisonPage(pdf: jsPDF, data: PDFExportData, snapshot: Snapsho
     ['Service state', serviceStateLabel(leoData), serviceStateLabel(geoData)],
     ['Satellite', leoData?.name || 'N/A', geoData?.name || 'N/A'],
     ['Latency', comparisonMetric(leoData, leoData?.rtt, (value) => `${Math.round(value)} ms`), comparisonMetric(geoData, geoData?.rtt, (value) => `${Math.round(value)} ms`)],
-    ['Downlink', comparisonMetric(leoData, leoData?.downlinkGbps, formatThroughput), comparisonMetric(geoData, geoData?.downlinkGbps, formatThroughput)],
-    ['Uplink', comparisonMetric(leoData, leoData?.uplinkGbps, formatThroughput), comparisonMetric(geoData, geoData?.uplinkGbps, formatThroughput)],
+    ['Downlink', comparisonMetric(leoData, leoData?.downlinkGbps, formatThroughput), comparisonMetric(geoData, geoData?.downlinkGbps, (v) => `${formatThroughput(v)}${geoData?.downloadEstimated ? ' (est.)' : ''}`)],
+    ['Uplink', comparisonMetric(leoData, leoData?.uplinkGbps, formatThroughput), comparisonMetric(geoData, geoData?.uplinkGbps, (v) => `${formatThroughput(v)}${geoData?.uploadEstimated ? ' (est.)' : ''}`)],
     ['Elevation', comparisonMetric(leoData, leoData?.elevation, (value) => `${value.toFixed(1)}°`), comparisonMetric(geoData, geoData?.elevation, (value) => `${value.toFixed(1)}°`)],
     ['Stability', hasDeliverablePdfPath(leoData) ? leoData.stability : 'N/A', hasDeliverablePdfPath(geoData) ? geoData.stability : 'N/A'],
     ['Distance', comparisonMetric(leoData, leoData?.distance, (value) => `${Math.round(value)} km`), comparisonMetric(geoData, geoData?.distance, (value) => `${Math.round(value)} km`)],
@@ -603,8 +609,8 @@ function createDetailsPage(pdf: jsPDF, data: PDFExportData): void {
       writeSubheading('Estimated performance');
       const performanceRows: PDFMetricRow[] = [
         { label: details.performance.rttLabel, value: details.performance.rttMs != null ? `${Math.round(details.performance.rttMs)} ms` : 'N/A' },
-        { label: 'Downlink throughput', value: formatThroughput(details.performance.downlinkGbps) },
-        { label: 'Uplink throughput', value: formatThroughput(details.performance.uplinkGbps) },
+        { label: 'Downlink throughput', value: `${formatThroughput(details.performance.downlinkGbps)}${details.performance.downlinkEstimated ? ' (estimated ceiling)' : ''}` },
+        { label: 'Uplink throughput', value: `${formatThroughput(details.performance.uplinkGbps)}${details.performance.uplinkEstimated ? ' (estimated ceiling)' : ''}` },
         { label: 'Stability', value: details.performance.stability || 'N/A' },
         { label: 'Terminal max downlink', value: formatThroughput(details.performance.maxDlGbps) },
         { label: 'Terminal max uplink', value: formatThroughput(details.performance.maxUlGbps) },

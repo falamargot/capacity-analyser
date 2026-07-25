@@ -3,20 +3,15 @@ import type { LinkMode } from '../types/linkMode';
 import type { SatelliteScope } from '../components/SatelliteScopeFilter';
 import type { SatelliteData } from '../types/satellites';
 import { GEO_GATEWAYS, type GeoGatewayData } from '../components/globe/GlobeConfig';
-import { TERMINAL_PROFILES, WEATHER_PROFILES, getWeatherFactor, type TerminalType, type WeatherType } from '../components/capacity/terminalAssumptions';
+import { type TerminalType, type WeatherType } from '../components/capacity/terminalAssumptions';
 import { computeOneWayLatencyMs } from './capacityCalculator';
 import { computeGeoConnectivity, findCandidateCoverages, getCandidateCoverageKey } from './geoCoverageSelection';
 import {
-  buildMeshResult,
-  buildStarForwardResult,
-  buildStarReturnResult,
   findBestDownlinkMatch,
   findBestUplinkMatch,
-  getDisplayedThroughput,
-  type DualSegmentResult,
+  type TransponderMode,
 } from './geoDualSegmentBudget';
-import { RAIN_FADE_DB, type GeoBand } from './geoLinkBudget';
-import { augmentCandidatesWithSynthesizedDirections, resolveStarGatewayFeederCandidate } from './geoTopologySelection';
+import { augmentCandidatesWithSynthesizedDirections } from './geoTopologySelection';
 import {
   distanceKm,
   getGeoSatellitePoint,
@@ -29,11 +24,24 @@ import { logStarGatewayCanaryDev, pickStarGatewayReferenceCoverage } from './geo
 import type { TerminalRFClassId, TerminalRFCustomParams } from './geoTerminalRFModel';
 import type { GeoPointStatus } from './selectedPointStatus';
 import type { NetworkLayerResult } from './geoNetworkLayer';
-
-const GEO_LINK_MARGIN_STABILITY = {
-  medium: 2,
-  high: 5,
-} as const;
+import {
+  GEO_MODEM_CATALOGUE_VERSION,
+  getGeoModemProfile,
+  verifyModemTopology,
+  type GeoModemId,
+  type MeshTopologyCheck,
+} from './geoModemCatalogue';
+import { GEO_PHYSICAL_MODEL_VERSION } from './geoPhysicalAssumptions';
+import { DVB_S2X_MODCOD_CONVENTION } from './geoLinkBudget';
+import {
+  applyGeoRouteDeliveryToPerformance,
+  buildGeoMeshLinkMetrics,
+} from './geoDeliveryChain';
+import {
+  calculateGeoBaselinePerformance,
+  getGeoCompanionCoverage,
+} from './geoBaselinePerformance';
+import { resolveCanonicalGeoRoute } from './geoCanonicalRoute';
 
 export type GeoRouteAnalysisTopology = 'STAR_FORWARD' | 'STAR_RETURN' | 'MESH' | 'POINT_TO_POINT';
 export type GeoRouteAnalysisDirection = 'forward' | 'reverse' | null;
@@ -53,6 +61,12 @@ export interface GeoRouteAnalysisViewModel {
    * ENG authoritative result for the same route. Not a round-trip time.
    */
   latencyMs?: number;
+  /**
+   * #1: round-trip time for COMM scoring/labels (Response/RTT/use-cases). MESH:
+   * meshMetrics.rttMs; STAR: 2 × one-way (per the RTT = 2×one-way convention). The
+   * `latencyMs` above stays the one-way figure ENG labels explicitly.
+   */
+  rttMs?: number;
   routeSummary?: string;
   routePath?: GeoSiteToSitePathSummary | null;
   selectedSatellite?: SatelliteData | null;
@@ -64,6 +78,14 @@ export interface GeoRouteAnalysisViewModel {
   geoStatus: GeoPointStatus | null;
   geoMetrics: MobileLinkMetrics | null;
   meshMetrics: MeshLinkMetrics | null;
+  /**
+   * #4: MESH topology verification for the selected endpoint modems — turns the
+   * inert `meshCapable` flag into a checkable per-route result (compatible /
+   * unverified / confirmed-incompatible). null outside MESH/P2P.
+   */
+  meshTopology?: MeshTopologyCheck | null;
+  /** #7: on-board transponder path for MESH — 'cross-connect' (different beams) is unconfirmed. */
+  transponderMode?: TransponderMode | null;
   geoSiteToSitePath: GeoSiteToSitePathSummary | null;
   /**
    * Existing topology-level sharing assumptions. Exposed for decision-support
@@ -96,6 +118,9 @@ interface GeoRouteAnalysisInput {
   geoRFCustomParamsB: TerminalRFCustomParams | null;
   geoTerminalType: TerminalType;
   geoTerminalTypeB: TerminalType;
+  /** #4: selected GEO modem at endpoint A/B (null ⇒ RF result is an estimated ceiling). */
+  geoModemIdA?: GeoModemId | null;
+  geoModemIdB?: GeoModemId | null;
   weatherType: WeatherType;
   weatherTypeB: WeatherType;
   nearestLocation?: { city: string; country: string } | null;
@@ -117,6 +142,15 @@ function signatureCoverage(coverage: CandidateCoverage | null): string {
   return coverage ? getCandidateCoverageKey(coverage) : 'none';
 }
 
+function signatureObject(value: unknown): string {
+  if (value == null) return 'none';
+  if (typeof value !== 'object') return String(value);
+  const record = value as Record<string, unknown>;
+  return JSON.stringify(Object.fromEntries(
+    Object.entries(record).sort(([a], [b]) => a.localeCompare(b)),
+  ));
+}
+
 function buildInputSignature(input: GeoRouteAnalysisInput): string {
   return [
     `a:${signaturePoint(input.activePoint)}`,
@@ -131,122 +165,21 @@ function buildInputSignature(input: GeoRouteAnalysisInput): string {
     `dlB:${signatureCoverage(input.selectedDownlinkCoverageB)}`,
     `rfA:${input.geoRFClassIdA ?? 'none'}`,
     `rfB:${input.geoRFClassIdB ?? 'none'}`,
+    `rfCustomA:${signatureObject(input.geoRFCustomParamsA)}`,
+    `rfCustomB:${signatureObject(input.geoRFCustomParamsB)}`,
+    `modemA:${input.geoModemIdA ?? 'none'}`,
+    `modemB:${input.geoModemIdB ?? 'none'}`,
     `wxA:${input.weatherType}`,
     `wxB:${input.weatherTypeB}`,
+    `modemCatalogue:${GEO_MODEM_CATALOGUE_VERSION}`,
+    `physicalModel:${GEO_PHYSICAL_MODEL_VERSION}`,
+    `modcod:${DVB_S2X_MODCOD_CONVENTION.id}`,
     `gwOut:${input.failedGeoGatewaySiteIds?.size ? [...input.failedGeoGatewaySiteIds].sort().join(',') : 'none'}`,
   ].join('|');
 }
 
-function getGeoCompanionCoverage(
-  selectedCoverage: CandidateCoverage | null,
-  candidateCoverages: CandidateCoverage[],
-  wantUplink: boolean,
-): CandidateCoverage | null {
-  if (candidateCoverages.length === 0) return null;
-
-  if (selectedCoverage?.isUplink === wantUplink) {
-    return selectedCoverage;
-  }
-
-  const sameSatellite = candidateCoverages.filter((candidate) => (
-    candidate.isUplink === wantUplink &&
-    (!selectedCoverage || candidate.satelliteId === selectedCoverage.satelliteId)
-  ));
-
-  const sameBand = sameSatellite.filter((candidate) => (
-    !selectedCoverage?.band || !candidate.band || candidate.band === selectedCoverage.band
-  ));
-
-  if (selectedCoverage?.band) {
-    return sameBand[0] ?? null;
-  }
-
-  return sameBand[0] ?? sameSatellite[0] ?? candidateCoverages.find((candidate) => candidate.isUplink === wantUplink) ?? null;
-}
-
-function calculateGeoPerformance({
-  elevationDeg,
-  geoTerminalType,
-  selectedCoverage,
-  candidateCoverages,
-  weatherType,
-}: {
-  elevationDeg: number;
-  geoTerminalType: TerminalType;
-  selectedCoverage: CandidateCoverage | null;
-  candidateCoverages: CandidateCoverage[];
-  weatherType: WeatherType;
-}) {
-  const profile = TERMINAL_PROFILES[geoTerminalType];
-  const downlinkCoverage = getGeoCompanionCoverage(selectedCoverage, candidateCoverages, false);
-  const uplinkCoverage = getGeoCompanionCoverage(selectedCoverage, candidateCoverages, true);
-
-  if (elevationDeg < 5) {
-    return {
-      downlinkGbps: 0,
-      uplinkGbps: 0,
-      stability: 'Unstable' as const,
-      performanceFactor: 0,
-      weatherFactor: 1,
-      weatherLabel: 'Selected link budget',
-    };
-  }
-
-  if (downlinkCoverage || uplinkCoverage) {
-    const downlinkGbps = downlinkCoverage
-      ? Math.min(downlinkCoverage.throughputEstimate / 1000, profile.maxDlGbps)
-      : 0;
-    const uplinkGbps = uplinkCoverage
-      ? Math.min(uplinkCoverage.throughputEstimate / 1000, profile.maxUlGbps)
-      : 0;
-    const downlinkRatio = profile.maxDlGbps > 0
-      ? Math.min(downlinkGbps / profile.maxDlGbps, 1)
-      : 0;
-    const uplinkRatio = profile.maxUlGbps > 0
-      ? Math.min(uplinkGbps / profile.maxUlGbps, 1)
-      : 0;
-    const weakestMarginDb = [downlinkCoverage?.linkMarginDb, uplinkCoverage?.linkMarginDb]
-      .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
-      .reduce<number | null>((current, value) => current == null ? value : Math.min(current, value), null);
-
-    const stability =
-      weakestMarginDb == null ? 'Low'
-      : weakestMarginDb < 0 ? 'Unstable'
-      : weakestMarginDb < GEO_LINK_MARGIN_STABILITY.medium ? 'Low'
-      : weakestMarginDb < GEO_LINK_MARGIN_STABILITY.high ? 'Medium'
-      : 'High';
-
-    return {
-      downlinkGbps,
-      uplinkGbps,
-      stability,
-      performanceFactor: Math.max(downlinkRatio, uplinkRatio),
-      weatherFactor: 1,
-      weatherLabel: 'Selected link budget',
-    };
-  }
-
-  const weatherFactor = getWeatherFactor(weatherType, geoTerminalType === 'aviation');
-  const elevationFactor = elevationDeg >= 50 ? 1 : (elevationDeg - 5) / (50 - 5);
-  const performanceFactor = Math.max(0.15, elevationFactor) * weatherFactor;
-  const downlinkGbps = profile.maxDlGbps * performanceFactor;
-  const uplinkGbps = profile.maxUlGbps * performanceFactor;
-
-  const stability =
-    elevationDeg >= 40 ? 'High' :
-      elevationDeg >= 25 ? 'Medium' :
-        elevationDeg >= 5 ? 'Low' :
-          'Unstable';
-
-  return {
-    downlinkGbps,
-    uplinkGbps,
-    stability,
-    performanceFactor,
-    weatherFactor,
-    weatherLabel: WEATHER_PROFILES[weatherType].label,
-  };
-}
+const isMeshLinkMode = (linkMode: LinkMode): boolean =>
+  linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
 
 function routeReasonForGeoStatus(status: GeoPointStatus | null): string {
   if (status === 'gateway_unavailable') return 'No GEO gateway route available.';
@@ -376,82 +309,37 @@ export function buildGeoRouteAnalysisViewModel(input: GeoRouteAnalysisInput): Ge
     return findBestDownlinkMatch(refCoverage, input.candidateCoveragesB);
   })();
 
-  const dualSegmentResult = (() : DualSegmentResult | null => {
-    const activeBand = (
-      downlinkAtUser?.band ??
-      uplinkAtUser?.band ??
-      uplinkAtB?.band ??
-      downlinkAtB?.band ??
-      'Ku'
-    ) as GeoBand;
-    const fadeTable = RAIN_FADE_DB[activeBand] ?? RAIN_FADE_DB.Ku;
-    const weatherAdjDbA = fadeTable[input.weatherType as keyof typeof fadeTable] ?? 0;
-    const weatherAdjDbB = fadeTable[input.weatherTypeB as keyof typeof fadeTable] ?? 0;
-
-    if (input.linkMode === 'STAR_FORWARD') {
-      if (!servedStarGatewaySelection || !downlinkAtUser || !selectedSatellite) return null;
-      const uplink = resolveStarGatewayFeederCandidate({
-        reference: downlinkAtUser,
-        gatewayPool: candidateCoveragesAtGateway,
-        satellite: selectedSatellite,
-        gateway: servedStarGatewaySelection.gateway,
-        linkMode: input.linkMode,
-      }).candidate;
-      if (!uplink) return null;
-      return buildStarForwardResult(
-        downlinkAtUser,
-        uplink,
-        servedStarGatewaySelection.trafficCapability,
-        'Terminal A',
-        weatherAdjDbA,
-        input.geoRFClassIdA ?? undefined,
-        input.geoRFCustomParamsA,
-        servedStarGatewaySelection.gateway.name,
-      );
-    }
-
-    if (input.linkMode === 'STAR_RETURN') {
-      if (!servedStarGatewaySelection || !uplinkAtUser || !selectedSatellite) return null;
-      const downlink = resolveStarGatewayFeederCandidate({
-        reference: uplinkAtUser,
-        gatewayPool: candidateCoveragesAtGateway,
-        satellite: selectedSatellite,
-        gateway: servedStarGatewaySelection.gateway,
-        linkMode: input.linkMode,
-      }).candidate;
-      if (!downlink) return null;
-      return buildStarReturnResult(
-        uplinkAtUser,
-        downlink,
-        servedStarGatewaySelection.trafficCapability,
-        'Terminal A',
-        weatherAdjDbA,
-        input.geoRFClassIdA ?? undefined,
-        input.geoRFCustomParamsA,
-        servedStarGatewaySelection.gateway.name,
-      );
-    }
-
-    if (input.linkMode === 'MESH' || input.linkMode === 'POINT_TO_POINT') {
-      if (!uplinkAtUser || !downlinkAtUser || !uplinkAtB || !downlinkAtB) return null;
-      return buildMeshResult(
-        uplinkAtUser,
-        downlinkAtB,
-        uplinkAtB,
-        downlinkAtUser,
-        { pointA: 'Terminal A', pointB: 'Terminal B' },
-        input.geoRFClassIdA ?? input.geoTerminalType,
-        input.geoRFClassIdB ?? input.geoTerminalTypeB,
-        weatherAdjDbA,
-        weatherAdjDbB,
-        input.geoRFCustomParamsA,
-        input.geoRFCustomParamsB,
-        input.linkMode,
-      );
-    }
-
-    return null;
-  })();
+  // THE canonical route — the identical resolver ENG's useEngineeringAnalysis calls.
+  // This view model is a projection of it: it no longer builds link budgets, site
+  // fades or modem caps of its own. Both service directions resolve, including the
+  // companion STAR direction that is not currently on screen.
+  const geoCanonicalRoute = resolveCanonicalGeoRoute({
+    linkMode: input.linkMode,
+    activeMeshTab: input.activeMeshTab,
+    activePoint: input.activePoint,
+    pointB: input.pointB,
+    uplinkAtUser,
+    downlinkAtUser,
+    uplinkAtB,
+    downlinkAtB,
+    starGatewaySelection: servedStarGatewaySelection ?? null,
+    candidateCoveragesAtGateway,
+    satellites: input.satellites,
+    geoTerminalType: input.geoTerminalType,
+    geoTerminalTypeB: input.geoTerminalTypeB,
+    geoRFClassIdA: input.geoRFClassIdA,
+    geoRFClassIdB: input.geoRFClassIdB,
+    geoRFCustomParamsA: input.geoRFCustomParamsA,
+    geoRFCustomParamsB: input.geoRFCustomParamsB,
+    geoModemIdA: input.geoModemIdA,
+    geoModemIdB: input.geoModemIdB,
+    weatherType: input.weatherType,
+    weatherTypeB: input.weatherTypeB,
+    pointALabel: 'Terminal A',
+    pointBLabel: 'Terminal B',
+  });
+  const dualSegmentResult = geoCanonicalRoute?.activeResult ?? null;
+  const geoRouteDelivery = geoCanonicalRoute?.delivery ?? null;
 
   const geoGeometry = resolvedGEOConnectivity?.geometry ?? null;
 
@@ -480,7 +368,7 @@ export function buildGeoRouteAnalysisViewModel(input: GeoRouteAnalysisInput): Ge
     return propagationMs + geoGeometry.overheadMs.total;
   })();
   const baseGeoPerformance = resolvedGEOConnectivity && geoGeometry
-    ? calculateGeoPerformance({
+    ? calculateGeoBaselinePerformance({
         elevationDeg: geoGeometry.userToSatellite.elevationDeg,
         geoTerminalType: input.geoTerminalType,
         selectedCoverage: input.selectedCoverage,
@@ -491,81 +379,15 @@ export function buildGeoRouteAnalysisViewModel(input: GeoRouteAnalysisInput): Ge
 
   const geoEffectivePerformance = (() => {
     if (!baseGeoPerformance) return null;
-    if (!dualSegmentResult) {
-      return (input.linkMode === 'MESH' || input.linkMode === 'POINT_TO_POINT') ? null : baseGeoPerformance;
+    if (!dualSegmentResult || !geoRouteDelivery) {
+      return isMeshLinkMode(input.linkMode) ? null : baseGeoPerformance;
     }
-
-    const profile = TERMINAL_PROFILES[input.geoTerminalType];
-    const forwardEndToEnd = dualSegmentResult.forward.endToEnd;
-    const reverseEndToEnd = dualSegmentResult.reverse?.endToEnd ?? null;
-    const worstMarginDb = reverseEndToEnd
-      ? Math.min(forwardEndToEnd.endToEndLinkMarginDb, reverseEndToEnd.endToEndLinkMarginDb)
-      : forwardEndToEnd.endToEndLinkMarginDb;
-    const stability: 'Unstable' | 'Low' | 'Medium' | 'High' =
-      worstMarginDb < 0 ? 'Unstable' :
-        worstMarginDb < GEO_LINK_MARGIN_STABILITY.medium ? 'Low' :
-          worstMarginDb < GEO_LINK_MARGIN_STABILITY.high ? 'Medium' :
-            'High';
-
-    if (input.linkMode === 'STAR_FORWARD') {
-      const downlinkGbps = Math.min(forwardEndToEnd.endToEndThroughputMbps / 1000, profile.maxDlGbps);
-      return {
-        ...baseGeoPerformance,
-        downlinkGbps,
-        stability,
-        performanceFactor: profile.maxDlGbps > 0 ? downlinkGbps / profile.maxDlGbps : 0,
-      };
-    }
-
-    if (input.linkMode === 'STAR_RETURN') {
-      const uplinkGbps = Math.min(forwardEndToEnd.endToEndThroughputMbps / 1000, profile.maxUlGbps);
-      return {
-        ...baseGeoPerformance,
-        uplinkGbps,
-        stability,
-        performanceFactor: profile.maxUlGbps > 0 ? uplinkGbps / profile.maxUlGbps : 0,
-      };
-    }
-
-    if (input.linkMode === 'MESH' || input.linkMode === 'POINT_TO_POINT') {
-      const forwardGbps = Math.min(getDisplayedThroughput(dualSegmentResult, 'forward') / 1000, profile.maxDlGbps);
-      const reverseGbps = reverseEndToEnd
-        ? Math.min(getDisplayedThroughput(dualSegmentResult, 'reverse') / 1000, profile.maxUlGbps)
-        : baseGeoPerformance.uplinkGbps;
-      const forwardRatio = profile.maxDlGbps > 0 ? forwardGbps / profile.maxDlGbps : 0;
-      const reverseRatio = profile.maxUlGbps > 0 && reverseGbps != null ? reverseGbps / profile.maxUlGbps : 0;
-      return {
-        ...baseGeoPerformance,
-        downlinkGbps: forwardGbps,
-        uplinkGbps: reverseGbps,
-        stability,
-        performanceFactor: Math.max(forwardRatio, reverseRatio),
-      };
-    }
-
-    return baseGeoPerformance;
+    return applyGeoRouteDeliveryToPerformance(baseGeoPerformance, geoRouteDelivery);
   })();
 
-  const meshMetrics: MeshLinkMetrics | null = (() => {
-    if ((input.linkMode !== 'MESH' && input.linkMode !== 'POINT_TO_POINT') || !dualSegmentResult) return null;
-    const C_KM_PER_MS = 299.792458;
-    const forwardUplink = dualSegmentResult.forward.uplink.candidate;
-    const forwardDownlink = dualSegmentResult.forward.downlink.candidate;
-    const reverseUplink = dualSegmentResult.reverse?.uplink.candidate;
-    const reverseDownlink = dualSegmentResult.reverse?.downlink.candidate;
-    const aToSatKm = forwardUplink.slantRangeKm ?? 37500;
-    const satToBKm = forwardDownlink.slantRangeKm ?? 37500;
-    const bToSatKm = reverseUplink?.slantRangeKm ?? satToBKm;
-    const satToAKm = reverseDownlink?.slantRangeKm ?? aToSatKm;
-    const modemOverheadMs = 40;
-    return {
-      forwardMbps: getDisplayedThroughput(dualSegmentResult, 'forward'),
-      reverseMbps: dualSegmentResult.reverse ? getDisplayedThroughput(dualSegmentResult, 'reverse') : null,
-      forwardLatencyMs: (aToSatKm + satToBKm) / C_KM_PER_MS + modemOverheadMs,
-      reverseLatencyMs: (bToSatKm + satToAKm) / C_KM_PER_MS + modemOverheadMs,
-      rttMs: (aToSatKm + satToBKm + bToSatKm + satToAKm) / C_KM_PER_MS + 40,
-    };
-  })();
+  const meshMetrics: MeshLinkMetrics | null = dualSegmentResult && geoRouteDelivery && isMeshLinkMode(input.linkMode)
+    ? buildGeoMeshLinkMetrics(dualSegmentResult, geoRouteDelivery)
+    : null;
 
   const geoSiteToSitePath: GeoSiteToSitePathSummary | null = (() => {
     if ((input.linkMode !== 'MESH' && input.linkMode !== 'POINT_TO_POINT') || !dualSegmentResult) return null;
@@ -607,7 +429,16 @@ export function buildGeoRouteAnalysisViewModel(input: GeoRouteAnalysisInput): Ge
     };
   })();
 
-  const isMeshMode = input.linkMode === 'MESH' || input.linkMode === 'POINT_TO_POINT';
+  const isMeshMode = isMeshLinkMode(input.linkMode);
+  // #4: verify MESH capability of the selected endpoint modems (real check, not the
+  // inert meshCapable flag). Unverified until a modem is chosen at both endpoints.
+  const meshTopology = isMeshMode
+    ? verifyModemTopology(
+        input.linkMode === 'POINT_TO_POINT' ? 'POINT_TO_POINT' : 'MESH',
+        getGeoModemProfile(input.geoModemIdA),
+        getGeoModemProfile(input.geoModemIdB),
+      )
+    : null;
   const geoMetrics: MobileLinkMetrics | null = (() => {
     if (!resolvedGEOConnectivity || !geoGeometry || !geoEffectivePerformance) return null;
     return {
@@ -620,8 +451,19 @@ export function buildGeoRouteAnalysisViewModel(input: GeoRouteAnalysisInput): Ge
             ? (meshMetrics?.reverseLatencyMs ?? null)
             : (meshMetrics?.forwardLatencyMs ?? null))
         : starOneWayLatencyMs,
-      downlinkGbps: input.linkMode === 'STAR_RETURN' ? null : geoEffectivePerformance.downlinkGbps,
-      uplinkGbps: input.linkMode === 'STAR_FORWARD' ? null : geoEffectivePerformance.uplinkGbps,
+      // Every mode reads the same canonical delivery: forward is the download
+      // direction, reverse the upload one, already modem-limited and already
+      // flagged delivered-vs-estimated. No per-mode re-derivation lives here.
+      downlinkGbps: geoRouteDelivery?.forward.throughputMbps != null
+        ? geoRouteDelivery.forward.throughputMbps / 1000
+        : null,
+      uplinkGbps: geoRouteDelivery?.reverse.throughputMbps != null
+        ? geoRouteDelivery.reverse.throughputMbps / 1000
+        : null,
+      downlinkEstimated: geoRouteDelivery?.forward.throughputMbps != null
+        && geoRouteDelivery.forward.isEstimatedCeiling,
+      uplinkEstimated: geoRouteDelivery?.reverse.throughputMbps != null
+        && geoRouteDelivery.reverse.isEstimatedCeiling,
     };
   })();
 
@@ -638,6 +480,7 @@ export function buildGeoRouteAnalysisViewModel(input: GeoRouteAnalysisInput): Ge
     if (input.linkMode === 'STAR_FORWARD') return starDownlinkMbps != null && starLatencyMs != null;
     if (input.linkMode === 'STAR_RETURN') return starUplinkMbps != null && starLatencyMs != null;
     if (input.linkMode === 'MESH' || input.linkMode === 'POINT_TO_POINT') {
+      if (meshTopology?.incompatibleModemIds.length) return false;
       return input.activeMeshTab === 'reverse'
         ? reverseThroughputMbps != null && reverseLatencyMs != null
         : forwardThroughputMbps != null && forwardLatencyMs != null;
@@ -650,6 +493,10 @@ export function buildGeoRouteAnalysisViewModel(input: GeoRouteAnalysisInput): Ge
   const latencyMs = isMeshMode
     ? (input.activeMeshTab === 'reverse' ? reverseLatencyMs : forwardLatencyMs)
     : starLatencyMs;
+  // #1: true round trip for COMM. MESH = meshMetrics.rttMs; STAR = 2 × one-way.
+  const rttMs = isMeshMode
+    ? (meshMetrics?.rttMs ?? null)
+    : (starOneWayLatencyMs != null ? starOneWayLatencyMs * 2 : null);
   const activeThroughputMbps = isMeshMode
     ? (input.activeMeshTab === 'reverse' ? reverseThroughputMbps : forwardThroughputMbps)
     : (input.linkMode === 'STAR_RETURN' ? starUplinkMbps : starDownlinkMbps);
@@ -657,7 +504,9 @@ export function buildGeoRouteAnalysisViewModel(input: GeoRouteAnalysisInput): Ge
     ? `${input.linkMode === 'STAR_RETURN' ? 'Return' : isMeshMode ? (input.activeMeshTab === 'reverse' ? 'B→A' : 'A→B') : 'Forward'} ${Math.round(activeThroughputMbps ?? 0)} Mbps · latency ${Math.round(latencyMs ?? 0)} ms`
     : null;
 
-  const noMetricsReason = !geoMetrics && !meshMetrics
+  const noMetricsReason = meshTopology?.incompatibleModemIds.length
+    ? meshTopology.reason
+    : !geoMetrics && !meshMetrics
     ? 'Waiting for GEO route calculation.'
     : routeReasonForGeoStatus(geoStatus);
 
@@ -670,6 +519,7 @@ export function buildGeoRouteAnalysisViewModel(input: GeoRouteAnalysisInput): Ge
     downloadMbps,
     uploadMbps,
     latencyMs,
+    rttMs: rttMs ?? undefined,
     routeSummary: routeSummary ?? undefined,
     routePath: geoSiteToSitePath,
     selectedSatellite,
@@ -681,6 +531,8 @@ export function buildGeoRouteAnalysisViewModel(input: GeoRouteAnalysisInput): Ge
     geoStatus,
     geoMetrics,
     meshMetrics,
+    meshTopology,
+    transponderMode: dualSegmentResult?.transponderMode ?? null,
     geoSiteToSitePath,
     networkLayer: dualSegmentResult?.networkLayer ?? null,
     starGatewayResolutionDiagnostic: starGatewaySelection?.diagnostic ?? null,

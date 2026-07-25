@@ -70,6 +70,11 @@ interface CapacityDetailsProps {
   geoRFClassIdB?: TerminalRFClassId;
   onGeoRFClassIdBChange?: (id: TerminalRFClassId) => void;
   geoRFPresetDisplayLabelB?: string;
+  /** #4: per-endpoint GEO modem (MESH/P2P). null ⇒ RF is an estimated ceiling. */
+  geoModemIdA?: import('../utils/geoModemCatalogue').GeoModemId | null;
+  onGeoModemIdAChange?: (id: import('../utils/geoModemCatalogue').GeoModemId | null) => void;
+  geoModemIdB?: import('../utils/geoModemCatalogue').GeoModemId | null;
+  onGeoModemIdBChange?: (id: import('../utils/geoModemCatalogue').GeoModemId | null) => void;
   geoRFCustomParamsA?: import('../utils/geoTerminalRFModel').TerminalRFCustomParams | null;
   onGeoRFCustomParamsAChange?: (params: import('../utils/geoTerminalRFModel').TerminalRFCustomParams | null) => void;
   geoRFCustomParamsB?: import('../utils/geoTerminalRFModel').TerminalRFCustomParams | null;
@@ -106,7 +111,7 @@ interface CapacityDetailsProps {
 
 
 // Performance optimization: Memoize component to prevent unnecessary re-renders
-const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, satelliteScope, activeConnectionTab, onActiveConnectionTabChange, onSatelliteClick, analysisSource, aircraftCallsign, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedUplinkCoverage = null, selectedDownlinkCoverage = null, onSelectUplinkCoverage, onSelectDownlinkCoverage, onSelectUplinkCoverageB, onSelectDownlinkCoverageB, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, visibleGeoCoverageKeys, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onVisibleGeoCoverageKeysChange, onSnpClick, compactDesktop = false, externalHeader = false, leoTerminalType, onLeoTerminalTypeChange, onLeoTerminalModelIdChange, leoTerminalTypeB, onLeoTerminalTypeBChange, onLeoTerminalModelIdBChange, geoTerminalType, onGeoTerminalTypeChange, geoTerminalTypeB, onGeoTerminalTypeBChange, geoRFClassIdA, onGeoRFClassIdAChange, geoRFPresetDisplayLabelA, geoRFClassIdB, onGeoRFClassIdBChange, geoRFPresetDisplayLabelB, geoRFCustomParamsA, onGeoRFCustomParamsAChange, geoRFCustomParamsB, onGeoRFCustomParamsBChange, weatherType, onWeatherTypeChange, autoWeatherEnabled, onAutoWeatherChange, linkMode = 'STAR_FORWARD', onLinkModeChange, pointB = null, candidateCoveragesB = [], pointAIsUserDefined = false, pointBIsUserDefined = false, activeMeshTab, onActiveMeshTabChange,
+const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, satelliteScope, activeConnectionTab, onActiveConnectionTabChange, onSatelliteClick, analysisSource, aircraftCallsign, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedUplinkCoverage = null, selectedDownlinkCoverage = null, onSelectUplinkCoverage, onSelectDownlinkCoverage, onSelectUplinkCoverageB, onSelectDownlinkCoverageB, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, visibleGeoCoverageKeys, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onVisibleGeoCoverageKeysChange, onSnpClick, compactDesktop = false, externalHeader = false, leoTerminalType, onLeoTerminalTypeChange, onLeoTerminalModelIdChange, leoTerminalTypeB, onLeoTerminalTypeBChange, onLeoTerminalModelIdBChange, geoTerminalType, onGeoTerminalTypeChange, geoTerminalTypeB, onGeoTerminalTypeBChange, geoRFClassIdA, onGeoRFClassIdAChange, geoRFPresetDisplayLabelA, geoRFClassIdB, onGeoRFClassIdBChange, geoRFPresetDisplayLabelB, geoModemIdA, onGeoModemIdAChange, geoModemIdB, onGeoModemIdBChange, geoRFCustomParamsA, onGeoRFCustomParamsAChange, geoRFCustomParamsB, onGeoRFCustomParamsBChange, weatherType, onWeatherTypeChange, autoWeatherEnabled, onAutoWeatherChange, linkMode = 'STAR_FORWARD', onLinkModeChange, pointB = null, candidateCoveragesB = [], pointAIsUserDefined = false, pointBIsUserDefined = false, activeMeshTab, onActiveMeshTabChange,
   leoTopologyMode = 'SINGLE_SITE',
   pointBLeo = null,
   isPointBLeoArmed = false,
@@ -439,6 +444,10 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                     rfClassIdB={geoRFClassIdB}
                     onRFClassIdBChange={onGeoRFClassIdBChange}
                     rfPresetDisplayLabelB={geoRFPresetDisplayLabelB}
+                    modemIdA={geoModemIdA}
+                    onModemIdAChange={onGeoModemIdAChange}
+                    modemIdB={geoModemIdB}
+                    onModemIdBChange={onGeoModemIdBChange}
                     rfCustomParamsA={geoRFCustomParamsA}
                     onRFCustomParamsAChange={onGeoRFCustomParamsAChange}
                     rfCustomParamsB={geoRFCustomParamsB}

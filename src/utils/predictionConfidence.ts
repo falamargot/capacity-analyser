@@ -168,6 +168,12 @@ export function buildGeoConfidence(args: {
   capacityClassKnown: boolean;
   regulatoryKnown?: boolean;
   routePending?: boolean;
+  /**
+   * #7: MESH route whose two sites sit on DIFFERENT beams, requiring an on-board
+   * payload cross-connect that is not confirmed. The RF budget still computes, but
+   * the path cannot be asserted "resolved" without reserve — cap confidence + flag.
+   */
+  crossConnectUnconfirmed?: boolean;
 }): PredictionConfidence {
   const structuralEvidenceComplete = args.coverageAvailable && args.rfAvailable && args.gatewayResolved;
 
@@ -210,6 +216,12 @@ export function buildGeoConfidence(args: {
         maxScore: 44,
         reason: 'Route calculation is still pending',
         applies: !!args.routePending,
+      },
+      {
+        id: 'crossconnect-unconfirmed',
+        maxScore: 60,
+        reason: 'MESH payload cross-connect between different beams is unconfirmed',
+        applies: !!args.crossConnectUnconfirmed,
       },
     ],
   });

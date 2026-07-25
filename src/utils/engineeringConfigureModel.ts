@@ -13,6 +13,8 @@ export type EngineeringGeoCoverageKeys = Pick<
   'geoUplinkKeyA' | 'geoDownlinkKeyA' | 'geoUplinkKeyB' | 'geoDownlinkKeyB'
 >;
 
+export type EngineeringGeoCoverageKey = keyof EngineeringGeoCoverageKeys;
+
 export type EngineeringConfigureChangeKind =
   | 'technology'
   | 'topology'
@@ -183,6 +185,124 @@ const findCandidateByKey = (
 const resolvedCandidateKey = (candidate: CandidateCoverage | null | undefined): string | null => (
   candidate ? getCandidateCoverageKey(candidate) : null
 );
+
+type ActiveManualCoverageSelector = {
+  key: EngineeringGeoCoverageKey;
+  site: 'siteA' | 'siteB';
+  uplink: boolean;
+};
+
+const ALL_MANUAL_COVERAGE_SELECTORS: ActiveManualCoverageSelector[] = [
+  { key: 'geoUplinkKeyA', site: 'siteA', uplink: true },
+  { key: 'geoDownlinkKeyA', site: 'siteA', uplink: false },
+  { key: 'geoUplinkKeyB', site: 'siteB', uplink: true },
+  { key: 'geoDownlinkKeyB', site: 'siteB', uplink: false },
+];
+
+const activeManualCoverageSelectors = (
+  draft: EngineeringConfigureDraft,
+): [ActiveManualCoverageSelector, ActiveManualCoverageSelector] | null => {
+  if (draft.geoLinkMode !== 'MESH' && draft.geoLinkMode !== 'POINT_TO_POINT') return null;
+
+  return draft.direction === 'forward'
+    ? [
+        { key: 'geoUplinkKeyA', site: 'siteA', uplink: true },
+        { key: 'geoDownlinkKeyB', site: 'siteB', uplink: false },
+      ]
+    : [
+        { key: 'geoUplinkKeyB', site: 'siteB', uplink: true },
+        { key: 'geoDownlinkKeyA', site: 'siteA', uplink: false },
+      ];
+};
+
+const candidateLinkMargin = (candidate: CandidateCoverage): number => (
+  Number.isFinite(candidate.linkMarginDb) ? candidate.linkMarginDb! : -Infinity
+);
+
+const bestConnectivityCandidate = (
+  pool: CandidateCoverage[],
+  satelliteId: string,
+  uplink: boolean,
+): CandidateCoverage | null => (
+  pool
+    .filter((candidate) => (
+      candidate.satelliteId === satelliteId
+      && candidate.isUplink === uplink
+      && !candidate.isSynthesized
+    ))
+    .reduce<CandidateCoverage | null>((best, candidate) => {
+      if (!best) return candidate;
+      const marginDelta = candidateLinkMargin(candidate) - candidateLinkMargin(best);
+      if (marginDelta !== 0) return marginDelta > 0 ? candidate : best;
+      return candidate.score > best.score ? candidate : best;
+    }, null)
+);
+
+/**
+ * Applies one manual GEO beam edit atomically.
+ *
+ * MESH/P2P paths must use the same satellite on all four RF segments, including
+ * the reverse-direction segments hidden by the active-direction editor. When
+ * the edited beam moves the path to another satellite, every stale segment is
+ * therefore moved to the real beam on that satellite with the best link margin
+ * (then the best candidate score as a deterministic tie-breaker).
+ */
+export function synchronizeEngineeringGeoManualSelection(
+  current: EngineeringConfigureDraft,
+  candidates: EngineeringConfigureCandidates,
+  changedKey: EngineeringGeoCoverageKey,
+  selectedKey: string | null,
+): EngineeringConfigureDraft {
+  const next = { ...current, [changedKey]: selectedKey };
+
+  const activeSelectors = activeManualCoverageSelectors(current);
+  const changedSelector = activeSelectors?.find((selector) => selector.key === changedKey);
+  if (!activeSelectors || !changedSelector) return next;
+
+  // Clearing a leg leaves the path without an anchor satellite. Clearing the other
+  // ACTIVE leg too keeps the pair consistent — otherwise the companion silently
+  // stayed on the old satellite and the next edit synchronized against a beam the
+  // user had already removed.
+  if (!selectedKey) {
+    return activeSelectors.reduce<EngineeringConfigureDraft>((cleared, selector) => (
+      selector.key === changedKey ? cleared : { ...cleared, [selector.key]: null }
+    ), next);
+  }
+
+  const selectedCandidate = findCandidateByKey(candidates[changedSelector.site], selectedKey);
+  if (
+    !selectedCandidate
+    || selectedCandidate.isSynthesized
+    || selectedCandidate.isUplink !== changedSelector.uplink
+  ) {
+    return next;
+  }
+
+  return ALL_MANUAL_COVERAGE_SELECTORS.reduce<EngineeringConfigureDraft>((synchronized, selector) => {
+    if (selector.key === changedKey) return synchronized;
+
+    const pool = candidates[selector.site];
+    const currentCandidate = findCandidateByKey(pool, current[selector.key]);
+    if (
+      currentCandidate
+      && !currentCandidate.isSynthesized
+      && currentCandidate.isUplink === selector.uplink
+      && currentCandidate.satelliteId === selectedCandidate.satelliteId
+    ) {
+      return synchronized;
+    }
+
+    const replacement = bestConnectivityCandidate(
+      pool,
+      selectedCandidate.satelliteId,
+      selector.uplink,
+    );
+    return {
+      ...synchronized,
+      [selector.key]: resolvedCandidateKey(replacement),
+    };
+  }, next);
+}
 
 /**
  * Projects the route engine's already-resolved GEO candidates into Configure keys.

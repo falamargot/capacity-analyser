@@ -8,6 +8,7 @@ import {
   getResolvedEngineeringGeoCoverageKeys,
   isEngineeringConfigureDraftComplete,
   isEngineeringConfigureDirty,
+  synchronizeEngineeringGeoManualSelection,
 } from '../engineeringConfigureModel';
 import { getCandidateCoverageKey } from '../geoCoverageSelection';
 
@@ -180,5 +181,157 @@ describe('engineeringConfigureModel', () => {
       geoUplinkKeyB: null,
       geoDownlinkKeyB: null,
     });
+  });
+
+  it('moves the opposite forward beam to the best-connectivity beam on the selected satellite', () => {
+    const candidate = (
+      satelliteId: string,
+      coverageKey: string,
+      isUplink: boolean,
+      linkMarginDb: number,
+      score: number,
+    ) => ({
+      satelliteId,
+      satelliteName: satelliteId,
+      coverageKey,
+      isUplink,
+      isSynthesized: false,
+      linkMarginDb,
+      score,
+    }) as import('../../types/analysis').CandidateCoverage;
+
+    const uplinkA1 = candidate('sat-1', 'ul-a-1', true, 4, 40);
+    const uplinkA2 = candidate('sat-2', 'ul-a-2', true, 3, 30);
+    const downlinkA1 = candidate('sat-1', 'dl-a-1', false, 5, 50);
+    const downlinkA2 = candidate('sat-2', 'dl-a-2', false, 7, 70);
+    const uplinkB1 = candidate('sat-1', 'ul-b-1', true, 4, 40);
+    const uplinkB2 = candidate('sat-2', 'ul-b-2', true, 6, 60);
+    const downlinkB1 = candidate('sat-1', 'dl-b-1', false, 6, 60);
+    const downlinkB2Weaker = candidate('sat-2', 'dl-b-2-weak', false, 2, 90);
+    const downlinkB2Best = candidate('sat-2', 'dl-b-2-best', false, 8, 20);
+    const manual = {
+      ...baseline,
+      geoLinkMode: 'POINT_TO_POINT' as const,
+      direction: 'forward' as const,
+      selectionPolicy: 'manual' as const,
+      geoUplinkKeyA: getCandidateCoverageKey(uplinkA1),
+      geoDownlinkKeyA: getCandidateCoverageKey(downlinkA1),
+      geoUplinkKeyB: getCandidateCoverageKey(uplinkB1),
+      geoDownlinkKeyB: getCandidateCoverageKey(downlinkB1),
+    };
+
+    const updated = synchronizeEngineeringGeoManualSelection(
+      manual,
+      {
+        siteA: [uplinkA1, uplinkA2, downlinkA1, downlinkA2],
+        siteB: [uplinkB1, uplinkB2, downlinkB1, downlinkB2Weaker, downlinkB2Best],
+      },
+      'geoUplinkKeyA',
+      getCandidateCoverageKey(uplinkA2),
+    );
+
+    expect(updated.geoUplinkKeyA).toBe(getCandidateCoverageKey(uplinkA2));
+    expect(updated.geoDownlinkKeyA).toBe(getCandidateCoverageKey(downlinkA2));
+    expect(updated.geoUplinkKeyB).toBe(getCandidateCoverageKey(uplinkB2));
+    expect(updated.geoDownlinkKeyB).toBe(getCandidateCoverageKey(downlinkB2Best));
+  });
+
+  it('synchronizes in either direction and preserves a companion already on the same satellite', () => {
+    const candidate = (
+      satelliteId: string,
+      coverageKey: string,
+      isUplink: boolean,
+      linkMarginDb: number,
+    ) => ({
+      satelliteId,
+      satelliteName: satelliteId,
+      coverageKey,
+      isUplink,
+      isSynthesized: false,
+      linkMarginDb,
+      score: linkMarginDb,
+    }) as import('../../types/analysis').CandidateCoverage;
+
+    const uplinkA1 = candidate('sat-1', 'ul-a-1', true, 4);
+    const uplinkA2 = candidate('sat-2', 'ul-a-2', true, 8);
+    const downlinkA1 = candidate('sat-1', 'dl-a-1', false, 4);
+    const downlinkA2 = candidate('sat-2', 'dl-a-2', false, 8);
+    const uplinkB1 = candidate('sat-1', 'ul-b-1', true, 3);
+    const uplinkB2 = candidate('sat-2', 'ul-b-2', true, 7);
+    const downlinkB1 = candidate('sat-1', 'dl-b-1', false, 3);
+    const downlinkB2 = candidate('sat-2', 'dl-b-2', false, 5);
+    const downlinkB2Alternative = candidate('sat-2', 'dl-b-2-alt', false, 9);
+    const manual = {
+      ...baseline,
+      geoLinkMode: 'MESH' as const,
+      direction: 'forward' as const,
+      selectionPolicy: 'manual' as const,
+      geoUplinkKeyA: getCandidateCoverageKey(uplinkA1),
+      geoDownlinkKeyA: getCandidateCoverageKey(downlinkA1),
+      geoUplinkKeyB: getCandidateCoverageKey(uplinkB1),
+      geoDownlinkKeyB: getCandidateCoverageKey(downlinkB1),
+    };
+    const candidates = {
+      siteA: [uplinkA1, uplinkA2, downlinkA1, downlinkA2],
+      siteB: [uplinkB1, uplinkB2, downlinkB1, downlinkB2, downlinkB2Alternative],
+    };
+
+    const movedFromDownlink = synchronizeEngineeringGeoManualSelection(
+      manual,
+      candidates,
+      'geoDownlinkKeyB',
+      getCandidateCoverageKey(downlinkB2),
+    );
+    expect(movedFromDownlink.geoUplinkKeyA).toBe(getCandidateCoverageKey(uplinkA2));
+    expect(movedFromDownlink.geoDownlinkKeyA).toBe(getCandidateCoverageKey(downlinkA2));
+    expect(movedFromDownlink.geoUplinkKeyB).toBe(getCandidateCoverageKey(uplinkB2));
+    expect(movedFromDownlink.geoDownlinkKeyB).toBe(getCandidateCoverageKey(downlinkB2));
+
+    const changedWithinSatellite = synchronizeEngineeringGeoManualSelection(
+      movedFromDownlink,
+      candidates,
+      'geoDownlinkKeyB',
+      getCandidateCoverageKey(downlinkB2Alternative),
+    );
+    expect(changedWithinSatellite.geoUplinkKeyA).toBe(getCandidateCoverageKey(uplinkA2));
+    expect(changedWithinSatellite.geoDownlinkKeyB).toBe(getCandidateCoverageKey(downlinkB2Alternative));
+  });
+
+  it('clearing an active leg clears its companion instead of stranding it on the old satellite', () => {
+    const candidate = (
+      satelliteId: string,
+      coverageKey: string,
+      isUplink: boolean,
+    ) => ({
+      satelliteId,
+      satelliteName: satelliteId,
+      coverageKey,
+      isUplink,
+      isSynthesized: false,
+      linkMarginDb: 5,
+      score: 5,
+    }) as import('../../types/analysis').CandidateCoverage;
+
+    const uplinkA = candidate('sat-1', 'ul-a', true);
+    const downlinkB = candidate('sat-1', 'dl-b', false);
+    const manual = {
+      ...baseline,
+      geoLinkMode: 'MESH' as const,
+      direction: 'forward' as const,
+      selectionPolicy: 'manual' as const,
+      geoUplinkKeyA: getCandidateCoverageKey(uplinkA),
+      geoDownlinkKeyB: getCandidateCoverageKey(downlinkB),
+    };
+
+    const cleared = synchronizeEngineeringGeoManualSelection(
+      manual,
+      { siteA: [uplinkA], siteB: [downlinkB] },
+      'geoUplinkKeyA',
+      null,
+    );
+
+    // Both ACTIVE legs clear together — the path has no anchor satellite left.
+    expect(cleared.geoUplinkKeyA).toBeNull();
+    expect(cleared.geoDownlinkKeyB).toBeNull();
   });
 });

@@ -397,3 +397,53 @@ describe('site-to-site confidence scoring', () => {
     expect(result.confidenceScore).toBeLessThan(45);
   });
 });
+
+// ── #3 — strict two-leg closure for directional throughput ───────────────────
+
+describe('#3 — directional throughput requires both RF legs present and positive', () => {
+  it('closes each direction to min(uplink leg, downlink leg) when all four legs are positive', () => {
+    const result = computeLeoSiteToSiteResult({
+      ...baseArgs,
+      dlThroughputAMbps: 10,
+      ulThroughputAMbps: 5,
+      dlThroughputBMbps: 8,
+      ulThroughputBMbps: 4,
+    });
+
+    // A→B = min(uplink A = 5, downlink B = 8) = 5
+    expect(result.accessThroughputAtoBMbps).toBe(5);
+    expect(result.finalThroughputAtoBMbps).toBe(5);
+    // B→A = min(uplink B = 4, downlink A = 10) = 4
+    expect(result.accessThroughputBtoAMbps).toBe(4);
+    expect(result.finalThroughputBtoAMbps).toBe(4);
+  });
+
+  it('nulls a direction whose downlink leg was never computed — no single-leg fallback', () => {
+    const result = computeLeoSiteToSiteResult({
+      ...baseArgs,
+      dlThroughputAMbps: 10,
+      ulThroughputAMbps: 5,
+      dlThroughputBMbps: null, // B's downlink leg missing → A→B cannot close
+      ulThroughputBMbps: 4,
+    });
+
+    // A→B has no valid end-to-end rate even though uplink A = 5 exists.
+    expect(result.accessThroughputAtoBMbps).toBeNull();
+    expect(result.finalThroughputAtoBMbps).toBeNull();
+    // B→A still closes: min(uplink B = 4, downlink A = 10) = 4.
+    expect(result.accessThroughputBtoAMbps).toBe(4);
+  });
+
+  it('treats a non-positive leg as an unclosed direction (null, not 0)', () => {
+    const result = computeLeoSiteToSiteResult({
+      ...baseArgs,
+      dlThroughputAMbps: 10,
+      ulThroughputAMbps: 0, // uplink A collapsed → A→B is not a valid rate
+      dlThroughputBMbps: 8,
+      ulThroughputBMbps: 4,
+    });
+
+    expect(result.accessThroughputAtoBMbps).toBeNull();
+    expect(result.accessThroughputBtoAMbps).toBe(4);
+  });
+});

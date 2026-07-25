@@ -15,7 +15,7 @@ import { CapacityAnalyzerSignature } from './components/brand/CapacityAnalyzerSi
 import { setMemoryMonitorViewerGetter } from './utils/memoryMonitor';
 import ExportButton from './components/ExportButton';
 import SimulationSettings from './components/layout/SimulationSettings';
-import HeaderScenarioBuilder, { HeaderRouteStatusPanel, type HeaderRouteStatus, type HeaderRouteStatusTone } from './components/header/HeaderScenarioBuilder';
+import HeaderScenarioBuilder, { HeaderRouteStatusPanel, type HeaderRouteStatus } from './components/header/HeaderScenarioBuilder';
 import CommercialRouteStrip from './components/commercial/CommercialRouteStrip';
 import CommercialNarrativePanel from './components/commercial/CommercialNarrativePanel';
 import IFCNarrativePanel from './components/commercial/IFCNarrativePanel';
@@ -111,6 +111,7 @@ import {
   formatRouteMbps,
   formatRouteMs,
 } from './utils/activeRouteViewModel';
+import { activeCanonicalDirection, canonicalHeaderMetrics } from './utils/canonicalRouteMetrics';
 import {
   augmentCandidatesWithSynthesizedDirections,
   selectBestTopologyPath,
@@ -343,13 +344,6 @@ function autoSelectableCommercialTechnology(viewModel: CommercialScenarioViewMod
   return null;
 }
 
-function routeToneFromCommercialStatus(status: CommercialTechnologyOption['status']): HeaderRouteStatusTone {
-  if (status === 'active') return 'ok';
-  if (status === 'degraded') return 'degraded';
-  if (status === 'blocked') return 'blocked';
-  return 'unknown';
-}
-
 const compareCandidateLinkMargin = (left: CandidateCoverage, right: CandidateCoverage): number => {
   const marginDelta = getCandidateLinkMargin(right) - getCandidateLinkMargin(left);
   if (marginDelta !== 0) return marginDelta;
@@ -491,6 +485,8 @@ const App: React.FC = () => {
     geoRFClassIdB, setGeoRFClassIdB,
     geoRFCustomParamsA, setGeoRFCustomParamsA,
     geoRFCustomParamsB, setGeoRFCustomParamsB,
+    geoModemIdA, setGeoModemIdA,
+    geoModemIdB, setGeoModemIdB,
     weatherType, setWeatherType,
     weatherTypeB, setWeatherTypeB,
     autoWeatherEnabled, setAutoWeatherEnabled,
@@ -2280,6 +2276,8 @@ const App: React.FC = () => {
     geoRFClassIdB,
     geoRFCustomParamsA,
     geoRFCustomParamsB,
+    geoModemIdA,
+    geoModemIdB,
     weatherType,
     weatherTypeB,
     activeLeoRouteEvidence,
@@ -2291,6 +2289,7 @@ const App: React.FC = () => {
     cesiumViewerRef: viewerRef,
   });
   const engineeringTruths = engineeringAnalysis.engineeringTruths;
+  const canonicalRouteMetrics = engineeringAnalysis.canonicalRouteMetrics;
   const mobileMetrics = engineeringAnalysis.mobileMetrics;
   // Same gating the former onExportStateChange effect enforced: no export
   // action while a non-analysis selection (gateway/SNP/satellite) is active.
@@ -2429,6 +2428,8 @@ const App: React.FC = () => {
       geoRFClassIdB,
       geoRFCustomParamsA,
       geoRFCustomParamsB,
+      geoModemIdA,
+      geoModemIdB,
       geoTerminalType,
       geoTerminalTypeB,
       weatherType,
@@ -2450,6 +2451,8 @@ const App: React.FC = () => {
     geoRFClassIdB,
     geoRFCustomParamsA,
     geoRFCustomParamsB,
+    geoModemIdA,
+    geoModemIdB,
     geoTerminalType,
     geoTerminalTypeB,
     linkMode,
@@ -4376,6 +4379,7 @@ const App: React.FC = () => {
     activeGeoSatellite,
     resolvedAutoLEO,
     metrics: mobileMetrics,
+    canonicalRouteMetrics,
     leoTopologyMode,
     activeLeoRouteEvidence,
     geoPointStatus,
@@ -4401,7 +4405,7 @@ const App: React.FC = () => {
   }), [
     activeCommercialTechnology, activeMeshTab, activeAnalysisPoint, activeAnalysisSource,
     siteB, nearestLocation, nearestLocationB, selectedSNP?.name, selectedSatellite,
-    activeGeoSatellite, resolvedAutoLEO, mobileMetrics, leoTopologyMode,
+    activeGeoSatellite, resolvedAutoLEO, mobileMetrics, canonicalRouteMetrics, leoTopologyMode,
     activeLeoRouteEvidence, geoPointStatus, linkMode, selectedCoverage, geoRouteAnalysis,
     weatherType, weatherTypeB, leoTerminalType, geoTerminalType, geoRFPresetDisplayLabelA,
     geoRFPresetDisplayLabelB, leoTerminalDisplayLabelA, leoTerminalDisplayLabelB,
@@ -4432,59 +4436,41 @@ const App: React.FC = () => {
   );
 
   const headerRouteStatus = useMemo<HeaderRouteStatus | undefined>(() => {
-    if (uiMode === 'commercial') {
-      const geoOption = commercialTechnologyOption(commercialScenarioViewModel, 'geo');
-      const leoOption = commercialTechnologyOption(commercialScenarioViewModel, 'leo');
-      const recommended = commercialScenarioViewModel.recommendation.technology;
-
-      return {
-        items: [
-          ...(satelliteScope === 'GEO' || satelliteScope === 'ALL' ? [{
-            technology: 'GEO',
-            statusLabel: geoOption?.statusLabel ?? 'Pending',
-            statusTone: routeToneFromCommercialStatus(geoOption?.status ?? 'unknown'),
-            throughput: formatRouteMbps(geoOption?.downloadMbps),
-            upload: formatRouteMbps(geoOption?.uploadMbps),
-            latency: formatRouteMs(geoOption?.rttMs),
-            limiting: geoOption?.limitingFactor || geoOption?.routeSummary || geoOption?.strengths[0],
-            selected: activeCommercialTechnology === 'GEO',
-            recommended: recommended === 'geo' || recommended === 'hybrid',
-            onSelect: () => handleCommercialTechnologySelect('GEO'),
-          }] : []),
-          ...(satelliteScope === 'LEO' || satelliteScope === 'ALL' ? [{
-            technology: 'LEO',
-            statusLabel: leoOption?.statusLabel ?? 'Pending',
-            statusTone: routeToneFromCommercialStatus(leoOption?.status ?? 'unknown'),
-            throughput: formatRouteMbps(leoOption?.downloadMbps),
-            upload: formatRouteMbps(leoOption?.uploadMbps),
-            latency: formatRouteMs(leoOption?.rttMs),
-            limiting: leoOption?.limitingFactor || leoOption?.routeSummary || leoOption?.strengths[0],
-            selected: activeCommercialTechnology === 'LEO',
-            recommended: recommended === 'leo' || recommended === 'hybrid',
-            onSelect: () => handleCommercialTechnologySelect('LEO'),
-          }] : []),
-        ],
-      };
-    }
-
-    if (!showEngineeringRouteStatus) return undefined;
+    if (uiMode !== 'commercial' && !showEngineeringRouteStatus) return undefined;
 
     const showGeo = satelliteScope === 'GEO' || satelliteScope === 'ALL';
     const showLeo = satelliteScope === 'LEO' || satelliteScope === 'ALL';
+    const recommended = commercialScenarioViewModel.recommendation.technology;
     const headerItem = (technology: 'GEO' | 'LEO') => {
       const truth = engineeringTruths[technology];
-      const throughputMetrics = truth?.primaryMetrics.filter((metric) => /throughput/i.test(metric.label)) ?? [];
-      const latency = truth?.primaryMetrics.find((metric) => /latency|rtt/i.test(metric.label));
+      const metrics = canonicalRouteMetrics[technology];
+      const option = commercialTechnologyOption(
+        commercialScenarioViewModel,
+        technology === 'GEO' ? 'geo' : 'leo',
+      );
+      const headerMetrics = canonicalHeaderMetrics(metrics);
+      const isCommercial = uiMode === 'commercial';
       return {
         technology,
         statusLabel: engineeringVerdictLabel(truth),
         statusTone: engineeringVerdictTone(truth),
-        throughput: throughputMetrics[0]?.display ?? '--',
-        upload: throughputMetrics[1]?.display ?? '--',
-        latency: latency?.display ?? '--',
-        limiting: truth?.decisiveFactor ?? (truth?.state === 'available' ? 'None' : truth?.headline ?? 'Pending'),
-        selected: activeConnectivityTab === technology,
-        onSelect: () => handleTechnologyChange(technology),
+        throughput: formatRouteMbps(headerMetrics.downloadMbps),
+        upload: formatRouteMbps(headerMetrics.uploadMbps),
+        // Header LAT has one invariant in both modes: active-direction one-way latency.
+        // COMM continues to use metrics.rttMs for response scoring and RTT-labelled detail.
+        latency: formatRouteMs(headerMetrics.oneWayLatencyMs),
+        limiting: truth?.decisiveFactor
+          ?? option?.limitingFactor
+          ?? (truth?.state === 'available' ? 'None' : truth?.headline ?? 'Pending'),
+        selected: isCommercial
+          ? activeCommercialTechnology === technology
+          : activeConnectivityTab === technology,
+        recommended: isCommercial
+          ? recommended === (technology === 'GEO' ? 'geo' : 'leo') || recommended === 'hybrid'
+          : false,
+        onSelect: () => isCommercial
+          ? handleCommercialTechnologySelect(technology)
+          : handleTechnologyChange(technology),
       };
     };
 
@@ -4497,6 +4483,7 @@ const App: React.FC = () => {
   }, [
     activeCommercialTechnology,
     activeConnectivityTab,
+    canonicalRouteMetrics,
     commercialScenarioViewModel,
     engineeringTruths,
     handleTechnologyChange,
@@ -4548,8 +4535,8 @@ const App: React.FC = () => {
       : (siteBName && (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT')
           ? [siteAName, satelliteName, siteBName]
           : [siteAName, satelliteName, groundNode]);
-    const throughputMetrics = activeTruth?.primaryMetrics.filter((metric) => /throughput/i.test(metric.label)) ?? [];
-    const latencyMetric = activeTruth?.primaryMetrics.find((metric) => /latency|rtt/i.test(metric.label));
+    const routeMetrics = canonicalRouteMetrics[activeTech];
+    const activeDirectionMetrics = activeCanonicalDirection(routeMetrics);
 
     return {
       activeTech,
@@ -4562,9 +4549,9 @@ const App: React.FC = () => {
       confidence: activeTruth?.confidence?.display ?? activeTruth?.confidence?.label ?? 'Pending',
       availability: activeTruth?.headline ?? 'Pending',
       bottleneck: activeTruth?.decisiveFactor ?? (activeTruth?.state === 'available' ? 'None' : 'Pending route model'),
-      throughput: throughputMetrics[0]?.display ?? '--',
-      upload: throughputMetrics[1]?.display ?? '--',
-      latency: latencyMetric?.display ?? '--',
+      throughput: formatRouteMbps(routeMetrics.forward.throughputMbps),
+      upload: formatRouteMbps(routeMetrics.reverse.throughputMbps),
+      latency: formatRouteMs(activeDirectionMetrics.oneWayLatencyMs),
     };
   }, [
     activeCommercialTrafficGeoGateway?.gatewayName,
@@ -4572,6 +4559,7 @@ const App: React.FC = () => {
     activeAnalysisPoint,
     activeGeoSatellite?.name,
     activeLeoSiteToSiteResult,
+    canonicalRouteMetrics,
     commercialScenarioViewModel.siteA?.name,
     commercialScenarioViewModel.siteB?.name,
     engineeringTruths,
@@ -4787,15 +4775,31 @@ const App: React.FC = () => {
       setSelectedDownlinkKey(null);
       setSelectedUplinkKeyB(null);
       setSelectedDownlinkKeyB(null);
-    } else if (draft.technology === 'GEO') {
-      const uplinkA = eligibleCandidateCoverages.find((candidate) => getCandidateCoverageKey(candidate) === draft.geoUplinkKeyA);
-      const downlinkA = eligibleCandidateCoverages.find((candidate) => getCandidateCoverageKey(candidate) === draft.geoDownlinkKeyA);
-      const uplinkB = candidateCoveragesB.find((candidate) => getCandidateCoverageKey(candidate) === draft.geoUplinkKeyB);
-      const downlinkB = candidateCoveragesB.find((candidate) => getCandidateCoverageKey(candidate) === draft.geoDownlinkKeyB);
-      if (uplinkA) handleSelectUplinkCoverage(uplinkA);
-      if (downlinkA) handleSelectDownlinkCoverage(downlinkA);
-      if (uplinkB) handleSelectUplinkCoverageB(uplinkB);
-      if (downlinkB) handleSelectDownlinkCoverageB(downlinkB);
+    } else if (draft.technology === 'GEO' && selectedSelection.type === 'target') {
+      // A draft key that is not (yet) in the current pool means "no opinion", not
+      // "clear the route": apply runs on every edit, so a transient pool mismatch
+      // must leave the existing selection standing rather than wiping all four legs.
+      const applySelectableKey = (
+        pool: CandidateCoverage[],
+        key: string | null,
+        uplink: boolean,
+        commit: (next: string | null) => void,
+      ) => {
+        if (!key) return;
+        const candidate = pool.find((item) => getCandidateCoverageKey(item) === key);
+        if (candidate && candidate.isUplink === uplink && !candidate.isSynthesized) {
+          commit(key);
+        }
+      };
+
+      // Commit the complete bidirectional GEO selection as one state
+      // transaction. Calling the four direction handlers sequentially lets
+      // each one reconcile against the previous satellite and can restore the
+      // old route before its same-satellite companion is applied.
+      applySelectableKey(eligibleCandidateCoverages, draft.geoUplinkKeyA, true, setSelectedUplinkKey);
+      applySelectableKey(eligibleCandidateCoverages, draft.geoDownlinkKeyA, false, setSelectedDownlinkKey);
+      applySelectableKey(candidateCoveragesB, draft.geoUplinkKeyB, true, setSelectedUplinkKeyB);
+      applySelectableKey(candidateCoveragesB, draft.geoDownlinkKeyB, false, setSelectedDownlinkKeyB);
     }
     // M4: applying no longer closes the Configure surface — edits are
     // instant, so the panel stays open while the user iterates.
@@ -4813,13 +4817,10 @@ const App: React.FC = () => {
     handleLeoTerminalTypeChange,
     handleLinkModeChange,
     handleLocationSelect,
-    handleSelectDownlinkCoverage,
-    handleSelectDownlinkCoverageB,
-    handleSelectUplinkCoverage,
-    handleSelectUplinkCoverageB,
     handleTechnologyChange,
     handleWeatherTypeBChange,
     handleWeatherTypeChange,
+    selectedSelection.type,
     patchScenario,
   ]);
 
@@ -5933,6 +5934,10 @@ const App: React.FC = () => {
                                 geoRFClassIdB={geoRFClassIdB}
                                 onGeoRFClassIdBChange={setGeoRFClassIdB}
                                 geoRFPresetDisplayLabelB={geoRFPresetDisplayLabelB}
+                                geoModemIdA={geoModemIdA}
+                                onGeoModemIdAChange={setGeoModemIdA}
+                                geoModemIdB={geoModemIdB}
+                                onGeoModemIdBChange={setGeoModemIdB}
                                 geoRFCustomParamsA={geoRFCustomParamsA}
                                 onGeoRFCustomParamsAChange={setGeoRFCustomParamsA}
                                 geoRFCustomParamsB={geoRFCustomParamsB}
@@ -6204,6 +6209,10 @@ const App: React.FC = () => {
                           geoRFClassIdB={geoRFClassIdB}
                           onGeoRFClassIdBChange={setGeoRFClassIdB}
                           geoRFPresetDisplayLabelB={geoRFPresetDisplayLabelB}
+                          geoModemIdA={geoModemIdA}
+                          onGeoModemIdAChange={setGeoModemIdA}
+                          geoModemIdB={geoModemIdB}
+                          onGeoModemIdBChange={setGeoModemIdB}
                           geoRFCustomParamsA={geoRFCustomParamsA}
                           onGeoRFCustomParamsAChange={setGeoRFCustomParamsA}
                           geoRFCustomParamsB={geoRFCustomParamsB}

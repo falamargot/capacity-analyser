@@ -14,6 +14,7 @@
  */
 
 import type { LinkMode } from '../types/linkMode';
+import type { GeoServicePlan } from './geoPhysicalAssumptions';
 
 // ─── Topology constants ───────────────────────────────────────────────────────
 
@@ -54,6 +55,9 @@ export const TOPOLOGY_DEFAULT_CONTENTION_RATIO: Record<LinkMode, number> = {
 
 export type NetworkLimitingFactor =
   | 'none'
+  | 'payload_allocation'
+  | 'beam_load'
+  | 'service_plan'
   | 'protocol'
   | 'contention'
   | 'terminal_a'
@@ -74,6 +78,20 @@ export interface NetworkLayerResult {
   finalThroughputMbps: number;
   /** Which factor limits the final throughput. */
   limitingFactor: NetworkLimitingFactor;
+  /** Explicit planning inputs; absent operational telemetry is represented as zero load. */
+  allocatedCapacityFraction?: number;
+  beamLoadFraction?: number;
+  servicePlanId?: GeoServicePlan['id'];
+  servicePlanLabel?: string;
+  committedRateMbps?: number | null;
+}
+
+export interface GeoNetworkPlanningInput {
+  servicePlan?: GeoServicePlan | null;
+  /** Modeled payload allocation for this route, 0..1. */
+  allocatedCapacityFraction?: number;
+  /** Modeled concurrent load on that allocation, 0..1. Not live telemetry. */
+  beamLoadFraction?: number;
 }
 
 // ─── Core computation ─────────────────────────────────────────────────────────
@@ -93,16 +111,30 @@ export function computeNetworkLayer(
   contentionRatioOverride?: number,
   terminalCapAMbps?: number,
   terminalCapBMbps?: number,
+  planning?: GeoNetworkPlanningInput,
 ): NetworkLayerResult {
   const protocolEfficiency = TOPOLOGY_PROTOCOL_EFFICIENCY[linkMode];
-  const contentionRatio = contentionRatioOverride ?? TOPOLOGY_DEFAULT_CONTENTION_RATIO[linkMode];
+  const servicePlan = planning?.servicePlan ?? null;
+  const contentionRatio = contentionRatioOverride
+    ?? servicePlan?.contentionRatio
+    ?? TOPOLOGY_DEFAULT_CONTENTION_RATIO[linkMode];
+  const allocatedCapacityFraction = Math.max(
+    0,
+    Math.min(1, planning?.allocatedCapacityFraction ?? servicePlan?.allocatedCapacityFraction ?? 1),
+  );
+  const beamLoadFraction = Math.max(0, Math.min(1, planning?.beamLoadFraction ?? 0));
 
-  const protocolAdjustedMbps = peakRfMbps * protocolEfficiency;
+  const allocatedRfMbps = peakRfMbps * allocatedCapacityFraction * (1 - beamLoadFraction);
+  const protocolAdjustedMbps = allocatedRfMbps * protocolEfficiency;
   const effectiveThroughputMbps = protocolAdjustedMbps / contentionRatio;
 
   let finalThroughputMbps = effectiveThroughputMbps;
   let limitingFactor: NetworkLimitingFactor = 'none';
 
+  if (servicePlan?.peakRateMbps != null && servicePlan.peakRateMbps < finalThroughputMbps) {
+    finalThroughputMbps = servicePlan.peakRateMbps;
+    limitingFactor = 'service_plan';
+  }
   if (terminalCapAMbps != null && terminalCapAMbps < finalThroughputMbps) {
     finalThroughputMbps = terminalCapAMbps;
     limitingFactor = 'terminal_a';
@@ -113,7 +145,11 @@ export function computeNetworkLayer(
   }
 
   if (limitingFactor === 'none') {
-    if (contentionRatio > 1.0) {
+    if (beamLoadFraction > 0) {
+      limitingFactor = 'beam_load';
+    } else if (allocatedCapacityFraction < 1) {
+      limitingFactor = 'payload_allocation';
+    } else if (contentionRatio > 1.0) {
       limitingFactor = 'contention';
     } else if (protocolEfficiency < 1.0) {
       limitingFactor = 'protocol';
@@ -128,5 +164,10 @@ export function computeNetworkLayer(
     effectiveThroughputMbps,
     finalThroughputMbps,
     limitingFactor,
+    allocatedCapacityFraction,
+    beamLoadFraction,
+    servicePlanId: servicePlan?.id,
+    servicePlanLabel: servicePlan?.label,
+    committedRateMbps: servicePlan?.committedRateMbps ?? null,
   };
 }

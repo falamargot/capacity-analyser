@@ -21,6 +21,12 @@ import type { SatelliteData } from '../../types/satellites';
 import type { GeoPointStatus } from '../../utils/selectedPointStatus';
 import type { GeoRouteAnalysisViewModel } from '../../utils/geoRouteAnalysisViewModel';
 import type { ActiveLeoRouteEvidence } from '../../utils/activeLeoRouteEvidence';
+import {
+  activeCanonicalDirection,
+  canonicalRouteStateIsAvailable,
+  canonicalRouteStateToCommercialStatus,
+  type CanonicalRouteMetricSet,
+} from '../../utils/canonicalRouteMetrics';
 import type { GatewayTrafficStatus } from '../../utils/geoGroundInfrastructure';
 import type { RegulatoryResult } from '../../services/regulatoryService';
 import {
@@ -54,7 +60,6 @@ import {
   formatMaybeMbps,
   gbpsToMbps,
   geoStatusLabel,
-  hasCompleteGeoRouteMetrics,
   linkMarginLabel,
   locationName,
   routeLimitingFactor,
@@ -93,6 +98,13 @@ interface BuildCommercialScenarioViewModelInput {
   activeGeoSatellite: SatelliteData | null;
   resolvedAutoLEO: SatelliteData | null;
   metrics: MobileAnalysisMetrics;
+  /**
+   * Canonical physical metrics shared with ENG. REQUIRED: COMM interprets them and
+   * must never recompute or second-guess them. It was previously optional, and the
+   * fallbacks behind that option quietly reconstructed the pre-canonical behaviour
+   * (notably "STAR is always an estimated ceiling").
+   */
+  canonicalRouteMetrics: CanonicalRouteMetricSet;
   leoTopologyMode: 'SINGLE_SITE' | 'SITE_TO_SITE';
   activeLeoRouteEvidence?: ActiveLeoRouteEvidence | null;
   geoPointStatus: GeoPointStatus | null;
@@ -216,61 +228,72 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
     ? (leoEvidence?.serviceStatus ?? leoRoutePath?.serviceStatus ?? null)
     : (leoEvidence?.serviceStatus ?? null);
   const leoRoutePending = !leoEvidence || leoEvidence.pending === true;
-  const rawLeoCommercialStatus = leoRoutePending ? 'unknown' : statusFromServiceStatus(leoServiceStatus);
+  const canonicalLeo = input.canonicalRouteMetrics.LEO;
+  const canonicalGeo = input.canonicalRouteMetrics.GEO;
+  const rawLeoCommercialStatus = canonicalRouteStateToCommercialStatus(canonicalLeo.state);
   const geoUsesRouteLevelAvailability = input.linkMode === 'MESH' || input.linkMode === 'POINT_TO_POINT';
   const geoRoutePending = input.geoRouteAnalysis?.pending === true;
-  const rawGeoCommercialStatus = geoRoutePending
-    ? 'unknown'
-    : geoUsesRouteLevelAvailability
-    ? (geoRoute.available ? 'active' : 'blocked')
-    : statusFromGeoStatus(geoStatusSource);
+  const rawGeoCommercialStatus = canonicalRouteStateToCommercialStatus(canonicalGeo.state);
 
-  const leoDownloadMbps = input.leoTopologyMode === 'SITE_TO_SITE'
-    ? finitePositive(leoEvidence?.downloadMbps ?? leoRoute.throughputMbps)
-    : leoEvidence?.downloadMbps;
-  const leoUploadMbps = input.leoTopologyMode === 'SITE_TO_SITE'
-    ? finitePositive(leoEvidence?.uploadMbps ?? leoRoute.reverseThroughputMbps)
-    : leoEvidence?.uploadMbps;
-  const leoRttMs = finitePositive(leoEvidence?.rttMs ?? leoRoute.latencyMs);
-  const geoDownloadMbps = input.linkMode === 'MESH' || input.linkMode === 'POINT_TO_POINT'
-    ? finitePositive(input.geoRouteAnalysis?.downloadMbps ?? geoRoute.throughputMbps)
-    : (input.geoRouteAnalysis?.downloadMbps ?? gbpsToMbps(geoMetricsSource.geo?.downlinkGbps));
-  const geoUploadMbps = input.linkMode === 'MESH' || input.linkMode === 'POINT_TO_POINT'
-    ? finitePositive(input.geoRouteAnalysis?.uploadMbps ?? geoRoute.reverseThroughputMbps)
-    : (input.geoRouteAnalysis?.uploadMbps ?? gbpsToMbps(geoMetricsSource.geo?.uplinkGbps));
-  const geoRttMs = finitePositive(input.geoRouteAnalysis?.latencyMs ?? geoRoute.latencyMs ?? geoMetricsSource.geo?.rtt);
+  // Every customer-facing figure below is read straight off the canonical metrics.
+  // `activeCanonicalDirection` is the single active-direction rule, so COMM and ENG
+  // cannot disagree about which direction "the" latency belongs to.
+  const leoDownloadMbps = finitePositive(canonicalLeo.forward.throughputMbps);
+  const leoUploadMbps = finitePositive(canonicalLeo.reverse.throughputMbps);
+  const leoOneWayLatencyMs = finitePositive(activeCanonicalDirection(canonicalLeo).oneWayLatencyMs);
+  const leoRttMs = finitePositive(canonicalLeo.rttMs);
+  const geoDownloadMbps = finitePositive(canonicalGeo.forward.throughputMbps);
+  const geoUploadMbps = finitePositive(canonicalGeo.reverse.throughputMbps);
+  const geoOneWayLatencyMs = finitePositive(activeCanonicalDirection(canonicalGeo).oneWayLatencyMs);
+  // The canonical GEO RTT is the true round trip for every topology (MESH:
+  // forward + reverse; STAR: 2 x one-way), matching LEO's contract so the
+  // cross-technology comparison stays like-for-like.
+  const geoRttMs = finitePositive(canonicalGeo.rttMs);
+  // A GEO direction is an estimated ceiling exactly when the canonical delivery says
+  // so — i.e. when no known modem ceiling bounds both of its ends. There is no
+  // topology special case: a STAR route with a known customer AND gateway modem is a
+  // delivered rate, and one without is not, on every surface alike.
+  const geoDownloadEstimated = canonicalGeo.forward.estimated;
+  const geoUploadEstimated = canonicalGeo.reverse.estimated;
+  const geoThroughputEstimated = geoDownloadEstimated || geoUploadEstimated;
 
   // COMM LEO presentation is gated only by the final App-level evidence. Route-view
   // fallbacks may describe candidates, but cannot activate service or expose KPIs.
+  const leoPhysicalRouteAvailable = canonicalRouteStateIsAvailable(canonicalLeo.state);
+  const geoPhysicalRouteAvailable = canonicalRouteStateIsAvailable(canonicalGeo.state);
   const leoFinalRouteAvailable = !leoRoutePending
-    && leoEvidence?.available === true
+    && leoPhysicalRouteAvailable
     && rawLeoCommercialStatus !== 'blocked';
   const leoMetricsComplete = leoFinalRouteAvailable
     && leoDownloadMbps != null
     && leoUploadMbps != null
     && leoRttMs != null;
-  const geoMetricsComplete = input.geoRouteAnalysis
-    ? input.geoRouteAnalysis.available
-    : hasCompleteGeoRouteMetrics(input.linkMode, geoRoute, geoDownloadMbps, geoUploadMbps, geoRttMs);
+  // Completeness is a property of the canonical route, not of the legacy route
+  // object or of a per-topology rule: the presented direction has a displayable
+  // throughput AND latency. The single active-direction rule already maps
+  // STAR_FORWARD→forward, STAR_RETURN→reverse and MESH/P2P→the open tab.
+  const geoMetricsComplete = activeCanonicalDirection(canonicalGeo).available;
   const leoCommercialStatus = leoRoutePending
     ? 'unknown'
     : commercialStatusFromRoute(rawLeoCommercialStatus, leoFinalRouteAvailable, leoMetricsComplete);
-  const geoCommercialStatus = geoRoutePending ? 'unknown' : commercialStatusFromRoute(rawGeoCommercialStatus, geoRoute.available, geoMetricsComplete);
+  const geoCommercialStatus = geoRoutePending ? 'unknown' : commercialStatusFromRoute(rawGeoCommercialStatus, geoPhysicalRouteAvailable, geoMetricsComplete);
 
-  const leoLimitingFactor = leoEvidence?.degradationReason && leoEvidence.degradationReason !== 'LEO route available.' && leoEvidence.degradationReason !== 'LEO site-to-site route available.'
+  const leoLimitingFactor = canonicalLeo.stateReason
+    ?? (leoEvidence?.degradationReason && leoEvidence.degradationReason !== 'LEO route available.' && leoEvidence.degradationReason !== 'LEO site-to-site route available.'
     ? leoEvidence.degradationReason
     : input.leoTopologyMode === 'SITE_TO_SITE' && leoRoutePath?.failureReason
     ? leoRoutePath.failureReason.replaceAll('_', ' ').toLowerCase()
     : leoEvidence?.degradationReason && leoEvidence.degradationReason !== 'LEO route available.'
       ? leoEvidence.degradationReason
-      : leoRoute.statusReason ?? undefined;
-  const geoLimitingFactor = geoUsesRouteLevelAvailability
+      : leoRoute.statusReason ?? undefined);
+  const geoLimitingFactor = canonicalGeo.stateReason
+    ?? (geoUsesRouteLevelAvailability
     ? input.geoRouteAnalysis?.reason ?? geoRoute.statusReason ?? undefined
     : geoRoutePending
     ? input.geoRouteAnalysis?.reason ?? 'Waiting for GEO route calculation'
     : geoStatusSource && geoStatusSource !== 'available'
     ? geoStatusLabel(geoStatusSource)
-    : geoRoute.statusReason ?? undefined;
+    : geoRoute.statusReason ?? undefined);
   const leoRegulatoryConfidence: CommercialRegulatoryConfidence = leoRoutePending
     ? 'pending'
     : leoEvidence?.failureReason?.startsWith('REGULATORY')
@@ -330,7 +353,7 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
     availabilityPct: leoAvailabilityContext.indicativeAvailabilityPct,
     operationalEvidence: leoOperationalEvidence,
   });
-  const geoFinalMetricsAvailable = geoRoute.available && geoMetricsComplete;
+  const geoFinalMetricsAvailable = geoPhysicalRouteAvailable && geoMetricsComplete;
   const geoOperationalEvidence = input.commercialObjective
     ? buildOperationalEvidence({
         mobility: {
@@ -378,6 +401,7 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
       available: leoFinalRouteAvailable && leoCommercialStatus !== 'blocked' && leoMetricsComplete,
       downloadMbps: leoFinalRouteAvailable ? leoDownloadMbps : undefined,
       uploadMbps: leoFinalRouteAvailable ? leoUploadMbps : undefined,
+      oneWayLatencyMs: leoFinalRouteAvailable ? leoOneWayLatencyMs : undefined,
       rttMs: leoFinalRouteAvailable ? leoRttMs : undefined,
       routeSummary: leoRoute.summary ?? undefined,
       limitingFactor: leoFinalRouteAvailable && leoCommercialStatus === 'active'
@@ -398,12 +422,16 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
       status: geoCommercialStatus,
       customerStatus: customerStateFromCommercial(geoCommercialStatus),
       statusLabel: geoRoutePending ? 'Pending' : serviceStatusLabel(geoCommercialStatus),
-      available: geoRoute.available && geoCommercialStatus !== 'blocked' && geoMetricsComplete,
+      available: geoPhysicalRouteAvailable && geoCommercialStatus !== 'blocked' && geoMetricsComplete,
       // COMM presents deliverable service metrics only. RF/geometry diagnostics
       // remain in ENG and must not appear as customer throughput on a blocked path.
       downloadMbps: geoFinalMetricsAvailable ? geoDownloadMbps : undefined,
       uploadMbps: geoFinalMetricsAvailable ? geoUploadMbps : undefined,
+      oneWayLatencyMs: geoFinalMetricsAvailable ? geoOneWayLatencyMs : undefined,
       rttMs: geoFinalMetricsAvailable ? geoRttMs : undefined,
+      downloadEstimated: geoFinalMetricsAvailable ? geoDownloadEstimated : undefined,
+      uploadEstimated: geoFinalMetricsAvailable ? geoUploadEstimated : undefined,
+      throughputEstimated: geoFinalMetricsAvailable ? geoThroughputEstimated : undefined,
       routeSummary: input.geoRouteAnalysis?.routeSummary ?? geoRoute.summary ?? undefined,
       limitingFactor: toCustomerLimitation(routeLimitingFactor(geoRoute.statusReason, geoLimitingFactor)),
       technicalLimitingFactor: routeLimitingFactor(geoRoute.statusReason, geoLimitingFactor),
@@ -494,11 +522,16 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
     ? 'Site A'
     : 'Customer endpoint';
 
-  const geoFinalRouteAvailable = geoRoute.available && geoMetricsComplete;
+  const geoFinalRouteAvailable = geoPhysicalRouteAvailable && geoMetricsComplete;
   const activeRouteAvailable = isDisplayLeo ? leoFinalRouteAvailable : geoFinalRouteAvailable;
   const downloadMbps = activeRouteAvailable ? (isDisplayLeo ? leoDownloadMbps : geoDownloadMbps) : undefined;
   const uploadMbps = activeRouteAvailable ? (isDisplayLeo ? leoUploadMbps : geoUploadMbps) : undefined;
   const rttMs = activeRouteAvailable ? (isDisplayLeo ? leoRttMs : geoRttMs) : undefined;
+  const downloadEstimated = activeRouteAvailable && !isDisplayLeo ? geoDownloadEstimated : undefined;
+  const uploadEstimated = activeRouteAvailable && !isDisplayLeo ? geoUploadEstimated : undefined;
+  const throughputEstimated = activeRouteAvailable && !isDisplayLeo
+    ? downloadEstimated === true || uploadEstimated === true
+    : undefined;
   const activeMetricsComplete = isDisplayLeo ? leoMetricsComplete : geoMetricsComplete;
   const serviceStatus = isDisplayLeo
     ? leoCommercialStatus
@@ -552,6 +585,9 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
         capacityClassKnown: !!geoCapacityEstimate,
         regulatoryKnown: geoStatusSource !== null,
         routePending: geoRoutePending,
+        // #7: unconfirmed MESH payload cross-connect (sites on different beams).
+        crossConnectUnconfirmed: (input.linkMode === 'MESH' || input.linkMode === 'POINT_TO_POINT')
+          && input.geoRouteAnalysis?.transponderMode === 'cross-connect',
       });
 
   const routeMetricsWarning = activeRouteAvailable && !activeMetricsComplete
@@ -761,6 +797,9 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
     downloadMbps,
     uploadMbps,
     rttMs,
+    downloadEstimated,
+    uploadEstimated,
+    throughputEstimated,
     // Indicative model-derived availability (weather/rain-region heuristic, not an SLA
     // or ITU-R statistic). Surfaced numerically so the availability tile renders a
     // value instead of "--"; consumers label it "Indicative availability" so the
