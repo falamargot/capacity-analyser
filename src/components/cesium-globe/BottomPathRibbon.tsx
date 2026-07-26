@@ -120,8 +120,8 @@ const BottomPathRibbon: React.FC<BottomPathRibbonProps> = ({
 
   return (
     <div
-      className={isInline ? 'w-full' : 'absolute bottom-4 left-1/2 -translate-x-1/2 z-30 pointer-events-auto'}
-      style={isInline ? undefined : { maxWidth: 'min(96vw, 860px)', width: 'min(96vw, 860px)' }}
+      className={isInline ? 'w-full' : 'absolute bottom-8 left-4 z-30 pointer-events-auto'}
+      style={isInline ? undefined : { maxWidth: '860px', width: 'calc(100% - 2rem)' }}
     >
       <div className={isInline
         ? 'overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950/70'

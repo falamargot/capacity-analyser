@@ -2700,7 +2700,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             />
 
             {!commercialMode && !displayPrefs.isCompactMap && !isPhone && !isMobileViewport && (satelliteScope === 'GEO' || satelliteScope === 'ALL') && (
-                <GeoGroundSiteLegend />
+                <GeoGroundSiteLegend
+                    allowedGatewayNames={commercialGatewayAllowlist}
+                    renderMode={commercialMode ? 'commercial' : 'engineering'}
+                    viewerRef={viewerRef}
+                    containerRef={globeContainerRef}
+                    viewerReady={viewerReady}
+                />
             )}
 
             {/* Cesium Viewer */}

@@ -125,6 +125,29 @@ export const getGeoGatewaysForRendering = (
   return gateways.filter((gateway) => buildGeoGatewayMarkerMetadata(gateway).isTrafficEligible);
 };
 
+export const getGeoGatewayLegendKinds = (
+  allowedGatewayNames: Set<string> | null = null,
+  renderMode: GeoGatewayRenderMode = 'engineering',
+  visibleGatewayNames: ReadonlySet<string> | null = null,
+): Set<GeoGatewayMarkerKind> => {
+  const legendKinds = new Set<GeoGatewayMarkerKind>();
+
+  for (const gateway of getGeoGatewaysForRendering(allowedGatewayNames, renderMode)) {
+    if (visibleGatewayNames && !visibleGatewayNames.has(gateway.name)) continue;
+
+    const metadata = buildGeoGatewayMarkerMetadata(gateway);
+    legendKinds.add(metadata.markerKind);
+
+    // Satellite control is encoded by the marker outline, so it remains a
+    // distinct legend entry even when the marker fill represents another role.
+    if (metadata.hasControlCapability) {
+      legendKinds.add('SATELLITE_CONTROL');
+    }
+  }
+
+  return legendKinds;
+};
+
 export const getTrafficTeleportGatewayNameAllowlist = (): Set<string> => (
   new Set(getGeoGatewaysForRendering(null, 'commercial').map((gateway) => gateway.name))
 );

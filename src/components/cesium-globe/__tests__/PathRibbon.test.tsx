@@ -66,7 +66,12 @@ const leoResult = {
 } as LeoSiteToSiteResult;
 
 const outerRibbonStyle = (html: string): string => {
-  const match = html.match(/<div class="absolute bottom-4[^"]*" style="([^"]+)"/);
+  const match = html.match(/<div class="absolute bottom-8[^"]*" style="([^"]+)"/);
+  return match?.[1] ?? '';
+};
+
+const outerRibbonClass = (html: string): string => {
+  const match = html.match(/<div class="([^"]*pointer-events-auto)" style=/);
   return match?.[1] ?? '';
 };
 
@@ -149,7 +154,21 @@ describe('bottom path ribbons', () => {
     );
     const leoHtml = renderToStaticMarkup(<LeoS2SPathStrip result={leoResult} activeDirection="A_TO_B" />);
 
-    expect(outerRibbonStyle(geoHtml)).toContain('width:min(96vw, 860px)');
+    expect(outerRibbonStyle(geoHtml)).toContain('max-width:860px');
+    expect(outerRibbonStyle(geoHtml)).toContain('width:calc(100% - 2rem)');
     expect(outerRibbonStyle(leoHtml)).toBe(outerRibbonStyle(geoHtml));
+  });
+
+  it('anchors both overlay paths to the bottom-left of the globe', () => {
+    const geoHtml = renderToStaticMarkup(
+      <GeoS2SPathStrip mesh={geoMesh} path={geoPath} activeDirection="A_TO_B" linkMode="MESH" />
+    );
+    const leoHtml = renderToStaticMarkup(<LeoS2SPathStrip result={leoResult} activeDirection="A_TO_B" />);
+
+    expect(outerRibbonClass(geoHtml)).toContain('bottom-8');
+    expect(outerRibbonClass(geoHtml)).toContain('left-4');
+    expect(outerRibbonClass(geoHtml)).not.toContain('left-1/2');
+    expect(outerRibbonClass(geoHtml)).not.toContain('-translate-x-1/2');
+    expect(outerRibbonClass(leoHtml)).toBe(outerRibbonClass(geoHtml));
   });
 });

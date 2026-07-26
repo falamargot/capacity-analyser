@@ -5,6 +5,7 @@ import {
   buildGeoGatewayMarkerMetadata,
   buildGroundSiteMarkerMetadata,
   getGeoGatewaysForRendering,
+  getGeoGatewayLegendKinds,
   getTrafficTeleportGatewayNameAllowlist,
 } from '../geoGatewayMarkerModel';
 import {
@@ -207,7 +208,36 @@ describe('GeoGatewayLayer role-specific rendering metadata', () => {
     expect(html).toContain('SCC outline');
     expect(html).toContain('Monitoring');
     expect(html).toContain('TT&amp;C');
-    expect(html).toContain('Network Hub');
     expect(html).toContain('Ground Site');
+    expect(html).not.toContain('Network Hub');
+  });
+
+  it('only describes marker types present in the rendered gateway selection', () => {
+    const trafficAndControlOnly = new Set([gatewayByCode('RAM').name]);
+    const html = renderToStaticMarkup(
+      <GeoGroundSiteLegend allowedGatewayNames={trafficAndControlOnly} />,
+    );
+
+    expect(html).toContain('Traffic Teleport');
+    expect(html).toContain('SCC outline');
+    expect(html).not.toContain('Monitoring');
+    expect(html).not.toContain('TT&amp;C');
+    expect(html).not.toContain('Network Hub');
+    expect(html).not.toContain('physical site without traffic RF');
+  });
+
+  it('only keeps roles with a marker inside the current viewport', () => {
+    const visibleGatewayNames = new Set([
+      gatewayByCode('RAM').name,
+      gatewayByCode('DUB').name,
+      gatewayByCode('ARG').name,
+    ]);
+
+    expect([...getGeoGatewayLegendKinds(null, 'engineering', visibleGatewayNames)]).toEqual([
+      'TRAFFIC_TELEPORT',
+      'SATELLITE_CONTROL',
+      'MONITORING',
+      'GROUND_SITE',
+    ]);
   });
 });
