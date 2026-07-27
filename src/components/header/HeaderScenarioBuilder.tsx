@@ -1,9 +1,9 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
-import { ArrowDown, ArrowLeftRight, ArrowUp, CloudSun, MapPin, Radio, Satellite, Star, Timer } from 'lucide-react';
+import { ArrowDown, ArrowLeftRight, ArrowUp, CloudSun, MapPin, Radio, Satellite, Star, Timer, X } from 'lucide-react';
 import { useLocationSearch, type LocationResult } from '../../hooks/useLocationSearch';
 import type { ConnectivityEndpoint } from '../commercial/commercialTypes';
-import { TerminalRFSettingsPanel, type TerminalType, type WeatherType } from '../capacity/TerminalConfig';
+import { LeoTerminalRFSettingsPanel, TerminalRFSettingsPanel, type TerminalType, type WeatherType } from '../capacity/TerminalConfig';
 import { getDefaultRFClassForUseCase, getRFClassOptionsForUseCase, TERMINAL_PROFILES, WEATHER_PROFILES, weatherIcon } from '../capacity/terminalAssumptions';
 import type { TerminalRFClassId, TerminalRFCustomParams, TerminalUseCase } from '../../utils/geoTerminalRFModel';
 import { getEnabledLeoTerminalCatalogEntries, getLeoTerminalProfile } from '../../config/leoTerminals';
@@ -13,8 +13,16 @@ import type { EngineeringTruthSet, EngineeringVerdictTone } from '../../utils/en
 import { getCandidateCoverageDisplayName, getCandidateCoverageKey } from '../../utils/geoCoverageSelection';
 import {
   getEngineeringGeoManualSelectionKeys,
+  getResolvedEngineeringGeoCoverageKeys,
   synchronizeEngineeringGeoManualSelection,
 } from '../../utils/engineeringConfigureModel';
+import {
+  getActiveEngineeringGeoCoverageLegs,
+  getAllowedEngineeringGeoTopologies,
+  getEngineeringLeoTopology,
+  getEngineeringScenarioSiteCount,
+  normalizeEngineeringScenarioForSites,
+} from '../../utils/engineeringScenarioRules';
 import { handleRadioGroupKeyDown } from '../capacity/shared/radioGroupKeyboard';
 import InlineLocationSearchInput from '../commercial/InlineLocationSearchInput';
 import InlineSearchResultsPopover from '../commercial/InlineSearchResultsPopover';
@@ -48,6 +56,9 @@ export interface SiteConfig {
   roleLabel: string;
   fallback: string;
   onSelect: (loc: LocationResult) => void;
+  onClear?: () => void;
+  locationDisabled?: boolean;
+  locationDisabledReason?: string;
   terminals: SiteTerminalConfig;
   weather: SiteWeatherConfig;
 }
@@ -232,13 +243,15 @@ const LeoTerminalSelect = memo(function LeoTerminalSelect({
 const WeatherAssumptionRow = memo(function WeatherAssumptionRow({
   weather,
   disabled,
+  realWeatherUnavailable,
 }: {
   weather: SiteWeatherConfig;
   disabled?: boolean;
+  realWeatherUnavailable?: boolean;
 }) {
   const selectDisabled = disabled;
   const autoWeatherEnabled = weather.autoWeatherEnabled ?? true;
-  const autoWeatherDisabled = disabled || !weather.onAutoWeatherChange;
+  const autoWeatherDisabled = disabled || realWeatherUnavailable || !weather.onAutoWeatherChange;
 
   return (
     <div className="flex w-full min-w-0 items-center gap-1.5 px-0.5">
@@ -266,7 +279,7 @@ const WeatherAssumptionRow = memo(function WeatherAssumptionRow({
             ? 'cursor-not-allowed text-slate-400 dark:text-slate-600'
             : 'cursor-pointer text-slate-500 hover:text-sky-700 dark:text-slate-400 dark:hover:text-sky-200',
         ].join(' ')}
-        title="Use current weather"
+        title={realWeatherUnavailable ? 'Select a location to use current weather' : 'Use current weather'}
       >
         <input
           type="checkbox"
@@ -285,12 +298,15 @@ const WeatherAssumptionRow = memo(function WeatherAssumptionRow({
 // ─── Site Location Editor ─────────────────────────────────────────────────────
 
 function SiteLocationEditor({
-  endpoint, fallback, roleLabel, onSelect,
+  endpoint, fallback, roleLabel, onSelect, onClear, disabled, disabledReason,
 }: {
   endpoint?: ConnectivityEndpoint;
   fallback: string;
   roleLabel: string;
   onSelect: (loc: LocationResult) => void;
+  onClear?: () => void;
+  disabled?: boolean;
+  disabledReason?: string;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [draftQuery, setDraftQuery] = useState('');
@@ -379,26 +395,41 @@ function SiteLocationEditor({
           />
         </>
       ) : (
-        <button
-          type="button"
-          onClick={open}
-          className={[
-            'group inline-flex h-6 w-full min-w-0 items-center gap-1.5 rounded-md border px-2 text-left transition-colors',
-            isSet
-              ? 'border-slate-200/80 bg-white/82 text-slate-900 shadow-sm hover:border-sky-300 hover:bg-white dark:border-slate-600/50 dark:bg-slate-800/48 dark:text-slate-100 dark:hover:border-sky-400/55 dark:hover:bg-slate-800/70'
-              : 'border-dashed border-slate-300/80 bg-white/35 text-slate-500 hover:border-sky-300 hover:bg-white/55 hover:text-slate-700 dark:border-slate-600/50 dark:bg-slate-950/10 dark:text-slate-500 dark:hover:border-sky-400/45 dark:hover:bg-slate-800/36 dark:hover:text-slate-300',
-          ].join(' ')}
-          title={isSet ? label : undefined}
-          aria-label={isSet ? `Edit ${roleLabel} location` : `Set ${roleLabel} location`}
-        >
-          <MapPin
-            className={`h-3.5 w-3.5 shrink-0 ${isSet ? 'text-sky-500/85 dark:text-sky-300/85' : 'text-slate-400 group-hover:text-sky-500 dark:text-slate-600 dark:group-hover:text-sky-300'}`}
-            aria-hidden="true"
-          />
-          <span className="min-w-0 truncate text-[12px] font-semibold leading-none">
-            {isSet ? label : <span className="font-normal text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-400">{fallback}</span>}
-          </span>
-        </button>
+        <div className="flex min-w-0 items-center gap-1">
+          <button
+            type="button"
+            onClick={open}
+            disabled={disabled}
+            className={[
+              'group inline-flex h-6 min-w-0 flex-1 items-center gap-1.5 rounded-md border px-2 text-left transition-colors',
+              isSet
+                ? 'border-slate-200/80 bg-white/82 text-slate-900 shadow-sm hover:border-sky-300 hover:bg-white dark:border-slate-600/50 dark:bg-slate-800/48 dark:text-slate-100 dark:hover:border-sky-400/55 dark:hover:bg-slate-800/70'
+                : 'border-dashed border-slate-300/80 bg-white/35 text-slate-500 hover:border-sky-300 hover:bg-white/55 hover:text-slate-700 dark:border-slate-600/50 dark:bg-slate-950/10 dark:text-slate-500 dark:hover:border-sky-400/45 dark:hover:bg-slate-800/36 dark:hover:text-slate-300',
+              disabled ? 'cursor-not-allowed opacity-55' : '',
+            ].join(' ')}
+            title={disabled ? disabledReason : isSet ? label : undefined}
+            aria-label={isSet ? `Edit ${roleLabel} location` : `Set ${roleLabel} location`}
+          >
+            <MapPin
+              className={`h-3.5 w-3.5 shrink-0 ${isSet ? 'text-sky-500/85 dark:text-sky-300/85' : 'text-slate-400 group-hover:text-sky-500 dark:text-slate-600 dark:group-hover:text-sky-300'}`}
+              aria-hidden="true"
+            />
+            <span className="min-w-0 truncate text-[12px] font-semibold leading-none">
+              {isSet ? label : <span className="font-normal text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-400">{fallback}</span>}
+            </span>
+          </button>
+          {isSet && onClear && (
+            <button
+              type="button"
+              onClick={onClear}
+              className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-slate-200/80 bg-white/65 text-slate-400 transition-colors hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600 dark:border-slate-600/60 dark:bg-slate-800/45 dark:hover:border-rose-500/50 dark:hover:bg-rose-950/30 dark:hover:text-rose-300"
+              aria-label={`Clear ${roleLabel} location`}
+              title={`Clear ${roleLabel}`}
+            >
+              <X className="h-3.5 w-3.5" aria-hidden="true" />
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
@@ -442,13 +473,12 @@ const TerminalControlRow = memo(function TerminalControlRow({
 // ─── Site Column ──────────────────────────────────────────────────────────────
 
 function SiteColumn({
-  eyebrow, config, analysisSource, role, activeTechnology,
+  eyebrow, config, analysisSource, role,
 }: {
   eyebrow: string;
   config: SiteConfig;
   analysisSource?: 'earth' | 'aircraft';
   role: 'origin' | 'destination';
-  activeTechnology?: 'GEO' | 'LEO';
 }) {
   const isAircraft = analysisSource === 'aircraft';
   const isOrigin = role === 'origin';
@@ -490,12 +520,16 @@ function SiteColumn({
                 fallback={config.fallback}
                 roleLabel={config.roleLabel}
                 onSelect={config.onSelect}
+                onClear={config.onClear}
+                disabled={config.locationDisabled}
+                disabledReason={config.locationDisabledReason}
               />
             </div>
           </div>
           <WeatherAssumptionRow
             weather={config.weather}
             disabled={isAircraft}
+            realWeatherUnavailable={!config.endpoint}
           />
         </div>
 
@@ -507,7 +541,7 @@ function SiteColumn({
               <TerminalTypeSelect
                 terminalType={config.terminals.geoTerminalType}
                 onTerminalTypeChange={config.terminals.onGeoTerminalTypeChange}
-                disabled={isAircraft || activeTechnology === 'LEO'}
+                disabled={isAircraft}
               />
             )}
             modelSelect={(
@@ -515,10 +549,10 @@ function SiteColumn({
                 rfClassId={config.terminals.geoRFClassId}
                 geoTerminalType={config.terminals.geoTerminalType}
                 onGeoRFClassChange={config.terminals.onGeoRFClassChange}
-                disabled={isAircraft || activeTechnology === 'LEO'}
+                disabled={isAircraft}
               />
             )}
-            accessory={activeTechnology !== 'LEO' && !isAircraft && config.terminals.onGeoRFCustomParamsChange ? (
+            accessory={!isAircraft && config.terminals.onGeoRFCustomParamsChange ? (
               <TerminalRFSettingsPanel
                 rfClassId={config.terminals.geoRFClassId}
                 customParams={config.terminals.geoRFCustomParams ?? null}
@@ -534,7 +568,7 @@ function SiteColumn({
               <TerminalTypeSelect
                 terminalType={config.terminals.leoTerminalType}
                 onTerminalTypeChange={config.terminals.onLeoTerminalTypeChange}
-                disabled={isAircraft || activeTechnology === 'GEO'}
+                disabled={isAircraft}
               />
             )}
             modelSelect={(
@@ -542,9 +576,17 @@ function SiteColumn({
                 leoTerminalType={config.terminals.leoTerminalType}
                 leoTerminalModelId={config.terminals.leoTerminalModelId}
                 onLeoTerminalModelIdChange={config.terminals.onLeoTerminalModelIdChange}
-                disabled={isAircraft || activeTechnology === 'GEO'}
+                disabled={isAircraft}
               />
             )}
+            accessory={!isAircraft ? (
+              <LeoTerminalRFSettingsPanel
+                terminal={getEnabledLeoTerminalCatalogEntries(config.terminals.leoTerminalType)
+                  .find((entry) => entry.id === config.terminals.leoTerminalModelId)
+                  ?? getLeoTerminalProfile(config.terminals.leoTerminalType)}
+                popover
+              />
+            ) : undefined}
           />
         </div>
       </div>
@@ -720,20 +762,25 @@ function EngineeringHeaderScenarioBuilder({
 }: Pick<HeaderScenarioBuilderProps, 'siteA' | 'siteB' | 'analysisSource' | 'compact'> & {
   engineeringConfigure: HeaderEngineeringConfigure;
 }) {
-  const { baseline, truths, candidates, onApply } = engineeringConfigure;
-  // Instant apply: the header edits the published scenario directly — every
-  // change goes through onApply immediately and the recomputed baseline flows back.
+  const { baseline, candidates, onApply } = engineeringConfigure;
   const draft = baseline;
+  const latestDraftRef = useRef(baseline);
+  latestDraftRef.current = baseline;
   const apply = (mutate: (current: EngineeringConfigureDraft) => EngineeringConfigureDraft) => {
-    onApply(mutate(baseline));
+    const next = normalizeEngineeringScenarioForSites(mutate(latestDraftRef.current));
+    latestDraftRef.current = next;
+    onApply(next);
   };
   const configureRef = useRef<HTMLFieldSetElement>(null);
-  const isGeo = draft.technology === 'GEO';
-  const isSiteToSite = isGeo
-    ? draft.geoLinkMode === 'MESH' || draft.geoLinkMode === 'POINT_TO_POINT'
-    : draft.leoTopologyMode === 'SITE_TO_SITE';
-  const activeTruth = truths[draft.technology];
+  const siteCount = getEngineeringScenarioSiteCount(draft);
+  const isTwoSite = siteCount === 2;
   const canSwap = Boolean(draft.siteA.location && draft.siteB.location);
+  const allowedGeoTopologies = getAllowedEngineeringGeoTopologies(siteCount);
+  const coverageLegs = useMemo(() => getActiveEngineeringGeoCoverageLegs(draft), [draft]);
+  const resolvedCoverageKeys = useMemo(
+    () => getResolvedEngineeringGeoCoverageKeys(candidates.resolved),
+    [candidates.resolved],
+  );
 
   useEffect(() => {
     if (!engineeringConfigure.focusSignal) return;
@@ -759,6 +806,12 @@ function EngineeringHeaderScenarioBuilder({
       onSelect: (location) => updateSite(key, {
         location: { label: location.name, lat: location.lat, lng: location.lng },
       }),
+      onClear: configuredSite.location && (key === 'siteB' || !draft.siteB.location)
+        ? () => updateSite(key, { location: null })
+        : undefined,
+      locationDisabled: key === 'siteB' && !draft.siteA.location,
+      locationDisabledReason: 'Select Site 1 before adding Site 2',
+      fallback: key === 'siteB' && draft.siteA.location ? 'Add a second site' : source.fallback,
       terminals: {
         geoRFClassId: configuredSite.geoRFClassId,
         geoTerminalType: configuredSite.geoTerminalType,
@@ -817,28 +870,9 @@ function EngineeringHeaderScenarioBuilder({
     }));
   };
 
-  const activeManualSelectors = useMemo(() => (
-    isGeo && draft.selectionPolicy === 'manual'
-      ? draft.geoLinkMode === 'STAR_FORWARD'
-        ? [{ label: 'Site A downlink', site: 'siteA' as const, uplink: false, key: 'geoDownlinkKeyA' as const }]
-        : draft.geoLinkMode === 'STAR_RETURN'
-          ? [{ label: 'Site A uplink', site: 'siteA' as const, uplink: true, key: 'geoUplinkKeyA' as const }]
-          : draft.direction === 'forward'
-            ? [
-                { label: 'A uplink', site: 'siteA' as const, uplink: true, key: 'geoUplinkKeyA' as const },
-                { label: 'B downlink', site: 'siteB' as const, uplink: false, key: 'geoDownlinkKeyB' as const },
-              ]
-            : [
-                { label: 'B uplink', site: 'siteB' as const, uplink: true, key: 'geoUplinkKeyB' as const },
-                { label: 'A downlink', site: 'siteA' as const, uplink: false, key: 'geoDownlinkKeyA' as const },
-              ]
-      : []
-  ), [isGeo, draft.selectionPolicy, draft.geoLinkMode, draft.direction]);
-  // Satellites reachable on BOTH active legs. Memoized: it builds two Sets over the
-  // full candidate pools, and this component re-renders on every header interaction.
   const validManualSatelliteIds = useMemo(() => {
-    if (activeManualSelectors.length !== 2) return undefined;
-    const [first, second] = activeManualSelectors;
+    if (coverageLegs.length !== 2) return undefined;
+    const [first, second] = coverageLegs;
     const secondSatelliteIds = new Set(
       candidates[second.site]
         .filter((candidate) => candidate.isUplink === second.uplink && !candidate.isSynthesized)
@@ -853,7 +887,42 @@ function EngineeringHeaderScenarioBuilder({
         ))
         .map((candidate) => candidate.satelliteId),
     );
-  }, [activeManualSelectors, candidates]);
+  }, [coverageLegs, candidates]);
+
+  const serviceCardClass = (technology: 'GEO' | 'LEO') => [
+    'min-w-0 rounded-lg border px-2 py-1.5 transition-colors',
+    draft.technology === technology
+      ? technology === 'GEO'
+        ? 'border-emerald-400/65 bg-emerald-50/65 shadow-[inset_0_0_0_1px_rgba(52,211,153,0.12)] dark:border-emerald-400/45 dark:bg-emerald-950/20'
+        : 'border-sky-400/65 bg-sky-50/65 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.12)] dark:border-sky-400/45 dark:bg-sky-950/20'
+      : 'border-slate-200/70 bg-white/45 hover:border-slate-300 dark:border-white/[0.07] dark:bg-slate-950/20 dark:hover:border-slate-600',
+  ].join(' ');
+
+  const serviceFocusButton = (technology: 'GEO' | 'LEO') => (
+    <button
+      type="button"
+      onClick={() => apply((current) => ({ ...current, technology }))}
+      aria-pressed={draft.technology === technology}
+      className="flex w-full min-w-0 items-center justify-between gap-2 rounded text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60"
+    >
+      <span className={`inline-flex items-center gap-1.5 whitespace-nowrap text-[9px] font-black uppercase tracking-[0.13em] ${technology === 'GEO' ? 'text-emerald-700 dark:text-emerald-300' : 'text-sky-700 dark:text-sky-300'}`}>
+        {technology === 'GEO' ? <Satellite className="h-3.5 w-3.5" aria-hidden="true" /> : <Radio className="h-3.5 w-3.5" aria-hidden="true" />}
+        {technology} service
+      </span>
+      {draft.technology === technology && (
+        <span className={`rounded-full px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.1em] ${technology === 'GEO' ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200' : 'bg-sky-500/15 text-sky-700 dark:text-sky-200'}`}>
+          Active
+        </span>
+      )}
+    </button>
+  );
+
+  const topologyLabel = (mode: EngineeringConfigureDraft['geoLinkMode']) => {
+    if (mode === 'STAR_FORWARD') return 'Forward';
+    if (mode === 'STAR_RETURN') return 'Return';
+    if (mode === 'POINT_TO_POINT') return 'Point-to-Point';
+    return 'Mesh';
+  };
 
   return (
     <fieldset
@@ -868,71 +937,61 @@ function EngineeringHeaderScenarioBuilder({
       aria-label="Desktop engineering scenario configuration"
     >
       <div className={['relative flex min-w-0 items-stretch', compact ? 'gap-1.5' : 'gap-2'].join(' ')}>
-        <SiteColumn eyebrow="Origin" config={buildDraftSiteConfig('siteA', siteA)} analysisSource={analysisSource} role="origin" activeTechnology={draft.technology} />
-        {/* Single Site has no destination endpoint: the swap control and the Site B
-            column are meaningless, so hide them and mark the slot as not required
-            rather than presenting an editable Destination the model never uses. */}
-        {isSiteToSite && (
-          <div className="flex shrink-0 flex-col items-center self-stretch justify-center gap-1 px-0.5">
-            <div className="w-px flex-1 bg-gradient-to-b from-transparent via-slate-300/70 to-transparent dark:via-slate-600/55" />
-            <button
-              type="button"
-              onClick={swapDraftEndpoints}
-              disabled={!canSwap}
-              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-200/90 bg-white/70 text-sky-600 transition-colors hover:border-sky-300 hover:bg-white disabled:cursor-not-allowed disabled:opacity-30 dark:border-slate-700/80 dark:bg-slate-800/45 dark:text-sky-200 dark:hover:border-sky-500/50 dark:hover:bg-slate-800"
-              aria-label="Swap origin and destination"
-            >
-              <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden="true" />
-            </button>
-            <div className="w-px flex-1 bg-gradient-to-b from-transparent via-slate-300/70 to-transparent dark:via-slate-600/55" />
-          </div>
-        )}
-        {isSiteToSite ? (
-          <SiteColumn eyebrow="Destination" config={buildDraftSiteConfig('siteB', siteB)} analysisSource={analysisSource} role="destination" activeTechnology={draft.technology} />
-        ) : (
-          <div
-            className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 rounded-md border border-dashed border-slate-300/70 px-2 py-1 dark:border-white/[0.08]"
-            aria-label="Destination not required for Single Site"
+        <SiteColumn eyebrow="Site 1" config={buildDraftSiteConfig('siteA', siteA)} analysisSource={analysisSource} role="origin" />
+        <div className="flex shrink-0 flex-col items-center self-stretch justify-center gap-1 px-0.5">
+          <div className="w-px flex-1 bg-gradient-to-b from-transparent via-slate-300/70 to-transparent dark:via-slate-600/55" />
+          <button
+            type="button"
+            onClick={swapDraftEndpoints}
+            disabled={!canSwap}
+            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-200/90 bg-white/70 text-sky-600 transition-colors hover:border-sky-300 hover:bg-white disabled:cursor-not-allowed disabled:opacity-30 dark:border-slate-700/80 dark:bg-slate-800/45 dark:text-sky-200 dark:hover:border-sky-500/50 dark:hover:bg-slate-800"
+            aria-label="Swap Site 1 and Site 2"
           >
-            <span className="truncate text-[9px] font-black uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">Destination</span>
-            <span className="truncate text-[10px] font-semibold text-slate-400 dark:text-slate-500">Not required for Single Site</span>
-          </div>
-        )}
+            <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden="true" />
+          </button>
+          {isTwoSite && (
+            <select
+              value={draft.direction}
+              onChange={(event) => apply((current) => ({
+                ...current,
+                direction: event.target.value as EngineeringConfigureDraft['direction'],
+              }))}
+              className="h-6 w-[3.65rem] shrink-0 appearance-none rounded-md border border-slate-200/90 bg-white/70 px-1 text-center text-[8px] font-black text-sky-700 focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400/40 dark:border-slate-700/80 dark:bg-slate-800/55 dark:text-sky-200"
+              aria-label="Traffic direction for GEO and LEO"
+              title="Traffic direction shared by GEO and LEO"
+            >
+              <option value="forward">1 → 2</option>
+              <option value="reverse">2 → 1</option>
+            </select>
+          )}
+          <div className="w-px flex-1 bg-gradient-to-b from-transparent via-slate-300/70 to-transparent dark:via-slate-600/55" />
+        </div>
+        <SiteColumn eyebrow="Site 2" config={buildDraftSiteConfig('siteB', siteB)} analysisSource={analysisSource} role="destination" />
       </div>
 
-      <div className="grid min-w-0 grid-cols-[auto_auto_minmax(7rem,0.8fr)_minmax(8rem,1fr)] items-center gap-2 rounded-lg border border-slate-200/65 bg-white/55 px-2 py-1 dark:border-white/[0.07] dark:bg-slate-950/24">
-        <div className="flex items-center gap-0.5 rounded-md bg-slate-200/45 p-0.5 dark:bg-white/[0.055]">
-          {(['GEO', 'LEO'] as const).map((technology) => (
-            <button key={technology} type="button" onClick={() => apply((current) => ({ ...current, technology }))} aria-pressed={draft.technology === technology} className={`h-6 rounded px-2 text-[9px] font-bold transition-colors ${draft.technology === technology ? 'bg-white text-sky-700 shadow-sm dark:bg-sky-400/15 dark:text-sky-200 dark:shadow-none' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'}`}>{technology}</button>
-          ))}
-        </div>
-
-        <label className="grid grid-cols-[auto_minmax(7rem,1fr)] items-center gap-1">
-          <span className="text-[8px] font-black uppercase tracking-[0.1em] text-slate-500">Path</span>
-          {isGeo ? (
-            <select value={draft.geoLinkMode} onChange={(event) => apply((current) => ({ ...current, geoLinkMode: event.target.value as EngineeringConfigureDraft['geoLinkMode'] }))} className={darkSelectClass} style={darkSelectStyle}>
-              <option value="STAR_FORWARD">Star Forward</option>
-              <option value="STAR_RETURN">Star Return</option>
-              <option value="MESH">Mesh</option>
-              <option value="POINT_TO_POINT">Point-to-Point</option>
-            </select>
-          ) : (
-            <select value={draft.leoTopologyMode} onChange={(event) => apply((current) => ({ ...current, leoTopologyMode: event.target.value as EngineeringConfigureDraft['leoTopologyMode'] }))} className={darkSelectClass} style={darkSelectStyle}>
-              <option value="SINGLE_SITE">Single Site</option>
-              <option value="SITE_TO_SITE">Site-to-Site</option>
-            </select>
-          )}
-        </label>
-
-        <div className="flex min-w-0 items-center gap-1">
-          {isSiteToSite && (
-            <select value={draft.direction} onChange={(event) => apply((current) => ({ ...current, direction: event.target.value as EngineeringConfigureDraft['direction'] }))} className={darkSelectClass} style={darkSelectStyle} aria-label="Active direction">
-              <option value="forward">Site A → Site B</option>
-              <option value="reverse">Site B → Site A</option>
-            </select>
-          )}
-          {isGeo && (
-            <div className="flex shrink-0 rounded-md bg-slate-200/45 p-0.5 dark:bg-white/[0.055]" role="radiogroup" aria-label="GEO selection policy" onKeyDown={handleRadioGroupKeyDown}>
+      <div className={`grid min-w-0 items-stretch gap-1.5 ${
+        compact
+          ? 'grid-cols-[minmax(0,1.65fr)_minmax(10rem,0.6fr)]'
+          : 'grid-cols-[minmax(20rem,2fr)_minmax(9rem,0.7fr)]'
+      }`}>
+        <div className={serviceCardClass('GEO')}>
+          {serviceFocusButton('GEO')}
+          <div className="mt-1 flex min-w-0 items-center gap-1.5">
+            <label className="grid min-w-0 flex-[0_1_9rem] grid-cols-[auto_minmax(5.5rem,1fr)] items-center gap-1">
+              <span className="text-[8px] font-black uppercase tracking-[0.1em] text-slate-500">Topology</span>
+              <select
+                value={draft.geoLinkMode}
+                onChange={(event) => apply((current) => ({ ...current, geoLinkMode: event.target.value as EngineeringConfigureDraft['geoLinkMode'] }))}
+                className={darkSelectClass}
+                style={darkSelectStyle}
+                aria-label="GEO topology"
+              >
+                {allowedGeoTopologies.map((mode) => (
+                  <option key={mode} value={mode}>{topologyLabel(mode)}</option>
+                ))}
+              </select>
+            </label>
+            <div className="flex shrink-0 rounded-md bg-slate-200/45 p-0.5 dark:bg-white/[0.055]" role="radiogroup" aria-label="GEO coverage selection policy" onKeyDown={handleRadioGroupKeyDown}>
               {(['auto', 'manual'] as const).map((policy) => (
                 <button
                   key={policy}
@@ -947,33 +1006,52 @@ function EngineeringHeaderScenarioBuilder({
                 </button>
               ))}
             </div>
-          )}
+            <div className={`grid min-w-0 flex-1 gap-1 ${coverageLegs.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`} aria-label="GEO target coverage">
+              {coverageLegs.map((selector) => {
+                const selectorLabel = compact
+                  ? selector.label.replace('Site 1', 'S1').replace('Site 2', 'S2').replace('downlink', 'DL').replace('uplink', 'UL')
+                  : selector.label;
+                const selectedKey = draft.selectionPolicy === 'manual'
+                  ? draft[selector.key]
+                  : resolvedCoverageKeys[selector.key];
+                const resolvedCandidate = draft.selectionPolicy === 'auto'
+                  ? candidates.resolved?.[selector.site][selector.uplink ? 'uplink' : 'downlink'] ?? null
+                  : null;
+                return draft.selectionPolicy === 'manual' ? (
+                  <HeaderCandidateSelect
+                    key={selector.key}
+                    label={selectorLabel}
+                    candidates={candidates[selector.site]}
+                    uplink={selector.uplink}
+                    selectedKey={selectedKey}
+                    validSatelliteIds={validManualSatelliteIds}
+                    onChange={(key) => apply((current) => (
+                      synchronizeEngineeringGeoManualSelection(current, candidates, selector.key, key)
+                    ))}
+                  />
+                ) : (
+                  <div key={selector.key} className="grid min-w-0 grid-cols-[auto_minmax(5rem,1fr)] items-center gap-1" title={resolvedCandidate ? getCandidateCoverageDisplayName(resolvedCandidate) : undefined}>
+                    <span className="text-[7px] font-black uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">{selectorLabel}</span>
+                    <div className="h-6 min-w-0 truncate rounded-md border border-violet-200/70 bg-violet-50/60 px-2 text-[9px] font-semibold leading-6 text-violet-800 dark:border-violet-800/60 dark:bg-violet-950/25 dark:text-violet-200">
+                      {resolvedCandidate ? getCandidateCoverageDisplayName(resolvedCandidate) : siteCount === 0 ? 'Select Site 1' : 'No eligible coverage'}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
-        <div className="min-w-0">
-          <div className="truncate text-[9px] font-semibold text-slate-600 dark:text-slate-300" title={activeTruth?.headline}>Review · {activeTruth?.headline ?? 'No published result'}</div>
-          <div className="mt-0.5 truncate text-[8px] text-slate-500 dark:text-slate-400">Edits apply immediately</div>
+        <div className={serviceCardClass('LEO')}>
+          {serviceFocusButton('LEO')}
+          <div className="mt-1 flex min-w-0 items-center gap-1.5">
+            <div className="shrink-0 text-[8px] font-black uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400">Topology</div>
+            <div className="flex h-6 w-24 max-w-full min-w-0 items-center truncate rounded-md border border-slate-200/70 bg-white/55 px-2 text-[9px] font-semibold text-slate-700 dark:border-slate-700/70 dark:bg-slate-800/40 dark:text-slate-200">
+              {getEngineeringLeoTopology(siteCount) === 'SITE_TO_SITE' ? 'Site-to-Site' : 'Single Site'}
+            </div>
+          </div>
         </div>
       </div>
-
-      {activeManualSelectors.length > 0 && (
-        <div className={`grid min-w-0 gap-2 rounded-lg border border-violet-200/80 bg-violet-50/55 px-2 py-1 dark:border-violet-800/70 dark:bg-violet-950/20 ${activeManualSelectors.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-          {activeManualSelectors.map((selector) => (
-            <HeaderCandidateSelect
-              key={selector.key}
-              label={selector.label}
-              candidates={candidates[selector.site]}
-              uplink={selector.uplink}
-              selectedKey={draft[selector.key]}
-              validSatelliteIds={validManualSatelliteIds}
-              onChange={(key) => apply((current) => (
-                synchronizeEngineeringGeoManualSelection(current, candidates, selector.key, key)
-              ))}
-            />
-          ))}
-          <span className="sr-only">Coverage selections apply immediately.</span>
-        </div>
-      )}
     </fieldset>
   );
 }

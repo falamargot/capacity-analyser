@@ -50,8 +50,21 @@ describe('engineeringConfigureModel', () => {
     };
     const changes = getEngineeringConfigureChanges(baseline, draft);
 
-    expect(changes.map((change) => change.label)).toContain('Site A RF profile');
+    expect(changes.map((change) => change.label)).toContain('Site A GEO RF profile');
     expect(getAffectedEngineeringStages(changes)).toEqual(['scenario', 'service', 'rf', 'delivery']);
+  });
+
+  it('tracks both technology modems even when Site B has no location', () => {
+    const draft: EngineeringConfigureDraft = {
+      ...baseline,
+      siteB: {
+        ...baseline.siteB,
+        leoTerminalModelId: 'hughes-hl1120w',
+      },
+    };
+
+    expect(getEngineeringConfigureChanges(baseline, draft).map((change) => change.label))
+      .toContain('Site B LEO terminal model');
   });
 
   it('maps topology changes through the complete Engineering Truth chain', () => {
@@ -83,7 +96,7 @@ describe('engineeringConfigureModel', () => {
 
   it('requires only the endpoints and manual candidates used by the active topology', () => {
     expect(isEngineeringConfigureDraftComplete(baseline)).toBe(true);
-    expect(isEngineeringConfigureDraftComplete({ ...baseline, geoLinkMode: 'MESH' })).toBe(false);
+    expect(isEngineeringConfigureDraftComplete({ ...baseline, siteA: { ...site, location: null } })).toBe(false);
     expect(isEngineeringConfigureDraftComplete({
       ...baseline,
       selectionPolicy: 'manual',
@@ -212,6 +225,7 @@ describe('engineeringConfigureModel', () => {
     const manual = {
       ...baseline,
       geoLinkMode: 'POINT_TO_POINT' as const,
+      siteB: { ...site, location: { label: 'Dakar', lat: 14.7167, lng: -17.4677 } },
       direction: 'forward' as const,
       selectionPolicy: 'manual' as const,
       geoUplinkKeyA: getCandidateCoverageKey(uplinkA1),
@@ -264,6 +278,7 @@ describe('engineeringConfigureModel', () => {
     const manual = {
       ...baseline,
       geoLinkMode: 'MESH' as const,
+      siteB: { ...site, location: { label: 'Dakar', lat: 14.7167, lng: -17.4677 } },
       direction: 'forward' as const,
       selectionPolicy: 'manual' as const,
       geoUplinkKeyA: getCandidateCoverageKey(uplinkA1),
@@ -317,6 +332,7 @@ describe('engineeringConfigureModel', () => {
     const manual = {
       ...baseline,
       geoLinkMode: 'MESH' as const,
+      siteB: { ...site, location: { label: 'Dakar', lat: 14.7167, lng: -17.4677 } },
       direction: 'forward' as const,
       selectionPolicy: 'manual' as const,
       geoUplinkKeyA: getCandidateCoverageKey(uplinkA),

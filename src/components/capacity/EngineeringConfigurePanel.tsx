@@ -12,6 +12,13 @@ import {
   getEngineeringGeoManualSelectionKeys,
   getPublishedEngineeringGeoPath,
 } from '../../utils/engineeringConfigureModel';
+import {
+  getActiveEngineeringGeoCoverageLegs,
+  getAllowedEngineeringGeoTopologies,
+  getEngineeringLeoTopology,
+  getEngineeringScenarioSiteCount,
+  normalizeEngineeringScenarioForSites,
+} from '../../utils/engineeringScenarioRules';
 import { getCandidateCoverageDisplayName, getCandidateCoverageKey } from '../../utils/geoCoverageSelection';
 import { getLeoTerminalProfile } from '../../config/leoTerminals';
 import { useLocationSearch, type LocationResult } from '../../hooks/useLocationSearch';
@@ -32,11 +39,13 @@ function DraftLocationField({
   label,
   location,
   required,
+  clearable,
   onChange,
 }: {
   label: string;
   location: EngineeringConfigureLocation | null;
   required?: boolean;
+  clearable?: boolean;
   onChange: (location: EngineeringConfigureLocation | null) => void;
 }) {
   const [query, setQuery] = useState('');
@@ -81,7 +90,7 @@ function DraftLocationField({
             </div>
           )}
         </div>
-        {location && !required && (
+        {location && clearable && (
           <button
             type="button"
             onClick={() => onChange(null)}
@@ -229,29 +238,16 @@ export default function EngineeringConfigurePanel({
   // currently a no-op guard, not a behavior change.
   latestDraftRef.current = baseline;
   const apply = (mutate: (current: EngineeringConfigureDraft) => EngineeringConfigureDraft) => {
-    const next = mutate(latestDraftRef.current);
+    const next = normalizeEngineeringScenarioForSites(mutate(latestDraftRef.current));
     latestDraftRef.current = next;
     onApply(next);
   };
   const isGeo = draft.technology === 'GEO';
-  const isSiteToSite = isGeo
-    ? draft.geoLinkMode === 'MESH' || draft.geoLinkMode === 'POINT_TO_POINT'
-    : draft.leoTopologyMode === 'SITE_TO_SITE';
+  const siteCount = getEngineeringScenarioSiteCount(draft);
+  const isSiteToSite = siteCount === 2;
   const activeTruth = truths[draft.technology];
   const activeManualSelectors = isGeo && draft.selectionPolicy === 'manual'
-    ? draft.geoLinkMode === 'STAR_FORWARD'
-      ? [{ label: 'Site A downlink', site: 'siteA' as const, uplink: false, key: 'geoDownlinkKeyA' as const }]
-      : draft.geoLinkMode === 'STAR_RETURN'
-        ? [{ label: 'Site A uplink', site: 'siteA' as const, uplink: true, key: 'geoUplinkKeyA' as const }]
-        : draft.direction === 'forward'
-          ? [
-              { label: 'Site A uplink', site: 'siteA' as const, uplink: true, key: 'geoUplinkKeyA' as const },
-              { label: 'Site B downlink', site: 'siteB' as const, uplink: false, key: 'geoDownlinkKeyB' as const },
-            ]
-          : [
-              { label: 'Site B uplink', site: 'siteB' as const, uplink: true, key: 'geoUplinkKeyB' as const },
-              { label: 'Site A downlink', site: 'siteA' as const, uplink: false, key: 'geoDownlinkKeyA' as const },
-            ]
+    ? getActiveEngineeringGeoCoverageLegs(draft)
     : [];
 
   const updateSite = (key: 'siteA' | 'siteB', update: Partial<EngineeringConfigureSite>) => {
@@ -322,25 +318,14 @@ export default function EngineeringConfigurePanel({
               {isGeo ? (
                 <LinkModeSelector
                   linkMode={draft.geoLinkMode}
+                  allowedModes={getAllowedEngineeringGeoTopologies(siteCount)}
                   onChange={(geoLinkMode) => apply((current) => ({ ...current, geoLinkMode }))}
                 />
               ) : (
                 <div>
                   <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">LEO topology</div>
-                  <div className="grid grid-cols-2 gap-1" role="radiogroup" aria-label="LEO topology" onKeyDown={handleRadioGroupKeyDown}>
-                    {(['SINGLE_SITE', 'SITE_TO_SITE'] as const).map((mode) => (
-                      <button
-                        key={mode}
-                        type="button"
-                        onClick={() => apply((current) => ({ ...current, leoTopologyMode: mode }))}
-                        role="radio"
-                        aria-checked={draft.leoTopologyMode === mode}
-                        tabIndex={draft.leoTopologyMode === mode ? 0 : -1}
-                        className={`min-h-10 rounded-lg px-2 text-xs font-semibold ${draft.leoTopologyMode === mode ? 'bg-pink-500 text-white' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}
-                      >
-                        {mode === 'SINGLE_SITE' ? 'Single Site' : 'Site-to-Site'}
-                      </button>
-                    ))}
+                  <div className="flex min-h-10 items-center rounded-lg bg-pink-500 px-3 text-xs font-semibold text-white" aria-label="LEO topology">
+                    {getEngineeringLeoTopology(siteCount) === 'SINGLE_SITE' ? 'Single Site' : 'Site-to-Site'}
                   </div>
                 </div>
               )}
@@ -375,12 +360,13 @@ export default function EngineeringConfigurePanel({
                 label="Site A"
                 location={draft.siteA.location}
                 required
+                clearable={Boolean(draft.siteA.location && !draft.siteB.location)}
                 onChange={(location) => updateSite('siteA', { location })}
               />
               <DraftLocationField
                 label="Site B"
                 location={draft.siteB.location}
-                required={isSiteToSite}
+                clearable={Boolean(draft.siteB.location)}
                 onChange={(location) => updateSite('siteB', { location })}
               />
             </div>
@@ -389,7 +375,7 @@ export default function EngineeringConfigurePanel({
           <fieldset>
             <legend className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">Terminal & weather assumptions</legend>
             <div className="grid gap-3">
-              {(['siteA', ...(isSiteToSite ? ['siteB'] : [])] as Array<'siteA' | 'siteB'>).map((key) => {
+              {(['siteA', 'siteB'] as const).map((key) => {
                 const site = draft[key];
                 return (
                   <TerminalConfig

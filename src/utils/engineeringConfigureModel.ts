@@ -7,6 +7,10 @@ import type {
 } from '../types/engineeringConfigure';
 import type { CandidateCoverage } from '../types/analysis';
 import { getCandidateCoverageKey } from './geoCoverageSelection';
+import {
+  getActiveEngineeringGeoCoverageLegs,
+  getEngineeringScenarioSiteCount,
+} from './engineeringScenarioRules';
 
 export type EngineeringGeoCoverageKeys = Pick<
   EngineeringConfigureDraft,
@@ -73,7 +77,6 @@ function compareSite(
   label: 'Site A' | 'Site B',
   before: EngineeringConfigureSite,
   after: EngineeringConfigureSite,
-  technology: EngineeringConfigureDraft['technology'],
 ) {
   const beforeLocation = before.location ? `${before.location.lat.toFixed(5)},${before.location.lng.toFixed(5)}` : '';
   const afterLocation = after.location ? `${after.location.lat.toFixed(5)},${after.location.lng.toFixed(5)}` : '';
@@ -81,22 +84,19 @@ function compareSite(
     addChange(changes, 'location', `${label} location`, locationLabel(before), locationLabel(after));
   }
 
-  if (technology === 'GEO') {
-    addChange(changes, 'terminal', `${label} terminal use case`, before.geoTerminalType, after.geoTerminalType);
-    addChange(changes, 'terminal', `${label} RF profile`, before.geoRFClassId, after.geoRFClassId);
-    if (JSON.stringify(before.geoRFCustomParams) !== JSON.stringify(after.geoRFCustomParams)) {
-      changes.push({
-        kind: 'advanced-rf',
-        label: `${label} advanced RF`,
-        before: customRfLabel(before),
-        after: customRfLabel(after),
-        affectedStages: STAGES['advanced-rf'],
-      });
-    }
-  } else {
-    addChange(changes, 'terminal', `${label} terminal use case`, before.leoTerminalType, after.leoTerminalType);
-    addChange(changes, 'terminal', `${label} terminal model`, before.leoTerminalModelId, after.leoTerminalModelId);
+  addChange(changes, 'terminal', `${label} GEO terminal use case`, before.geoTerminalType, after.geoTerminalType);
+  addChange(changes, 'terminal', `${label} GEO RF profile`, before.geoRFClassId, after.geoRFClassId);
+  if (JSON.stringify(before.geoRFCustomParams) !== JSON.stringify(after.geoRFCustomParams)) {
+    changes.push({
+      kind: 'advanced-rf',
+      label: `${label} GEO advanced RF`,
+      before: customRfLabel(before),
+      after: customRfLabel(after),
+      affectedStages: STAGES['advanced-rf'],
+    });
   }
+  addChange(changes, 'terminal', `${label} LEO terminal use case`, before.leoTerminalType, after.leoTerminalType);
+  addChange(changes, 'terminal', `${label} LEO terminal model`, before.leoTerminalModelId, after.leoTerminalModelId);
 
   addChange(changes, 'weather', `${label} weather`, before.weatherType, after.weatherType);
   addChange(
@@ -114,34 +114,27 @@ export function getEngineeringConfigureChanges(
 ): EngineeringConfigureChange[] {
   const changes: EngineeringConfigureChange[] = [];
   addChange(changes, 'technology', 'Technology focus', baseline.technology, draft.technology);
+  addChange(changes, 'topology', 'GEO topology', baseline.geoLinkMode, draft.geoLinkMode);
+  addChange(changes, 'topology', 'LEO topology', baseline.leoTopologyMode, draft.leoTopologyMode);
 
-  if (draft.technology === 'GEO') {
-    addChange(changes, 'topology', 'GEO topology', baseline.geoLinkMode, draft.geoLinkMode);
-  } else {
-    addChange(changes, 'topology', 'LEO topology', baseline.leoTopologyMode, draft.leoTopologyMode);
-  }
-
-  const isSiteToSite = draft.technology === 'GEO'
-    ? draft.geoLinkMode === 'MESH' || draft.geoLinkMode === 'POINT_TO_POINT'
-    : draft.leoTopologyMode === 'SITE_TO_SITE';
+  const isSiteToSite = getEngineeringScenarioSiteCount(draft) === 2;
   if (isSiteToSite) addChange(changes, 'direction', 'Active direction', baseline.direction, draft.direction);
 
-  if (draft.technology === 'GEO') {
-    addChange(changes, 'selection', 'Path selection', baseline.selectionPolicy, draft.selectionPolicy);
-    if (draft.selectionPolicy === 'manual') {
-      addChange(changes, 'selection', 'Site A uplink beam', baseline.geoUplinkKeyA ?? 'Auto', draft.geoUplinkKeyA ?? 'Auto');
-      addChange(changes, 'selection', 'Site A downlink beam', baseline.geoDownlinkKeyA ?? 'Auto', draft.geoDownlinkKeyA ?? 'Auto');
-      if (isSiteToSite) {
-        addChange(changes, 'selection', 'Site B uplink beam', baseline.geoUplinkKeyB ?? 'Auto', draft.geoUplinkKeyB ?? 'Auto');
-        addChange(changes, 'selection', 'Site B downlink beam', baseline.geoDownlinkKeyB ?? 'Auto', draft.geoDownlinkKeyB ?? 'Auto');
-      }
+  addChange(changes, 'selection', 'GEO path selection', baseline.selectionPolicy, draft.selectionPolicy);
+  if (draft.selectionPolicy === 'manual') {
+    for (const selector of getActiveEngineeringGeoCoverageLegs(draft)) {
+      addChange(
+        changes,
+        'selection',
+        `${selector.label} beam`,
+        baseline[selector.key] ?? 'Auto',
+        draft[selector.key] ?? 'Auto',
+      );
     }
   }
 
-  compareSite(changes, 'Site A', baseline.siteA, draft.siteA, draft.technology);
-  if (isSiteToSite || draft.siteB.location || baseline.siteB.location) {
-    compareSite(changes, 'Site B', baseline.siteB, draft.siteB, draft.technology);
-  }
+  compareSite(changes, 'Site A', baseline.siteA, draft.siteA);
+  compareSite(changes, 'Site B', baseline.siteB, draft.siteB);
 
   return changes;
 }
@@ -163,16 +156,9 @@ export function isEngineeringConfigureDirty(
 }
 
 export function isEngineeringConfigureDraftComplete(draft: EngineeringConfigureDraft): boolean {
-  const isSiteToSite = draft.technology === 'GEO'
-    ? draft.geoLinkMode === 'MESH' || draft.geoLinkMode === 'POINT_TO_POINT'
-    : draft.leoTopologyMode === 'SITE_TO_SITE';
-  if (!draft.siteA.location || (isSiteToSite && !draft.siteB.location)) return false;
+  if (!draft.siteA.location) return false;
   if (draft.technology !== 'GEO' || draft.selectionPolicy === 'auto') return true;
-  if (draft.geoLinkMode === 'STAR_RETURN') return Boolean(draft.geoUplinkKeyA);
-  if (draft.geoLinkMode === 'STAR_FORWARD') return Boolean(draft.geoDownlinkKeyA);
-  return draft.direction === 'forward'
-    ? Boolean(draft.geoUplinkKeyA && draft.geoDownlinkKeyB)
-    : Boolean(draft.geoUplinkKeyB && draft.geoDownlinkKeyA);
+  return getActiveEngineeringGeoCoverageLegs(draft).every((selector) => Boolean(draft[selector.key]));
 }
 
 const findCandidateByKey = (
@@ -202,17 +188,10 @@ const ALL_MANUAL_COVERAGE_SELECTORS: ActiveManualCoverageSelector[] = [
 const activeManualCoverageSelectors = (
   draft: EngineeringConfigureDraft,
 ): [ActiveManualCoverageSelector, ActiveManualCoverageSelector] | null => {
-  if (draft.geoLinkMode !== 'MESH' && draft.geoLinkMode !== 'POINT_TO_POINT') return null;
-
-  return draft.direction === 'forward'
-    ? [
-        { key: 'geoUplinkKeyA', site: 'siteA', uplink: true },
-        { key: 'geoDownlinkKeyB', site: 'siteB', uplink: false },
-      ]
-    : [
-        { key: 'geoUplinkKeyB', site: 'siteB', uplink: true },
-        { key: 'geoDownlinkKeyA', site: 'siteA', uplink: false },
-      ];
+  const selectors = getActiveEngineeringGeoCoverageLegs(draft);
+  return selectors.length === 2
+    ? [selectors[0], selectors[1]]
+    : null;
 };
 
 const candidateLinkMargin = (candidate: CandidateCoverage): number => (

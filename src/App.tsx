@@ -25,7 +25,6 @@ import CustomerDecisionLauncher from './components/commercial/CustomerDecisionLa
 import {
   DECISION_GEO_ANALYSIS_SCOPE,
   DECISION_LEO_ANALYSIS_SCOPE,
-  activeTopologyNeedsDestination,
   geoScenarioNeedsDestination,
   shouldBuildGeoDecisionAnalysis,
 } from './components/commercial/decisionAnalysisPolicy';
@@ -612,17 +611,6 @@ const App: React.FC = () => {
     resetActiveLeoRouteEvidenceState(activeLeoRouteEvidenceStateRef.current);
   }, [leoTerminalModelId, leoTerminalModelIdB, leoTerminalType, leoTerminalTypeB]);
 
-  // Clear LEO S2S-only state when switching back to single-site mode
-  useEffect(() => {
-    if (leoTopologyMode === 'SINGLE_SITE') {
-      setSiteB(null);
-      setIsSiteBArmed(false);
-      setAutoSelectedLEOIdB(null);
-      setLeoServingAssignmentB(null);
-      resetActiveLeoRouteEvidenceState(activeLeoRouteEvidenceStateRef.current);
-    }
-  }, [leoTopologyMode]);
-
   const syncScenarioOrigin = useCallback((lat: number, lng: number, source: 'location-search' | 'globe-click' = 'location-search') => {
     dispatchConnectivityScenario(connectivityScenarioActions.setOrigin(createScenarioEndpointFromLocation({
       endpoint: 'origin',
@@ -796,31 +784,34 @@ const App: React.FC = () => {
     }
   }, [engineeringFocusController.focus.kind, isCustomerDecisionOpen]);
 
-  // Derived backward-compat variables — downstream components still receive pointB / pointBLeo
-  // Topology belongs to the shared scenario, not to the globe's visual filter.
-  // Switching ALL/GEO/LEO must never discard Site B or remove it from the
-  // evidence used by Decision Support.
+  // Endpoint presence is authoritative. Both technology engines receive Site B
+  // whenever it exists; their topology state is normalized from that fact below.
   const geoNeedsPointB = geoScenarioNeedsDestination(linkMode);
   const leoNeedsPointB = leoTopologyMode === 'SITE_TO_SITE';
-  const isTwoPointMode = activeTopologyNeedsDestination({
-    displayScope: satelliteScope,
-    activeTechnology: activeConnectivityTab,
-    geoNeedsDestination: geoNeedsPointB,
-    leoNeedsDestination: leoNeedsPointB,
-  });
-  const scenarioRetainsSiteB = geoNeedsPointB || leoNeedsPointB;
-  const pointB = siteB && geoNeedsPointB ? siteB : null;
-  const pointBLeo = siteB && leoNeedsPointB ? siteB : null;
+  const isTwoPointMode = Boolean(siteB);
+  const pointB = siteB;
+  const pointBLeo = siteB;
 
-  // Clear Site B only when neither stored topology needs it. The active visual
-  // technology controls whether the UI asks for Site B, but switching filters
-  // must not erase the other technology's scenario endpoint.
+  // Normalize both technology topologies from the shared endpoint count. A
+  // topology change must never remove a location.
   useEffect(() => {
-    if (!scenarioRetainsSiteB) {
-      setSiteB(null);
-      setIsSiteBArmed(false);
+    if (siteB) {
+      if (!geoNeedsPointB) handleLinkModeChange('MESH');
+      if (!leoNeedsPointB) handleLeoTopologyModeChange('SITE_TO_SITE');
+      return;
     }
-  }, [scenarioRetainsSiteB]);
+    if (geoNeedsPointB) handleLinkModeChange('STAR_FORWARD');
+    if (leoNeedsPointB) handleLeoTopologyModeChange('SINGLE_SITE');
+    setAutoSelectedLEOIdB(null);
+    setLeoServingAssignmentB(null);
+    resetActiveLeoRouteEvidenceState(activeLeoRouteEvidenceStateRef.current);
+  }, [
+    geoNeedsPointB,
+    handleLeoTopologyModeChange,
+    handleLinkModeChange,
+    leoNeedsPointB,
+    siteB,
+  ]);
 
   const [airTrafficEnabled, setAirTrafficEnabled] = useState(false);
   const [maritimeTrafficEnabled, setMaritimeTrafficEnabled] = useState(false);
@@ -4718,7 +4709,9 @@ const App: React.FC = () => {
     const changes = getEngineeringConfigureChanges(engineeringConfigureBaseline, draft);
     if (changes.length === 0) return;
 
-    if (draft.siteA.location && !sameEngineeringConfigureLocation(engineeringConfigureBaseline.siteA.location, draft.siteA.location)) {
+    if (!draft.siteA.location && engineeringConfigureBaseline.siteA.location && !draft.siteB.location) {
+      handleClearSiteA();
+    } else if (draft.siteA.location && !sameEngineeringConfigureLocation(engineeringConfigureBaseline.siteA.location, draft.siteA.location)) {
       handleLocationSelect(draft.siteA.location.lat, draft.siteA.location.lng);
     }
     if (!draft.siteB.location && engineeringConfigureBaseline.siteB.location) {
@@ -4730,22 +4723,18 @@ const App: React.FC = () => {
     if (draft.technology !== engineeringConfigureBaseline.technology) {
       handleTechnologyChange(draft.technology);
     }
-    if (draft.technology === 'GEO') {
-      if (draft.geoLinkMode !== engineeringConfigureBaseline.geoLinkMode || !sameEngineeringConfigureLocation(engineeringConfigureBaseline.siteB.location, draft.siteB.location)) {
-        handleLinkModeChange(draft.geoLinkMode);
-      }
-    } else if (draft.leoTopologyMode !== engineeringConfigureBaseline.leoTopologyMode || !sameEngineeringConfigureLocation(engineeringConfigureBaseline.siteB.location, draft.siteB.location)) {
+    if (draft.geoLinkMode !== engineeringConfigureBaseline.geoLinkMode || !sameEngineeringConfigureLocation(engineeringConfigureBaseline.siteB.location, draft.siteB.location)) {
+      handleLinkModeChange(draft.geoLinkMode);
+    }
+    if (draft.leoTopologyMode !== engineeringConfigureBaseline.leoTopologyMode || !sameEngineeringConfigureLocation(engineeringConfigureBaseline.siteB.location, draft.siteB.location)) {
       handleLeoTopologyModeChange(draft.leoTopologyMode);
     }
     if (draft.direction !== engineeringConfigureBaseline.direction) handleActiveMeshTabChange(draft.direction);
 
-    if (draft.technology === 'GEO') {
-      if (draft.siteA.geoTerminalType !== engineeringConfigureBaseline.siteA.geoTerminalType) handleGeoTerminalTypeChange(draft.siteA.geoTerminalType);
-      if (draft.siteB.geoTerminalType !== engineeringConfigureBaseline.siteB.geoTerminalType) handleGeoTerminalTypeBChange(draft.siteB.geoTerminalType);
-    } else {
-      if (draft.siteA.leoTerminalType !== engineeringConfigureBaseline.siteA.leoTerminalType) handleLeoTerminalTypeChange(draft.siteA.leoTerminalType);
-      if (draft.siteB.leoTerminalType !== engineeringConfigureBaseline.siteB.leoTerminalType) handleLeoTerminalTypeBChange(draft.siteB.leoTerminalType);
-    }
+    if (draft.siteA.geoTerminalType !== engineeringConfigureBaseline.siteA.geoTerminalType) handleGeoTerminalTypeChange(draft.siteA.geoTerminalType);
+    if (draft.siteB.geoTerminalType !== engineeringConfigureBaseline.siteB.geoTerminalType) handleGeoTerminalTypeBChange(draft.siteB.geoTerminalType);
+    if (draft.siteA.leoTerminalType !== engineeringConfigureBaseline.siteA.leoTerminalType) handleLeoTerminalTypeChange(draft.siteA.leoTerminalType);
+    if (draft.siteB.leoTerminalType !== engineeringConfigureBaseline.siteB.leoTerminalType) handleLeoTerminalTypeBChange(draft.siteB.leoTerminalType);
     if (draft.siteA.weatherType !== engineeringConfigureBaseline.siteA.weatherType) {
       handleWeatherTypeChange(draft.siteA.weatherType);
     }
@@ -4757,25 +4746,22 @@ const App: React.FC = () => {
     // former per-field setter calls. Only changed fields are included, so
     // handler cascades win exactly when they did before.
     patchScenario({
-      ...(draft.technology === 'GEO' ? {
-        ...(draft.siteA.geoRFClassId !== engineeringConfigureBaseline.siteA.geoRFClassId ? { geoRFClassIdA: draft.siteA.geoRFClassId } : {}),
-        ...(JSON.stringify(draft.siteA.geoRFCustomParams) !== JSON.stringify(engineeringConfigureBaseline.siteA.geoRFCustomParams) ? { geoRFCustomParamsA: draft.siteA.geoRFCustomParams } : {}),
-        ...(draft.siteB.geoRFClassId !== engineeringConfigureBaseline.siteB.geoRFClassId ? { geoRFClassIdB: draft.siteB.geoRFClassId } : {}),
-        ...(JSON.stringify(draft.siteB.geoRFCustomParams) !== JSON.stringify(engineeringConfigureBaseline.siteB.geoRFCustomParams) ? { geoRFCustomParamsB: draft.siteB.geoRFCustomParams } : {}),
-      } : {
-        ...(draft.siteA.leoTerminalModelId !== engineeringConfigureBaseline.siteA.leoTerminalModelId ? { leoTerminalModelId: draft.siteA.leoTerminalModelId } : {}),
-        ...(draft.siteB.leoTerminalModelId !== engineeringConfigureBaseline.siteB.leoTerminalModelId ? { leoTerminalModelIdB: draft.siteB.leoTerminalModelId } : {}),
-      }),
+      ...(draft.siteA.geoRFClassId !== engineeringConfigureBaseline.siteA.geoRFClassId ? { geoRFClassIdA: draft.siteA.geoRFClassId } : {}),
+      ...(JSON.stringify(draft.siteA.geoRFCustomParams) !== JSON.stringify(engineeringConfigureBaseline.siteA.geoRFCustomParams) ? { geoRFCustomParamsA: draft.siteA.geoRFCustomParams } : {}),
+      ...(draft.siteB.geoRFClassId !== engineeringConfigureBaseline.siteB.geoRFClassId ? { geoRFClassIdB: draft.siteB.geoRFClassId } : {}),
+      ...(JSON.stringify(draft.siteB.geoRFCustomParams) !== JSON.stringify(engineeringConfigureBaseline.siteB.geoRFCustomParams) ? { geoRFCustomParamsB: draft.siteB.geoRFCustomParams } : {}),
+      ...(draft.siteA.leoTerminalModelId !== engineeringConfigureBaseline.siteA.leoTerminalModelId ? { leoTerminalModelId: draft.siteA.leoTerminalModelId } : {}),
+      ...(draft.siteB.leoTerminalModelId !== engineeringConfigureBaseline.siteB.leoTerminalModelId ? { leoTerminalModelIdB: draft.siteB.leoTerminalModelId } : {}),
       ...(draft.siteA.autoWeatherEnabled !== engineeringConfigureBaseline.siteA.autoWeatherEnabled ? { autoWeatherEnabled: draft.siteA.autoWeatherEnabled } : {}),
       ...(draft.siteB.autoWeatherEnabled !== engineeringConfigureBaseline.siteB.autoWeatherEnabled ? { autoWeatherEnabledB: draft.siteB.autoWeatherEnabled } : {}),
     });
 
-    if (draft.technology === 'GEO' && draft.selectionPolicy === 'auto') {
+    if (draft.selectionPolicy === 'auto') {
       setSelectedUplinkKey(null);
       setSelectedDownlinkKey(null);
       setSelectedUplinkKeyB(null);
       setSelectedDownlinkKeyB(null);
-    } else if (draft.technology === 'GEO' && selectedSelection.type === 'target') {
+    } else if (selectedSelection.type === 'target') {
       // A draft key that is not (yet) in the current pool means "no opinion", not
       // "clear the route": apply runs on every edit, so a transient pool mismatch
       // must leave the existing selection standing rather than wiping all four legs.
@@ -4808,6 +4794,7 @@ const App: React.FC = () => {
     eligibleCandidateCoverages,
     engineeringConfigureBaseline,
     handleActiveMeshTabChange,
+    handleClearSiteA,
     handleClearSiteB,
     handleDestinationLocationSelect,
     handleGeoTerminalTypeBChange,
@@ -5510,7 +5497,13 @@ const App: React.FC = () => {
                   </div>
                 </div>
 
-              <div className={`flex shrink-0 flex-col items-stretch ${(headerRouteStatus?.items.length ?? 0) > 0 ? '' : 'justify-center'} ${useCompactDesktopHeader ? 'gap-1.5' : 'gap-2'}`}>
+              <div className={`flex shrink-0 flex-col items-stretch ${
+                (headerRouteStatus?.items.length ?? 0) > 0
+                  ? useCompactDesktopHeader
+                    ? 'justify-between pb-[5px]'
+                    : 'justify-between pb-[7px]'
+                  : 'justify-center'
+              } ${useCompactDesktopHeader ? 'gap-1.5' : 'gap-2'}`}>
                 <div className={`flex items-center justify-end ${useCompactDesktopHeader ? 'gap-1.5' : 'gap-2'}`}>
                   {renderUiModeSwitch(useCompactDesktopHeader)}
                   {renderCustomerDecisionLauncher(useCompactDesktopHeader)}

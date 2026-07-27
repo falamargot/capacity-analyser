@@ -119,8 +119,8 @@ describe('HeaderScenarioBuilder engineering Configure workflow', () => {
     expect(markup).toContain('Dakar');
     expect(markup).toContain('Weather condition');
     expect(markup).toContain('RF</span>');
-    // M5: instant apply — no staged-changes machinery remains in the header.
-    expect(markup).toContain('Edits apply immediately');
+    // Instant apply — no staged-changes machinery or duplicate review remains in the header.
+    expect(markup).not.toContain('Review ·');
     expect(markup).not.toContain('No pending changes');
     expect(markup).not.toContain('Discard');
     expect(markup).not.toContain('Apply engineering changes');
@@ -144,7 +144,12 @@ describe('HeaderScenarioBuilder engineering Configure workflow', () => {
         siteB={site('Destination', 'Dakar')}
         onSwap={() => undefined}
         engineeringConfigure={{
-          baseline: { ...configureBaseline, geoLinkMode: 'STAR_FORWARD', selectionPolicy: 'manual' },
+          baseline: {
+            ...configureBaseline,
+            geoLinkMode: 'STAR_FORWARD',
+            selectionPolicy: 'manual',
+            siteB: { ...configureBaseline.siteB, location: null },
+          },
           truths: {},
           candidates: { siteA: [downlink], siteB: [] },
           onApply: () => undefined,
@@ -225,41 +230,53 @@ describe('HeaderScenarioBuilder single-site destination handling', () => {
       />,
     );
 
-  const SINGLE_SITE_PLACEHOLDER = 'Not required for Single Site';
-  const SWAP_LABEL = 'Swap origin and destination';
+  const SWAP_LABEL = 'Swap Site 1 and Site 2';
 
-  it('hides the destination site and swap control for GEO Star (single site)', () => {
-    const markup = renderConfigure({ ...configureBaseline, technology: 'GEO', geoLinkMode: 'STAR_FORWARD' });
+  it('keeps Site 2 visible and empty for a one-site GEO scenario', () => {
+    const markup = renderConfigure({
+      ...configureBaseline,
+      technology: 'GEO',
+      geoLinkMode: 'STAR_FORWARD',
+      leoTopologyMode: 'SINGLE_SITE',
+      siteB: { ...configureBaseline.siteB, location: null },
+    });
 
-    expect(markup).toContain(SINGLE_SITE_PLACEHOLDER);
+    expect(markup).toContain('Site 2');
+    expect(markup).toContain('Add a second site');
     expect(markup).not.toContain('Dakar');
-    expect(markup).not.toContain(SWAP_LABEL);
-    // Origin remains untouched.
+    expect(markup).toContain(SWAP_LABEL);
+    expect(markup).toContain('disabled=""');
+    expect(markup).toContain('Clear Origin location');
     expect(markup).toContain('Paris');
   });
 
-  it('hides the destination site and swap control for LEO Single Site', () => {
-    const markup = renderConfigure({ ...configureBaseline, technology: 'LEO', leoTopologyMode: 'SINGLE_SITE' });
+  it('shows both service cards while LEO owns the active result focus', () => {
+    const markup = renderConfigure({
+      ...configureBaseline,
+      technology: 'LEO',
+      geoLinkMode: 'STAR_RETURN',
+      leoTopologyMode: 'SINGLE_SITE',
+      siteB: { ...configureBaseline.siteB, location: null },
+    });
 
-    expect(markup).toContain(SINGLE_SITE_PLACEHOLDER);
-    expect(markup).not.toContain('Dakar');
-    expect(markup).not.toContain(SWAP_LABEL);
-    expect(markup).toContain('Paris');
+    expect(markup).toContain('GEO service');
+    expect(markup).toContain('LEO service');
+    expect(markup).toContain('LEO service');
+    expect(markup).toContain('Active');
+    expect(markup).toContain('Single Site');
+    expect(markup).toContain('Return');
   });
 
-  it('keeps the destination site and swap control for GEO Mesh (site-to-site)', () => {
+  it('restricts two-site GEO and LEO topologies from the populated Site 2', () => {
     const markup = renderConfigure({ ...configureBaseline, technology: 'GEO', geoLinkMode: 'MESH' });
 
-    expect(markup).not.toContain(SINGLE_SITE_PLACEHOLDER);
     expect(markup).toContain('Dakar');
     expect(markup).toContain(SWAP_LABEL);
-  });
-
-  it('keeps the destination site and swap control for LEO Site-to-Site', () => {
-    const markup = renderConfigure({ ...configureBaseline, technology: 'LEO', leoTopologyMode: 'SITE_TO_SITE' });
-
-    expect(markup).not.toContain(SINGLE_SITE_PLACEHOLDER);
-    expect(markup).toContain('Dakar');
-    expect(markup).toContain(SWAP_LABEL);
+    expect(markup).toContain('Mesh');
+    expect(markup).toContain('Point-to-Point');
+    expect(markup).toContain('Site-to-Site');
+    expect(markup).not.toContain('Clear Origin location');
+    expect(markup).toContain('Clear Destination location');
+    expect(markup).toContain('Traffic direction for GEO and LEO');
   });
 });

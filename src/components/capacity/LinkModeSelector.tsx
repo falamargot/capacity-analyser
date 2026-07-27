@@ -7,6 +7,7 @@ interface LinkModeSelectorProps {
   linkMode: LinkMode;
   onChange: (mode: LinkMode) => void;
   disabled?: boolean;
+  allowedModes?: readonly LinkMode[];
 }
 
 const LINK_MODE_SCHEMA: Record<LinkMode, string> = {
@@ -66,6 +67,7 @@ const LinkModeSelector = memo<LinkModeSelectorProps>(({
   linkMode,
   onChange,
   disabled = false,
+  allowedModes,
 }) => {
   return (
     <div className="space-y-2.5" role="radiogroup" aria-label="GEO topology" onKeyDown={handleRadioGroupKeyDown}>
@@ -79,7 +81,7 @@ const LinkModeSelector = memo<LinkModeSelectorProps>(({
               key={mode}
               mode={mode}
               isActive={linkMode === mode}
-              disabled={disabled}
+              disabled={disabled || (allowedModes ? !allowedModes.includes(mode) : false)}
               onClick={() => onChange(mode)}
             />
           ))}
@@ -95,7 +97,7 @@ const LinkModeSelector = memo<LinkModeSelectorProps>(({
               key={mode}
               mode={mode}
               isActive={linkMode === mode}
-              disabled={disabled}
+              disabled={disabled || (allowedModes ? !allowedModes.includes(mode) : false)}
               onClick={() => onChange(mode)}
             />
           ))}
