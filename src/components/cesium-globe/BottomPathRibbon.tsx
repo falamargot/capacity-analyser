@@ -1,5 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { X, ChevronDown, ChevronUp } from 'lucide-react';
+import {
+  calculateOverlayRibbonPlacement,
+  type OverlayRibbonPlacement,
+} from './bottomPathRibbonPlacement';
 
 export interface PathRibbonNode {
   label: string;
@@ -113,15 +117,76 @@ const BottomPathRibbon: React.FC<BottomPathRibbonProps> = ({
 }) => {
   const [dismissed, setDismissed] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const isInline = variant === 'inline';
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+  const [overlayPlacement, setOverlayPlacement] = useState<OverlayRibbonPlacement | null>(null);
+
+  useEffect(() => {
+    if (isInline) return;
+
+    const ribbon = overlayRef.current;
+    const container = ribbon?.offsetParent as HTMLElement | null;
+    if (!ribbon || !container) return;
+
+    const updatePlacement = () => {
+      const containerRect = container.getBoundingClientRect();
+      const legend = container.querySelector<HTMLElement>('[data-geo-ground-site-legend]');
+      const legendRight = legend
+        ? legend.getBoundingClientRect().right - containerRect.left
+        : null;
+      const nextPlacement = calculateOverlayRibbonPlacement(
+        container.clientWidth,
+        legendRight,
+      );
+
+      setOverlayPlacement((currentPlacement) => {
+        if (
+          currentPlacement?.leftPx === nextPlacement?.leftPx
+          && currentPlacement?.widthPx === nextPlacement?.widthPx
+        ) {
+          return currentPlacement;
+        }
+        return nextPlacement;
+      });
+    };
+
+    updatePlacement();
+
+    const resizeObserver = typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(updatePlacement);
+    resizeObserver?.observe(container);
+
+    const mutationObserver = typeof MutationObserver === 'undefined'
+      ? null
+      : new MutationObserver(updatePlacement);
+    mutationObserver?.observe(container, { childList: true, subtree: true });
+    window.addEventListener('resize', updatePlacement);
+
+    return () => {
+      resizeObserver?.disconnect();
+      mutationObserver?.disconnect();
+      window.removeEventListener('resize', updatePlacement);
+    };
+  }, [isInline]);
 
   if (dismissed) return null;
 
-  const isInline = variant === 'inline';
-
   return (
     <div
-      className={isInline ? 'w-full' : 'absolute bottom-8 left-4 z-30 pointer-events-auto'}
-      style={isInline ? undefined : { maxWidth: '860px', width: 'calc(100% - 2rem)' }}
+      ref={overlayRef}
+      className={isInline
+        ? 'w-full'
+        : `absolute bottom-8 z-30 pointer-events-auto ${overlayPlacement ? '' : 'left-1/2 -translate-x-1/2'}`}
+      style={isInline
+        ? undefined
+        : overlayPlacement
+          ? {
+              left: `${overlayPlacement.leftPx}px`,
+              maxWidth: `${overlayPlacement.widthPx}px`,
+              width: `${overlayPlacement.widthPx}px`,
+            }
+          : { maxWidth: '860px', width: 'calc(100% - 2rem)' }}
     >
       <div className={isInline
         ? 'overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950/70'

@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import GeoS2SPathStrip from '../GeoS2SPathStrip';
 import LeoS2SPathStrip from '../LeoS2SPathStrip';
+import { calculateOverlayRibbonPlacement } from '../bottomPathRibbonPlacement';
 import type { GeoSiteToSitePathSummary, MeshLinkMetrics } from '../../../types/analysis';
 import type { LeoSiteToSiteResult } from '../../../utils/leoSiteToSiteModel';
 
@@ -66,12 +67,12 @@ const leoResult = {
 } as LeoSiteToSiteResult;
 
 const outerRibbonStyle = (html: string): string => {
-  const match = html.match(/<div class="absolute bottom-8[^"]*" style="([^"]+)"/);
+  const match = html.match(/<div class="[^"]*absolute bottom-8[^"]*" style="([^"]+)"/);
   return match?.[1] ?? '';
 };
 
 const outerRibbonClass = (html: string): string => {
-  const match = html.match(/<div class="([^"]*pointer-events-auto)" style=/);
+  const match = html.match(/<div class="([^"]*absolute bottom-8[^"]*)" style=/);
   return match?.[1] ?? '';
 };
 
@@ -159,16 +160,34 @@ describe('bottom path ribbons', () => {
     expect(outerRibbonStyle(leoHtml)).toBe(outerRibbonStyle(geoHtml));
   });
 
-  it('anchors both overlay paths to the bottom-left of the globe', () => {
+  it('centers both overlay paths by default', () => {
     const geoHtml = renderToStaticMarkup(
       <GeoS2SPathStrip mesh={geoMesh} path={geoPath} activeDirection="A_TO_B" linkMode="MESH" />
     );
     const leoHtml = renderToStaticMarkup(<LeoS2SPathStrip result={leoResult} activeDirection="A_TO_B" />);
 
     expect(outerRibbonClass(geoHtml)).toContain('bottom-8');
-    expect(outerRibbonClass(geoHtml)).toContain('left-4');
-    expect(outerRibbonClass(geoHtml)).not.toContain('left-1/2');
-    expect(outerRibbonClass(geoHtml)).not.toContain('-translate-x-1/2');
+    expect(outerRibbonClass(geoHtml)).toContain('left-1/2');
+    expect(outerRibbonClass(geoHtml)).toContain('-translate-x-1/2');
     expect(outerRibbonClass(leoHtml)).toBe(outerRibbonClass(geoHtml));
+  });
+
+  it('keeps a centered path when the GEO legend does not overlap it', () => {
+    expect(calculateOverlayRibbonPlacement(1600, 258)).toBeNull();
+    expect(calculateOverlayRibbonPlacement(1600, null)).toBeNull();
+  });
+
+  it('shifts the path right of the GEO legend only when needed', () => {
+    expect(calculateOverlayRibbonPlacement(1366, 258)).toEqual({
+      leftPx: 270,
+      widthPx: 860,
+    });
+  });
+
+  it('also narrows the shifted path when the remaining space is limited', () => {
+    expect(calculateOverlayRibbonPlacement(1024, 258)).toEqual({
+      leftPx: 270,
+      widthPx: 738,
+    });
   });
 });

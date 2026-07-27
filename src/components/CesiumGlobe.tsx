@@ -3292,22 +3292,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     isMobileViewport={isMobileViewport}
                 />
             )}
-            {/* Interaction hint — shown only when MESH/P2P mode is active */}
-            {!commercialMode && (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT') && (
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-none z-10">
-                    {!pointB ? (
-                        <div className="flex items-center gap-2 rounded-full bg-black/60 backdrop-blur-sm px-4 py-1.5 text-white text-xs shadow-lg">
-                            <span className="inline-block h-2 w-2 rounded-full bg-amber-400 shrink-0 animate-pulse" />
-                            Hold <kbd className="mx-0.5 rounded bg-white/20 px-1 font-mono text-[10px]">Shift</kbd> + click to place <strong>Site B</strong>
-                        </div>
-                    ) : (
-                        <div className="flex items-center gap-2 rounded-full bg-black/60 backdrop-blur-sm px-4 py-1.5 text-white text-xs shadow-lg">
-                            <span className="inline-block h-2 w-2 rounded-full bg-green-400 shrink-0" />
-                            Click the globe (no Shift) to move <strong>Site A</strong>
-                        </div>
-                    )}
-                </div>
-            )}
         </div>
     );
 };
