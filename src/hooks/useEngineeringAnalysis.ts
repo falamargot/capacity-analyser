@@ -1498,7 +1498,15 @@ export function useEngineeringAnalysis({
     realTimeData.coveredSatellites.length,
   ]);
 
-  return {
+  // PERF-CTX: the analysis object is published through EngineeringAnalysisContext
+  // and is also read field-by-field across App's render. Returning a fresh object
+  // literal made the context value change identity on EVERY App render — including
+  // renders driven by hover, camera motion and the 1 Hz satellite/evidence ticks —
+  // so every consumer re-rendered even when no engineering field had actually
+  // changed. Every field below is already individually memoized, so memoizing the
+  // envelope is purely an identity fix: it changes nothing about what is computed
+  // or what any consumer reads, it only stops the needless propagation.
+  return useMemo<EngineeringAnalysis>(() => ({
     selectedLeoTerminalProfile,
     selectedLeoTerminalProfileB,
     calculateGEOPerformance,
@@ -1538,5 +1546,45 @@ export function useEngineeringAnalysis({
     exportButtonPayload,
     realTimeData,
     mobileMetrics,
-  };
+  }), [
+    selectedLeoTerminalProfile,
+    selectedLeoTerminalProfileB,
+    calculateGEOPerformance,
+    resolvedLEOConnectivity,
+    leoGeometry,
+    regulatoryResult,
+    beamLoadResult,
+    serviceLayerResult,
+    leoServiceViewModel,
+    leoPerformance,
+    hasCurrentLEORF,
+    leoSiteToSiteResult,
+    resolvedGEOConnectivity,
+    geoGeometry,
+    trafficGatewaySelection,
+    dualSegmentResult,
+    uplinkAtB,
+    downlinkAtB,
+    validSatelliteIds,
+    selectedSNP,
+    nearestLocation,
+    pointBNearestLocation,
+    detailHeaderRouteSummary,
+    mobileLeoMetrics,
+    meshMetrics,
+    geoSiteToSitePath,
+    geoPerformance,
+    geoEffectivePerformance,
+    engineeringAnalysisViewModels,
+    resolvedGeoCoverageKeys,
+    engineeringConfigureCandidates,
+    engineeringTruths,
+    canonicalRouteMetrics,
+    activeEngineeringTruth,
+    leoPdfDetails,
+    geoPdfDetails,
+    exportButtonPayload,
+    realTimeData,
+    mobileMetrics,
+  ]);
 }

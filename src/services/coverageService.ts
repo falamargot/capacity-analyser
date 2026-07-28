@@ -245,19 +245,82 @@ export const loadSatelliteCoverage = async (satelliteId: string, satelliteName: 
   }
 }
 
-const _meshIndexCache = new Map<string, Promise<Map<string, PrebuiltCoverageMesh>>>();
+// ─── Prebuilt mesh index cache (byte-budgeted LRU) ────────────────────────────
+//
+// Each cached entry holds Float64Array/Uint32Array VIEWS created over the
+// satellite's whole `.mesh.bin` ArrayBuffer (see
+// parsePrebuiltCoverageMeshBinaryBundle). A typed-array view keeps its backing
+// buffer alive, so ONE cached satellite retains its ENTIRE mesh file — 0.19 MB
+// to 14.28 MB depending on the satellite, 109 MB across the 31 satellites that
+// ship a prebuilt mesh.
+//
+// This cache was previously an unbounded Map with no eviction, so a session
+// that inspected many GEO satellites grew monotonically towards that 109 MB and
+// never gave it back. Entry COUNT is a poor budget here (sizes vary ~75x), so
+// the budget is expressed in bytes and eviction is least-recently-used.
+//
+// Evicting is always safe: CoverageLayer holds its own reference to the one
+// mesh index it is currently rendering, so an evicted entry stays alive for as
+// long as it is on screen and is simply re-fetched (from the HTTP cache) if it
+// is needed again later.
+const MESH_CACHE_BUDGET_BYTES = 48 * 1024 * 1024;
+
+interface MeshCacheEntry {
+  promise: Promise<Map<string, PrebuiltCoverageMesh>>;
+  /** Retained bytes of the backing ArrayBuffer; 0 until the fetch resolves. */
+  bytes: number;
+}
+
+const _meshIndexCache = new Map<string, MeshCacheEntry>();
+
+/** Total bytes currently retained by the cache. */
+const meshCacheBytes = (): number => {
+  let total = 0;
+  for (const entry of _meshIndexCache.values()) total += entry.bytes;
+  return total;
+};
+
+/**
+ * Drop least-recently-used entries until the retained byte total fits the
+ * budget. `keepId` is never evicted — it is the entry the caller just asked
+ * for, and evicting it would guarantee a re-fetch on the very next call.
+ */
+const evictMeshCacheToBudget = (keepId: string): void => {
+  if (meshCacheBytes() <= MESH_CACHE_BUDGET_BYTES) return;
+  // Map iterates in insertion order, and `loadSatelliteCoverageMeshIndex`
+  // re-inserts on every hit, so the first key is the least recently used.
+  for (const key of Array.from(_meshIndexCache.keys())) {
+    if (meshCacheBytes() <= MESH_CACHE_BUDGET_BYTES) return;
+    if (key === keepId) continue;
+    _meshIndexCache.delete(key);
+  }
+};
 
 export const loadSatelliteCoverageMeshIndex = (satelliteId: string): Promise<Map<string, PrebuiltCoverageMesh>> => {
   const cached = _meshIndexCache.get(satelliteId);
-  if (cached) return cached;
+  if (cached) {
+    // Refresh recency: re-inserting moves this key to the end of the iteration
+    // order, so it is evicted last.
+    _meshIndexCache.delete(satelliteId);
+    _meshIndexCache.set(satelliteId, cached);
+    return cached.promise;
+  }
 
-  const promise = (async () => {
+  const entry: MeshCacheEntry = { promise: null as never, bytes: 0 };
+
+  entry.promise = (async () => {
     try {
       const manifest = await fetchCoverageJson(`/coverage-prebuilt/${satelliteId}.manifest.json`);
       if (manifest && isPrebuiltCoverageManifestV5Format(manifest)) {
         const meshBuffer = await fetchCoverageArrayBuffer(`/coverage-prebuilt/${manifest.meshFile}`);
         if (meshBuffer) {
-          return parsePrebuiltCoverageMeshBinaryBundle(manifest, meshBuffer);
+          const index = parsePrebuiltCoverageMeshBinaryBundle(manifest, meshBuffer);
+          // Account for the retained buffer, then trim older satellites.
+          if (_meshIndexCache.get(satelliteId) === entry) {
+            entry.bytes = meshBuffer.byteLength;
+            evictMeshCacheToBudget(satelliteId);
+          }
+          return index;
         }
       }
     } catch {
@@ -265,8 +328,24 @@ export const loadSatelliteCoverageMeshIndex = (satelliteId: string): Promise<Map
     return new Map<string, PrebuiltCoverageMesh>();
   })();
 
-  _meshIndexCache.set(satelliteId, promise);
-  return promise;
+  _meshIndexCache.set(satelliteId, entry);
+  return entry.promise;
+};
+
+/** Test/diagnostic hook: current cache occupancy. */
+export const getCoverageMeshCacheStats = (): {
+  entries: number;
+  retainedBytes: number;
+  budgetBytes: number;
+} => ({
+  entries: _meshIndexCache.size,
+  retainedBytes: meshCacheBytes(),
+  budgetBytes: MESH_CACHE_BUDGET_BYTES,
+});
+
+/** Test/diagnostic hook: drop every cached mesh index. */
+export const clearCoverageMeshCache = (): void => {
+  _meshIndexCache.clear();
 };
 
 export const getCoverageColor = (
