@@ -5,6 +5,7 @@ import type { SatelliteData } from '../types/satellites';
 import { useSimulation } from '../contexts/SimulationContext';
 import { BACKHAUL_RADIUS_KM } from '../utils/leoFootprint';
 import { SectionTooltip } from './SectionTooltip';
+import { formatNumber } from '../utils/formatters';
 
 interface SNPDetailsProps {
   snp: SNPData;
@@ -62,7 +63,7 @@ const SNPDetails = memo<SNPDetailsProps>(({ snp, connectedSatellites, onSatellit
             <div className="space-y-1 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-500 dark:text-gray-400">Coverage radius</span>
-                <span className="font-mono font-medium text-gray-800 dark:text-gray-200">{BACKHAUL_RADIUS_KM.toLocaleString()} km</span>
+                <span className="font-mono font-medium text-gray-800 dark:text-gray-200">{formatNumber(BACKHAUL_RADIUS_KM)} km</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500 dark:text-gray-400">Elevation mask</span>

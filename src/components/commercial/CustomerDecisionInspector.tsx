@@ -12,6 +12,7 @@ import {
   CommercialRecommendationEvidence,
 } from './CommercialObjectiveDecision';
 import { dataNatureLabel } from '../../utils/dataProvenance';
+import { formatNumber } from '../../utils/formatters';
 
 type InspectorTab = 'priority' | 'recommendation' | 'evidence';
 
@@ -40,7 +41,7 @@ interface CustomerDecisionInspectorProps {
 
 function rawValue(value: number, unit: string | undefined): string {
   const digits = Math.abs(value) >= 100 ? 0 : 2;
-  return `${value.toLocaleString(undefined, { maximumFractionDigits: digits })}${unit ? ` ${unit}` : ''}`;
+  return `${formatNumber(value, { maximumFractionDigits: digits })}${unit ? ` ${unit}` : ''}`;
 }
 
 export function EngineeringScoringBreakdown({ viewModel }: { viewModel: CommercialScenarioViewModel }) {

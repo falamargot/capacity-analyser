@@ -300,16 +300,28 @@ const GlobeIntelligenceRail: React.FC<GlobeIntelligenceRailProps> = ({
         ? 'left-full ml-2'
         : 'right-full mr-2';
     const cameraControls = (
-        <div className={`${railSurface} flex w-12 flex-col items-center gap-0.5 p-1.5`}>
-            <CameraButton icon={<Plus className="h-4 w-4" />} onClick={handleZoomIn} title="Zoom in (+)" />
-            <CameraButton icon={<RotateCcw className="h-4 w-4" />} onClick={handleReset} title="Reset view (0)" active />
-            <CameraButton icon={<Minus className="h-4 w-4" />} onClick={handleZoomOut} title="Zoom out (-)" />
-            <CameraButton
-                icon={isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-                onClick={onToggleFullscreen}
-                title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-                active={isFullscreen}
-            />
+        <div className="relative">
+            {showExtendedControls && !isMobile && (
+                <div className={`absolute right-[calc(100%+0.5rem)] top-0 ${railSurface} flex w-12 flex-col items-center p-1.5`}>
+                    <CameraButton
+                        icon={<MoreHorizontal className="h-4 w-4" />}
+                        onClick={() => setIsOverflowOpen((v) => !v)}
+                        title="Display preferences"
+                        active={isOverflowOpen}
+                    />
+                </div>
+            )}
+            <div className={`${railSurface} flex w-12 flex-col items-center gap-0.5 p-1.5`}>
+                <CameraButton icon={<Plus className="h-4 w-4" />} onClick={handleZoomIn} title="Zoom in (+)" />
+                <CameraButton icon={<RotateCcw className="h-4 w-4" />} onClick={handleReset} title="Reset view (0)" active />
+                <CameraButton icon={<Minus className="h-4 w-4" />} onClick={handleZoomOut} title="Zoom out (-)" />
+                <CameraButton
+                    icon={isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                    onClick={onToggleFullscreen}
+                    title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                    active={isFullscreen}
+                />
+            </div>
         </div>
     );
 
@@ -504,6 +516,7 @@ const GlobeIntelligenceRail: React.FC<GlobeIntelligenceRailProps> = ({
         <div
             className={`absolute ${railSideClass} ${railTopClass} ${railZClass} flex flex-col gap-2`}
             style={railStyle}
+            ref={overflowRef}
         >
             {/* Camera controls */}
             {cameraControls}
@@ -516,16 +529,7 @@ const GlobeIntelligenceRail: React.FC<GlobeIntelligenceRailProps> = ({
 
             {/* Category B — display preferences behind ⋯ */}
             {showExtendedControls && !isMobile && (
-                <div className="relative" ref={overflowRef}>
-                    <div className={`${railSurface} flex w-12 flex-col items-center p-1.5`}>
-                        <CameraButton
-                            icon={<MoreHorizontal className="h-4 w-4" />}
-                            onClick={() => setIsOverflowOpen((v) => !v)}
-                            title="Display preferences"
-                            active={isOverflowOpen}
-                        />
-                    </div>
-
+                <div className="absolute right-0 top-0 h-0 w-0">
                     {isOverflowOpen && (
                         <div
                             className={`absolute ${popoverSideClass} top-0 z-[1310] w-[272px] max-w-[calc(100vw-5rem)] overflow-hidden rounded-[20px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] p-2.5 shadow-[0_24px_56px_-28px_rgba(15,23,42,0.65)] ring-1 ring-slate-200/70 backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.96))] dark:ring-slate-700/80`}

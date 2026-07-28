@@ -79,6 +79,7 @@ import {
   buildLeoContentionEvidence,
   buildOperationalEvidence,
 } from './commercialOperationalEvidence';
+import { formatNumber } from '../../utils/formatters';
 import type {
   CommercialObjective,
   CommercialPrimaryTechnology,
@@ -858,7 +859,7 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
       availabilityContext: formatLinkAvailabilityContext(availabilityContext),
       assumptionsSummary,
       backboneDistance: isDisplayLeo && leoRoutePath?.backboneDistanceKm
-        ? `${Math.round(leoRoutePath.backboneDistanceKm).toLocaleString()} km`
+        ? `${formatNumber(Math.round(leoRoutePath.backboneDistanceKm))} km`
         : '--',
       logicalPop: isDisplayLeo ? (leoRoutePath?.logicalPop?.name ?? '--') : '--',
       snpA: isDisplayLeo ? (leoRoutePath?.selectedSnpA?.name ?? leoEvidence?.selectedSnpA?.name ?? input.selectedSnpName ?? '--') : '--',

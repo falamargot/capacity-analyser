@@ -27,6 +27,7 @@ import type { SNPConnectedSatellite } from '../../services/coverageService';
 import { getMoonSnapshot, MOON_MEAN_RADIUS_KM } from '../../utils/moonInfo';
 import { JulianDate } from 'cesium';
 import { selectActiveEngineeringTruth, type EngineeringTruthSet } from '../../utils/engineeringAnalysisViewModel';
+import { formatNumber } from '../../utils/formatters';
 
 interface MobileSelectedPoint {
     lat: number;
@@ -918,7 +919,7 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                 {
                     key: 'sat-capacity',
                     label: 'Capacity',
-                    value: `${selectedSatellite.capacity.maxThroughput.toLocaleString()} Gbps`,
+                    value: `${formatNumber(selectedSatellite.capacity.maxThroughput)} Gbps`,
                     hint: selectedSatellite.type === 'ONEWEB'
                         ? `Beam est. ${selectedSatellite.capacity.simulatedEffectiveBeamCapacityMbps ?? '--'} Mbps`
                         : `Availability ${(selectedSatellite.capacity.availability * 100).toFixed(2)}%`,
@@ -933,8 +934,8 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                 {
                     key: 'moon-distance',
                     label: 'Earth Distance',
-                    value: `${Math.round(moonSnapshot.distanceFromEarthCenterKm).toLocaleString()} km`,
-                    hint: `${Math.round(moonSnapshot.distanceFromEarthSurfaceKm).toLocaleString()} km surface-to-surface`,
+                    value: `${formatNumber(Math.round(moonSnapshot.distanceFromEarthCenterKm))} km`,
+                    hint: `${formatNumber(Math.round(moonSnapshot.distanceFromEarthSurfaceKm))} km surface-to-surface`,
                     accentClassName: 'text-slate-700 dark:text-slate-200',
                 },
                 {
@@ -947,7 +948,7 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                 {
                     key: 'moon-radius',
                     label: 'Radius',
-                    value: `${MOON_MEAN_RADIUS_KM.toLocaleString(undefined, { maximumFractionDigits: 1 })} km`,
+                    value: `${formatNumber(MOON_MEAN_RADIUS_KM, { maximumFractionDigits: 1 })} km`,
                     hint: moonSnapshot.subEarthLatitudeDeg != null && moonSnapshot.subEarthLongitudeDeg != null
                         ? formatCoordinates({ lat: moonSnapshot.subEarthLatitudeDeg, lng: moonSnapshot.subEarthLongitudeDeg })
                         : 'Sub-Earth point unavailable',
@@ -982,7 +983,7 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                 {
                     key: 'snp-backhaul',
                     label: 'Backhaul',
-                    value: `${BACKHAUL_RADIUS_KM.toLocaleString()} km`,
+                    value: `${formatNumber(BACKHAUL_RADIUS_KM)} km`,
                     hint: `Latency range ${latencyRange}`,
                 },
             ];

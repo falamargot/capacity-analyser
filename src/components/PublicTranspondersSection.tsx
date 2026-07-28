@@ -11,6 +11,7 @@ import type { FrequencyBand, PublicFrequencyConfidence, PublicPolarization, Publ
 import type { Coverage, SatelliteData } from '../types/satellites';
 import { getCoverageBeamId, getCoverageDisplayName, getCoverageGroupId } from '../utils/geoCoverageSelection';
 import { SectionTooltip } from './SectionTooltip';
+import { formatNumber } from '../utils/formatters';
 
 interface PublicTranspondersSectionProps {
   satellite: SatelliteData;
@@ -40,7 +41,7 @@ const formatMHz = (value?: number): string => {
 };
 
 const formatSymbolRate = (value?: number): string | null => (
-  value === undefined ? null : `SR ${value.toLocaleString()}`
+  value === undefined ? null : `SR ${formatNumber(value)}`
 );
 
 const getTransponderDisplayTitle = (item: PublicTransponder): string => {

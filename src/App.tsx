@@ -13,6 +13,7 @@ import SidebarHeroCard from './components/layout/SidebarHeroCard';
 import { MemoryMonitorHud } from './components/MemoryMonitorHud';
 import { CapacityAnalyzerSignature } from './components/brand/CapacityAnalyzerSignature';
 import { setMemoryMonitorViewerGetter } from './utils/memoryMonitor';
+import { attachRuntimeProfilerToViewer } from './utils/runtimeProfiler';
 import ExportButton from './components/ExportButton';
 import SimulationSettings from './components/layout/SimulationSettings';
 import HeaderScenarioBuilder, { HeaderRouteStatusPanel, type HeaderRouteStatus } from './components/header/HeaderScenarioBuilder';
@@ -887,6 +888,7 @@ const App: React.FC = () => {
   const engineeringFocusCameraKeyRef = useRef<string | null>(null);
   const lastManualCameraInputRef = useRef(0);
   const detachManualCameraListenersRef = useRef<(() => void) | null>(null);
+  const detachRuntimeProfilerRef = useRef<(() => void) | null>(null);
   // Stable ref — populated by useAirTrafficInterpolation (phase 2: map ref, no setState).
   // The selectedAircraft position interval reads from this without being in its deps.
   const panelFallback = <div className="p-4 text-sm text-slate-500 dark:text-slate-400">Loading analysis...</div>;
@@ -931,6 +933,10 @@ const App: React.FC = () => {
   const handleCameraReady = useCallback((viewer: CesiumViewerType) => {
     viewerRef.current = viewer;
     setMemoryMonitorViewerGetter(() => viewerRef.current);
+    // Dev-only frame counter. Detached alongside the camera listeners below so
+    // it cannot outlive the viewer it is attached to.
+    detachRuntimeProfilerRef.current?.();
+    detachRuntimeProfilerRef.current = attachRuntimeProfilerToViewer(viewer);
     detachManualCameraListenersRef.current?.();
     const markManualCameraInput = () => {
       lastManualCameraInputRef.current = performance.now();
@@ -945,7 +951,10 @@ const App: React.FC = () => {
     };
   }, []);
 
-  useEffect(() => () => detachManualCameraListenersRef.current?.(), []);
+  useEffect(() => () => {
+    detachManualCameraListenersRef.current?.();
+    detachRuntimeProfilerRef.current?.();
+  }, []);
 
   // Store globe container reference when ready
   const handleGlobeContainerReady = useCallback((ref: React.RefObject<HTMLDivElement | null>) => {

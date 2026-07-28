@@ -38,6 +38,7 @@ import { resolveStarGatewayFeederCandidate } from './geoTopologySelection';
 import { getGeoModemProfile, type GeoModemId } from './geoModemCatalogue';
 import type { TerminalRFClassId, TerminalRFCustomParams } from './geoTerminalRFModel';
 import type { StarTrafficGatewaySelection } from './geoConnectivityModel';
+import { countEngineCalculation } from './runtimeProfiler';
 import {
   activeGeoServiceDirection,
   resolveGeoRouteDelivery,
@@ -202,6 +203,8 @@ function resolveFeeder(
  */
 export function resolveCanonicalGeoRoute(input: GeoCanonicalRouteInput): GeoCanonicalRoute | null {
   const { linkMode } = input;
+  // Dev-only counter feeding the runtime profiler HUD (see runtimeProfiler.ts).
+  countEngineCalculation(`geoCanonicalRoute:${linkMode}`);
   const modemA = getGeoModemProfile(input.geoModemIdA);
   const modemB = getGeoModemProfile(input.geoModemIdB);
   const activeDirection = activeGeoServiceDirection(linkMode, input.activeMeshTab);

@@ -301,7 +301,117 @@ Final gate state: **1,247 passed / 4 skipped (opt-in perf) / 2 failed** — the 
 
 ---
 
-## 10. Open Questions
+## 10. Lot 2 — Instrumentation and Determinism (delivered 2026-07-28)
+
+Lot 2's own gate is "measure PERF-1/PERF-2 in a real browser before changing the render loop." That measurement cannot be taken from a headless CLI, so **Lot 2 delivered the instrument rather than the render change** — plus the deterministic fixes that could be fully verified here.
+
+### Delivered
+
+| Item | Detail |
+|---|---|
+| **Runtime profiler** | `src/utils/runtimeProfiler.ts` — counts rendered frames, **idle frames** (rendered while camera still, no input, no reported mutation — the direct PERF-1 measurement), frame-interval percentiles, React commits and durations via `<Profiler>`, and named engineering-calculation counts. Reports `resolutionScale`, `devicePixelRatio` and the **squared** fragment-cost multiplier (PERF-2). Dev-only. |
+| **HUD** | `MemoryMonitorHud` (Ctrl+Shift+M) now shows fps, frame p95, idle-frame %, `requestRenderMode` state, fragment cost, commits/s, commit p95 and per-label engineering counts, with `reset` / `report` buttons. |
+| **Console API** | `__perfStats()`, `__perfReport()`, `__perfReset()`, `__perfMark(label)` |
+| **Engine counters** | `resolveCanonicalGeoRoute` and `buildActiveLeoRouteEvidence` now report to the profiler, making "engineering calculations per interaction" — a brief metric that was previously unmeasurable — directly observable. |
+| **TEST-2 fixed** | `formatNumber` in `formatters.ts` pins engineering figures to `en-US`. All **20** bare `toLocaleString()` call sites converted. |
+| **Readiness inventory** | [RequestRenderMode_Readiness_2026-07-28.md](RequestRenderMode_Readiness_2026-07-28.md) — the 144 `CallbackProperty` sites classified into 4 groups by required cadence, with a sequencing plan whose first three steps are provably zero-risk (`requestRender()` is a no-op while the mode is off). |
+
+### Gate results
+
+| Gate | Result |
+|---|---|
+| Tests | **1,266 passed / 4 skipped / 0 failed** (was 1,225 passed / 2 failed at audit start) |
+| Lint | `eslint .` — **0 errors, 0 warnings** |
+| TypeScript | **152 errors — identical to baseline**, verified by stashing |
+| Production build | Succeeds; **+0.45 kB raw / +0.22 kB gzip** — dev-only guards tree-shake as intended |
+
+**TEST-2 is closed:** the repository now has a fully green test suite for the first time in this audit.
+
+### Why the render loop was still not touched
+
+Respecting the gate this audit set. The `requestRenderMode` change depends on a number — the idle-frame percentage — that only a real browser can produce. The instrument to produce it now exists and takes about a minute to run (§2 of the readiness doc). If idle frames come back below 30 %, the premise is wrong and the plan should change rather than proceed.
+
+### A codemod caveat worth recording
+
+The 20-site locale conversion was scripted, and the script damaged two files: it inserted an import inside a multi-line `import type { … }` block in `commercialViewModel.ts`, and — more seriously — it rewrote a **pre-existing local helper also named `formatNumber`** in `MoonDetails.tsx` into infinite self-recursion. Both were caught by the test suite and fixed, and a follow-up sweep confirmed no other file had either defect. Recorded because it is a live argument for the CI pipeline this project still lacks (**R7**): a scripted edit of 14 files produced a stack-overflow bug that only the tests caught.
+
+---
+
+## 11. Lot 2b — First Real Browser Heap Data (2026-07-28)
+
+The first runtime evidence from the actual running app, supplied from the dev console. This is **measured, not inferred**, and it changed the picture.
+
+### The data
+
+```
+[mem] heap: 968/1026 MB (lim 4192)  timers: 4  listeners: 212
+      tab resume after 26s hidden — forcing immediate propagation
+[mem] heap: 610/714 MB              timers: 3  listeners: 212     ← post-GC floor
+[mem] heap: 671/769 MB              timers: 4  listeners: 213
+      tab resume after 12s hidden
+[mem] heap: 726/814 MB              timers: 4  listeners: 213
+[mem] heap: 874/922 MB              timers: 4  listeners: 213
+```
+
+| Observation | Value | Reading |
+|---|---|---|
+| Post-GC floor | **~610 MB** | Genuinely retained. Very high. |
+| Peak before GC | **~968 MB** | Sawtooth, ~24 % of the 4,192 MB limit |
+| Growth 726 → 874 | **+148 MB / 30 s ≈ 5 MB/s** | Severe allocation churn |
+| `timers` | 3–4, stable | **No timer leak** |
+| `listeners` | 212 → 213 | **No listener leak** — one net add across the window |
+
+Two important corrections to earlier assumptions come out of this:
+
+1. **Timers and listeners are not leaking.** The lifecycle-cleanup concerns that normally dominate a review like this are simply not the problem here. Good hygiene already exists.
+2. **There are two distinct problems, not one.** A ~610 MB *retained floor* and a ~2–5 MB/s *allocation churn* on top. They need different fixes, and sustained GC at that allocation rate is itself a significant CPU and heat source — which fits the original symptom independently of PERF-1.
+
+### MEM-2 — Coverage cache defeated by a position-dependent key on a position-independent value
+
+- **ID / Severity / Category:** MEM-2 / **High** / Allocation churn
+- **Evidence:** `public/celestrak.txt` contains 2,040 TLE lines = **680 satellites (651 ONEWEB)**. `calculateCoverages` keyed ONEWEB results on `lat/lng/alt` at 0.1° precision — a bucket a LEO satellite crosses every 1–2 s. But the ONEWEB branch emits two **metadata-only** `Coverage` objects with `coordinates: []` (real comb geometry is generated per frame by `CesiumGlobe` via `CallbackProperty`) and reads only `satellite.name`. **The value is entirely position-independent; the key was not.**
+- **Compounding defect:** the LRU was bounded at **200 entries against a 680-satellite working set**. Since a propagation tick touches every satellite in sequence, an entry was always evicted before it could be reused — so even a correct key would have missed.
+- **Runtime impact:** every propagation tick (1 Hz) produced 651 misses, 651 fresh `Coverage` object graphs (~11 objects each ≈ 7,000 objects), 651 evictions, and ~2,600 `toFixed` key strings — all to reproduce a value that never differed. The cache serviced **~0 % hits for the LEO population** while paying full cost.
+- **Exact code path:** `useSatelliteLoader.ts:215` → `coverageCalculator.ts:calculateCoverages` → cache key + `addToCache`.
+- **Fix:** ONEWEB keys on identity (`${id}_oneweb_static`); `MAX_COVERAGE_CACHE` raised 200 → 1024 to cover the constellation with headroom; hit/miss/eviction counters added so cache effectiveness is observable rather than assumed — the original undersizing went unnoticed precisely because nothing measured it.
+- **Validation:** `coverageCacheEfficiency.test.ts` — 5 tests. Over 10 ticks × 651 satellites (6,510 lookups) misses drop from 6,510 to **651**, evictions to **0**, and a moved satellite returns a reference-identical result. The LRU is separately proven still bounded.
+- **Safety:** verified by grep that nothing mutates `sat.coverages` or the feature objects — every consumer reads via `map`/`filter`/`forEach`. Sharing a cached reference is therefore safe, and it additionally stabilises identity for downstream memos.
+
+### Honest scope of this fix
+
+MEM-2 removes on the order of **0.5–1 MB/s** of the observed 2–5 MB/s churn (≈7,000 objects plus ≈2,600 strings per second). **It does not explain all of it, and it does not address the ~610 MB retained floor at all.**
+
+The prime remaining suspect for the balance is PERF-1: at 30 fps with 144 `CallbackProperty` instances, position and array callbacks are re-evaluated ~4,300 times per second, many allocating `Cartesian3` values and position arrays per call. That remains **unmeasured**, and the profiler report (§10) is what would confirm or refute it. The retained floor needs a heap snapshot with retainer paths — neither has been captured yet.
+
+---
+
+## 12. MEM-3 — Cesium graphics rebuilt on every propagation tick (heap snapshot, 2026-07-28)
+
+- **ID / Severity / Category:** MEM-3 / **Critical** / Rendering-state churn
+- **Evidence:** DevTools heap snapshot diff, "objects allocated between Snapshot 1 and 2", 521 MB → 842 MB (**+321 MB**):
+
+  | Constructor | Count | Retained |
+  |---|---:|---:|
+  | `(array)` | 1,871,849 | 322,840 kB (38 %) |
+  | `Map` | 1,238,276 | 200,989 kB (24 %) |
+  | `BillboardGraphics` | **63,240** | 196,199 kB (23 %) |
+  | `Event` | 412,541 | 188,077 kB (22 %) |
+  | `Set` | 423,005 | 165,468 kB (20 %) |
+  | `Entity` | 3,449 | 78,241 kB (9 %) |
+
+  `Map`/`Set`/`Event`/`(array)` are not independent: every Cesium `Property` owns a `definitionChanged` `Event`, and every `Event` owns listener `Map`/`Set`/arrays. The 1.2 M Maps are the downstream cost of the 63 K `BillboardGraphics`. `(array)` retaining 322 kB ≈ the entire 321 MB delta — **the whole growth is one object graph, and it is Cesium rendering state, not application data.**
+
+- **Exact code path:** `SatelliteLayer.tsx` — `<Entity billboard={{ … }} />` passed an **inline object literal**. `SatelliteEntity` is `React.memo` with the default shallow comparison, and its `sat` prop is a *fresh object every propagation tick* (`useSatelliteLoader.ts:213` `{ ...sat, position: newPosition }`). So all 651 moving LEO satellites re-render once per second, each minting a new `billboard` descriptor, which Resium applies as a changed prop and Cesium rebuilds into a new `BillboardGraphics` + one `Property` per field + one `Event` per `Property` + the collections each `Event` owns. Three `Color.fromCssColorString(...)` calls allocated per render on top.
+- **Arithmetic check:** 63,240 `BillboardGraphics` ÷ 680 satellites = **93.0** — an exact integer, i.e. ~93 rebuild passes over the whole constellation in the snapshot window.
+- **Why it slipped through:** the surrounding code is already optimised for exactly this problem — `positionCallback` and `scaleCallback` are deliberately created once and read position from refs, with comments explaining why. The `billboard` descriptor object was the one field that escaped that treatment.
+- **Fix:** `billboard` descriptor and `billboardColor` memoized; the three commercial `Color` constants hoisted to module scope. None of the four descriptor fields depends on position (`image` follows type, `scale` is the stable ref-reading `CallbackProperty`, `color` is memoized, `verticalOrigin` is constant), so a stable identity lets the 1 Hz tick move the satellite without rebuilding its graphics.
+- **Not yet proven:** that this removes the growth *in the browser*. It is an identity-only change verified by the full suite, lint and typecheck — **re-measurement with a fresh snapshot pair is required** before claiming the heap is fixed.
+- **Related, deliberately not changed:** `AircraftLayer.tsx:100` and `VesselLayer.tsx:222` have the identical inline-descriptor pattern at much lower volume (poll-driven, far fewer entities). Left in place so the effect of the satellite fix can be measured cleanly and attributed.
+- **Open:** the snapshot retains **3,449 new `Entity` objects** while `viewer.entities` grew by only **+351** — so ~3,100 entities are alive but detached from the viewer's collection. MEM-3 explains the *churn*; whether it also explains the *detached retention* needs the follow-up snapshot.
+
+---
+
+## 13. Open Questions
 
 1. What is the real idle heap and frame cost in a browser? Everything in Lot 2 depends on this.
 2. Is the 1 Hz LEO refresh a product requirement, or would 2–5 s be acceptable? This single answer changes the value of Lots 3 and 6 substantially.

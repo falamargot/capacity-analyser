@@ -5,6 +5,7 @@ import type {
   MeshLinkMetrics,
 } from '../../types/analysis';
 import BottomPathRibbon, { type PathRibbonItem } from './BottomPathRibbon';
+import { formatNumber } from '../../utils/formatters';
 
 type RouteDirection = 'A_TO_B' | 'B_TO_A';
 
@@ -17,7 +18,7 @@ interface GeoS2SPathStripProps {
 }
 
 const fmtKm = (km: number | null | undefined): string | undefined =>
-  km != null && Number.isFinite(km) && km > 0 ? `${Math.round(km).toLocaleString()} km` : undefined;
+  km != null && Number.isFinite(km) && km > 0 ? `${formatNumber(Math.round(km))} km` : undefined;
 
 const fmtMs = (ms: number | null | undefined): string | null =>
   ms != null && Number.isFinite(ms) && ms > 0 ? `${Math.round(ms)} ms` : null;

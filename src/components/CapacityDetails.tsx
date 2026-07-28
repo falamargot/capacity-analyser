@@ -19,6 +19,7 @@ import {
   GEOConnectivitySection,
 } from './capacity';
 import type { TerminalType, WeatherType } from './capacity';
+import { formatNumber } from '../utils/formatters';
 
 interface CapacityDetailsProps {
   satellites: SatelliteData[];
@@ -511,7 +512,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
               <div>
                 {realTimeData.leoCapacityIsTerminalPeak
                   ? `Est. terminal peak: ${(realTimeData.totalCapacity * 1000).toFixed(0)} Mbps (sim.) · `
-                  : `Nominal capacity: ${realTimeData.totalCapacity.toLocaleString()} Gbps · `}
+                  : `Nominal capacity: ${formatNumber(realTimeData.totalCapacity)} Gbps · `}
                 {realTimeData.coveredSatellites.length} {satelliteScope === 'ALL' ? 'satellites' : satelliteScope.toLowerCase()} in coverage
               </div>
               {analysisSource === 'aircraft' && aircraftCallsign && (

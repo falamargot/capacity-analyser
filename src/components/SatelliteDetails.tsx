@@ -27,6 +27,7 @@ import { SectionTooltip } from './SectionTooltip';
 import type { RegulatoryResult } from '../services/regulatoryService';
 import type { BeamLoadResult } from '../utils/capacityLayer';
 import { PublicTranspondersSection } from './PublicTranspondersSection';
+import { formatNumber } from '../utils/formatters';
 
 const formatLeoServiceZoneLabel = (elevationDeg: number | null): string => {
   if (elevationDeg === null || !Number.isFinite(elevationDeg)) return 'Below terminal elevation threshold';
@@ -479,7 +480,7 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
                 {formatCoordinates(getSelectedSatellitePosition(satellites, selectedSatellite))}
               </p>
               <p className={`mt-1 whitespace-nowrap text-gray-500 dark:text-gray-400 ${compactDesktop ? 'text-[13px]' : 'text-sm'}`}>
-                Altitude: {(currentSatellite?.position.alt || selectedSatellite.position.alt).toFixed(0)} km{orbitalSpeedKms !== null && ` (${Math.round(orbitalSpeedKms * 3600).toLocaleString()} km/h)`}
+                Altitude: {(currentSatellite?.position.alt || selectedSatellite.position.alt).toFixed(0)} km{orbitalSpeedKms !== null && ` (${formatNumber(Math.round(orbitalSpeedKms * 3600))} km/h)`}
               </p>
             </div>
 
@@ -494,7 +495,7 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
                     <div className="space-y-1">
                       <div>
                         <p className={`font-semibold text-gray-900 dark:text-gray-100 ${compactDesktop ? 'text-base' : 'text-lg'}`}>
-                          {selectedSatellite.capacity.officialAggregateCapacityGbps.toLocaleString()} Gbps
+                          {formatNumber(selectedSatellite.capacity.officialAggregateCapacityGbps)} Gbps
                         </p>
                         <p className={`text-gray-400 dark:text-gray-500 ${compactDesktop ? 'text-[11px]' : 'text-xs'}`}>
                           Official Aggregate Capacity*
@@ -513,7 +514,7 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
                     </div>
                   ) : (
                     <p className={`font-semibold text-gray-900 dark:text-gray-100 ${compactDesktop ? 'text-base' : 'text-lg'}`}>
-                      {selectedSatellite.capacity.maxThroughput.toLocaleString()} Gbps
+                      {formatNumber(selectedSatellite.capacity.maxThroughput)} Gbps
                     </p>
                   )}
                   <p className={`mt-1 text-gray-500 dark:text-gray-400 ${compactDesktop ? 'text-[13px]' : 'text-sm'}`}>

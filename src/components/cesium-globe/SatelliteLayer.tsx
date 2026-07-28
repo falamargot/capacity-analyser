@@ -44,6 +44,12 @@ function getBillboardColor(
 }
 import { usePositionCallbacks } from './hooks';
 
+// Hoisted: these are fixed colours, so allocating them per render (once per
+// satellite per propagation tick) was pure garbage.
+const COMMERCIAL_DIMMED_COLOR = Color.fromCssColorString('#64748b').withAlpha(0.2);
+const COMMERCIAL_LEO_COLOR = Color.fromCssColorString('#f472b6').withAlpha(0.2);
+const COMMERCIAL_GEO_COLOR = Color.fromCssColorString('#60a5fa').withAlpha(0.2);
+
 interface SatelliteLayerProps {
     satellites: SatelliteData[];
     selectedSatellite: SatelliteData | null;
@@ -132,25 +138,47 @@ const SatelliteEntity = React.memo<{
     const isCommercialSecondary = isCommercial && (
         commercialTechnologyFocus === null || commercialTechnologyFocus !== satelliteTech
     );
-    const billboardColor = isCommercial && !isManuallySelected
-        ? isCommercialSecondary
-            ? Color.fromCssColorString('#64748b').withAlpha(0.2)
-            : (sat.type === 'ONEWEB'
-                ? Color.fromCssColorString('#f472b6').withAlpha(0.2)
-                : Color.fromCssColorString('#60a5fa').withAlpha(0.2))
-        : getBillboardColor(sat.type, sat.opsStatus, isManuallySelected);
+    // Memoized: `Color.fromCssColorString(...).withAlpha(...)` allocated three new
+    // Color objects on every render, and this component re-renders once per second
+    // for every satellite that moves (the `sat` prop is a fresh object each
+    // propagation tick, which defeats the shallow React.memo above).
+    const billboardColor = useMemo(() => (
+        isCommercial && !isManuallySelected
+            ? isCommercialSecondary
+                ? COMMERCIAL_DIMMED_COLOR
+                : (sat.type === 'ONEWEB'
+                    ? COMMERCIAL_LEO_COLOR
+                    : COMMERCIAL_GEO_COLOR)
+            : getBillboardColor(sat.type, sat.opsStatus, isManuallySelected)
+    ), [isCommercial, isCommercialSecondary, isManuallySelected, sat.type, sat.opsStatus]);
+
+    // MEM-3: this descriptor used to be an inline object literal, so Resium saw a
+    // NEW `billboard` prop on every render and rebuilt the entity's
+    // BillboardGraphics — together with a Property per field, a
+    // `definitionChanged` Event per Property, and the listener Map/Set/array each
+    // Event owns. A heap snapshot across ~90 s of interaction attributed 63,240
+    // BillboardGraphics, 412,541 Events, 1,238,276 Maps and 1,871,849 arrays to
+    // this churn (~320 MB, essentially the entire heap growth in that window).
+    //
+    // None of these four fields depends on satellite POSITION: `image` follows
+    // type, `scale` is a stable CallbackProperty that reads position from a ref,
+    // `color` is memoized above and `verticalOrigin` is constant. Holding the
+    // object identity stable therefore lets the 1 Hz position tick update the
+    // satellite without rebuilding its graphics — which is exactly the intent the
+    // ref-based callbacks above were already written for.
+    const billboard = useMemo(() => ({
+        image: sat.type === 'ONEWEB' ? LEO_SMOKED_GLYPH : SATELLITE_GLYPH,
+        scale: scaleCallback,
+        color: billboardColor,
+        verticalOrigin: VerticalOrigin.CENTER,
+    }), [sat.type, scaleCallback, billboardColor]);
 
     return (
         <>
             <Entity
                 id={`satellite-${sat.id}`}
                 position={positionCallback}
-                billboard={{
-                    image: sat.type === 'ONEWEB' ? LEO_SMOKED_GLYPH : SATELLITE_GLYPH,
-                    scale: scaleCallback,
-                    color: billboardColor,
-                    verticalOrigin: VerticalOrigin.CENTER
-                }}
+                billboard={billboard}
                 name={sat.name}
                 onClick={handleClick}
                 onMouseEnter={handleMouseEnter}

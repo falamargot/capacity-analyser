@@ -20,6 +20,7 @@ import { VesselType, VESSEL_TYPE_CONFIG } from '../../modules/maritimeTraffic/ma
 import type { VesselInterpolation } from '../../modules/maritimeTraffic/useMaritimeTraffic';
 import { DPR_FACTOR, calculateDynamicScale, type CameraMetricsSnapshot } from './utils';
 import { GROUND_POINT_LAYER_HEIGHT_M, LABEL_EYE_OFFSET } from './layerHeights';
+import { formatNumber } from '../../utils/formatters';
 
 // Simple boat icon - single rectangle oriented with vessel direction
 const BOAT_ICON = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Crect x='4' y='10' width='16' height='4'/%3E%3C/svg%3E";
@@ -206,7 +207,7 @@ const VesselEntity = React.memo<{
                 <div>Heading: ${vessel.heading ? Math.round(vessel.heading) : 'N/A'}°</div>
                 ${vessel.length ? `<div>Length: ${vessel.length}m</div>` : ''}
                 ${vessel.destination ? `<div>Destination: ${vessel.destination}</div>` : ''}
-                ${vessel.passengers ? `<div>Passengers: ${vessel.passengers.toLocaleString()}</div>` : ''}
+                ${vessel.passengers ? `<div>Passengers: ${formatNumber(vessel.passengers)}</div>` : ''}
                 <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #ddd;">
                     <div>B2B Priority: <strong style="color: #2563eb;">${vessel.b2bPriority}</strong></div>
                 </div>

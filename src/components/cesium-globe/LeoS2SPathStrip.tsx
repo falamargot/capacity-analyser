@@ -1,6 +1,7 @@
 import React from 'react';
 import type { LeoSiteToSiteResult } from '../../utils/leoSiteToSiteModel';
 import BottomPathRibbon, { type PathRibbonItem } from './BottomPathRibbon';
+import { formatNumber } from '../../utils/formatters';
 
 type RouteDirection = 'A_TO_B' | 'B_TO_A';
 
@@ -11,7 +12,7 @@ interface LeoS2SPathStripProps {
 }
 
 const fmtKm = (km: number): string =>
-  km > 0 ? `${Math.round(km).toLocaleString()} km` : '--';
+  km > 0 ? `${formatNumber(Math.round(km))} km` : '--';
 
 const fmtMs = (ms: number | null | undefined): string =>
   ms != null && Number.isFinite(ms) && ms > 0 ? `${Math.round(ms)} ms` : '--';

@@ -27,6 +27,7 @@ import { EngineeringDeliveryEvidence, EngineeringEvidenceSummary, EngineeringRfD
 import DetailsTogglePill from './shared/DetailsTogglePill';
 import RouteDiagram from './shared/RouteDiagram';
 import { buildLeoRouteDiagram } from './shared/routeDiagramBuilders';
+import { formatNumber } from '../../utils/formatters';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TODO: DC Level / Throughput / Power synchronisation (Q2-Q3-Q4)
@@ -875,7 +876,7 @@ const LeoLinkBudgetEvidence = ({
                     <CockpitTile label="SNP A" value={snpAName ?? '—'} tone="violet" mono={false} />
                     <CockpitTile label="SNP B" value={snpBName ?? '—'} tone="violet" mono={false} />
                     <CockpitTile label="Logical PoP" value={popName ?? 'Core PoP'} tone="violet" mono={false} />
-                    <CockpitTile label="Ground distance" value={`${Math.round(siteToSiteResult.backboneDistanceKm).toLocaleString()} km`} tone="violet" />
+                    <CockpitTile label="Ground distance" value={`${formatNumber(Math.round(siteToSiteResult.backboneDistanceKm))} km`} tone="violet" />
                     <CockpitTile label="Route factor" value="×1.20" tone="violet" mono={false} />
                     <CockpitTile label="Fiber speed" value="200 km/ms" tone="violet" mono={false} />
                   </div>

@@ -25,6 +25,7 @@ import { applyPublicFrequencyMatchToContext, buildGeoRfContext } from '../../ser
 import type { UplinkRequirement } from '../../utils/geoTerminalRFModel';
 import DetailsTogglePill from './shared/DetailsTogglePill';
 import { fmtDb, fmtMbps } from '../../utils/engineeringFormat';
+import { formatNumber } from '../../utils/formatters';
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
 // fmtDb/fmtMbps come from the canonical engineeringFormat module so the same
@@ -114,7 +115,7 @@ const candidateSubtitle = (candidate: PublicTransponderCandidateMatch): string =
   const parts = [
     `UL ${fmtGhz(tp.uplink.frequencyMHz ? tp.uplink.frequencyMHz / 1000 : undefined)}`,
     tp.uplink.source === 'INFERRED' ? 'uplink inferred' : null,
-    tp.transponder.symbolRate ? `SR ${tp.transponder.symbolRate.toLocaleString()}` : null,
+    tp.transponder.symbolRate ? `SR ${formatNumber(tp.transponder.symbolRate)}` : null,
     tp.transponder.system,
   ].filter(Boolean);
   return parts.join(' · ');

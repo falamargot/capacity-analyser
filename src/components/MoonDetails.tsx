@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Calendar, CircleDashed, MapPin, Orbit } from 'lucide-react';
 import { JulianDate } from 'cesium';
-import { formatCoordinates } from '../utils/formatters';
+import { formatCoordinates, formatNumber as formatLocaleNumber } from '../utils/formatters';
 import { getMoonSnapshot, MOON_MEAN_RADIUS_KM } from '../utils/moonInfo';
 import { useSecondTick } from '../hooks/useSecondTick';
 
@@ -11,7 +11,7 @@ interface MoonDetailsProps {
 }
 
 const formatNumber = (value: number, maximumFractionDigits = 0) => (
-  value.toLocaleString(undefined, { maximumFractionDigits })
+  formatLocaleNumber(value, { maximumFractionDigits })
 );
 
 const MoonDetails: React.FC<MoonDetailsProps> = ({

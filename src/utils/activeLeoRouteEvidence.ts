@@ -39,6 +39,7 @@ import {
   type LeoSiteToSiteResult,
 } from './leoSiteToSiteModel';
 import { estimateCurrentLeoBeamLink, findBestConnectedBeamInfo, hasRFConnectivity } from './rfConnectivity';
+import { countEngineCalculation } from './runtimeProfiler';
 import type {
   LeoBottleneckFactor,
   LeoBottleneckScope,
@@ -882,6 +883,10 @@ export function buildActiveLeoRouteEvidence(
   state: ActiveLeoRouteEvidenceState,
 ): ActiveLeoRouteEvidence {
   const _t0 = import.meta.env.DEV ? performance.now() : 0;
+  // Dev-only counter feeding the runtime profiler HUD: "how many engineering
+  // calculations did one interaction actually cost?" Counted before the
+  // early-out so a no-op call is still visible as a call.
+  countEngineCalculation(`leoEvidence:${input.topology}`);
 
   const inputSignature = buildInputSignature(input);
 

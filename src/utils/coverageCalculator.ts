@@ -2,22 +2,71 @@ import { Coverage, SatelliteData } from '../types/satellites';
 import { isPointInFootprint, TERMINAL_RF_RADIUS_KM, BACKHAUL_RADIUS_KM } from './leoFootprint';
 import { EARTH_RADIUS_KM } from './capacityCalculator';
 
-// Performance optimization: Cache coverage calculations to prevent expensive recomputation
-// LRU bounded to MAX_COVERAGE_CACHE entries to prevent memory leaks on long sessions.
-// 200 entries covers ~20 EUTELSAT GEO satellites (static, 1 entry each) plus ~180 LEO
-// positions (0.1° precision key → ~180 distinct positions per orbital pass). Reducing
-// from 500 cuts worst-case Coverage[] object retention by 60% with no observable hit-rate
-// impact on typical usage patterns.
-const MAX_COVERAGE_CACHE = 200;
+// Performance optimization: cache coverage calculations to prevent recomputation.
+// LRU bounded to MAX_COVERAGE_CACHE entries so a long session cannot grow without limit.
+//
+// Sizing (corrected 2026-07-28 after browser heap measurement)
+// -----------------------------------------------------------
+// The working set is ONE entry per satellite, and the bundled constellation is
+// 680 satellites (651 ONEWEB + ~29 EUTELSAT — `public/celestrak.txt`, 2040 TLE
+// lines). The previous 200-entry bound was therefore about a third of the
+// working set: every propagation tick touched all 680 satellites in sequence, so
+// by the time satellite #1 was queried again, satellites #201..680 had already
+// evicted it. The cache serviced essentially ZERO hits for the LEO population
+// while still paying for key construction, Map.set and eviction on every call.
+//
+// Entries are small (ONEWEB stores two metadata-only Coverage objects with empty
+// geometry), so covering the whole constellation with headroom costs a few
+// hundred KB — far less than the per-tick garbage the thrashing produced.
+const MAX_COVERAGE_CACHE = 1024;
 const coverageCache = new Map<string, Coverage[]>();
 
 export type CoverageClass = 'user' | 'backhaul' | 'gateway';
+
+// Hit/miss/eviction counters. Cheap (three integers) and always on, so the
+// cache's effectiveness is observable instead of assumed — the 200-entry
+// undersizing above went unnoticed precisely because nothing measured it.
+let cacheHits = 0;
+let cacheMisses = 0;
+let cacheEvictions = 0;
+
+export interface CoverageCacheStats {
+  entries: number;
+  capacity: number;
+  hits: number;
+  misses: number;
+  evictions: number;
+  /** Fraction of lookups served from cache, 0..1. NaN before any lookup. */
+  hitRate: number;
+}
+
+export function getCoverageCacheStats(): CoverageCacheStats {
+  const lookups = cacheHits + cacheMisses;
+  return {
+    entries: coverageCache.size,
+    capacity: MAX_COVERAGE_CACHE,
+    hits: cacheHits,
+    misses: cacheMisses,
+    evictions: cacheEvictions,
+    hitRate: lookups === 0 ? Number.NaN : cacheHits / lookups,
+  };
+}
+
+export function resetCoverageCache(): void {
+  coverageCache.clear();
+  cacheHits = 0;
+  cacheMisses = 0;
+  cacheEvictions = 0;
+}
 
 function addToCache(key: string, value: Coverage[]): void {
   if (coverageCache.size >= MAX_COVERAGE_CACHE) {
     // Map preserves insertion order — delete the oldest entry
     const firstKey = coverageCache.keys().next().value;
-    if (firstKey !== undefined) coverageCache.delete(firstKey);
+    if (firstKey !== undefined) {
+      coverageCache.delete(firstKey);
+      cacheEvictions++;
+    }
   }
   coverageCache.set(key, value);
 }
@@ -73,17 +122,34 @@ export function destinationPoint(
 
 // Performance optimization: Memoize coverage calculations with caching
 export function calculateCoverages(satellite: SatelliteData): Coverage[] {
-  // LEO precision: 0.1° ≈ 11 km — aligns with the 0.01° epsilon gate in App.tsx
-  // giving ~10× better cache hit rate vs the previous 0.001° (toFixed(3)) precision.
-  // EUTELSAT (GEO) uses a static key since their coverages never change.
+  // Cache keys must encode exactly what the RESULT depends on — no more.
+  //
+  // EUTELSAT (GEO): coverages never change → static key.
+  //
+  // ONEWEB: the branch below emits two metadata-only Coverage objects whose
+  // geometry is deliberately empty (`coordinates: []`) because the real comb
+  // geometry is generated per-frame by CesiumGlobe via CallbackProperty. The
+  // only satellite field it reads is `name`. The result is therefore entirely
+  // POSITION-INDEPENDENT, yet this key used to encode lat/lng/alt at 0.1°
+  // precision — which a LEO satellite crosses every 1-2 seconds. That
+  // manufactured a fresh cache key, a guaranteed miss and a fresh allocation
+  // for all 651 ONEWEB satellites on every propagation tick, for a value that
+  // was identical every time. Keying on identity alone makes it a hit.
+  //
+  // Any other type still keys on position, since those results do shift with it.
   const cacheKey = satellite.type === 'EUTELSAT'
     ? `${satellite.id}_geo_static`
-    : `${satellite.id}_${satellite.position.lat.toFixed(1)}_${satellite.position.lng.toFixed(1)}_${satellite.position.alt.toFixed(1)}`;
+    : satellite.type === 'ONEWEB'
+      ? `${satellite.id}_oneweb_static`
+      : `${satellite.id}_${satellite.position.lat.toFixed(1)}_${satellite.position.lng.toFixed(1)}_${satellite.position.alt.toFixed(1)}`;
 
   // Return cached result if available
-  if (coverageCache.has(cacheKey)) {
-    return coverageCache.get(cacheKey)!;
+  const cached = coverageCache.get(cacheKey);
+  if (cached !== undefined) {
+    cacheHits++;
+    return cached;
   }
+  cacheMisses++;
 
   const newcoverages: Coverage[] = [];
   // ONEWEB: build three concentric geodesic circles for triple-zone footprint

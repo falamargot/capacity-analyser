@@ -4,6 +4,7 @@ import type { CommercialScenarioViewModel } from './commercialViewModel';
 import type { CommercialCriterionEvidence } from './commercialCriteriaEvidence';
 import type { CommercialCriterionId } from './commercialObjective';
 import { dataNatureLabel } from '../../utils/dataProvenance';
+import { formatNumber } from '../../utils/formatters';
 
 const OBJECTIVES: Array<{ value?: CommercialObjective; label: string; hint: string }> = [
   { label: 'No preference', hint: 'Use the established route recommendation.' },
@@ -148,7 +149,7 @@ function evidenceDisplay(evidence: CommercialCriterionEvidence<number | boolean>
   if (evidence.value == null) return 'Incomplete';
   if (typeof evidence.value === 'boolean') return evidence.value ? 'Compatible' : 'Not compatible';
   const digits = Math.abs(evidence.value) >= 100 ? 0 : 1;
-  return `${evidence.value.toLocaleString(undefined, { maximumFractionDigits: digits })}${evidence.unit ? ` ${evidence.unit}` : ''}`;
+  return `${formatNumber(evidence.value, { maximumFractionDigits: digits })}${evidence.unit ? ` ${evidence.unit}` : ''}`;
 }
 
 function EvidenceRows({ viewModel }: { viewModel: CommercialScenarioViewModel }) {
