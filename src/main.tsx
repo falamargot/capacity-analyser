@@ -7,7 +7,7 @@ import App from './App';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { SimulationProvider } from './contexts/SimulationContext';
 import { installMemoryMonitor } from './utils/memoryMonitor';
-import { installRuntimeProfiler, recordReactCommit } from './utils/runtimeProfiler';
+import { configureRuntimeProfiler, installRuntimeProfiler, recordReactCommit, ROOT_PROFILER_ID } from './utils/runtimeProfiler';
 import './index.css';
 
 // Dev-only: wrap timers/listeners + expose window.__memStats + 30s console log.
@@ -18,6 +18,11 @@ installMemoryMonitor();
 // window.__perfStats / __perfReport / __perfReset / __perfMark. No-op in
 // production builds. See docs/Architecture_Performance_Memory_Audit_2026-07-28.md.
 installRuntimeProfiler();
+// The tree below IS wrapped in React.StrictMode, which double-invokes render
+// phase functions (including the useMemo factories the engineering counters live
+// in). Declared explicitly rather than sniffed at runtime: a wrong guess would
+// silently halve real measurements.
+configureRuntimeProfiler({ strictModeDoubleInvoke: true });
 
 // Configure Cesium ION token at app startup (before any components render)
 const ionToken = import.meta.env.VITE_CESIUM_ION_ACCESS_TOKEN;
@@ -48,7 +53,7 @@ const app = (
 createRoot(rootElement).render(
   <React.StrictMode>
     {import.meta.env.DEV
-      ? <React.Profiler id="app" onRender={recordReactCommit}>{app}</React.Profiler>
+      ? <React.Profiler id={ROOT_PROFILER_ID} onRender={recordReactCommit}>{app}</React.Profiler>
       : app}
   </React.StrictMode>
 );

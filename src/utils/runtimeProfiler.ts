@@ -61,12 +61,36 @@ export interface ReactStats {
   commitMs: { mean: number; p50: number; p95: number; max: number };
   /** Commits attributed to a mount rather than an update. */
   mounts: number;
+  /**
+   * Per-<Profiler id> attribution, so a commit cost can be traced to a subtree
+   * instead of only to the whole app. Sorted by total time descending.
+   */
+  byId: {
+    id: string;
+    commits: number;
+    totalMs: number;
+    p95Ms: number;
+    maxMs: number;
+  }[];
 }
 
 export interface EngineStats {
-  /** Named engineering computations counted via `countEngineCalculation`. */
+  /**
+   * Named engineering computations counted via `countEngineCalculation`,
+   * ALREADY corrected for StrictMode double-invocation (see `rawCounts`).
+   */
   counts: Record<string, number>;
   total: number;
+  /** Uncorrected counts exactly as observed. */
+  rawCounts: Record<string, number>;
+  /**
+   * Divisor applied to `rawCounts`. React StrictMode intentionally
+   * double-invokes render-phase functions — including the `useMemo` factories
+   * these counters live in — so raw counts read 2x in development. Commit
+   * COUNTS are unaffected (StrictMode double-renders but commits once), though
+   * commit DURATIONS include both render passes.
+   */
+  strictModeDivisor: number;
 }
 
 export interface RuntimeStats {
@@ -116,6 +140,13 @@ class Samples {
 
 let installed = false;
 let startedAt = 0;
+let detachInputListeners: (() => void) | null = null;
+
+/**
+ * id of the root <Profiler> in main.tsx. Only this boundary contributes to the
+ * aggregate commit stats — see recordReactCommit.
+ */
+export const ROOT_PROFILER_ID = 'app';
 
 let frameCount = 0;
 let idleFrameCount = 0;
@@ -125,6 +156,19 @@ let lastFrameAt = 0;
 let commitCount = 0;
 let mountCount = 0;
 const commitDurations = new Samples();
+/** Per-<Profiler id> attribution. */
+const commitsById = new Map<string, { commits: number; totalMs: number; samples: Samples }>();
+
+/**
+ * Set by main.tsx to declare whether the tree is wrapped in React.StrictMode.
+ * Declared explicitly rather than sniffed, because StrictMode is not reliably
+ * detectable at runtime and a wrong guess would silently halve real numbers.
+ */
+let strictModeDoubleInvoke = false;
+
+export function configureRuntimeProfiler(options: { strictModeDoubleInvoke: boolean }): void {
+  strictModeDoubleInvoke = options.strictModeDoubleInvoke;
+}
 
 const engineCounts = new Map<string, number>();
 const marks: { label: string; atSec: number }[] = [];
@@ -161,14 +205,32 @@ export function countEngineCalculation(label: string): void {
 
 /** React <Profiler> onRender callback. */
 export function recordReactCommit(
-  _id: string,
+  id: string,
   phase: 'mount' | 'update' | 'nested-update',
   actualDuration: number,
 ): void {
   if (!import.meta.env.DEV) return;
-  commitCount++;
-  if (phase === 'mount') mountCount++;
-  commitDurations.push(actualDuration);
+
+  // Nested <Profiler> boundaries ALL fire for the same commit, and each reports
+  // an actualDuration that already includes its children. Counting every
+  // boundary would inflate `commits` by the number of boundaries and sum the
+  // same work repeatedly — it moved commits/s from 3.6 to 5.6 purely by adding
+  // instrumentation. The aggregate therefore tracks the ROOT boundary only,
+  // which is the true per-commit cost; per-subtree attribution lives in `byId`.
+  if (id === ROOT_PROFILER_ID) {
+    commitCount++;
+    if (phase === 'mount') mountCount++;
+    commitDurations.push(actualDuration);
+  }
+
+  let entry = commitsById.get(id);
+  if (!entry) {
+    entry = { commits: 0, totalMs: 0, samples: new Samples() };
+    commitsById.set(id, entry);
+  }
+  entry.commits++;
+  entry.totalMs += actualDuration;
+  entry.samples.push(actualDuration);
 }
 
 // ─── Snapshot ─────────────────────────────────────────────────────────────────
@@ -204,9 +266,25 @@ function readRenderConfig(): RuntimeStats['render'] {
 
 export function collectRuntimeStats(): RuntimeStats {
   const elapsedSec = startedAt ? (performance.now() - startedAt) / 1000 : 0;
+  const divisor = strictModeDoubleInvoke ? 2 : 1;
   const counts: Record<string, number> = {};
+  const rawCounts: Record<string, number> = {};
   let engineTotal = 0;
-  for (const [k, v] of engineCounts) { counts[k] = v; engineTotal += v; }
+  for (const [k, v] of engineCounts) {
+    rawCounts[k] = v;
+    counts[k] = v / divisor;
+    engineTotal += v / divisor;
+  }
+
+  const byId = Array.from(commitsById.entries())
+    .map(([id, e]) => ({
+      id,
+      commits: e.commits,
+      totalMs: e.totalMs,
+      p95Ms: e.samples.stats().p95,
+      maxMs: e.samples.stats().max,
+    }))
+    .sort((a, b) => b.totalMs - a.totalMs);
 
   return {
     running: installed,
@@ -223,8 +301,9 @@ export function collectRuntimeStats(): RuntimeStats {
       commits: commitCount,
       commitMs: commitDurations.stats(),
       mounts: mountCount,
+      byId,
     },
-    engine: { counts, total: engineTotal },
+    engine: { counts, total: engineTotal, rawCounts, strictModeDivisor: divisor },
     render: readRenderConfig(),
     marks: [...marks],
   };
@@ -239,6 +318,7 @@ export function resetRuntimeProfiler(): void {
   commitCount = 0;
   mountCount = 0;
   commitDurations.clear();
+  commitsById.clear();
   engineCounts.clear();
   marks.length = 0;
   dirtySinceLastFrame = false;
@@ -272,12 +352,24 @@ export function formatRuntimeReport(s: RuntimeStats = collectRuntimeStats()): st
     `  commits           : ${s.react.commits} (${s.react.mounts} mounts)`,
     `  commit ms         : mean ${s.react.commitMs.mean.toFixed(2)}  p50 ${s.react.commitMs.p50.toFixed(2)}  p95 ${s.react.commitMs.p95.toFixed(2)}  max ${s.react.commitMs.max.toFixed(2)}`,
     `  commits/sec       : ${s.elapsedSec > 0 ? (s.react.commits / s.elapsedSec).toFixed(2) : '0'}`,
+    ...(s.engine.strictModeDivisor > 1
+      ? ['  note              : StrictMode inflates commit DURATIONS (two render passes per commit); counts are accurate']
+      : []),
+    '',
+    'COMMIT COST BY SUBTREE (who owns the p95)',
+    ...(s.react.byId.length
+      ? s.react.byId.map((e) => (
+          `  ${e.id.padEnd(24)} n=${String(e.commits).padStart(5)}  `
+          + `total=${e.totalMs.toFixed(0).padStart(6)}ms  p95=${e.p95Ms.toFixed(1).padStart(6)}ms  max=${e.maxMs.toFixed(1)}ms`
+        ))
+      : ['  (no <Profiler id> boundaries reported yet)']),
     '',
     'ENGINEERING CALCULATIONS',
-    `  total             : ${s.engine.total}`,
+    `  total             : ${s.engine.total}`
+      + (s.engine.strictModeDivisor > 1 ? `  (raw /${s.engine.strictModeDivisor} for StrictMode)` : ''),
   ];
   for (const [k, v] of Object.entries(s.engine.counts)) {
-    lines.push(`    ${k.padEnd(30)} ${v}`);
+    lines.push(`    ${k.padEnd(30)} ${v}  (raw ${s.engine.rawCounts[k]})`);
   }
   if (s.marks.length) {
     lines.push('', 'MARKS');
@@ -296,10 +388,17 @@ export function installRuntimeProfiler(): void {
   resetRuntimeProfiler();
 
   // Any real input marks the scene dirty, so frames that follow are legitimate.
+  // Handles are retained so `uninstallRuntimeProfiler()` can detach them — the
+  // first version registered these five listeners and never removed them, which
+  // permanently skewed the memory monitor's own listener counter by +5.
   const markDirty = () => { dirtySinceLastFrame = true; };
-  for (const evt of ['pointerdown', 'pointermove', 'wheel', 'keydown', 'resize'] as const) {
+  const inputEvents = ['pointerdown', 'pointermove', 'wheel', 'keydown', 'resize'] as const;
+  for (const evt of inputEvents) {
     window.addEventListener(evt, markDirty, { passive: true });
   }
+  detachInputListeners = () => {
+    for (const evt of inputEvents) window.removeEventListener(evt, markDirty);
+  };
 
   const win = window as unknown as Record<string, unknown>;
   win['__perfStats'] = collectRuntimeStats;
@@ -309,6 +408,19 @@ export function installRuntimeProfiler(): void {
   };
   win['__perfReset'] = resetRuntimeProfiler;
   win['__perfMark'] = markRuntimeEvent;
+  win['__perfUninstall'] = uninstallRuntimeProfiler;
+}
+
+/** Detaches every listener and global this module installed. */
+export function uninstallRuntimeProfiler(): void {
+  if (!installed) return;
+  detachInputListeners?.();
+  detachInputListeners = null;
+  const win = window as unknown as Record<string, unknown>;
+  for (const key of ['__perfStats', '__perfReport', '__perfReset', '__perfMark', '__perfUninstall']) {
+    delete win[key];
+  }
+  installed = false;
 }
 
 /**

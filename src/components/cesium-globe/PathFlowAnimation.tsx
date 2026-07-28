@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Entity, LabelGraphics, PointGraphics } from 'resium';
+import { Entity, LabelGraphics, PointGraphics, useCesium } from 'resium';
 import { CallbackProperty, Cartesian2, Cartesian3, Color, HorizontalOrigin, JulianDate, LabelStyle, VerticalOrigin } from 'cesium';
 import type { CameraMetricsSnapshot } from './utils';
+import { requestGlobeRender } from '../../utils/globeRenderRequest';
 
 export type PathSegmentType = 'USER_LINK' | 'FEEDER_LINK' | 'BACKBONE' | 'GEO_RF';
 
@@ -49,6 +50,7 @@ const PathFlowAnimation: React.FC<PathFlowAnimationProps> = ({
     enabled = true,
     cameraMetricsRef,
 }) => {
+    const { viewer } = useCesium();
     const [reducedMotion, setReducedMotion] = useState(() => (
         typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
     ));
@@ -97,6 +99,31 @@ const PathFlowAnimation: React.FC<PathFlowAnimationProps> = ({
             })
         ));
     }, [cameraMetricsRef, enabled, reducedMotion, segments]);
+
+    // ── requestRenderMode wiring, step 2b.3 (Group C: genuine animation) ──────
+    //
+    // BEHAVIOUR-NEUTRAL: requestRender() is a no-op while scene.requestRenderMode
+    // is false, which is the current configuration.
+    //
+    // This is the ONE layer in the readiness inventory that is continuously
+    // animated in its own right: each particle's position is derived from
+    // `JulianDate.secondsDifference(time, FLOW_EPOCH)`, so it advances on every
+    // frame independently of any data update. Under requestRenderMode it must
+    // therefore drive frames itself, or the particles freeze.
+    //
+    // The settle condition is explicit rather than open-ended: frames are only
+    // requested while there is something to animate, and the loop stops when
+    // `enabled` goes false, no particles exist, or the user prefers reduced
+    // motion (in which case `t` is pinned to 0.58 and the flow is static).
+    const isAnimating = enabled && particles.length > 0 && !reducedMotion;
+    useEffect(() => {
+        if (!isAnimating) return;
+        let rafId = requestAnimationFrame(function tick() {
+            requestGlobeRender(viewer);
+            rafId = requestAnimationFrame(tick);
+        });
+        return () => cancelAnimationFrame(rafId);
+    }, [isAnimating, viewer]);
 
     if (!enabled || particles.length === 0) return null;
 

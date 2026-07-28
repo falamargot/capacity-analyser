@@ -1,7 +1,7 @@
 /**
  * VesselLayer - Renders all vessel entities with optimized callbacks
  */
-import React, { useMemo, useCallback, useRef } from 'react';
+import React, { useEffect, useMemo, useCallback, useRef } from 'react';
 import { Entity, LabelGraphics } from 'resium';
 import {
     Cartesian2,
@@ -21,6 +21,7 @@ import type { VesselInterpolation } from '../../modules/maritimeTraffic/useMarit
 import { DPR_FACTOR, calculateDynamicScale, type CameraMetricsSnapshot } from './utils';
 import { GROUND_POINT_LAYER_HEIGHT_M, LABEL_EYE_OFFSET } from './layerHeights';
 import { formatNumber } from '../../utils/formatters';
+import { requestGlobeRender } from '../../utils/globeRenderRequest';
 
 // Simple boat icon - single rectangle oriented with vessel direction
 const BOAT_ICON = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Crect x='4' y='10' width='16' height='4'/%3E%3C/svg%3E";
@@ -265,6 +266,13 @@ const VesselLayer: React.FC<VesselLayerProps> = ({
     vesselSizeScale = 1,
     interpolatedVesselMapRef,
 }) => {
+    // requestRenderMode wiring, step 2b.2 (Group B: data-cadence followers).
+    // BEHAVIOUR-NEUTRAL: requestRender() is a no-op while scene.requestRenderMode
+    // is false, which is the current configuration. Vessel positions arrive on the AIS stream, not per frame.
+    useEffect(() => {
+        requestGlobeRender(viewerRef.current);
+    }, [viewerRef, vessels, selectedVessel]);
+
     // Memoize vessel entities
     const vesselEntities = useMemo(() => {
         return vessels.map((vessel) => {

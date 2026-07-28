@@ -299,6 +299,9 @@ const GlobeIntelligenceRail: React.FC<GlobeIntelligenceRailProps> = ({
     const popoverSideClass = placement === 'left'
         ? 'left-full ml-2'
         : 'right-full mr-2';
+    const preferencesPopoverClass = placement === 'left'
+        ? 'left-0 top-12'
+        : 'right-14 top-12';
     const cameraControls = (
         <div className="relative">
             {showExtendedControls && !isMobile && (
@@ -532,7 +535,7 @@ const GlobeIntelligenceRail: React.FC<GlobeIntelligenceRailProps> = ({
                 <div className="absolute right-0 top-0 h-0 w-0">
                     {isOverflowOpen && (
                         <div
-                            className={`absolute ${popoverSideClass} top-0 z-[1310] w-[272px] max-w-[calc(100vw-5rem)] overflow-hidden rounded-[20px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] p-2.5 shadow-[0_24px_56px_-28px_rgba(15,23,42,0.65)] ring-1 ring-slate-200/70 backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.96))] dark:ring-slate-700/80`}
+                            className={`absolute ${preferencesPopoverClass} z-[1310] w-[272px] max-w-[calc(100vw-5rem)] overflow-hidden rounded-[20px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] p-2.5 shadow-[0_24px_56px_-28px_rgba(15,23,42,0.65)] ring-1 ring-slate-200/70 backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.96))] dark:ring-slate-700/80`}
                             role="dialog"
                             aria-label="Display preferences"
                         >

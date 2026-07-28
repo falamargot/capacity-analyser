@@ -1,7 +1,7 @@
 /**
  * SnpLayer - Renders SNP (Satellite Network Portal) ground stations
  */
-import React, { useMemo, useCallback } from 'react';
+import React, { useEffect, useMemo, useCallback } from 'react';
 import { Entity, LabelGraphics, EllipseGraphics } from 'resium';
 import {
     Cartesian3,
@@ -18,6 +18,7 @@ import { getPosition, DPR_FACTOR, calculateDynamicScale, type CameraMetricsSnaps
 import type { SatelliteScope } from '../SatelliteScopeFilter';
 import { useSimulation } from '../../contexts/SimulationContext';
 import { FOOTPRINT_LAYER_HEIGHT_M, GROUND_POINT_ALTITUDE_KM, LABEL_EYE_OFFSET } from './layerHeights';
+import { requestGlobeRender } from '../../utils/globeRenderRequest';
 
 const SNP_MARKER_PIXEL_MULTIPLIER = 12;
 
@@ -169,6 +170,13 @@ const SnpLayer: React.FC<SnpLayerProps> = ({
     commercialTone = 'primary',
     showLabels = true,
 }) => {
+    // requestRenderMode wiring, step 2b.2 (Group B: data-cadence followers).
+    // BEHAVIOUR-NEUTRAL: requestRender() is a no-op while scene.requestRenderMode
+    // is false, which is the current configuration. SNP set/selection changes are user- or scope-driven, not per-frame.
+    useEffect(() => {
+        requestGlobeRender(viewerRef.current);
+    }, [viewerRef, satelliteScope, autoSelectedSnpName, inspectedSnpName, allowedSnpNames, commercialTone, showLabels]);
+
     const { failedSnps } = useSimulation();
 
     // Memoize SNP entities (hooks must run unconditionally)

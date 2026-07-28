@@ -1,5 +1,6 @@
 import React, { Suspense, lazy, useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef, useReducer } from 'react';
-import MapViewSwitcher from './components/MapViewSwitcher';
+import MapViewSwitcherBase from './components/MapViewSwitcher';
+import { PerfBoundary } from './components/PerfBoundary';
 import type { AirTrafficStateProps, CallbackProps, CameraProps, CameraViewBounds, CommercialStateProps, DisplayLayerProps, DisplayPrefsProps, IssStateProps, MaritimeTrafficStateProps, SelectionAnalysisProps, TopologyProps, TrafficProps } from './components/CesiumGlobe';
 import SatelliteSelector from './components/SatelliteSelector';
 import SplashScreen from './components/SplashScreen';
@@ -14,6 +15,7 @@ import { MemoryMonitorHud } from './components/MemoryMonitorHud';
 import { CapacityAnalyzerSignature } from './components/brand/CapacityAnalyzerSignature';
 import { setMemoryMonitorViewerGetter } from './utils/memoryMonitor';
 import { attachRuntimeProfilerToViewer } from './utils/runtimeProfiler';
+import { requestGlobeRender } from './utils/globeRenderRequest';
 import ExportButton from './components/ExportButton';
 import SimulationSettings from './components/layout/SimulationSettings';
 import HeaderScenarioBuilder, { HeaderRouteStatusPanel, type HeaderRouteStatus } from './components/header/HeaderScenarioBuilder';
@@ -170,7 +172,17 @@ import { EngineeringAnalysisProvider } from './contexts/EngineeringAnalysisConte
 import { useEngineeringAnalysis } from './hooks/useEngineeringAnalysis';
 import { useScenarioState } from './state/scenario/useScenarioState';
 
-const CapacityDetails = lazy(() => import('./components/CapacityDetails'));
+// Commit-cost attribution boundaries (dev-only; PerfBoundary is a passthrough in
+// production). Wrapping at the definition rather than at each of the four JSX
+// call sites keeps App's render tree untouched and cannot miss a site.
+const MapViewSwitcher = (props: React.ComponentProps<typeof MapViewSwitcherBase>) => (
+  <PerfBoundary id="globe"><MapViewSwitcherBase {...props} /></PerfBoundary>
+);
+
+const CapacityDetailsBase = lazy(() => import('./components/CapacityDetails'));
+const CapacityDetails = (props: React.ComponentProps<typeof CapacityDetailsBase>) => (
+  <PerfBoundary id="analysis-sidebar"><CapacityDetailsBase {...props} /></PerfBoundary>
+);
 const CommandPalette = lazy(() => import('./components/CommandPalette'));
 const IssDetails = lazy(() => import('./components/IssDetails'));
 const GatewayDetails = lazy(() => import('./components/GatewayDetails'));
@@ -956,6 +968,7 @@ const App: React.FC = () => {
     detachRuntimeProfilerRef.current?.();
   }, []);
 
+
   // Store globe container reference when ready
   const handleGlobeContainerReady = useCallback((ref: React.RefObject<HTMLDivElement | null>) => {
     globeContainerRef.current = ref.current;
@@ -1275,6 +1288,27 @@ const App: React.FC = () => {
     () => (selectedSatelliteId ? satelliteById.get(selectedSatelliteId) ?? null : null),
     [satelliteById, selectedSatelliteId]
   );
+
+  // ── requestRenderMode wiring, step 2b.2 (Group B: data-cadence followers) ──
+  //
+  // BEHAVIOUR-NEUTRAL TODAY: `requestRender()` is a no-op while
+  // `scene.requestRenderMode` is false, which is the current configuration. This
+  // lands the wiring so the eventual flag flip is a one-line, revertible change
+  // rather than one that must also rewire every update path at the same time.
+  //
+  // Satellite positions are the highest-volume Group B driver: the propagation
+  // worker republishes them ~1 Hz and SatelliteLayer/TrajectoryLayer render them
+  // through CallbackProperty instances reading from refs. Under
+  // requestRenderMode those layers need exactly this signal to redraw.
+  useEffect(() => {
+    requestGlobeRender(viewerRef.current);
+  }, [filteredSatellites]);
+
+  // Selection / analysis-point / scope changes mutate several layers at once
+  // (coverage, links, markers) and are user-driven rather than tick-driven.
+  useEffect(() => {
+    requestGlobeRender(viewerRef.current);
+  }, [selectedSatellite, activeAnalysisPoint, satelliteScope]);
 
   const selectedSatelliteGeoCoverageKeys = useMemo(() => {
     if (!selectedSatellite || selectedSatellite.type !== 'EUTELSAT') {

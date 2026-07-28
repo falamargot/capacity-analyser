@@ -113,6 +113,7 @@ import { useEngineeringFocus } from '../contexts/EngineeringFocusContext';
 import { causeStageForRouteSegment, parseEngineeringRouteEntityFocus, resolveEngineeringStageLayerPresentation } from '../utils/engineeringFocusModel';
 import FlightCoverageRibbon from './cesium-globe/FlightCoverageRibbon';
 import { getGeoGatewaysForRendering, getTrafficTeleportGatewayNameAllowlist } from './cesium-globe/geoGatewayMarkerModel';
+import { requestGlobeRender } from '../utils/globeRenderRequest';
 
 // ─── Commercial vocabulary helpers ───────────────────────────────────────────
 
@@ -1369,6 +1370,45 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             // halving sustained CPU/GPU load and battery drain.
             viewer.targetFrameRate = 30;
 
+            // ── On-demand rendering (PERF-1) ──────────────────────────────────
+            //
+            // Measured: 94% of rendered frames were drawn with nothing changed —
+            // a still camera, no input and no scene mutation. The scene now
+            // renders only when a frame is explicitly requested.
+            //
+            // Every update path was wired to requestGlobeRender() beforehand, in
+            // steps 2b.2-2b.4: App-level satellite/selection triggers, the Group B
+            // data-cadence layers, PathFlowAnimation's own rAF driver for its
+            // genuinely continuous particle flow, and a camera moveEnd frame so
+            // the postRender screen-space labels re-project after the camera
+            // settles.
+            viewer.scene.requestRenderMode = true;
+
+            // maximumRenderTimeChange: how far SIMULATION time may advance before
+            // Cesium requests a frame on its own, independent of any explicit
+            // request. This value is load-bearing, so it is set deliberately:
+            //
+            //   undefined → clock changes NEVER request a frame. Rejected: it
+            //     makes every moving thing depend on the explicit wiring being
+            //     exhaustive, and any path missed silently freezes on screen.
+            //   0.0 (Cesium's default) → ANY clock change requests a frame.
+            //     Rejected: `shouldAnimate` is true, so the clock advances every
+            //     tick and this renders continuously — the current behaviour,
+            //     saving nothing.
+            //   1.0 → a frame at most once per second of simulation time.
+            //
+            // 1.0 is chosen to match the cadence the underlying data actually
+            // moves at: the propagation worker republishes satellite positions on
+            // a 1 s interval (SATELLITE_PROPAGATION_INTERVAL_MS), and the LEO
+            // evidence pipeline recomputes at the same 1 Hz. Nothing in the scene
+            // carries information that changes faster than that on its own.
+            //
+            // It also acts as a safety net rather than a cliff: if any update
+            // path was missed in the wiring above, the worst case is a frame that
+            // is up to one second stale, not a permanently frozen layer. Idle
+            // cost still drops from ~30 fps to ~1 fps.
+            viewer.scene.maximumRenderTimeChange = 1.0;
+
             setViewerReady(true);
             onGlobeBootPhaseChange?.('viewer-ready');
         }
@@ -1632,6 +1672,34 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             viewer.camera.moveEnd.removeEventListener(handleMoveEnd);
         };
     }, [viewerReady, onCameraViewChange]);
+
+    // ── requestRenderMode wiring, step 2b.4 (Group D: screen-space labels) ────
+    //
+    // BEHAVIOUR-NEUTRAL: requestRender() is a no-op while scene.requestRenderMode
+    // is false, which is the current configuration.
+    //
+    // SatelliteScreenLabels, SelectedPointScreenLabel, SiteScreenLabel and
+    // PointAnchorLabel all reposition themselves from a `scene.postRender`
+    // handler, i.e. they are consumers of frames rather than requesters. Under
+    // requestRenderMode the camera's final settling movement can therefore leave
+    // them projected from the second-to-last camera pose. One explicit frame
+    // after `moveEnd` gives every one of them a chance to re-project.
+    //
+    // Deliberately ONE listener here rather than one per label component: all
+    // four read the same scene, so four listeners would mean four identical
+    // frame requests per camera settle. Deliberately NOT folded into the
+    // viewport-bounds handler above either — that one is debounced 400 ms and
+    // only attaches when onCameraViewChange is supplied, neither of which suits
+    // a render request.
+    useEffect(() => {
+        if (!viewerReady || !viewerRef.current) return;
+        const viewer = viewerRef.current;
+        const handleMoveEnd = () => requestGlobeRender(viewer);
+        viewer.camera.moveEnd.addEventListener(handleMoveEnd);
+        return () => {
+            viewer.camera.moveEnd.removeEventListener(handleMoveEnd);
+        };
+    }, [viewerReady]);
 
     // Handle camera target flyTo
     useEffect(() => {

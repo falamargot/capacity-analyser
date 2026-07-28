@@ -4,7 +4,7 @@
  * with realistic radial power gradient (concentric rings) and
  * frequency-reuse color coding.
  */
-import React, { useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Entity, PolygonGraphics, EllipseGraphics } from 'resium';
 import {
     Cartesian3,
@@ -31,6 +31,7 @@ import {
     getBeamBaseColor,
 } from '../../config/beamVisualization';
 import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
+import { requestGlobeRender } from '../../utils/globeRenderRequest';
 import {
     FOOTPRINT_HIGHLIGHT_LAYER_HEIGHT_M,
     FOOTPRINT_LAYER_HEIGHT_M,
@@ -659,6 +660,14 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
     commercialOpacityScale = 1,
     showCommercialProjectionPanels = true,
 }) => {
+
+    // requestRenderMode wiring, step 2b.2 (Group B: data-cadence followers).
+    // BEHAVIOUR-NEUTRAL: requestRender() is a no-op while scene.requestRenderMode
+    // is false, which is the current configuration. Comb geometry follows the ~1 Hz satellite tick.
+    useEffect(() => {
+        requestGlobeRender(viewerRef.current);
+    }, [targetSat, servingPoints, selectedPosition, commercialProjectionOrigin]);
+
     const { getCombGeometries } = useCombGeometry();
     // Stable ref so BeamRing/highlight callbacks always call the latest getCombGeometries
     // without being recreated when sim state (beam health, weather, SNP) changes.

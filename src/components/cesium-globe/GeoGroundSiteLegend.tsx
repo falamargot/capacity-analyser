@@ -120,7 +120,7 @@ const GeoGroundSiteLegend: React.FC<GeoGroundSiteLegendProps> = ({
     <div
       aria-label="GEO ground site legend"
       data-geo-ground-site-legend
-      className="pointer-events-none absolute bottom-3 left-3 z-20 w-[230px] max-w-[calc(100vw-1rem)] rounded-lg border border-slate-700/75 bg-slate-950/82 p-2.5 text-slate-100 shadow-[0_18px_44px_-28px_rgba(2,6,23,0.9)] ring-1 ring-white/8 backdrop-blur-md"
+      className="pointer-events-none absolute bottom-3 left-3 z-20 w-[230px] max-w-[calc(100vw-1rem)] rounded-lg border border-slate-700/75 bg-slate-950/45 p-2.5 text-slate-100 shadow-[0_18px_44px_-28px_rgba(2,6,23,0.9)] ring-1 ring-white/8 backdrop-blur-md"
     >
       <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-100/90">GEO Ground Sites</div>
       <div className="mt-2 space-y-1.5">

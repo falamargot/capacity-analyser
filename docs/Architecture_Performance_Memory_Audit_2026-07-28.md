@@ -411,7 +411,20 @@ The prime remaining suspect for the balance is PERF-1: at 30 fps with 144 `Callb
 
 ---
 
-## 13. Open Questions
+## 13. MEM-4 — Aggregated connectivity grid rebuilds its polygon batch every 5 s (CONFIRMED, mode-gated)
+
+- **ID / Severity / Category:** MEM-4 / **High (mode-gated)** / Rendering architecture
+- **Status:** Confirmed by heap snapshot. **Deliberately not refactored** — see below.
+- **Evidence:** snapshot diff attributed `PolygonGeometryUpdater ×40,478`, `GeometryInstance ×39,811`, `Batch$5 ×15` (157 MB), `Primitive$3 ×744` (129 MB), `ArrayBuffer ×118,607` (151 MB), `Float64Array ×230` (123 MB), `system/JSArrayBufferData ×1,376` (145 MB).
+- **Mechanism:** `AggregatedConnectivityLayer.tsx:55` `GRID_INTERVAL_MS = 5_000` replaces `gridSnapshot`, regenerating the whole `Rectangle[]`. With index-based keys (`key={\`grid-${index}\`}`) and fresh `Rectangle` objects, every strip's geometry is marked dirty and Cesium reallocates the entire batch's vertex buffers.
+- **The churn is temporal, not spatial.** Horizontal run-merging **already exists** (`gridCoverage.ts:383` merges cells into longitude strips per latitude row), so the grid is ~1,500 strips, not 40,000 cells. ~1,500 strips × ~27 rebuilds in the snapshot window ≈ 40,500, matching the observed 40,478.
+- **Mode-gated:** the effect is gated on `show`, so it costs nothing unless Aggregated Connectivity is enabled. This is why the signature appeared in the second snapshot session and not the first, and it is why MEM-4 ranks below always-on costs such as PERF-1.
+- **Preferred long-term design:** a canvas / `ImageMaterialProperty` overlay — the pattern `FillRateLayer.tsx:137` already uses in this repo (a global overlay drawn as two canvas-backed rectangles). That would collapse ~1,500 entities rebuilt 27 times into two entities and a redrawn canvas.
+- **Explicitly deferred:** not refactored in this pass. It is a rendering-architecture change requiring visual verification, and its cost applies only in one mode.
+
+---
+
+## 14. Open Questions
 
 1. What is the real idle heap and frame cost in a browser? Everything in Lot 2 depends on this.
 2. Is the 1 Hz LEO refresh a product requirement, or would 2–5 s be acceptable? This single answer changes the value of Lots 3 and 6 substantially.

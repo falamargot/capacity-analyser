@@ -1,7 +1,7 @@
 /**
  * GeoGatewayLayer - Renders GEO ground segment sites on the globe.
  */
-import React, { useMemo, useCallback } from 'react';
+import React, { useEffect, useMemo, useCallback } from 'react';
 import { Entity, LabelGraphics } from 'resium';
 import {
     Cartesian2,
@@ -22,6 +22,7 @@ import {
     type GeoGatewayRenderMode,
 } from './geoGatewayMarkerModel';
 import { useSimulation } from '../../contexts/SimulationContext';
+import { requestGlobeRender } from '../../utils/globeRenderRequest';
 
 const OUT_OF_SERVICE_MARKER_COLOR = '#ef4444';
 const OUT_OF_SERVICE_OUTLINE_COLOR = '#991b1b';
@@ -174,6 +175,13 @@ const GeoGatewayLayer: React.FC<GeoGatewayLayerProps> = ({
     renderMode = 'engineering',
     showLabels = true,
 }) => {
+    // requestRenderMode wiring, step 2b.2 (Group B: data-cadence followers).
+    // BEHAVIOUR-NEUTRAL: requestRender() is a no-op while scene.requestRenderMode
+    // is false, which is the current configuration. Gateway set/selection changes are user- or scope-driven, not per-frame.
+    useEffect(() => {
+        requestGlobeRender(viewerRef.current);
+    }, [viewerRef, satelliteScope, selectedGatewayName, allowedGatewayNames, commercialTone, renderMode, showLabels]);
+
     // Gateway outage simulation state — failed sites must render as failed on the
     // globe in both modes, matching the panels driven by the same context.
     const { failedGeoGatewaySiteIds } = useSimulation();

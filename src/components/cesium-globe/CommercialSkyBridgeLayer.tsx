@@ -20,7 +20,7 @@
  * COMM-6E   — Animated ring opacity.
  */
 
-import React, { useRef, useMemo } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { Entity, LabelGraphics } from 'resium';
 import {
   Cartesian3,
@@ -37,6 +37,7 @@ import type {
   CommercialRouteStatus,
   CommercialRouteTechnology,
 } from '../../types/commercialRouteModel';
+import { requestGlobeRender } from '../../utils/globeRenderRequest';
 import { getPosition, DPR_FACTOR, calculateDynamicScale, type CameraMetricsSnapshot } from './utils';
 import { LABEL_EYE_OFFSET } from './layerHeights';
 import {
@@ -397,6 +398,14 @@ const CommercialSkyBridgeLayer: React.FC<CommercialSkyBridgeLayerProps> = ({
   sizeScale = 1,
   animationRef,
 }) => {
+  // requestRenderMode wiring, step 2b.3. BEHAVIOUR-NEUTRAL: requestRender() is a
+  // no-op while scene.requestRenderMode is false. Group B, not Group C — see the
+  // note in CommercialRouteLayer: `animationRef` is never passed by any caller,
+  // so these alphas come from the static fallback and only change with the route.
+  useEffect(() => {
+    requestGlobeRender(viewerRef.current);
+  }, [viewerRef, routeModel, sizeScale]);
+
   const staticState   = useMemo(
     () => makeStaticSkyBridgeState(routeModel.focusedSegmentId),
     [routeModel.focusedSegmentId],

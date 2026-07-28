@@ -190,7 +190,7 @@ const BottomPathRibbon: React.FC<BottomPathRibbonProps> = ({
     >
       <div className={isInline
         ? 'overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950/70'
-        : 'overflow-hidden rounded-xl border border-white/70 bg-white/88 shadow-2xl ring-1 ring-slate-200/70 backdrop-blur-md dark:border-transparent dark:bg-slate-950/88 dark:ring-white/12'}
+        : 'overflow-hidden rounded-xl border border-white/70 bg-white/45 shadow-2xl ring-1 ring-slate-200/70 backdrop-blur-md dark:border-transparent dark:bg-slate-950/45 dark:ring-white/12'}
       >
         <div className="flex items-center justify-between gap-3 border-b border-slate-200/80 px-3 py-1.5 dark:border-white/8">
           <div className="flex items-center gap-2">

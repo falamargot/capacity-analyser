@@ -18,6 +18,7 @@ import {
 } from 'cesium';
 import type { IssPosition, IssOrbitPath } from '../../modules/iss/issService';
 import type { CameraMetricsSnapshot } from './utils';
+import { requestGlobeRender } from '../../utils/globeRenderRequest';
 
 interface IssLayerProps {
   positionRef: React.RefObject<IssPosition | null>;
@@ -47,6 +48,13 @@ const IssLayer: React.FC<IssLayerProps> = ({
   viewerRef,
   cameraMetricsRef,
 }) => {
+    // requestRenderMode wiring, step 2b.2 (Group B: data-cadence followers).
+    // BEHAVIOUR-NEUTRAL: requestRender() is a no-op while scene.requestRenderMode
+    // is false, which is the current configuration. ISS position is advanced by an existing preRender handler; this covers path/selection changes.
+    useEffect(() => {
+        requestGlobeRender(viewerRef.current);
+    }, [viewerRef, orbitPath, hasPosition, isSelected, isFollowing, enabled]);
+
   // Stable CallbackPositionProperty — reads the ref each frame, no re-creation on position update
   const positionCallback = useMemo(
     () =>

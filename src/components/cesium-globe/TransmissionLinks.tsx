@@ -1,8 +1,9 @@
 /**
  * TransmissionLinks - Renders satellite/aircraft communication links
  */
-import React, { useMemo, useRef } from 'react';
-import { Entity, PolylineGraphics, PointGraphics, LabelGraphics } from 'resium';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { Entity, PolylineGraphics, PointGraphics, LabelGraphics, useCesium } from 'resium';
+import { requestGlobeRender } from '../../utils/globeRenderRequest';
 import {
     Color,
     CallbackProperty,
@@ -575,6 +576,26 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     commercialGeoRouteAvailable,
     narrativeLayerActive = false,
 }) => {
+    const { viewer } = useCesium();
+
+    // requestRenderMode wiring, step 2b.3.
+    // BEHAVIOUR-NEUTRAL: requestRender() is a no-op while scene.requestRenderMode
+    // is false, which is the current configuration.
+    //
+    // Reclassified from Group C to Group B. The 27 CallbackProperty sites here are
+    // time-parameterised — they call `propagateSatellite(sat, time)` — but they
+    // FOLLOW satellite motion rather than animating on their own: with no new
+    // frame the clock does not advance and the endpoints simply hold position,
+    // consistent with the satellites they connect. App already requests a frame
+    // on each ~1 Hz propagation republish; this covers the layer's own inputs.
+    useEffect(() => {
+        requestGlobeRender(viewer);
+    }, [
+        viewer, satellites, selectedPosition, pointB, leoSiteToSiteResult,
+        linkMode, activeMeshTab, selectedSatellite, autoSelectedLEOSatellite,
+        autoSelectedGEOSatellite, selectedSNP, selectedGateway, satelliteScope,
+    ]);
+
     const { coveragePolicy, weatherCondition, beamHealthFactors, hsBeamsSet } = useSimulation();
     const { focus: engineeringFocus, truths: engineeringTruths } = useEngineeringFocus();
     const engineeringDirection = activeMeshTab === 'reverse' ? 'B_TO_A' : 'A_TO_B';

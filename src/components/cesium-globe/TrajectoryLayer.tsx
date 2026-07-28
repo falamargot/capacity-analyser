@@ -1,8 +1,8 @@
 /**
  * TrajectoryLayer - Renders satellite orbit trajectory
  */
-import React, { useMemo } from 'react';
-import { Entity, PolylineGraphics } from 'resium';
+import React, { useEffect, useMemo } from 'react';
+import { Entity, PolylineGraphics, useCesium } from 'resium';
 import {
     Cartesian3,
     Color,
@@ -10,6 +10,7 @@ import {
 } from 'cesium';
 import * as satellite from 'satellite.js';
 import type { SatelliteData } from '../../types/satellites';
+import { requestGlobeRender } from '../../utils/globeRenderRequest';
 
 interface TrajectoryLayerProps {
     satellite: SatelliteData | null;
@@ -20,6 +21,18 @@ const TrajectoryLayer: React.FC<TrajectoryLayerProps> = ({
     satellite: sat,
     show
 }) => {
+    // This layer takes no viewerRef prop, so the viewer comes from Resium's
+    // context instead — the same source CoverageLayer and FillRateLayer use.
+    const { viewer } = useCesium();
+
+    // requestRenderMode wiring, step 2b.2 (Group B: data-cadence followers).
+    // BEHAVIOUR-NEUTRAL: requestRender() is a no-op while scene.requestRenderMode
+    // is false, which is the current configuration. The trajectory is recomputed
+    // when the selected satellite or visibility changes, not per frame.
+    useEffect(() => {
+        requestGlobeRender(viewer);
+    }, [viewer, sat, show]);
+
     // Create stable positions callback
     const positionsCallback = useMemo(() => {
         if (!sat?.satrec || !show) return null;

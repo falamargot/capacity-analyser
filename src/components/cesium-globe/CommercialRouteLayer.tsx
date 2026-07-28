@@ -25,7 +25,7 @@
  * COMM-6E   — Route reveal and focus transition animations.
  */
 
-import React, { useRef, useMemo } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { Entity, LabelGraphics } from 'resium';
 import {
   Cartesian3,
@@ -49,6 +49,7 @@ import type {
   CommercialRouteTechnology,
   CommercialRouteSegmentId,
 } from '../../types/commercialRouteModel';
+import { requestGlobeRender } from '../../utils/globeRenderRequest';
 import { getPosition, calculateDynamicScale, DPR_FACTOR, type CameraMetricsSnapshot } from './utils';
 import { GROUND_POINT_ALTITUDE_KM, LABEL_EYE_OFFSET } from './layerHeights';
 import {
@@ -555,6 +556,21 @@ const CommercialRouteLayer: React.FC<CommercialRouteLayerProps> = ({
   sizeScale = 1,
   animationRef,
 }) => {
+  // requestRenderMode wiring, step 2b.3.
+  // BEHAVIOUR-NEUTRAL: requestRender() is a no-op while scene.requestRenderMode
+  // is false, which is the current configuration.
+  //
+  // Classified as Group C in the readiness inventory on the assumption that
+  // `commercialAnimationDriver` drove these CallbackProperties per frame. It does
+  // not: `animationRef` is an optional prop that NO caller passes, so
+  // `effectiveAnimRef` always resolves to the static fallback below
+  // (reveal = 1, pulsePhase = 0, opacity snapped straight to the focus profile).
+  // These alphas therefore only change when the route or focus changes, which
+  // makes this a Group B data-cadence follower.
+  useEffect(() => {
+    requestGlobeRender(viewerRef.current);
+  }, [viewerRef, routeModel, sizeScale]);
+
   const focusedSegmentId  = routeModel.focusedSegmentId;
   const isBackhaulFocused = focusedSegmentId === 'backhaul';
   const technology        = routeModel.technology;

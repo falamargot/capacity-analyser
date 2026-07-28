@@ -1,7 +1,7 @@
 /**
  * AircraftLayer - Renders all aircraft entities with optimized callbacks
  */
-import React, { useMemo, useCallback, useRef } from 'react';
+import React, { useEffect, useMemo, useCallback, useRef } from 'react';
 import { Entity, LabelGraphics } from 'resium';
 import {
     Cartesian2,
@@ -18,6 +18,7 @@ import type { AircraftInterpolation } from '../../modules/airTraffic/useAirTraff
 import { PLANE_ICON, DPR_FACTOR, calculateDynamicScale, type CameraMetricsSnapshot } from './utils';
 import { usePositionCallbacks } from './hooks';
 import { LABEL_EYE_OFFSET } from './layerHeights';
+import { requestGlobeRender } from '../../utils/globeRenderRequest';
 
 interface AircraftLayerProps {
     aircraft: Aircraft[];
@@ -144,6 +145,13 @@ const AircraftLayer: React.FC<AircraftLayerProps> = ({
     aircraftSizeScale = 1,
     interpolatedAircraftMapRef,
 }) => {
+    // requestRenderMode wiring, step 2b.2 (Group B: data-cadence followers).
+    // BEHAVIOUR-NEUTRAL: requestRender() is a no-op while scene.requestRenderMode
+    // is false, which is the current configuration. Aircraft positions arrive on the OpenSky poll, not per frame.
+    useEffect(() => {
+        requestGlobeRender(viewerRef.current);
+    }, [viewerRef, aircraft, selectedAircraft]);
+
     const { getAircraftPositionCallback } = usePositionCallbacks([], aircraft, interpolatedAircraftMapRef);
 
     // Memoize aircraft entities

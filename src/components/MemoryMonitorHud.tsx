@@ -138,6 +138,18 @@ export const MemoryMonitorHud: React.FC = () => {
                         <span>{runtime.react.commitMs.p95.toFixed(1)} ms</span>
                     </div>
 
+                    {runtime.react.byId.length > 0 && (
+                        <>
+                            <div style={sectionTitle}>commit cost by subtree</div>
+                            {runtime.react.byId.map((e) => (
+                                <div key={e.id} style={{ ...row, opacity: 0.85 }}>
+                                    <span>{e.id}</span>
+                                    <span>{e.p95Ms.toFixed(1)} ms p95 · {e.commits}</span>
+                                </div>
+                            ))}
+                        </>
+                    )}
+
                     {runtime.engine.total > 0 && (
                         <>
                             <div style={sectionTitle}>engineering calcs</div>

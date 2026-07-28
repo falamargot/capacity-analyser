@@ -22,6 +22,7 @@ import type {
   CommercialRouteTechnology,
   RouteCoordinate,
 } from '../../types/commercialRouteModel';
+import { requestGlobeRender } from '../../utils/globeRenderRequest';
 import { getPosition, LEO_SMOKED_GLYPH, SATELLITE_GLYPH, type CameraMetricsSnapshot } from './utils';
 import { GROUND_POINT_ALTITUDE_KM, GROUND_POINT_LAYER_HEIGHT_M, LABEL_EYE_OFFSET } from './layerHeights';
 import { leoServingSatelliteEntityIds, leoSiteBeamEntityIds } from './commercialLeoEntityIds';
@@ -1786,6 +1787,13 @@ const CommercialSymbolicConnectivityLayer: React.FC<CommercialSymbolicConnectivi
   sizeScale = 1,
   routeHeroMode = false,
 }) => {
+  // requestRenderMode wiring, step 2b.3. BEHAVIOUR-NEUTRAL: requestRender() is a
+  // no-op while scene.requestRenderMode is false. Group B — this layer reads the
+  // route model directly and has no per-frame animation source.
+  useEffect(() => {
+    requestGlobeRender(viewerRef.current);
+  }, [viewerRef, routeModel, sizeScale, routeHeroMode]);
+
   const { origin, destination } = useMemo(() => resolveEndpoints(routeModel), [routeModel]);
   const arcSpecs = useMemo(() => buildArcSpecs(routeModel), [routeModel]);
   const effectiveFocusedSegmentId = routeModel.focusedSegmentId ?? (routeHeroMode ? 'summary' : null);
