@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { Entity, LabelGraphics, PointGraphics } from 'resium';
 import {
   ArcType,
+  CallbackPositionProperty,
   CallbackProperty,
   Cartesian2,
   Cartesian3,
@@ -10,7 +11,6 @@ import {
   HorizontalOrigin,
   JulianDate,
   PolylineGlowMaterialProperty,
-  PolygonHierarchy,
   VerticalOrigin,
   Viewer as CesiumViewerType,
 } from 'cesium';
@@ -23,9 +23,10 @@ import type {
   RouteCoordinate,
 } from '../../types/commercialRouteModel';
 import { requestGlobeRender } from '../../utils/globeRenderRequest';
-import { getPosition, LEO_SMOKED_GLYPH, SATELLITE_GLYPH, type CameraMetricsSnapshot } from './utils';
+import { getPosition, LEO_SMOKED_GLYPH, PLANE_ICON, SATELLITE_GLYPH, type CameraMetricsSnapshot } from './utils';
 import { GROUND_POINT_ALTITUDE_KM, GROUND_POINT_LAYER_HEIGHT_M, LABEL_EYE_OFFSET } from './layerHeights';
 import { leoServingSatelliteEntityIds, leoSiteBeamEntityIds } from './commercialLeoEntityIds';
+import { shouldRequestPathFlowFrame } from './renderPerformancePolicy';
 
 interface CommercialSymbolicConnectivityLayerProps {
   routeModel: CommercialRouteModel;
@@ -41,6 +42,7 @@ interface SymbolicEndpoint {
   coord: RouteCoordinate;
   segmentId: CommercialRouteSegmentId;
   status: CommercialRouteStatus;
+  kind: 'site' | 'aircraft' | 'vessel';
 }
 
 interface SymbolicArcSpec {
@@ -63,6 +65,7 @@ interface LeoSiteBeam {
   endpoint: SymbolicEndpoint;
   satellite: LeoServingSatellite;
   status: CommercialRouteStatus;
+  flowReversed: boolean;
 }
 
 interface LeoServingTopology {
@@ -76,6 +79,8 @@ const LEO_RELAY_SEGMENTS = 40;
 const LABEL_OFFSET = new Cartesian2(0, -18);
 const FLOW_EPOCH = JulianDate.fromDate(new Date(0));
 const FLOW_PHASES = [0, 0.34, 0.68] as const;
+const COMMERCIAL_FLOW_MODULE_SIGNATURE = Date.now().toString(36);
+let commercialFlowInstanceCounter = 0;
 const ACCESS_RADIO_WAVE_PHASES = [0, 0.24, 0.48, 0.72] as const;
 const DESTINATION_RECEPTION_PHASES = [0, 0.34, 0.68] as const;
 const ACCESS_RING_SEGMENTS = 96;
@@ -97,6 +102,26 @@ const SERVICE_OUTCOME_ARC_COLORS: Record<CommercialRouteStatus, string> = {
   blocked: '#94a3b8',
   pending: '#94a3b8',
 };
+function drawCommercialBoatIcon(): string {
+  const canvas = document.createElement('canvas');
+  canvas.width = 28;
+  canvas.height = 28;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return PLANE_ICON;
+  ctx.fillStyle = 'white';
+  ctx.beginPath();
+  ctx.moveTo(3, 16);
+  ctx.lineTo(25, 16);
+  ctx.lineTo(21, 23);
+  ctx.lineTo(7, 23);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillRect(8, 10, 12, 5);
+  ctx.fillRect(12, 5, 5, 5);
+  return canvas.toDataURL('image/png');
+}
+
+const COMMERCIAL_BOAT_ICON = drawCommercialBoatIcon();
 
 function drawCommercialGeoSatelliteGlyph(): string {
   const canvas = document.createElement('canvas');
@@ -238,14 +263,18 @@ function endpointAccentColor(endpoint: SymbolicEndpoint, focused: CommercialRout
   return endpointStatusColor(endpoint.status);
 }
 
-function endpointFromNode(node: CommercialRouteNode | undefined): SymbolicEndpoint | null {
+function endpointFromNode(
+  node: CommercialRouteNode | undefined,
+  segmentIdOverride?: CommercialRouteSegmentId,
+): SymbolicEndpoint | null {
   if (!node?.position) return null;
   return {
     id: node.id,
     label: node.label,
     coord: node.position,
-    segmentId: node.segmentId,
+    segmentId: segmentIdOverride ?? node.segmentId,
     status: node.status,
+    kind: node.meta?.endpointKind ?? 'site',
   };
 }
 
@@ -254,9 +283,15 @@ function resolveEndpoints(routeModel: CommercialRouteModel): {
   destination: SymbolicEndpoint | null;
 } {
   const origin = endpointFromNode(routeModel.nodes.find((node) => node.nodeType === 'ORIGIN'));
+  const customerDestination = routeModel.nodes.find((node) => node.nodeType === 'DESTINATION');
+  const geoGateway = routeModel.technology === 'GEO' && routeModel.destinationIsPortal
+    ? routeModel.nodes.find((node) => node.nodeType === 'HUB' && node.position)
+    : undefined;
   const destination = endpointFromNode(
-    routeModel.nodes.find((node) => node.nodeType === 'DESTINATION')
-    ?? routeModel.nodes.find((node) => node.nodeType === 'NETWORK_PORTAL')
+    customerDestination
+    ?? geoGateway
+    ?? routeModel.nodes.find((node) => node.nodeType === 'NETWORK_PORTAL'),
+    geoGateway ? 'destination' : undefined,
   );
   return { origin, destination };
 }
@@ -283,13 +318,16 @@ function buildSymbolicArcPositions(
     technology === 'GEO' ? 2100 : 1400,
     Math.max(technology === 'GEO' ? 750 : 500, distanceKm * 0.17),
   ) + offsetKm;
+  const originAltitudeKm = Math.max(GROUND_POINT_ALTITUDE_KM, origin.altitudeKm ?? GROUND_POINT_ALTITUDE_KM);
+  const destinationAltitudeKm = Math.max(GROUND_POINT_ALTITUDE_KM, destination.altitudeKm ?? GROUND_POINT_ALTITUDE_KM);
 
   return Array.from({ length: ARC_SEGMENTS + 1 }, (_, index) => {
     const t = index / ARC_SEGMENTS;
     const ease = 0.5 - Math.cos(t * Math.PI) * 0.5;
     const lat = origin.lat + (destination.lat - origin.lat) * ease;
     const lng = denormalizeLng(origin.lng + (normalizedDestLng - origin.lng) * ease);
-    const altitudeKm = SYMBOLIC_ROUTE_ALTITUDE_KM + Math.sin(t * Math.PI) * peakKm;
+    const surfaceAltitudeKm = originAltitudeKm + (destinationAltitudeKm - originAltitudeKm) * ease;
+    const altitudeKm = surfaceAltitudeKm + Math.sin(t * Math.PI) * peakKm;
     return getPosition(lat, lng, altitudeKm);
   });
 }
@@ -576,6 +614,9 @@ function resolveLeoServingTopology(
       endpoint,
       satellite,
       status: edge.status,
+      flowReversed: routeModel.flowDirection === 'B_TO_A'
+        ? !Boolean(toEndpoint && fromSatellite)
+        : Boolean(toEndpoint && fromSatellite),
     });
   }
 
@@ -606,6 +647,10 @@ function resolveLeoServingTopology(
 
 function buildLeoSiteBeamPositions(endpoint: RouteCoordinate, satellite: RouteCoordinate): Cartesian3[] {
   const satelliteAltKm = Math.max(650, Math.min(2_100, satellite.altitudeKm ?? 1_200));
+  const endpointAltKm = Math.max(
+    GROUND_POINT_ALTITUDE_KM,
+    endpoint.altitudeKm ?? GROUND_POINT_ALTITUDE_KM,
+  );
   const normalizedSatLng = normalizeLngNear(satellite.lng, endpoint.lng);
   const distanceKm = approximateDistanceKm(endpoint, { lat: satellite.lat, lng: normalizedSatLng });
   const bowKm = Math.min(90, Math.max(22, distanceKm * 0.024));
@@ -615,8 +660,8 @@ function buildLeoSiteBeamPositions(endpoint: RouteCoordinate, satellite: RouteCo
     const eased = 1 - (1 - t) ** 1.72;
     const lat = endpoint.lat + (satellite.lat - endpoint.lat) * eased;
     const lng = denormalizeLng(endpoint.lng + (normalizedSatLng - endpoint.lng) * eased);
-    const altitudeKm = SYMBOLIC_ROUTE_ALTITUDE_KM
-      + (satelliteAltKm - SYMBOLIC_ROUTE_ALTITUDE_KM) * eased
+    const altitudeKm = endpointAltKm
+      + (satelliteAltKm - endpointAltKm) * eased
       + Math.sin(t * Math.PI) * bowKm;
     return getPosition(lat, lng, altitudeKm);
   });
@@ -690,6 +735,89 @@ function interpolatePolylinePosition(
   return Cartesian3.clone(positions[positions.length - 1], scratch);
 }
 
+const CommercialFlowParticles = React.memo<{
+  idPrefix: string;
+  positions: Cartesian3[];
+  color: Color;
+  enabled: boolean;
+  reversed?: boolean;
+  sizeScale: number;
+  durationSeconds?: number;
+}>(({
+  idPrefix,
+  positions,
+  color,
+  enabled,
+  reversed = false,
+  sizeScale,
+  durationSeconds = 2.6,
+}) => {
+  const instanceSignatureRef = useRef(
+    `${COMMERCIAL_FLOW_MODULE_SIGNATURE}-${++commercialFlowInstanceCounter}`,
+  );
+  const safeId = useMemo(() => entitySafeSignature(idPrefix), [idPrefix]);
+  const entityIdPrefix = `commercial-route-flow-${safeId}-${instanceSignatureRef.current}`;
+  const particlePositions = useMemo(() => (
+    FLOW_PHASES.map((phase) => {
+      const scratch = new Cartesian3();
+      return new CallbackPositionProperty((time?: JulianDate) => {
+        const seconds = time ? JulianDate.secondsDifference(time, FLOW_EPOCH) : Date.now() / 1000;
+        const forwardProgress = ((seconds / durationSeconds + phase) % 1 + 1) % 1;
+        const progress = reversed ? 1 - forwardProgress : forwardProgress;
+        return interpolatePolylinePosition(positions, progress, scratch);
+      }, false);
+    })
+  ), [durationSeconds, positions, reversed]);
+  const glowColor = useMemo(() => color.withAlpha(0.24), [color]);
+  const glowOutlineColor = useMemo(() => color.withAlpha(0.12), [color]);
+  const coreColor = useMemo(() => Color.WHITE.withAlpha(0.98), []);
+  const coreOutlineColor = useMemo(() => color.withAlpha(0.96), [color]);
+
+  if (!enabled || positions.length < 2) return null;
+
+  return (
+    <>
+      {particlePositions.map((position, index) => (
+        <React.Fragment key={`${safeId}-${index}`}>
+          <Entity
+            id={`${entityIdPrefix}-${index}-glow`}
+            position={position}
+          >
+            <PointGraphics
+              pixelSize={18 * sizeScale}
+              color={glowColor}
+              outlineColor={glowOutlineColor}
+              outlineWidth={2}
+              disableDepthTestDistance={Number.POSITIVE_INFINITY}
+            />
+          </Entity>
+          <Entity
+            id={`${entityIdPrefix}-${index}`}
+            position={position}
+          >
+            <PointGraphics
+              pixelSize={6.5 * sizeScale}
+              color={coreColor}
+              outlineColor={coreOutlineColor}
+              outlineWidth={2}
+              disableDepthTestDistance={Number.POSITIVE_INFINITY}
+            />
+          </Entity>
+        </React.Fragment>
+      ))}
+    </>
+  );
+}, (prev, next) =>
+  prev.idPrefix === next.idPrefix
+  && prev.positions === next.positions
+  && prev.color.equals(next.color)
+  && prev.enabled === next.enabled
+  && prev.reversed === next.reversed
+  && prev.sizeScale === next.sizeScale
+  && prev.durationSeconds === next.durationSeconds
+);
+CommercialFlowParticles.displayName = 'CommercialFlowParticles';
+
 function shouldFocusEndpoint(endpoint: SymbolicEndpoint, focused: CommercialRouteSegmentId | null): boolean {
   if (!focused || focused === 'summary') return true;
   return endpoint.segmentId === focused;
@@ -729,7 +857,7 @@ function buildArcSpecs(routeModel: CommercialRouteModel): SymbolicArcSpec[] {
 }
 
 function coordinateSignature(coord: RouteCoordinate): string {
-  return `${coord.lat.toFixed(5)}:${coord.lng.toFixed(5)}`;
+  return `${coord.lat.toFixed(5)}:${coord.lng.toFixed(5)}:${(coord.altitudeKm ?? 0).toFixed(3)}`;
 }
 
 function entitySafeSignature(value: string): string {
@@ -876,17 +1004,25 @@ const SymbolicEndpointMarker = React.memo<{
   cameraMetricsRef: React.MutableRefObject<CameraMetricsSnapshot>;
   sizeScale: number;
 }>(({ endpoint, role, focusedSegmentId, cameraMetricsRef, sizeScale }) => {
+  const isAircraft = endpoint.kind === 'aircraft';
+  const isVessel = endpoint.kind === 'vessel';
+  const isMobileEndpoint = isAircraft || isVessel;
+  const markerAltitudeKm = isAircraft
+    ? Math.max(2, endpoint.coord.altitudeKm ?? 0)
+    : isVessel
+      ? GROUND_POINT_ALTITUDE_KM
+      : SYMBOLIC_ENDPOINT_MARKER_ALTITUDE_KM;
   const position = useMemo(
-    () => getPosition(endpoint.coord.lat, endpoint.coord.lng, SYMBOLIC_ENDPOINT_MARKER_ALTITUDE_KM),
-    [endpoint.coord.lat, endpoint.coord.lng],
+    () => getPosition(endpoint.coord.lat, endpoint.coord.lng, markerAltitudeKm),
+    [endpoint.coord.lat, endpoint.coord.lng, markerAltitudeKm],
   );
   const haloPosition = useMemo(
     () => getPosition(endpoint.coord.lat, endpoint.coord.lng, GROUND_POINT_ALTITUDE_KM),
     [endpoint.coord.lat, endpoint.coord.lng],
   );
   const posKey = useMemo(
-    () => `${endpoint.coord.lat.toFixed(4)},${endpoint.coord.lng.toFixed(4)}`,
-    [endpoint.coord.lat, endpoint.coord.lng],
+    () => `${endpoint.kind}-${endpoint.coord.lat.toFixed(4)},${endpoint.coord.lng.toFixed(4)},${markerAltitudeKm.toFixed(3)}`,
+    [endpoint.coord.lat, endpoint.coord.lng, endpoint.kind, markerAltitudeKm],
   );
   const entityIds = useMemo(
     () => symbolicEndpointEntityIds(role, endpoint),
@@ -957,13 +1093,21 @@ const SymbolicEndpointMarker = React.memo<{
         id={entityIds.marker}
         name={endpoint.label}
         position={position}
-        point={{
+        point={isMobileEndpoint ? undefined : {
           pixelSize: pointSize,
           color: pointColor,
           outlineColor: pointOutlineColor,
           outlineWidth: 3,
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
         }}
+        billboard={isMobileEndpoint ? {
+          image: isAircraft ? PLANE_ICON : COMMERCIAL_BOAT_ICON,
+          scale: (isAircraft ? 1.9 : 1.65) * sizeScale,
+          color: pointColor,
+          verticalOrigin: VerticalOrigin.CENTER,
+          horizontalOrigin: HorizontalOrigin.CENTER,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        } : undefined}
       >
         <LabelGraphics
           text={endpoint.label}
@@ -985,6 +1129,8 @@ const SymbolicEndpointMarker = React.memo<{
   prev.endpoint.id === next.endpoint.id &&
   prev.endpoint.coord.lat === next.endpoint.coord.lat &&
   prev.endpoint.coord.lng === next.endpoint.coord.lng &&
+  (prev.endpoint.coord.altitudeKm ?? 0) === (next.endpoint.coord.altitudeKm ?? 0) &&
+  prev.endpoint.kind === next.endpoint.kind &&
   prev.endpoint.status === next.endpoint.status &&
   prev.role === next.role &&
   prev.focusedSegmentId === next.focusedSegmentId &&
@@ -1395,13 +1541,24 @@ const LeoSiteToSatelliteBeam = React.memo<{
           clampToGround: false,
         }}
       />
+      <CommercialFlowParticles
+        idPrefix={`leo-beam-${beam.id}`}
+        positions={positions}
+        color={color}
+        enabled={beam.status === 'active' || beam.status === 'limited'}
+        reversed={beam.flowReversed}
+        sizeScale={sizeScale}
+        durationSeconds={2.35}
+      />
     </>
   );
 }, (prev, next) =>
   prev.beam.id === next.beam.id &&
   prev.beam.status === next.beam.status &&
+  prev.beam.flowReversed === next.beam.flowReversed &&
   prev.beam.endpoint.coord.lat === next.beam.endpoint.coord.lat &&
   prev.beam.endpoint.coord.lng === next.beam.endpoint.coord.lng &&
+  (prev.beam.endpoint.coord.altitudeKm ?? 0) === (next.beam.endpoint.coord.altitudeKm ?? 0) &&
   prev.beam.satellite.key === next.beam.satellite.key &&
   prev.beam.satellite.coord.lat === next.beam.satellite.coord.lat &&
   prev.beam.satellite.coord.lng === next.beam.satellite.coord.lng &&
@@ -1414,9 +1571,10 @@ LeoSiteToSatelliteBeam.displayName = 'LeoSiteToSatelliteBeam';
 const LeoSatelliteRelay = React.memo<{
   from: LeoServingSatellite;
   to: LeoServingSatellite;
+  reverseFlow: boolean;
   sizeScale: number;
   animationStartSeconds: number;
-}>(({ from, to, sizeScale, animationStartSeconds }) => {
+}>(({ from, to, reverseFlow, sizeScale, animationStartSeconds }) => {
   const positions = useMemo(
     () => buildLeoRelayPositions(from.coord, to.coord),
     [from.coord, to.coord],
@@ -1465,6 +1623,15 @@ const LeoSatelliteRelay = React.memo<{
           clampToGround: false,
         }}
       />
+      <CommercialFlowParticles
+        idPrefix={`leo-relay-${entityKey}`}
+        positions={positions}
+        color={Color.fromCssColorString('#f0abfc')}
+        enabled={from.status === 'active' || from.status === 'limited' || to.status === 'active' || to.status === 'limited'}
+        reversed={reverseFlow}
+        sizeScale={sizeScale}
+        durationSeconds={2.2}
+      />
     </>
   );
 }, (prev, next) =>
@@ -1476,6 +1643,7 @@ const LeoSatelliteRelay = React.memo<{
   prev.to.coord.lat === next.to.coord.lat &&
   prev.to.coord.lng === next.to.coord.lng &&
   prev.to.coord.altitudeKm === next.to.coord.altitudeKm &&
+  prev.reverseFlow === next.reverseFlow &&
   prev.sizeScale === next.sizeScale &&
   prev.animationStartSeconds === next.animationStartSeconds
 );
@@ -1483,8 +1651,9 @@ LeoSatelliteRelay.displayName = 'LeoSatelliteRelay';
 
 const LeoSatelliteServiceFocus = React.memo<{
   topology: LeoServingTopology;
+  reverseFlow: boolean;
   sizeScale: number;
-}>(({ topology, sizeScale }) => {
+}>(({ topology, reverseFlow, sizeScale }) => {
   const animationStartSecondsRef = useRef(Date.now() / 1000);
   const animationStartSeconds = animationStartSecondsRef.current;
   const relayFrom = topology.satellites[0] ?? null;
@@ -1512,6 +1681,7 @@ const LeoSatelliteServiceFocus = React.memo<{
         <LeoSatelliteRelay
           from={relayFrom}
           to={relayTo}
+          reverseFlow={reverseFlow}
           sizeScale={sizeScale}
           animationStartSeconds={animationStartSeconds}
         />
@@ -1520,6 +1690,7 @@ const LeoSatelliteServiceFocus = React.memo<{
   );
 }, (prev, next) =>
   prev.sizeScale === next.sizeScale &&
+  prev.reverseFlow === next.reverseFlow &&
   prev.topology.satellites.map((satellite) => (
     `${satellite.key}:${satellite.coord.lat}:${satellite.coord.lng}:${satellite.coord.altitudeKm ?? 0}:${satellite.status}`
   )).join('|') === next.topology.satellites.map((satellite) => (
@@ -1538,20 +1709,21 @@ const GeoSatelliteServiceFocus = React.memo<{
   origin: SymbolicEndpoint;
   destination: SymbolicEndpoint;
   skyBridge: CommercialRouteNode | null;
+  reverseFlow: boolean;
   sizeScale: number;
-}>(({ spec, origin, destination, skyBridge, sizeScale }) => {
+}>(({ spec, origin, destination, skyBridge, reverseFlow, sizeScale }) => {
   const originLat = origin.coord.lat;
   const originLng = origin.coord.lng;
   const destinationLat = destination.coord.lat;
   const destinationLng = destination.coord.lng;
   const positions = useMemo(() => (
     buildSymbolicArcPositions(
-      { lat: originLat, lng: originLng },
-      { lat: destinationLat, lng: destinationLng },
+      origin.coord,
+      destination.coord,
       'GEO',
       0,
     )
-  ), [destinationLat, destinationLng, originLat, originLng]);
+  ), [destination.coord, origin.coord]);
   const satellitePosition = useMemo(() => (
     buildSymbolicArcApexPosition(
       { lat: originLat, lng: originLng },
@@ -1601,6 +1773,14 @@ const GeoSatelliteServiceFocus = React.memo<{
           clampToGround: false,
         }}
       />
+      <CommercialFlowParticles
+        idPrefix={`geo-${posKey}`}
+        positions={positions}
+        color={color}
+        enabled={spec.status === 'active' || spec.status === 'limited'}
+        reversed={reverseFlow}
+        sizeScale={sizeScale}
+      />
       <SatelliteFocusGlyph
         id={`geo-${skyBridge?.id ?? 'satellite'}-${posKey}`}
         label={satelliteLabel}
@@ -1616,10 +1796,13 @@ const GeoSatelliteServiceFocus = React.memo<{
   prev.spec.status === next.spec.status &&
   prev.origin.coord.lat === next.origin.coord.lat &&
   prev.origin.coord.lng === next.origin.coord.lng &&
+  (prev.origin.coord.altitudeKm ?? 0) === (next.origin.coord.altitudeKm ?? 0) &&
   prev.destination.coord.lat === next.destination.coord.lat &&
   prev.destination.coord.lng === next.destination.coord.lng &&
+  (prev.destination.coord.altitudeKm ?? 0) === (next.destination.coord.altitudeKm ?? 0) &&
   prev.skyBridge?.id === next.skyBridge?.id &&
   prev.skyBridge?.label === next.skyBridge?.label &&
+  prev.reverseFlow === next.reverseFlow &&
   prev.sizeScale === next.sizeScale
 );
 GeoSatelliteServiceFocus.displayName = 'GeoSatelliteServiceFocus';
@@ -1629,20 +1812,21 @@ const SymbolicServiceArc = React.memo<{
   origin: SymbolicEndpoint;
   destination: SymbolicEndpoint;
   focusedSegmentId: CommercialRouteSegmentId | null;
+  reverseFlow: boolean;
   sizeScale: number;
-}>(({ spec, origin, destination, focusedSegmentId, sizeScale }) => {
+}>(({ spec, origin, destination, focusedSegmentId, reverseFlow, sizeScale }) => {
   const originLat = origin.coord.lat;
   const originLng = origin.coord.lng;
   const destinationLat = destination.coord.lat;
   const destinationLng = destination.coord.lng;
   const positions = useMemo(() => (
     buildSymbolicArcPositions(
-      { lat: originLat, lng: originLng },
-      { lat: destinationLat, lng: destinationLng },
+      origin.coord,
+      destination.coord,
       spec.technology,
       0,
     )
-  ), [destinationLat, destinationLng, originLat, originLng, spec.technology]);
+  ), [destination.coord, origin.coord, spec.technology]);
 
   // Position key — changes whenever either endpoint coordinate changes.
   // Used in entity keys so Resium is forced to remount (remove + create)
@@ -1694,11 +1878,12 @@ const SymbolicServiceArc = React.memo<{
       const scratch = new Cartesian3();
       return new CallbackProperty((time?: JulianDate) => {
         const seconds = time ? JulianDate.secondsDifference(time, FLOW_EPOCH) : Date.now() / 1000;
-        const progress = (seconds / 2.6 + phase) % 1;
+        const forwardProgress = ((seconds / 2.6 + phase) % 1 + 1) % 1;
+        const progress = reverseFlow ? 1 - forwardProgress : forwardProgress;
         return interpolatePolylinePosition(positions, progress, scratch);
       }, false);
     })
-  ), [positions]);
+  ), [positions, reverseFlow]);
 
   // Memoized flow particle colors — prevent inline Color allocation on every render.
   const flowColor = useMemo(() => color.withAlpha(flowAlpha), [color, flowAlpha]);
@@ -1771,11 +1956,14 @@ const SymbolicServiceArc = React.memo<{
   prev.spec.technology === next.spec.technology &&
   prev.origin.coord.lat === next.origin.coord.lat &&
   prev.origin.coord.lng === next.origin.coord.lng &&
+  (prev.origin.coord.altitudeKm ?? 0) === (next.origin.coord.altitudeKm ?? 0) &&
   prev.origin.status === next.origin.status &&
   prev.destination.coord.lat === next.destination.coord.lat &&
   prev.destination.coord.lng === next.destination.coord.lng &&
+  (prev.destination.coord.altitudeKm ?? 0) === (next.destination.coord.altitudeKm ?? 0) &&
   prev.destination.status === next.destination.status &&
   prev.focusedSegmentId === next.focusedSegmentId &&
+  prev.reverseFlow === next.reverseFlow &&
   prev.sizeScale === next.sizeScale
 );
 SymbolicServiceArc.displayName = 'SymbolicServiceArc';
@@ -1787,9 +1975,6 @@ const CommercialSymbolicConnectivityLayer: React.FC<CommercialSymbolicConnectivi
   sizeScale = 1,
   routeHeroMode = false,
 }) => {
-  // requestRenderMode wiring, step 2b.3. BEHAVIOUR-NEUTRAL: requestRender() is a
-  // no-op while scene.requestRenderMode is false. Group B — this layer reads the
-  // route model directly and has no per-frame animation source.
   useEffect(() => {
     requestGlobeRender(viewerRef.current);
   }, [viewerRef, routeModel, sizeScale, routeHeroMode]);
@@ -1797,8 +1982,7 @@ const CommercialSymbolicConnectivityLayer: React.FC<CommercialSymbolicConnectivi
   const { origin, destination } = useMemo(() => resolveEndpoints(routeModel), [routeModel]);
   const arcSpecs = useMemo(() => buildArcSpecs(routeModel), [routeModel]);
   const effectiveFocusedSegmentId = routeModel.focusedSegmentId ?? (routeHeroMode ? 'summary' : null);
-  const isSatelliteFocus = routeModel.focusedSegmentId === 'satellite';
-  const showGeoSatelliteFocus = routeModel.technology === 'GEO' && (isSatelliteFocus || routeHeroMode);
+  const showGeoSatelliteFocus = routeModel.technology === 'GEO';
   const leoServingTopology = useMemo(
     () => resolveLeoServingTopology(routeModel, origin, destination),
     [destination, origin, routeModel],
@@ -1806,6 +1990,26 @@ const CommercialSymbolicConnectivityLayer: React.FC<CommercialSymbolicConnectivi
   const showLeoTransmission = routeModel.technology === 'LEO'
     && leoServingTopology.satellites.length > 0;
   const skyBridgeNodes = useMemo(() => resolveSkyBridgeNodes(routeModel), [routeModel]);
+  const hasAnimatedTransmission = useMemo(
+    () => routeModel.edges.some((edge) => edge.status === 'active' || edge.status === 'limited')
+      || arcSpecs.some((spec) => spec.status === 'active' || spec.status === 'limited'),
+    [arcSpecs, routeModel.edges],
+  );
+
+  useEffect(() => {
+    if (!hasAnimatedTransmission) return;
+    let animationFrame = 0;
+    let lastRequestAtMs: number | null = null;
+    const tick = (nowMs: number) => {
+      if (shouldRequestPathFlowFrame(nowMs, lastRequestAtMs)) {
+        requestGlobeRender(viewerRef.current);
+        lastRequestAtMs = nowMs;
+      }
+      animationFrame = requestAnimationFrame(tick);
+    };
+    animationFrame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animationFrame);
+  }, [hasAnimatedTransmission, viewerRef]);
   const expectedArcEntityIds = useMemo(
     () => {
       const ids = showGeoSatelliteFocus
@@ -1846,6 +2050,7 @@ const CommercialSymbolicConnectivityLayer: React.FC<CommercialSymbolicConnectivi
           origin={origin}
           destination={destination}
           focusedSegmentId={effectiveFocusedSegmentId}
+          reverseFlow={routeModel.flowDirection === 'B_TO_A'}
           sizeScale={sizeScale}
         />
       ))}
@@ -1856,6 +2061,7 @@ const CommercialSymbolicConnectivityLayer: React.FC<CommercialSymbolicConnectivi
           origin={origin}
           destination={destination}
           skyBridge={skyBridgeNodes.primary}
+          reverseFlow={routeModel.flowDirection === 'B_TO_A'}
           sizeScale={sizeScale}
         />
       ))}
@@ -1863,6 +2069,7 @@ const CommercialSymbolicConnectivityLayer: React.FC<CommercialSymbolicConnectivi
         <LeoSatelliteServiceFocus
           key="leo-focus"
           topology={leoServingTopology}
+          reverseFlow={routeModel.flowDirection === 'B_TO_A'}
           sizeScale={sizeScale}
         />
       )}

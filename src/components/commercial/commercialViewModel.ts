@@ -94,6 +94,8 @@ interface BuildCommercialScenarioViewModelInput {
   siteB: CommercialPoint | null;
   nearestLocation?: { city: string; country: string } | null;
   nearestLocationB?: { city: string; country: string } | null;
+  siteALabelOverride?: string | null;
+  siteBLabelOverride?: string | null;
   selectedSnpName?: string | null;
   selectedSatellite: SatelliteData | null;
   activeGeoSatellite: SatelliteData | null;
@@ -224,7 +226,8 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
 
   // ── Per-tech metrics — independent of which technology drives the narrative ──
 
-  const siteAName = locationName(input.nearestLocation, input.activeAnalysisPoint, 'Site A');
+  const siteAName = input.siteALabelOverride
+    ?? locationName(input.nearestLocation, input.activeAnalysisPoint, 'Site A');
   const leoServiceStatus = input.leoTopologyMode === 'SITE_TO_SITE'
     ? (leoEvidence?.serviceStatus ?? leoRoutePath?.serviceStatus ?? null)
     : (leoEvidence?.serviceStatus ?? null);
@@ -488,7 +491,8 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
   const geoGatewayConfidence = commercialGatewayConfidenceLabel(input.geoGatewayTrafficStatus);
   const geoGatewayIsReference = input.geoGatewayTrafficStatus === 'PUBLICLY_LIKELY';
   const siteBName = input.siteB
-    ? locationName(input.nearestLocationB, input.siteB, 'Site B')
+    ? input.siteBLabelOverride
+      ?? locationName(input.nearestLocationB, input.siteB, 'Site B')
     : destinationIsSnp
       ? (input.selectedSnpName ?? 'SNP')
       : 'Site B';

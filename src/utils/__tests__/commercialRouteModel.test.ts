@@ -152,4 +152,35 @@ describe('commercialRouteModel GEO gateway safety', () => {
     expect(model.destinationIsPortal).toBe(false);
     expect(model.nodes.some((node) => node.nodeType === 'HUB')).toBe(false);
   });
+
+  it('preserves mobile endpoint identity, altitude, labels, and route direction', () => {
+    const model = buildCommercialRouteModel(baseViewModel('Site B'), {
+      activeAnalysisPoint: { lat: 41.2, lng: -72.4, altitude: 11.6 },
+      siteB: { lat: 43.2, lng: -82.95, altitude: 9.8 },
+      originEndpointKind: 'aircraft',
+      destinationEndpointKind: 'aircraft',
+      originEndpointLabel: 'AAL1331',
+      destinationEndpointLabel: 'AAL151',
+      flowDirection: 'B_TO_A',
+      resolvedAutoGeoGateway: null,
+      resolvedSelectedGeoGateway: null,
+      activeLeoRouteEvidence: null,
+      geoRouteAnalysis: null,
+      activeGeoSatellite: null,
+    });
+
+    const origin = model.nodes.find((node) => node.nodeType === 'ORIGIN');
+    const destination = model.nodes.find((node) => node.nodeType === 'DESTINATION');
+    expect(origin).toMatchObject({
+      label: 'AAL1331',
+      position: { altitudeKm: 11.6 },
+      meta: { endpointKind: 'aircraft' },
+    });
+    expect(destination).toMatchObject({
+      label: 'AAL151',
+      position: { altitudeKm: 9.8 },
+      meta: { endpointKind: 'aircraft' },
+    });
+    expect(model.flowDirection).toBe('B_TO_A');
+  });
 });

@@ -55,13 +55,13 @@ export interface CommercialNarrativeCardModel {
   businessNote: string;
 }
 
-const segmentOrder: CommercialRouteSegmentId[] = ['access', 'satellite', 'destination', 'summary'];
+const segmentOrder: CommercialRouteSegmentId[] = ['access', 'destination', 'satellite', 'summary'];
 
 const segmentTitles: Record<CommercialRouteSegmentId, string> = {
   access: 'Origin Site',
   satellite: 'Space Coverage',
   backhaul: 'Network Transit',
-  destination: 'Service Delivery',
+  destination: 'Destination Site',
   summary: 'Recommendation',
 };
 
@@ -414,7 +414,7 @@ export function buildCommercialNarrativeCardModel({
 
       return {
         segmentId: focusedSegmentId,
-        stepNumber: 2,
+        stepNumber: 3,
         stepTotal: segmentOrder.length,
         eyebrow: 'Space Coverage',
         title: 'Space Coverage',
@@ -484,10 +484,10 @@ export function buildCommercialNarrativeCardModel({
       const destName = clean(viewModel.siteB?.name) ?? clean(viewModel.display.destinationLocation) ?? (isGateway ? 'the traffic gateway' : 'the destination');
       return {
         segmentId: focusedSegmentId,
-        stepNumber: 3,
+        stepNumber: 2,
         stepTotal: segmentOrder.length,
-        eyebrow: 'Service Delivery',
-        title: 'Service Delivery',
+        eyebrow: 'Destination Site',
+        title: 'Destination Site',
         statusLabel: segment ? destinationStateLabel[segment.customerStatus] : statusLabel,
         statusTone: statusTone(segment),
         narrativeStatement: destinationNarrativeStatement(viewModel, segment),

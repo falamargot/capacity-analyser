@@ -256,9 +256,9 @@ describe('HeaderScenarioBuilder single-site destination handling', () => {
       />,
     );
 
-  const SWAP_LABEL = 'Swap Site 1 and Site 2';
+  const SWAP_LABEL = 'Swap Site A and Site B';
 
-  it('keeps Site 2 visible and empty for a one-site GEO scenario', () => {
+  it('keeps Site B visible and empty for a one-site GEO scenario', () => {
     const markup = renderConfigure({
       ...configureBaseline,
       technology: 'GEO',
@@ -267,7 +267,7 @@ describe('HeaderScenarioBuilder single-site destination handling', () => {
       siteB: { ...configureBaseline.siteB, location: null },
     });
 
-    expect(markup).toContain('Site 2');
+    expect(markup).toContain('Site B');
     expect(markup).toContain('Add a second site');
     expect(markup).not.toContain('Dakar');
     expect(markup).toContain(SWAP_LABEL);

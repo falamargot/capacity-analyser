@@ -100,6 +100,9 @@ describe('commercial narrative gateway confidence', () => {
       value: 'Reference / unconfirmed traffic gateway',
     });
     expect(card.facts).not.toContainEqual({ label: 'Signal', value: 'Confirmed' });
+    expect(card.title).toBe('Destination Site');
+    expect(card.eyebrow).toBe('Destination Site');
+    expect(card.stepNumber).toBe(2);
   });
 
   it('produces a safe narrative when no commercial gateway is resolved', () => {

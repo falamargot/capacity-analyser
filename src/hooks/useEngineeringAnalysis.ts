@@ -130,6 +130,7 @@ export interface EngineeringAnalysisInputs {
   activeConnTab: 'LEO' | 'GEO';
   analysisSource?: 'earth' | 'aircraft';
   aircraftCallsign?: string;
+  aircraftCallsignB?: string;
   selectedSNP?: { name: string; lat: number; lng: number } | null;
   candidateCoverages?: CandidateCoverage[];
   selectedCoverage?: CandidateCoverage | null;
@@ -344,6 +345,7 @@ export function useEngineeringAnalysis({
   activeConnTab,
   analysisSource,
   aircraftCallsign,
+  aircraftCallsignB,
   selectedSNP: propSelectedSNP = null,
   candidateCoverages = [],
   selectedCoverage = null,
@@ -723,22 +725,24 @@ export function useEngineeringAnalysis({
 
   const pointALabel = useMemo(() => {
     if (!activePoint) return 'Terminal A';
+    if (aircraftCallsign) return aircraftCallsign;
     const nearest = [nearestLocation?.city, nearestLocation?.country].filter(Boolean).join(', ');
     return nearest
       ? `${formatCoordinates(activePoint)} (${nearest})`
       : formatCoordinates(activePoint);
-  }, [activePoint, nearestLocation]);
+  }, [activePoint, aircraftCallsign, nearestLocation]);
   const pointBLabel = useMemo(() => {
     if (!pointB) return 'Terminal B';
+    if (aircraftCallsignB) return aircraftCallsignB;
     const nearest = [pointBNearestLocation?.city, pointBNearestLocation?.country].filter(Boolean).join(', ');
     return nearest
       ? `${formatCoordinates(pointB)} (${nearest})`
       : formatCoordinates(pointB);
-  }, [pointB, pointBNearestLocation]);
+  }, [aircraftCallsignB, pointB, pointBNearestLocation]);
 
   const detailHeaderRouteSummary = useMemo(() => {
     const routePointB = pointB ?? pointBLeo;
-    if (!activePoint || !routePointB || analysisSource === 'aircraft') return null;
+    if (!activePoint || !routePointB) return null;
 
     const routeScope = satelliteScope === 'ALL' ? activeConnTab : satelliteScope;
     const title = routeScope === 'GEO'
@@ -748,9 +752,11 @@ export function useEngineeringAnalysis({
           ? 'Site B → Site A'
           : 'Site A ⇄ Site B'
       : 'Site A ⇄ Site B';
-    const siteALabel = [nearestLocation?.city, nearestLocation?.country].filter(Boolean).join(', ')
+    const siteALabel = aircraftCallsign
+      || [nearestLocation?.city, nearestLocation?.country].filter(Boolean).join(', ')
       || formatCoordinates(activePoint);
-    const siteBLabel = [pointBNearestLocation?.city, pointBNearestLocation?.country].filter(Boolean).join(', ')
+    const siteBLabel = aircraftCallsignB
+      || [pointBNearestLocation?.city, pointBNearestLocation?.country].filter(Boolean).join(', ')
       || formatCoordinates(routePointB);
 
     return {
@@ -760,7 +766,8 @@ export function useEngineeringAnalysis({
   }, [
     activeConnTab,
     activePoint,
-    analysisSource,
+    aircraftCallsign,
+    aircraftCallsignB,
     linkMode,
     nearestLocation,
     pointB,

@@ -52,7 +52,7 @@ import {
 interface TransmissionLinksProps {
     satellites: SatelliteData[];
     selectedPosition?: { lat: number; lng: number; altitude?: number } | null;
-    pointB?: { lat: number; lng: number } | null;
+    pointB?: { lat: number; lng: number; altitude?: number } | null;
     /** LEO site-to-site result — when present, draws the full routed path on the globe. */
     leoSiteToSiteResult?: LeoSiteToSiteResult | null;
     linkMode?: string;
@@ -949,7 +949,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     const meshSatToBCallback = useMemo(() => {
         if (!isDualPointActive || !autoSelectedGEOSatellite || !pointB) return null;
 
-        const pointBPos = getRouteSurfacePosition(pointB.lat, pointB.lng);
+        const pointBPos = getRouteSurfacePosition(pointB.lat, pointB.lng, pointB.altitude || 0);
 
         return new CallbackProperty((_time?: JulianDate) => {
             const g = autoSelectedGEORef.current;
@@ -964,7 +964,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     // heads point in the correct RF flow direction.
     const meshBtoSatCallback = useMemo(() => {
         if (!isDualPointActive || !autoSelectedGEOSatellite || !pointB) return null;
-        const pointBPos = getRouteSurfacePosition(pointB.lat, pointB.lng);
+        const pointBPos = getRouteSurfacePosition(pointB.lat, pointB.lng, pointB.altitude || 0);
         return new CallbackProperty((_time?: JulianDate) => {
             const g = autoSelectedGEORef.current;
             if (!g) return [];

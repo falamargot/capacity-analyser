@@ -174,6 +174,9 @@ export interface RouteCoordinate {
  * All fields are optional — consumers must handle their absence.
  */
 export interface CommercialRouteNodeMeta {
+  /** Physical customer endpoint represented by this node. */
+  endpointKind?: 'site' | 'aircraft' | 'vessel';
+
   /**
    * Technology family for SKY_BRIDGE nodes.
    * Drives colour selection: GEO → blue-400, LEO → pink-400.
@@ -360,6 +363,12 @@ export interface CommercialRouteModel {
    * Corresponds to CommercialScenarioViewModel.display.destinationType === 'SNP'.
    */
   destinationIsPortal: boolean;
+
+  /**
+   * Direction of the animated customer flow across the simplified route.
+   * A is the origin endpoint and B is the destination/gateway endpoint.
+   */
+  flowDirection: 'A_TO_B' | 'B_TO_A';
 
   /**
    * Ordered list of route nodes in traversal order:

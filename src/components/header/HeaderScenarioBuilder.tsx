@@ -244,19 +244,21 @@ const WeatherAssumptionRow = memo(function WeatherAssumptionRow({
   weather,
   disabled,
   realWeatherUnavailable,
+  compact = false,
 }: {
   weather: SiteWeatherConfig;
   disabled?: boolean;
   realWeatherUnavailable?: boolean;
+  compact?: boolean;
 }) {
   const selectDisabled = disabled;
   const autoWeatherEnabled = weather.autoWeatherEnabled ?? true;
   const autoWeatherDisabled = disabled || realWeatherUnavailable || !weather.onAutoWeatherChange;
 
   return (
-    <div className="flex w-full min-w-0 items-center gap-1.5 px-0.5">
+    <div className={`flex w-full min-w-0 items-center ${compact ? 'gap-1' : 'gap-1.5 px-0.5'}`}>
       <div className="flex shrink-0 items-center text-slate-500 dark:text-slate-400" title="Environment">
-        <CloudSun className="h-3 w-3" aria-hidden="true" />
+        <CloudSun className={compact ? 'h-2.5 w-2.5' : 'h-3 w-3'} aria-hidden="true" />
       </div>
       <div className="min-w-0 flex-1">
         <select
@@ -289,7 +291,7 @@ const WeatherAssumptionRow = memo(function WeatherAssumptionRow({
           className="h-2.5 w-2.5 rounded border-slate-300 bg-white text-sky-600 focus:ring-1 focus:ring-sky-400 dark:border-slate-600 dark:bg-slate-800"
           aria-label="Use current weather"
         />
-        <span>Real</span>
+        <span className={compact ? 'sr-only' : undefined}>Real</span>
       </label>
     </div>
   );
@@ -504,7 +506,7 @@ function SiteColumn({
       ].join(' ')}
     >
       <div className="flex min-w-0 flex-col gap-0.5">
-        <div className="grid min-w-0 grid-cols-[minmax(8.5rem,1fr)_minmax(9.5rem,0.68fr)] items-center gap-1.5">
+        <div className="grid min-w-0 grid-cols-[minmax(8.5rem,1fr)_minmax(9.5rem,0.68fr)] items-end gap-1.5">
           <div className="flex min-w-0 flex-col gap-1">
             <div className="flex min-w-0 items-center gap-1.5">
               <span className={`inline-flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${accentClass} text-[7.5px] font-black tabular-nums text-white shadow-[0_8px_18px_-14px_rgba(14,165,233,0.82)]`}>
@@ -811,7 +813,7 @@ function EngineeringHeaderScenarioBuilder({
         ? () => updateSite(key, { location: null })
         : undefined,
       locationDisabled: key === 'siteB' && !draft.siteA.location,
-      locationDisabledReason: 'Select Site 1 before adding Site 2',
+      locationDisabledReason: 'Select Site A before adding Site B',
       fallback: key === 'siteB' && draft.siteA.location ? 'Add a second site' : source.fallback,
       terminals: {
         geoRFClassId: configuredSite.geoRFClassId,
@@ -935,8 +937,8 @@ function EngineeringHeaderScenarioBuilder({
       const isAircraft = analysisSource === 'aircraft';
 
       return (
-        <div className="grid min-w-0 grid-cols-[2rem_minmax(8rem,1fr)_minmax(9.5rem,0.72fr)] items-center gap-1.5">
-          <span className="inline-flex h-6 w-7 items-center justify-center rounded-md bg-sky-500/10 text-[8px] font-black uppercase tracking-[0.12em] text-sky-700 dark:bg-sky-400/10 dark:text-sky-200">
+        <div className="grid min-w-0 grid-cols-[1.5rem_minmax(4.5rem,1fr)_minmax(6.5rem,0.85fr)] items-center gap-1">
+          <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-sky-500/10 text-[8px] font-black uppercase tracking-[0.12em] text-sky-700 dark:bg-sky-400/10 dark:text-sky-200">
             {label}
           </span>
           <div className="min-w-0">
@@ -954,6 +956,7 @@ function EngineeringHeaderScenarioBuilder({
             weather={config.weather}
             disabled={isAircraft}
             realWeatherUnavailable={!config.endpoint}
+            compact
           />
         </div>
       );
@@ -963,11 +966,11 @@ function EngineeringHeaderScenarioBuilder({
       <fieldset
         ref={configureRef}
         tabIndex={-1}
-        className="grid h-full min-w-0 grid-cols-2 items-center gap-2 rounded-xl border border-slate-200/65 bg-slate-50/80 px-2 py-1 shadow-[0_12px_30px_-30px_rgba(15,23,42,0.38)] dark:border-white/[0.09] dark:bg-slate-900/72"
+        className="grid h-full min-w-0 grid-cols-2 items-center gap-1.5 rounded-xl border border-slate-200/65 bg-slate-50/80 px-2 py-1 shadow-[0_12px_30px_-30px_rgba(15,23,42,0.38)] dark:border-white/[0.09] dark:bg-slate-900/72"
         aria-label="Collapsed desktop engineering scenario configuration"
       >
-        {collapsedSiteRow('siteA', siteA, 'S1')}
-        {collapsedSiteRow('siteB', siteB, 'S2')}
+        {collapsedSiteRow('siteA', siteA, 'A')}
+        {collapsedSiteRow('siteB', siteB, 'B')}
       </fieldset>
     );
   }
@@ -985,7 +988,7 @@ function EngineeringHeaderScenarioBuilder({
       aria-label="Desktop engineering scenario configuration"
     >
       <div className={['relative flex min-w-0 items-stretch', compact ? 'gap-1.5' : 'gap-2'].join(' ')}>
-        <SiteColumn eyebrow="Site 1" config={buildDraftSiteConfig('siteA', siteA)} analysisSource={analysisSource} role="origin" />
+        <SiteColumn eyebrow="Site A" config={buildDraftSiteConfig('siteA', siteA)} analysisSource={analysisSource} role="origin" />
         <div className="flex shrink-0 flex-col items-center self-stretch justify-center gap-1 px-0.5">
           <div className="w-px flex-1 bg-gradient-to-b from-transparent via-slate-300/70 to-transparent dark:via-slate-600/55" />
           <button
@@ -993,7 +996,7 @@ function EngineeringHeaderScenarioBuilder({
             onClick={swapDraftEndpoints}
             disabled={!canSwap}
             className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-200/90 bg-white/70 text-sky-600 transition-colors hover:border-sky-300 hover:bg-white disabled:cursor-not-allowed disabled:opacity-30 dark:border-slate-700/80 dark:bg-slate-800/45 dark:text-sky-200 dark:hover:border-sky-500/50 dark:hover:bg-slate-800"
-            aria-label="Swap Site 1 and Site 2"
+            aria-label="Swap Site A and Site B"
           >
             <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden="true" />
           </button>
@@ -1008,13 +1011,13 @@ function EngineeringHeaderScenarioBuilder({
               aria-label="Traffic direction for GEO and LEO"
               title="Traffic direction shared by GEO and LEO"
             >
-              <option value="forward">1 → 2</option>
-              <option value="reverse">2 → 1</option>
+              <option value="forward">A → B</option>
+              <option value="reverse">B → A</option>
             </select>
           )}
           <div className="w-px flex-1 bg-gradient-to-b from-transparent via-slate-300/70 to-transparent dark:via-slate-600/55" />
         </div>
-        <SiteColumn eyebrow="Site 2" config={buildDraftSiteConfig('siteB', siteB)} analysisSource={analysisSource} role="destination" />
+        <SiteColumn eyebrow="Site B" config={buildDraftSiteConfig('siteB', siteB)} analysisSource={analysisSource} role="destination" />
       </div>
 
       <div className={`grid min-w-0 items-stretch gap-1.5 ${
@@ -1057,7 +1060,7 @@ function EngineeringHeaderScenarioBuilder({
             <div className={`grid min-w-0 flex-1 gap-1 ${coverageLegs.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`} aria-label="GEO target coverage">
               {coverageLegs.map((selector) => {
                 const selectorLabel = compact
-                  ? selector.label.replace('Site 1', 'S1').replace('Site 2', 'S2').replace('downlink', 'DL').replace('uplink', 'UL')
+                  ? selector.label.replace('Site 1', 'A').replace('Site 2', 'B').replace('downlink', 'DL').replace('uplink', 'UL')
                   : selector.label;
                 const selectedKey = draft.selectionPolicy === 'manual'
                   ? draft[selector.key]
@@ -1081,7 +1084,7 @@ function EngineeringHeaderScenarioBuilder({
                   <div key={selector.key} className="grid min-w-0 grid-cols-[auto_minmax(5rem,1fr)] items-center gap-1" title={resolvedCandidate ? getCandidateCoverageDisplayName(resolvedCandidate) : undefined}>
                     <span className="text-[7px] font-black uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">{selectorLabel}</span>
                     <div className="h-6 min-w-0 truncate rounded-md border border-violet-200/70 bg-violet-50/60 px-2 text-[9px] font-semibold leading-6 text-violet-800 dark:border-violet-800/60 dark:bg-violet-950/25 dark:text-violet-200">
-                      {resolvedCandidate ? getCandidateCoverageDisplayName(resolvedCandidate) : siteCount === 0 ? 'Select Site 1' : 'No eligible coverage'}
+                      {resolvedCandidate ? getCandidateCoverageDisplayName(resolvedCandidate) : siteCount === 0 ? 'Select Site A' : 'No eligible coverage'}
                     </div>
                   </div>
                 );

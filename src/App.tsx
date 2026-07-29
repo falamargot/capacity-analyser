@@ -383,6 +383,10 @@ interface AnalyzisPosition {
   aircraftCallsign?: string;
 }
 
+const aircraftSiteLabel = (aircraft: Aircraft): string => (
+  aircraft.callsign?.trim() || aircraft.icao24.toUpperCase()
+);
+
 const weatherTypeFromCondition = (condition: ReturnType<typeof toWeatherCondition>): WeatherType => {
   if (condition === 'CLEAR') return 'clear';
   if (condition === 'CLOUDS') return 'light_rain';
@@ -603,7 +607,7 @@ const App: React.FC = () => {
   const selectedSNP: SelectedSNP = leoServingAssignmentA?.feeder?.snp ?? null;
 
   // ── Unified Site B state (GEO Mesh/P2P and LEO Site-to-Site share one coordinate) ──
-  const [siteB, setSiteB] = useState<{ lat: number; lng: number } | null>(null);
+  const [siteB, setSiteB] = useState<{ lat: number; lng: number; altitude?: number } | null>(null);
   const [isSiteBArmed, setIsSiteBArmed] = useState(false);
   const [endpointSelectionMotion, setEndpointSelectionMotion] = useState<EndpointSelectionMotion | null>(null);
   const triggerEndpointSelectionMotion = useCallback((role: EndpointSelectionMotion['role']) => {
@@ -624,23 +628,39 @@ const App: React.FC = () => {
     resetActiveLeoRouteEvidenceState(activeLeoRouteEvidenceStateRef.current);
   }, [leoTerminalModelId, leoTerminalModelIdB, leoTerminalType, leoTerminalTypeB]);
 
-  const syncScenarioOrigin = useCallback((lat: number, lng: number, source: 'location-search' | 'globe-click' = 'location-search') => {
+  const syncScenarioOrigin = useCallback((
+    lat: number,
+    lng: number,
+    source: 'location-search' | 'globe-click' | 'aircraft' | 'vessel' = 'location-search',
+    label?: string,
+    altitude?: number,
+  ) => {
     dispatchConnectivityScenario(connectivityScenarioActions.setOrigin(createScenarioEndpointFromLocation({
       endpoint: 'origin',
-      point: { lat, lng },
+      point: { lat, lng, altitude },
+      label,
+      kind: source === 'aircraft' ? 'aircraft' : source === 'vessel' ? 'vessel' : 'site',
       terminalCapabilities: engineeringOriginTerminalCapabilities,
       source,
     })));
   }, [engineeringOriginTerminalCapabilities]);
 
-  const syncScenarioDestination = useCallback((lat: number, lng: number, source: 'location-search' | 'globe-click' = 'location-search') => {
+  const syncScenarioDestination = useCallback((
+    lat: number,
+    lng: number,
+    source: 'location-search' | 'globe-click' | 'aircraft' | 'vessel' = 'location-search',
+    label?: string,
+    altitude?: number,
+  ) => {
     const nextGeoTopology = LINK_MODE_REQUIRES_POINT_B.has(linkMode)
       ? geoServiceTopologyFromLegacyLinkMode(linkMode)
       : 'mesh';
 
     dispatchConnectivityScenario(connectivityScenarioActions.setDestination(createScenarioEndpointFromLocation({
       endpoint: 'destination',
-      point: { lat, lng },
+      point: { lat, lng, altitude },
+      label,
+      kind: source === 'aircraft' ? 'aircraft' : source === 'vessel' ? 'vessel' : 'site',
       terminalCapabilities: engineeringDestinationTerminalCapabilities,
       source,
     })));
@@ -700,6 +720,7 @@ const App: React.FC = () => {
   const [selectedGateway, setSelectedGateway] = useState<GeoGatewayData | null>(null);
   const [selectedMoon, setSelectedMoon] = useState(false);
   const [selectedAircraft, setSelectedAircraft] = useState<Aircraft | null>(null);
+  const [selectedAircraftB, setSelectedAircraftB] = useState<Aircraft | null>(null);
   const [selectedVessel, setSelectedVessel] = useState<Vessel | null>(null);
   const [nearestLocation, setNearestLocation] = useState<{ city: string; country: string } | null>(null);
   const [nearestLocationB, setNearestLocationB] = useState<{ city: string; country: string } | null>(null);
@@ -2285,6 +2306,7 @@ const App: React.FC = () => {
     activeConnTab: activeConnectivityTab,
     analysisSource: activeAnalysisSource,
     aircraftCallsign: selectedAircraft?.callsign,
+    aircraftCallsignB: selectedAircraftB?.callsign,
     selectedSNP,
     candidateCoverages: eligibleCandidateCoverages,
     selectedCoverage,
@@ -2657,6 +2679,7 @@ const App: React.FC = () => {
     }
     setSelectedMoon(false);
     setSelectedAircraft(null);
+    setSelectedAircraftB(null);
     setSelectedVessel(null);
     setLeoServingAssignmentA(null);
     setInspectedSNP(null);
@@ -2992,6 +3015,7 @@ const App: React.FC = () => {
         syncScenarioDestination(lat, lng, 'globe-click');
         triggerEndpointSelectionMotion('destination');
         setSiteB({ lat, lng });
+        setSelectedAircraftB(null);
         setIsSiteBArmed(false);
         handleLeoTopologyModeChange('SITE_TO_SITE');
         handleLinkModeChange(LINK_MODE_REQUIRES_POINT_B.has(linkMode) ? linkMode : 'MESH');
@@ -3022,6 +3046,7 @@ const App: React.FC = () => {
   const handleEmptyClick = useCallback((shiftKey: boolean) => {
     dispatchConnectivityScenario(connectivityScenarioActions.clearDestination());
     setSiteB(null);
+    setSelectedAircraftB(null);
     setIsSiteBArmed(false);
     if (shiftKey) {
       // Re-assert Site A via selectTarget so it survives any upstream clearSelection call.
@@ -3043,6 +3068,8 @@ const App: React.FC = () => {
     dispatchConnectivityScenario(connectivityScenarioActions.clearDestination());
     clearSelection();
     setSiteB(null);
+    setSelectedAircraft(null);
+    setSelectedAircraftB(null);
     setIsSiteBArmed(false);
     handleLeoTopologyModeChange('SINGLE_SITE');
     handleLinkModeChange(LINK_MODE_REQUIRES_POINT_B.has(linkMode) ? 'STAR_FORWARD' : linkMode);
@@ -3051,13 +3078,76 @@ const App: React.FC = () => {
   const handleClearSiteB = useCallback(() => {
     dispatchConnectivityScenario(connectivityScenarioActions.clearDestination());
     setSiteB(null);
+    setSelectedAircraftB(null);
     setIsSiteBArmed(false);
     setLeoTopologyMode(m => m === 'SITE_TO_SITE' ? 'SINGLE_SITE' : m);
     handleLinkModeChange(LINK_MODE_REQUIRES_POINT_B.has(linkMode) ? 'STAR_FORWARD' : linkMode);
   }, [handleLinkModeChange, linkMode, setLeoTopologyMode]);
 
-  // Handle aircraft selection (aircraft-based analyzis)
+  const handleAircraftSelectForSiteB = useCallback((aircraft: Aircraft | null, fromComboBox: boolean = false) => {
+    if (!aircraft) {
+      if (selectedAircraftB) handleClearSiteB();
+      return;
+    }
+    if (
+      aircraft.latitude == null
+      || aircraft.longitude == null
+      || !activeAnalysisPoint
+      || aircraft.icao24 === selectedAircraft?.icao24
+    ) return;
+
+    const altitude = aircraft.altitude_km || undefined;
+    handleLeoTerminalTypeBChange('aviation');
+    handleGeoTerminalTypeBChange('aviation');
+    setWeatherTypeB('clear');
+    if (autoWeatherEnabledB) setAutoWeatherEnabledB(false);
+    syncScenarioDestination(
+      aircraft.latitude,
+      aircraft.longitude,
+      'aircraft',
+      aircraftSiteLabel(aircraft),
+      altitude,
+    );
+    triggerEndpointSelectionMotion('destination');
+    setSelectedAircraftB(aircraft);
+    setSiteB({ lat: aircraft.latitude, lng: aircraft.longitude, altitude });
+    setIsSiteBArmed(false);
+    setIsTargetSourcesMenuOpen(false);
+    handleLeoTopologyModeChange('SITE_TO_SITE');
+    handleLinkModeChange(LINK_MODE_REQUIRES_POINT_B.has(linkMode) ? linkMode : 'MESH');
+
+    if (fromComboBox) {
+      setCameraTarget({ lat: aircraft.latitude, lng: aircraft.longitude, alt: 3000 });
+    }
+  }, [
+    activeAnalysisPoint,
+    autoWeatherEnabledB,
+    handleClearSiteB,
+    handleGeoTerminalTypeBChange,
+    handleLeoTerminalTypeBChange,
+    handleLeoTopologyModeChange,
+    handleLinkModeChange,
+    linkMode,
+    selectedAircraft?.icao24,
+    selectedAircraftB,
+    setAutoWeatherEnabledB,
+    setWeatherTypeB,
+    syncScenarioDestination,
+    triggerEndpointSelectionMotion,
+  ]);
+
+  // Handle aircraft selection (aircraft-based analysis). When Site 2 placement
+  // is armed, an aircraft picked on the globe is routed to the destination.
   const handleAircraftSelect = useCallback((aircraft: Aircraft | null, fromComboBox: boolean = false) => {
+    if (!aircraft) {
+      if (selectedAircraft) handleClearSiteA();
+      return;
+    }
+    if (isSiteBArmed && activeAnalysisPoint) {
+      handleAircraftSelectForSiteB(aircraft, fromComboBox);
+      return;
+    }
+
     setSelectedMoon(false);
     setSelectedAircraft(aircraft);
     setSelectedVessel(null);
@@ -3066,22 +3156,38 @@ const App: React.FC = () => {
     setSelectedDownlinkKey(null);
 
     if (aircraft?.latitude != null && aircraft.longitude != null) {
+      const altitude = aircraft.altitude_km || undefined;
       setSelectedGateway(null);
       setInspectedSNP(null);
+      syncScenarioOrigin(
+        aircraft.latitude,
+        aircraft.longitude,
+        'aircraft',
+        aircraftSiteLabel(aircraft),
+        altitude,
+      );
+      triggerEndpointSelectionMotion('origin');
       selectTarget('aircraft', {
         lat: aircraft.latitude,
         lng: aircraft.longitude,
-        altitude: aircraft.altitude_km || undefined,
+        altitude,
       });
 
       // Only set camera target when selected from combobox, not from globe click
       if (fromComboBox) {
         setCameraTarget({ lat: aircraft.latitude, lng: aircraft.longitude, alt: 3000 });
       }
-    } else {
-      clearSelection();
     }
-  }, [clearSelection, selectTarget]);
+  }, [
+    activeAnalysisPoint,
+    handleAircraftSelectForSiteB,
+    handleClearSiteA,
+    isSiteBArmed,
+    selectTarget,
+    selectedAircraft,
+    syncScenarioOrigin,
+    triggerEndpointSelectionMotion,
+  ]);
 
   // Handle vessel selection (vessel-based analyzis)
   const handleVesselSelect = useCallback((vessel: Vessel | null, fromComboBox: boolean = false) => {
@@ -3095,6 +3201,14 @@ const App: React.FC = () => {
     if (vessel?.latitude != null && vessel.longitude != null) {
       setSelectedGateway(null);
       setInspectedSNP(null);
+      syncScenarioOrigin(
+        vessel.latitude,
+        vessel.longitude,
+        'vessel',
+        vessel.name?.trim() || vessel.mmsi,
+        0,
+      );
+      triggerEndpointSelectionMotion('origin');
       selectTarget('vessel', {
         lat: vessel.latitude,
         lng: vessel.longitude,
@@ -3108,7 +3222,7 @@ const App: React.FC = () => {
     } else {
       clearSelection();
     }
-  }, [clearSelection, selectTarget]);
+  }, [clearSelection, selectTarget, syncScenarioOrigin, triggerEndpointSelectionMotion]);
 
   const handleLocationSelect = useCallback((lat: number, lng: number) => {
     syncScenarioOrigin(lat, lng);
@@ -3132,6 +3246,7 @@ const App: React.FC = () => {
     triggerEndpointSelectionMotion('destination');
     setCameraTarget({ lat, lng, alt: 10000 });
     setSiteB({ lat, lng });
+    setSelectedAircraftB(null);
     setIsSiteBArmed(false);
     handleLeoTopologyModeChange('SITE_TO_SITE');
     handleLinkModeChange(LINK_MODE_REQUIRES_POINT_B.has(linkMode) ? linkMode : 'MESH');
@@ -3226,7 +3341,11 @@ const App: React.FC = () => {
   const handleSwapRouteEndpoints = useCallback(() => {
     if (!activeAnalysisPoint || !siteB) return;
 
-    const nextOrigin = { lat: siteB.lat, lng: siteB.lng };
+    const nextOrigin = {
+      lat: siteB.lat,
+      lng: siteB.lng,
+      altitude: selectedAircraftB?.altitude_km || undefined,
+    };
     const nextDestination = {
       lat: activeAnalysisPoint.lat,
       lng: activeAnalysisPoint.lng,
@@ -3248,11 +3367,17 @@ const App: React.FC = () => {
     dispatchConnectivityScenario(connectivityScenarioActions.setOrigin(createScenarioEndpointFromLocation({
       endpoint: 'origin',
       point: nextOrigin,
+      label: selectedAircraftB ? aircraftSiteLabel(selectedAircraftB) : undefined,
+      kind: selectedAircraftB ? 'aircraft' : 'site',
+      source: selectedAircraftB ? 'aircraft' : 'location-search',
       terminalCapabilities: engineeringDestinationTerminalCapabilities,
     })));
     dispatchConnectivityScenario(connectivityScenarioActions.setDestination(createScenarioEndpointFromLocation({
       endpoint: 'destination',
       point: nextDestination,
+      label: selectedAircraft ? aircraftSiteLabel(selectedAircraft) : undefined,
+      kind: selectedAircraft ? 'aircraft' : 'site',
+      source: selectedAircraft ? 'aircraft' : 'location-search',
       terminalCapabilities: engineeringOriginTerminalCapabilities,
     })));
     dispatchConnectivityScenario(connectivityScenarioActions.setServicePattern('site-to-site'));
@@ -3278,10 +3403,11 @@ const App: React.FC = () => {
     setSelectedUplinkKeyB(selectedUplinkKey);
     setSelectedDownlinkKeyB(selectedDownlinkKey);
 
-    selectTarget('point', nextOrigin);
+    selectTarget(selectedAircraftB ? 'aircraft' : 'point', nextOrigin);
     setCameraTarget({ lat: nextOrigin.lat, lng: nextOrigin.lng, alt: 10000 });
     setSelectedMoon(false);
-    setSelectedAircraft(null);
+    setSelectedAircraft(selectedAircraftB);
+    setSelectedAircraftB(selectedAircraft);
     setSelectedVessel(null);
     setSelectedGateway(null);
     setInspectedSNP(null);
@@ -3314,6 +3440,8 @@ const App: React.FC = () => {
     selectTarget,
     selectedDownlinkKey,
     selectedDownlinkKeyB,
+    selectedAircraft,
+    selectedAircraftB,
     selectedUplinkKey,
     selectedUplinkKeyB,
     setActiveMeshTab,
@@ -3398,6 +3526,7 @@ const App: React.FC = () => {
     setSelectedGateway(null);
     setSelectedMoon(false);
     setSelectedAircraft(null);
+    setSelectedAircraftB(null);
     setSelectedVessel(null);
     setSelectedIss(false);
     setSiteB(null);
@@ -3465,6 +3594,7 @@ const App: React.FC = () => {
       const alt = pos?.altitude_km ?? raw?.altitude_km;
 
       if (lat != null && lng != null) {
+        syncScenarioOrigin(lat, lng, 'aircraft', aircraftSiteLabel(selectedAircraft), alt || undefined);
         selectTarget('aircraft', {
           lat,
           lng,
@@ -3477,7 +3607,29 @@ const App: React.FC = () => {
     const interval = setInterval(updateSelectedAircraftPosition, 5000);
     return () => clearInterval(interval);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedAircraft, airTrafficEnabled, selectTarget]); // interpolatedAircraftMapRef/airTraffic.aircraft read via closure, not deps
+  }, [selectedAircraft, airTrafficEnabled, selectTarget, syncScenarioOrigin]); // interpolatedAircraftMapRef/airTraffic.aircraft read via closure, not deps
+
+  useEffect(() => {
+    if (!selectedAircraftB || !airTrafficEnabled) return;
+
+    const updateDestinationAircraftPosition = () => {
+      const pos = interpolatedAircraftMapRef.current.get(selectedAircraftB.icao24);
+      const raw = airTraffic.aircraft.find(ac => ac.icao24 === selectedAircraftB.icao24);
+      const lat = pos?.latitude ?? raw?.latitude;
+      const lng = pos?.longitude ?? raw?.longitude;
+      const alt = pos?.altitude_km ?? raw?.altitude_km;
+
+      if (lat != null && lng != null) {
+        syncScenarioDestination(lat, lng, 'aircraft', aircraftSiteLabel(selectedAircraftB), alt || undefined);
+        setSiteB({ lat, lng, altitude: alt || undefined });
+      }
+    };
+
+    updateDestinationAircraftPosition();
+    const interval = setInterval(updateDestinationAircraftPosition, 5000);
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAircraftB, airTrafficEnabled, syncScenarioDestination]);
 
   useEffect(() => {
     if (!selectedVessel || !maritimeTrafficEnabled) return;
@@ -3707,6 +3859,7 @@ const App: React.FC = () => {
   const trafficProps = useMemo<TrafficProps>(() => ({
     airTrafficState,
     selectedAircraft,
+    selectedAircraftB,
     maritimeTrafficState,
     selectedVessel,
     issState,
@@ -3715,6 +3868,7 @@ const App: React.FC = () => {
     issState,
     maritimeTrafficState,
     selectedAircraft,
+    selectedAircraftB,
     selectedVessel,
   ]);
 
@@ -4408,6 +4562,11 @@ const App: React.FC = () => {
     siteB,
     nearestLocation,
     nearestLocationB,
+    siteALabelOverride: selectedAircraft?.callsign
+      ?? selectedVessel?.name
+      ?? selectedVessel?.mmsi
+      ?? null,
+    siteBLabelOverride: selectedAircraftB?.callsign ?? null,
     selectedSnpName: selectedSNP?.name ?? null,
     selectedSatellite,
     activeGeoSatellite,
@@ -4438,7 +4597,8 @@ const App: React.FC = () => {
     selectedSegmentId: commercialSelectedSegment,
   }), [
     activeCommercialTechnology, activeMeshTab, activeAnalysisPoint, activeAnalysisSource,
-    siteB, nearestLocation, nearestLocationB, selectedSNP?.name, selectedSatellite,
+    siteB, nearestLocation, nearestLocationB, selectedAircraft, selectedAircraftB, selectedVessel,
+    selectedSNP?.name, selectedSatellite,
     activeGeoSatellite, resolvedAutoLEO, mobileMetrics, canonicalRouteMetrics, leoTopologyMode,
     activeLeoRouteEvidence, geoPointStatus, linkMode, selectedCoverage, geoRouteAnalysis,
     weatherType, weatherTypeB, leoTerminalType, geoTerminalType, geoRFPresetDisplayLabelA,
@@ -4639,6 +4799,17 @@ const App: React.FC = () => {
     {
       activeAnalysisPoint,
       siteB,
+      originEndpointKind: selectedAircraft
+        ? 'aircraft'
+        : selectedVessel ? 'vessel' : 'site',
+      destinationEndpointKind: selectedAircraftB ? 'aircraft' : 'site',
+      originEndpointLabel: selectedAircraft?.callsign
+        ?? selectedVessel?.name
+        ?? selectedVessel?.mmsi,
+      destinationEndpointLabel: selectedAircraftB?.callsign,
+      flowDirection: siteB
+        ? (activeMeshTab === 'reverse' ? 'B_TO_A' : 'A_TO_B')
+        : linkMode === 'STAR_FORWARD' ? 'B_TO_A' : 'A_TO_B',
       resolvedAutoGeoGateway: resolvedAutoTrafficGeoGateway,
       resolvedSelectedGeoGateway: resolvedSelectedTrafficGeoGateway,
       activeLeoRouteEvidence,
@@ -4649,6 +4820,11 @@ const App: React.FC = () => {
     commercialScenarioViewModel,
     activeAnalysisPoint,
     siteB,
+    selectedAircraft,
+    selectedAircraftB,
+    selectedVessel,
+    activeMeshTab,
+    linkMode,
     resolvedAutoTrafficGeoGateway,
     resolvedSelectedTrafficGeoGateway,
     activeLeoRouteEvidence,
@@ -4662,8 +4838,12 @@ const App: React.FC = () => {
   );
 
   const routeSelectorRoute = useMemo(() => scenarioToConnectivityScenarioCard(connectivityScenario, {
-    originLabelOverride: activeAnalysisPoint ? commercialScenarioViewModel.siteA?.name : undefined,
-    destinationLabelOverride: siteB ? commercialScenarioViewModel.siteB?.name : undefined,
+    originLabelOverride: selectedAircraft
+      ? aircraftSiteLabel(selectedAircraft)
+      : activeAnalysisPoint ? commercialScenarioViewModel.siteA?.name : undefined,
+    destinationLabelOverride: selectedAircraftB
+      ? aircraftSiteLabel(selectedAircraftB)
+      : siteB ? commercialScenarioViewModel.siteB?.name : undefined,
     fallbackScenarioType: legacyScenarioType,
   }), [
     activeAnalysisPoint,
@@ -4671,6 +4851,8 @@ const App: React.FC = () => {
     commercialScenarioViewModel.siteB,
     connectivityScenario,
     legacyScenarioType,
+    selectedAircraft,
+    selectedAircraftB,
     siteB,
   ]);
 
@@ -5166,11 +5348,11 @@ const App: React.FC = () => {
               </div>
             ) : isDesktopHeaderCollapsed ? (
               <div className="flex w-full items-center gap-2">
-                <div className="flex min-w-0 shrink-0 items-center gap-2">
-                  <div className="flex shrink-0 flex-col items-center justify-center gap-1">
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <div className="flex shrink-0 items-center justify-center">
                     {renderAppTitle('compact')}
-                    {renderExploreLauncher(true, true)}
                   </div>
+                  {renderExploreLauncher(true, true)}
                   <div className="min-w-0 flex-[1_1_38rem] max-w-[42rem]">
                     <HeaderScenarioBuilder
                       siteA={headerSiteAConfig}
@@ -5494,14 +5676,33 @@ const App: React.FC = () => {
                                   </p>
                                 </div>
                               </div>
-                              <div className="mt-2.5">
-                                <AircraftSelector
-                                  aircraft={airTraffic.aircraft}
-                                  selectedAircraft={selectedAircraft}
-                                  onSelect={(aircraft) => handleAircraftSelect(aircraft, true)}
-                                  liveModeEnabled={airTrafficEnabled}
-                                  onToggleLiveMode={() => setAirTrafficEnabled(!airTrafficEnabled)}
-                                />
+                              <div className="mt-2.5 space-y-2">
+                                <label className="block">
+                                  <span className="mb-1 block text-[9px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Site A</span>
+                                  <AircraftSelector
+                                    aircraft={airTraffic.aircraft}
+                                    selectedAircraft={selectedAircraft}
+                                    onSelect={(aircraft) => handleAircraftSelect(aircraft, true)}
+                                    liveModeEnabled={airTrafficEnabled}
+                                    onToggleLiveMode={() => setAirTrafficEnabled(!airTrafficEnabled)}
+                                    placeholder="Select Site A aircraft..."
+                                    excludedAircraftId={selectedAircraftB?.icao24}
+                                  />
+                                </label>
+                                <label className="block">
+                                  <span className="mb-1 block text-[9px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Site B</span>
+                                  <AircraftSelector
+                                    aircraft={airTraffic.aircraft}
+                                    selectedAircraft={selectedAircraftB}
+                                    onSelect={(aircraft) => handleAircraftSelectForSiteB(aircraft, true)}
+                                    liveModeEnabled={airTrafficEnabled}
+                                    onToggleLiveMode={() => setAirTrafficEnabled(!airTrafficEnabled)}
+                                    disabled={!activeAnalysisPoint}
+                                    placeholder={activeAnalysisPoint ? 'Select Site B aircraft...' : 'Select Site A first'}
+                                    showLiveToggle={false}
+                                    excludedAircraftId={selectedAircraft?.icao24}
+                                  />
+                                </label>
                               </div>
                             </div>
 
@@ -5649,16 +5850,30 @@ const App: React.FC = () => {
               satelliteScope={satelliteScope}
             />
 
-            <AircraftSelector
-              aircraft={airTraffic.aircraft}
-              selectedAircraft={selectedAircraft}
-              onSelect={(aircraft) => {
-                handleAircraftSelect(aircraft, true);
-                setIsSatelliteModalOpen(false);
-              }}
-              liveModeEnabled={airTrafficEnabled}
-              onToggleLiveMode={() => setAirTrafficEnabled(!airTrafficEnabled)}
-            />
+            <div className="space-y-2">
+              <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Site A aircraft</div>
+              <AircraftSelector
+                aircraft={airTraffic.aircraft}
+                selectedAircraft={selectedAircraft}
+                onSelect={(aircraft) => handleAircraftSelect(aircraft, true)}
+                liveModeEnabled={airTrafficEnabled}
+                onToggleLiveMode={() => setAirTrafficEnabled(!airTrafficEnabled)}
+                placeholder="Select Site A aircraft..."
+                excludedAircraftId={selectedAircraftB?.icao24}
+              />
+              <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Site B aircraft</div>
+              <AircraftSelector
+                aircraft={airTraffic.aircraft}
+                selectedAircraft={selectedAircraftB}
+                onSelect={(aircraft) => handleAircraftSelectForSiteB(aircraft, true)}
+                liveModeEnabled={airTrafficEnabled}
+                onToggleLiveMode={() => setAirTrafficEnabled(!airTrafficEnabled)}
+                disabled={!activeAnalysisPoint}
+                placeholder={activeAnalysisPoint ? 'Select Site B aircraft...' : 'Select Site A first'}
+                showLiveToggle={false}
+                excludedAircraftId={selectedAircraft?.icao24}
+              />
+            </div>
 
             <VesselSelector
               vessels={maritimeTraffic.vessels}

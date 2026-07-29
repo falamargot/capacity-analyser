@@ -8,7 +8,7 @@ const journeyLabel: Record<CommercialRouteSegment['type'], string> = {
   access: 'Origin Site',
   satellite: 'Space Coverage',
   backhaul: 'Transit',
-  destination: 'Service Delivery',
+  destination: 'Destination Site',
   summary: 'Recommendation',
 };
 
@@ -16,9 +16,16 @@ const compactJourneyLabel: Record<CommercialRouteSegment['type'], string> = {
   access: 'Origin',
   satellite: 'Coverage',
   backhaul: 'Transit',
-  destination: 'Delivery',
+  destination: 'Destination',
   summary: 'Verdict',
 };
+
+const journeyOrder: CommercialRouteSegment['type'][] = [
+  'access',
+  'destination',
+  'satellite',
+  'summary',
+];
 
 function normalizeLabel(value: string | undefined): string {
   return (value ?? '').trim().toLowerCase();
@@ -60,16 +67,15 @@ function canonicalSegmentId(segment: CommercialRouteSegment): CommercialRouteSeg
 
 function orderedSegments(
   segments: CommercialRouteSegment[],
-  commercialRouteModel: CommercialRouteModel | undefined,
+  _commercialRouteModel: CommercialRouteModel | undefined,
 ): CommercialRouteSegment[] {
   const visibleSegments = segments.filter((segment) => segment.type !== 'backhaul');
-  if (!commercialRouteModel) return visibleSegments;
+  const byType = new Map(visibleSegments.map((segment) => [segment.type, segment]));
+  const ordered = journeyOrder
+    .map((type) => byType.get(type))
+    .filter((segment): segment is CommercialRouteSegment => segment !== undefined);
 
-  const fromFocusTargets = commercialRouteModel.focusTargets
-    .map((target) => segments.find((segment) => canonicalSegmentId(segment) === target.segmentId))
-    .filter((segment): segment is CommercialRouteSegment => segment !== undefined && segment.type !== 'backhaul');
-
-  return fromFocusTargets.length === visibleSegments.length ? fromFocusTargets : visibleSegments;
+  return ordered.length === visibleSegments.length ? ordered : visibleSegments;
 }
 
 interface CommercialRouteStripProps {

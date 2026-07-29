@@ -53,9 +53,16 @@ import { getTrafficTeleportCapabilityForLegacyGateway } from './geoGroundInfrast
  */
 export interface CommercialRouteGeometryInputs {
   /** Origin site coordinates (App.tsx: activeAnalysisPoint). */
-  activeAnalysisPoint: { lat: number; lng: number } | null;
+  activeAnalysisPoint: { lat: number; lng: number; altitude?: number } | null;
   /** Destination site coordinates (App.tsx: siteB). Point-to-point only. */
-  siteB: { lat: number; lng: number } | null;
+  siteB: { lat: number; lng: number; altitude?: number } | null;
+  /** Physical endpoint types used by the COMM globe renderer. */
+  originEndpointKind?: 'site' | 'aircraft' | 'vessel';
+  destinationEndpointKind?: 'site' | 'aircraft' | 'vessel';
+  originEndpointLabel?: string;
+  destinationEndpointLabel?: string;
+  /** Direction used by the animated flow on the simplified COMM route. */
+  flowDirection?: 'A_TO_B' | 'B_TO_A';
   /**
    * Resolved GEO gateway for the auto-selected GEO satellite.
    * Lifted to App.tsx in COMM-6C3A.
@@ -208,10 +215,10 @@ function makeEdge(
 
 /** Safely convert a lat/lng pair to a RouteCoordinate. Returns null if falsy. */
 function coord(
-  point: { lat: number; lng: number } | null | undefined,
+  point: { lat: number; lng: number; altitude?: number } | null | undefined,
 ): RouteCoordinate | null {
   if (!point) return null;
-  return { lat: point.lat, lng: point.lng };
+  return { lat: point.lat, lng: point.lng, altitudeKm: point.altitude };
 }
 
 function satelliteMeta(
@@ -418,10 +425,13 @@ function buildGeoP2pGraph(
 
   const nodes: CommercialRouteNode[] = [
     makeNode(originId, 'ORIGIN', 'access',
-      vm.siteA?.name ?? 'Origin',
+      geometry.originEndpointLabel ?? vm.siteA?.name ?? 'Origin',
       segStatus(accessSeg),
       coord(geometry.activeAnalysisPoint),
-      { isPrimaryIssue: accessSeg?.isPrimaryIssue }
+      {
+        endpointKind: geometry.originEndpointKind ?? 'site',
+        isPrimaryIssue: accessSeg?.isPrimaryIssue,
+      }
     ),
     makeNode(skyBridgeId, 'SKY_BRIDGE', 'satellite',
       satLabel,
@@ -430,10 +440,13 @@ function buildGeoP2pGraph(
       { technology: 'GEO', isPrimaryIssue: satelliteSeg?.isPrimaryIssue }
     ),
     makeNode(destinationId, 'DESTINATION', 'destination',
-      vm.siteB?.name ?? 'Destination',
+      geometry.destinationEndpointLabel ?? vm.siteB?.name ?? 'Destination',
       segStatus(destSeg),
       coord(geometry.siteB),
-      { isPrimaryIssue: destSeg?.isPrimaryIssue }
+      {
+        endpointKind: geometry.destinationEndpointKind ?? 'site',
+        isPrimaryIssue: destSeg?.isPrimaryIssue,
+      }
     ),
     makeNode(outcomeId, 'OUTCOME', 'summary',
       'Service Outcome',
@@ -509,10 +522,13 @@ function buildGeoStarGraph(
 
   const nodes: CommercialRouteNode[] = [
     makeNode(originId, 'ORIGIN', 'access',
-      vm.siteA?.name ?? 'Origin',
+      geometry.originEndpointLabel ?? vm.siteA?.name ?? 'Origin',
       segStatus(accessSeg),
       coord(geometry.activeAnalysisPoint),
-      { isPrimaryIssue: accessSeg?.isPrimaryIssue }
+      {
+        endpointKind: geometry.originEndpointKind ?? 'site',
+        isPrimaryIssue: accessSeg?.isPrimaryIssue,
+      }
     ),
     makeNode(skyBridgeId, 'SKY_BRIDGE', 'satellite',
       satLabel,
@@ -617,10 +633,13 @@ function buildLeoSingleGraph(
 
   const nodes: CommercialRouteNode[] = [
     makeNode(originId, 'ORIGIN', 'access',
-      vm.siteA?.name ?? 'Origin',
+      geometry.originEndpointLabel ?? vm.siteA?.name ?? 'Origin',
       segStatus(accessSeg),
       coord(geometry.activeAnalysisPoint),
-      { isPrimaryIssue: accessSeg?.isPrimaryIssue }
+      {
+        endpointKind: geometry.originEndpointKind ?? 'site',
+        isPrimaryIssue: accessSeg?.isPrimaryIssue,
+      }
     ),
     makeNode(skyBridgeId, 'SKY_BRIDGE', 'satellite',
       satLabel,
@@ -708,10 +727,13 @@ function buildLeoS2sGraph(
 
   const nodes: CommercialRouteNode[] = [
     makeNode(originId, 'ORIGIN', 'access',
-      vm.siteA?.name ?? 'Origin',
+      geometry.originEndpointLabel ?? vm.siteA?.name ?? 'Origin',
       segStatus(accessSeg),
       coord(geometry.activeAnalysisPoint),
-      { isPrimaryIssue: accessSeg?.isPrimaryIssue }
+      {
+        endpointKind: geometry.originEndpointKind ?? 'site',
+        isPrimaryIssue: accessSeg?.isPrimaryIssue,
+      }
     ),
     makeNode(skyBridgeAId, 'SKY_BRIDGE', 'satellite',
       satALabel,
@@ -739,10 +761,13 @@ function buildLeoS2sGraph(
       { technology: 'LEO', isSecondary: true, isPrimaryIssue: satelliteSeg?.isPrimaryIssue, ...satelliteMeta(satB) }
     ),
     makeNode(destId, 'DESTINATION', 'destination',
-      vm.siteB?.name ?? 'Destination',
+      geometry.destinationEndpointLabel ?? vm.siteB?.name ?? 'Destination',
       segStatus(destSeg),
       coord(geometry.siteB),
-      { isPrimaryIssue: destSeg?.isPrimaryIssue }
+      {
+        endpointKind: geometry.destinationEndpointKind ?? 'site',
+        isPrimaryIssue: destSeg?.isPrimaryIssue,
+      }
     ),
     makeNode(outcomeId, 'OUTCOME', 'summary',
       'Service Outcome',
@@ -899,6 +924,7 @@ export function buildCommercialRouteModel(
   return {
     technology,
     destinationIsPortal,
+    flowDirection: geometry.flowDirection ?? 'A_TO_B',
     nodes: graph.nodes,
     edges: graph.edges,
     focusTargets,

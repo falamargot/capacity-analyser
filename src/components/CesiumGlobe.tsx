@@ -937,14 +937,15 @@ export interface DisplayLayerProps {
 export interface TrafficProps {
     airTrafficState: AirTrafficStateProps;
     selectedAircraft: Aircraft | null;
+    selectedAircraftB: Aircraft | null;
     maritimeTrafficState: MaritimeTrafficStateProps;
     selectedVessel: Vessel | null;
     issState: IssStateProps;
 }
 
 export interface TopologyProps {
-    pointB: { lat: number; lng: number } | null;
-    pointBLeo: { lat: number; lng: number } | null;
+    pointB: { lat: number; lng: number; altitude?: number } | null;
+    pointBLeo: { lat: number; lng: number; altitude?: number } | null;
     linkMode: LinkMode;
     activeMeshTab: 'forward' | 'reverse';
 }
@@ -1127,6 +1128,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     const {
         airTrafficState,
         selectedAircraft,
+        selectedAircraftB,
         maritimeTrafficState,
         selectedVessel,
         issState,
@@ -1169,31 +1171,42 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         suppressCommercialCameraFocus = false,
     } = commercialState;
     const handleEngineeringSatelliteClick = useCallback((satellite: SatelliteData | null) => {
-        // A satellite remains an inspectable asset even when it participates in
-        // the active engineering route. Route lines and engineering route nodes
-        // have their own entity ids below and continue to focus the PATH stage.
-        // Hijacking an active satellite click here made globe selection disagree
-        // with the Explore selector and affected both GEO and OneWeb satellites.
+        if (!commercialMode && satellite) {
+            const activeSatelliteIds = new Set([
+                selectedSatellite?.id,
+                autoSelectedLEOSatellite?.id,
+                autoSelectedLEOSatelliteB?.id,
+                autoSelectedGEOSatellite?.id,
+            ].filter((id): id is string => Boolean(id)));
+            if (activeSatelliteIds.has(satellite.id)) return;
+        }
         onSatelliteClick(satellite);
-    }, [onSatelliteClick]);
+    }, [
+        autoSelectedGEOSatellite?.id,
+        autoSelectedLEOSatellite?.id,
+        autoSelectedLEOSatelliteB?.id,
+        commercialMode,
+        onSatelliteClick,
+        selectedSatellite?.id,
+    ]);
 
     const handleEngineeringSnpClick = useCallback((snpName: string | null) => {
-        const activeSnpName = typeof selectedSNP === 'string' ? selectedSNP : selectedSNP?.name;
-        if (!commercialMode && snpName && snpName === activeSnpName) {
-            engineeringFocus.lock('LEO', 'service', 'globe');
-            return;
+        if (!commercialMode && snpName) {
+            const activeSnpNames = new Set([
+                typeof selectedSNP === 'string' ? selectedSNP : selectedSNP?.name,
+                leoSiteToSiteResult?.selectedSnpA?.name,
+                leoSiteToSiteResult?.selectedSnpB?.name,
+            ].filter((name): name is string => Boolean(name)));
+            if (activeSnpNames.has(snpName)) return;
         }
         onSnpClick(snpName);
-    }, [commercialMode, engineeringFocus, onSnpClick, selectedSNP]);
+    }, [commercialMode, leoSiteToSiteResult, onSnpClick, selectedSNP]);
 
     const handleEngineeringGatewayClick = useCallback((gatewayName: string | null) => {
         const activeGatewayName = resolvedAutoGeoGateway?.gatewayName ?? resolvedSelectedGeoGateway?.gatewayName;
-        if (!commercialMode && gatewayName && gatewayName === activeGatewayName) {
-            engineeringFocus.lock('GEO', 'service', 'globe');
-            return;
-        }
+        if (!commercialMode && gatewayName && gatewayName === activeGatewayName) return;
         onGatewayClick?.(gatewayName);
-    }, [commercialMode, engineeringFocus, onGatewayClick, resolvedAutoGeoGateway?.gatewayName, resolvedSelectedGeoGateway?.gatewayName]);
+    }, [commercialMode, onGatewayClick, resolvedAutoGeoGateway?.gatewayName, resolvedSelectedGeoGateway?.gatewayName]);
 
     const {
         airTrafficEnabled = false,
@@ -1788,13 +1801,18 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             return;
         }
         const segmentId = commercialRouteModel.focusedSegmentId ?? 'summary';
-        const routeGeometrySignature = commercialCameraFocusGeometrySignature(commercialRouteModel, segmentId);
+        // Recommendation deliberately reuses the Space Coverage framing. The
+        // customer should see the same tight service evidence (site(s),
+        // transmission path and serving satellite(s)) while reading the verdict,
+        // rather than jumping out to a looser route overview.
+        const cameraSegmentId = segmentId === 'summary' ? 'satellite' : segmentId;
+        const routeGeometrySignature = commercialCameraFocusGeometrySignature(commercialRouteModel, cameraSegmentId);
         const useMobileHeroFocus = isPhone || isMobileViewport;
         const focusKey = useMobileHeroFocus
-            ? `mobile-hero:${commercialRouteModel.technology}:${routeGeometrySignature}:${commercialGeoCoverageFocusSignature}`
-            : commercialRouteModel.technology === 'GEO' && segmentId === 'satellite'
-                ? `${segmentId}:${routeGeometrySignature}:${commercialGeoCoverageFocusSignature}`
-                : `${segmentId}:${routeGeometrySignature}`;
+            ? `${segmentId}:mobile-hero:${commercialRouteModel.technology}:${routeGeometrySignature}:${commercialGeoCoverageFocusSignature}`
+            : commercialRouteModel.technology === 'GEO' && cameraSegmentId === 'satellite'
+                ? `${segmentId}:camera-${cameraSegmentId}:${routeGeometrySignature}:${commercialGeoCoverageFocusSignature}`
+                : `${segmentId}:camera-${cameraSegmentId}:${routeGeometrySignature}`;
         if (suppressCommercialCameraFocus) return;
         if (focusKey === prevCommercialSegmentFocusRef.current) return;
         prevCommercialSegmentFocusRef.current = focusKey;
@@ -1808,7 +1826,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             return;
         }
 
-        const focusTarget = commercialRouteModel.focusTargets.find(t => t.segmentId === segmentId);
+        const focusTarget = commercialRouteModel.focusTargets.find(t => t.segmentId === cameraSegmentId);
         if (!focusTarget) return;
 
         executeCommercialFocusCamera(
@@ -1910,12 +1928,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 }
                 const selectedSnpName = typeof selectedSNP === 'string' ? selectedSNP : selectedSNP?.name;
                 if (selectedSnpName && pickedId === `snp-${selectedSnpName}`) {
-                    engineeringFocus.lock('LEO', 'service', 'globe');
                     return;
                 }
                 const activeGatewayName = resolvedAutoGeoGateway?.gatewayName ?? resolvedSelectedGeoGateway?.gatewayName;
                 if (activeGatewayName && pickedId === `gateway-${activeGatewayName}`) {
-                    engineeringFocus.lock('GEO', 'service', 'globe');
                     return;
                 }
             }
@@ -1961,12 +1977,12 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 if (entityId.startsWith('satellite-')) {
                     const satelliteId = entityId.slice('satellite-'.length);
                     const selected = satellitesRef.current.find((satellite) => satellite.id === satelliteId) ?? null;
-                    onSatelliteClick(selected);
+                    handleEngineeringSatelliteClick(selected);
                     return;
                 }
 
                 if (entityId.startsWith('snp-')) {
-                    onSnpClick(entityId.slice('snp-'.length));
+                    handleEngineeringSnpClick(entityId.slice('snp-'.length));
                     return;
                 }
 
@@ -2011,7 +2027,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         const lat = CesiumMath.toDegrees(cartographic.latitude);
         const lng = CesiumMath.toDegrees(cartographic.longitude);
         onPointClick(lat, lng, pointerShiftPressedRef.current || shiftPressedRef.current);
-    }, [activeConnectivityTab, commercialMode, engineeringFocus, onAircraftClick, onCommercialSelectedSegmentChange, onCoverageClick, onEmptyClick, onIssClick, onMoonSelectionChange, onPointClick, onSatelliteClick, onSnpClick, onVesselClick, resolvedAutoGeoGateway?.gatewayName, resolvedSelectedGeoGateway?.gatewayName, selectedSNP, selection.type]);
+    }, [activeConnectivityTab, commercialMode, engineeringFocus, handleEngineeringSatelliteClick, handleEngineeringSnpClick, onAircraftClick, onCommercialSelectedSegmentChange, onCoverageClick, onEmptyClick, onIssClick, onMoonSelectionChange, onPointClick, onSatelliteClick, onSnpClick, onVesselClick, resolvedAutoGeoGateway?.gatewayName, resolvedSelectedGeoGateway?.gatewayName, selectedSNP, selection.type]);
 
     const leoS2SVisualResult = leoSiteToSiteFullResult ?? leoSiteToSiteResult;
 
@@ -2982,7 +2998,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         leoServiceViewModel={leoServiceViewModel}
                         resolvedAutoGeoGateway={resolvedAutoGeoGateway}
                         resolvedSelectedGeoGateway={resolvedSelectedGeoGateway}
-                        showFlowAnimation={!commercialMode && showFlowAnimation}
+                        showFlowAnimation={showFlowAnimation}
                         cameraMetricsRef={cameraMetricsRef}
                         commercialMode={commercialMode}
                         commercialFocusedSegment={commercialFocusedSegment}
@@ -3158,6 +3174,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         <AircraftLayer
                             aircraft={aircraft}
                             selectedAircraft={selectedAircraft}
+                            selectedAircraftB={selectedAircraftB}
                             onAircraftClick={onAircraftClick}
                             onAircraftHover={handleAircraftHover}
                             viewerRef={viewerRef}

@@ -23,6 +23,7 @@ import { requestGlobeRender } from '../../utils/globeRenderRequest';
 interface AircraftLayerProps {
     aircraft: Aircraft[];
     selectedAircraft?: Aircraft | null;
+    selectedAircraftB?: Aircraft | null;
     onAircraftClick?: (aircraft: Aircraft | null) => void;
     onAircraftHover?: (aircraft: Aircraft | null) => void;
     viewerRef: React.RefObject<CesiumViewerType | null>;
@@ -138,6 +139,7 @@ AircraftEntity.displayName = 'AircraftEntity';
 const AircraftLayer: React.FC<AircraftLayerProps> = ({
     aircraft,
     selectedAircraft,
+    selectedAircraftB,
     onAircraftClick,
     onAircraftHover,
     viewerRef,
@@ -150,14 +152,15 @@ const AircraftLayer: React.FC<AircraftLayerProps> = ({
     // is false, which is the current configuration. Aircraft positions arrive on the OpenSky poll, not per frame.
     useEffect(() => {
         requestGlobeRender(viewerRef.current);
-    }, [viewerRef, aircraft, selectedAircraft]);
+    }, [viewerRef, aircraft, selectedAircraft, selectedAircraftB]);
 
     const { getAircraftPositionCallback } = usePositionCallbacks([], aircraft, interpolatedAircraftMapRef, 'aircraft-layer');
 
     // Memoize aircraft entities
     const aircraftEntities = useMemo(() => {
         return aircraft.map((ac) => {
-            const isSelected = selectedAircraft?.icao24 === ac.icao24;
+            const isSelected = selectedAircraft?.icao24 === ac.icao24
+                || selectedAircraftB?.icao24 === ac.icao24;
             const positionCallback = getAircraftPositionCallback(ac);
 
             return (
@@ -178,6 +181,7 @@ const AircraftLayer: React.FC<AircraftLayerProps> = ({
     }, [
         aircraft,
         selectedAircraft?.icao24,
+        selectedAircraftB?.icao24,
         getAircraftPositionCallback,
         viewerRef,
         cameraMetricsRef,

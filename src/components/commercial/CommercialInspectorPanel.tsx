@@ -3,7 +3,7 @@ import type { CommercialRouteModel, CommercialRouteSegmentId } from '../../types
 import type { CommercialRouteSegment, CommercialScenarioViewModel, CommercialTechnologyOption } from './commercialViewModel';
 import { customerServiceStateLabel, formatMbps, formatMs, segmentStatusChipClassName } from './commercialDisplayUtils';
 
-const segmentOrder: CommercialRouteSegment['type'][] = ['access', 'satellite', 'backhaul', 'destination', 'summary'];
+const segmentOrder: CommercialRouteSegment['type'][] = ['access', 'destination', 'satellite', 'backhaul', 'summary'];
 
 const tabLabel: Record<CommercialRouteSegment['type'], string> = {
   access: 'Access',

@@ -60,8 +60,8 @@ export interface CommercialNarrativePanelProps {
 
 const SEGMENT_ORDER: CommercialRouteSegmentId[] = [
   'access',
-  'satellite',
   'destination',
+  'satellite',
   'summary',
 ];
 
@@ -419,7 +419,7 @@ function OriginSiteBlock({
   );
 }
 
-// ─── Step 2: Space Coverage ───────────────────────────────────────────────────
+// ─── Step 3: Space Coverage ───────────────────────────────────────────────────
 
 function GeoServingDiagram() {
   return (
@@ -579,7 +579,7 @@ function SpaceCoverageBlock({
   return <GeoSpaceCoverageBlock card={card} viewModel={viewModel} />;
 }
 
-// ─── Step 3: Service Delivery ─────────────────────────────────────────────────
+// ─── Step 2: Destination Site ─────────────────────────────────────────────────
 
 function DestinationReceiveDiagram({ isGateway, endpointLabel }: { isGateway: boolean; endpointLabel: string }) {
   return (
@@ -1034,7 +1034,7 @@ function CommercialNarrativePanel({
                   aria-label="Previous step"
                 >
                   <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
-                  <span className="capitalize">{prevId.replace('destination', 'Service Delivery').replace('satellite', 'Space Coverage').replace('access', 'Origin Site').replace('summary', 'Recommendation')}</span>
+                  <span className="capitalize">{prevId.replace('destination', 'Destination Site').replace('satellite', 'Space Coverage').replace('access', 'Origin Site').replace('summary', 'Recommendation')}</span>
                 </button>
               ) : <span />}
               {nextId ? (
@@ -1044,7 +1044,7 @@ function CommercialNarrativePanel({
                   className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 transition-colors hover:text-slate-200"
                   aria-label="Next step"
                 >
-                  <span className="capitalize">{nextId.replace('destination', 'Service Delivery').replace('satellite', 'Space Coverage').replace('access', 'Origin Site').replace('summary', 'Recommendation')}</span>
+                  <span className="capitalize">{nextId.replace('destination', 'Destination Site').replace('satellite', 'Space Coverage').replace('access', 'Origin Site').replace('summary', 'Recommendation')}</span>
                   <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
               ) : <span />}
