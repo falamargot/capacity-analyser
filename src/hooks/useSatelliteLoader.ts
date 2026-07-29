@@ -13,28 +13,37 @@
 import { useState, useEffect, useRef } from 'react';
 import { fetchSatellites } from '../services/satelliteService';
 import { calculateCoverages } from '../utils/coverageCalculator';
+import { applyWorkerPositions } from './applyWorkerPositions';
 import type { SatelliteData } from '../types/satellites';
+import {
+  SATELLITE_PROPAGATION_INTERVAL_MS,
+  actionPosts,
+  decisionClearsBusy,
+  resolvePropagationResponse,
+  resolvePropagationTick,
+} from './satellitePropagationSchedule';
 
-// ── Epsilon gate calibration ─────────────────────────────────────────────────
-//
-// These thresholds gate whether a satellite's new position is "different enough"
-// to replace the previous object reference. Replacing the reference triggers all
-// downstream useMemos that depend on the satellite array (coverage, connectivity…).
-//
-// IMPORTANT — do NOT tighten POSITION_EPSILON_DEG below 0.01°:
-//   GEO satellites move ~0.008°/2 s  →  below 0.01°  →  reference stays stable ✓
-//   LEO satellites move ~0.13°/2 s   →  well above 0.01° → always updates ✓
-//   At 0.005°, GEO would exceed the gate every tick, triggering constant
-//   downstream re-computation and defeating the entire stability mechanism.
-const POSITION_EPSILON_DEG = 0.01;
-const ALTITUDE_EPSILON_KM  = 0.5;
-const SATELLITE_PROPAGATION_INTERVAL_MS = 1000;
 const SATELLITE_PROPAGATION_LOOKAHEAD_MS = 1200;
+
+/**
+ * Dev-only proof that the response path is alive end to end.
+ *
+ * The always-visible soak of 2026-07-29 could not distinguish "no responses" from
+ * "responses arriving but never reaching rendered state" — the scheduler looked
+ * healthy while every update was being discarded by an impure updater. These
+ * four counters separate those cases in one glance. No React state, no timers,
+ * no output unless a developer calls `window.__satPropagationStats()`.
+ */
+const propagationCounters = { sent: 0, accepted: 0, superseded: 0, published: 0, recycles: 0 };
+
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  (window as unknown as Record<string, unknown>)['__satPropagationStats'] = () => ({ ...propagationCounters });
+}
 
 // ─── Worker message types ─────────────────────────────────────────────────────
 type WorkerInMessage =
   | { type: 'init'; satellites: { id: string; satrec: unknown }[] }
-  | { type: 'propagate'; timestamp: number };
+  | { type: 'propagate'; requestId: number; timestamp: number };
 
 interface SatelliteLoaderOptions {
   /** ID of the currently selected satellite, or null. Used to trigger an
@@ -66,9 +75,19 @@ export function useSatelliteLoader({
 
   // Internal refs used by the worker onmessage callback.
   const prevSelectedSatelliteRef = useRef<string | null>(null);
-  const prevSatellitesRef        = useRef<SatelliteData[]>([]);
   const workerRef                = useRef<Worker | null>(null);
   const workerBusyRef            = useRef(false);
+  /** When the in-flight propagate request was posted — the loop's liveness deadline. */
+  const workerRequestSentAtRef   = useRef(0);
+  // Request identity. A timed-out request is assumed lost, never cancelled, so
+  // its reply can still arrive — after the retry's reply, even. Only the reply
+  // carrying `activeRequestIdRef` may clear the latch or publish.
+  const requestIdSeqRef          = useRef(0);
+  const activeRequestIdRef       = useRef(0);
+  /** Newest sample time ever published, so published time cannot move backwards. */
+  const lastPublishedSampleTimeRef = useRef(0);
+  /** Posts one propagate request through the shared lifecycle. Set by the worker effect. */
+  const postPropagateRef         = useRef<(() => void) | null>(null);
   const satelliteUpdateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Signals the worker needs a fresh satrec init (initial load + hourly refresh).
   const workerNeedsInitRef = useRef(true);
@@ -86,6 +105,10 @@ export function useSatelliteLoader({
   // ── Keep satellite ref in sync ───────────────────────────────────────────
   useEffect(() => {
     satellitesForResolutionRef.current = satellites;
+    // Counts COMMITTED publications — a new array reference reaching rendered
+    // state. `accepted` climbing while this stays flat is the exact signature of
+    // the discarded-update bug.
+    if (import.meta.env.DEV) propagationCounters.published++;
   }, [satellites]);
 
   // ── Satellite fetch (hourly) ─────────────────────────────────────────────
@@ -113,28 +136,64 @@ export function useSatelliteLoader({
   // SGP4 propagation for 600+ satellites runs inside a Web Worker so the
   // main thread is never blocked by ~60 ms of position math per 2-second tick.
   useEffect(() => {
-    let worker: Worker;
-    try {
-      worker = new Worker(
-        new URL('../workers/satellitePositionWorker.ts', import.meta.url),
-        { type: 'module' }
-      );
-    } catch {
-      return; // Web Workers not supported — positions will not update
-    }
-
-    workerRef.current = worker;
-
-    const scheduleTick = () => {
-      if (workerBusyRef.current) return;
-      const sats = satellitesForResolutionRef.current;
-      if (sats.length === 0) {
-        // Satellites not loaded yet — retry shortly
-        satelliteUpdateTimeoutRef.current = setTimeout(scheduleTick, 500);
-        return;
+    const spawnWorker = (): Worker | null => {
+      try {
+        return new Worker(
+          new URL('../workers/satellitePositionWorker.ts', import.meta.url),
+          { type: 'module' }
+        );
+      } catch {
+        return null; // Web Workers not supported — positions will not update
       }
-      // Send satrec objects only when the satellite list has changed (initial load
-      // or hourly refresh). Each tick saves ~240 KB of structured-clone traffic.
+    };
+
+    const attach = (w: Worker) => {
+      w.onmessage = handleWorkerMessage;
+      w.onerror = handleWorkerError;
+    };
+
+    let worker = spawnWorker();
+    if (!worker) return;
+    workerRef.current = worker;
+    workerNeedsInitRef.current = true;
+
+    /**
+     * Replaces the worker after a proven timeout.
+     *
+     * `postMessage` cannot be recalled and the worker has no cancel opcode, so
+     * terminating it is the only reliable way to drop a request that is still
+     * queued or mid-computation. Without this, every deadline would leave
+     * another orphaned job behind and the queue would grow without bound.
+     * Exactly one worker exists at any moment: the old one is terminated before
+     * the new one is created, and the satrec cache is re-sent on the next post.
+     */
+    const recycleWorker = (): boolean => {
+      worker?.terminate();
+      const next = spawnWorker();
+      if (!next) return false;
+      worker = next;
+      workerRef.current = next;
+      attach(next);
+      workerNeedsInitRef.current = true;
+      return true;
+    };
+
+    const armNextTick = (delayMs: number) => {
+      if (satelliteUpdateTimeoutRef.current) clearTimeout(satelliteUpdateTimeoutRef.current);
+      satelliteUpdateTimeoutRef.current = setTimeout(scheduleTick, delayMs);
+    };
+
+    /**
+     * The ONE place a propagate request is created — the tick loop, the
+     * selection effect and the visibility handler all go through here, so every
+     * in-flight request has an id and a deadline.
+     */
+    const postPropagate = () => {
+      if (!worker) return;
+      const sats = satellitesForResolutionRef.current;
+      // Send satrec objects only when the satellite list has changed (initial load,
+      // hourly refresh, or a worker recycle). Each tick saves ~240 KB of
+      // structured-clone traffic.
       if (workerNeedsInitRef.current) {
         const initMsg: WorkerInMessage = {
           type: 'init',
@@ -143,20 +202,79 @@ export function useSatelliteLoader({
         worker.postMessage(initMsg);
         workerNeedsInitRef.current = false;
       }
+      const requestId = ++requestIdSeqRef.current;
+      activeRequestIdRef.current = requestId;
+      if (import.meta.env.DEV) propagationCounters.sent++;
       workerBusyRef.current = true;
+      workerRequestSentAtRef.current = Date.now();
       const propagateMsg: WorkerInMessage = {
         type: 'propagate',
+        requestId,
         timestamp: Date.now() + SATELLITE_PROPAGATION_LOOKAHEAD_MS,
       };
       worker.postMessage(propagateMsg);
     };
+    postPropagateRef.current = postPropagate;
 
-    worker.onmessage = (event: MessageEvent) => {
-      workerBusyRef.current = false;
+    // LIVENESS: the next tick is armed FIRST, before any decision and on every
+    // path. The previous version armed a timer only when a worker response
+    // arrived, so one lost response stopped propagation permanently while the
+    // tab stayed visible — measured at 56-90 s stale positions with the page
+    // rendering normally. See ./satellitePropagationSchedule.ts. Exactly one
+    // timer is pending at any moment, so this adds no timers.
+    const scheduleTick = () => {
+      satelliteUpdateTimeoutRef.current = null;
 
-      const { positions } = event.data as {
+      const action = resolvePropagationTick({
+        satelliteCount: satellitesForResolutionRef.current.length,
+        workerBusy: workerBusyRef.current,
+        requestSentAtMs: workerRequestSentAtRef.current,
+        nowMs: Date.now(),
+      });
+
+      armNextTick(action.delayMs);
+
+      if (action.kind === 'recover-lost-response') {
+        if (import.meta.env.DEV) {
+          console.warn(
+            `[sat] propagate response lost after ${Math.round(action.inFlightMs)}ms`
+            + ' — recycling worker and re-posting'
+          );
+        }
+        workerBusyRef.current = false;
+        if (import.meta.env.DEV) propagationCounters.recycles++;
+        // Drop the orphaned job with the worker that owns it. A reply that
+        // somehow still arrives carries a superseded id and is ignored.
+        if (!recycleWorker()) return;
+      }
+
+      if (actionPosts(action)) postPropagate();
+    };
+
+    const handleWorkerMessage = (event: MessageEvent) => {
+      const { requestId, timestamp, positions } = event.data as {
+        requestId: number;
+        timestamp: number;
         positions: Array<{ id: string; lat: number; lng: number; alt: number; sampleTimeMs: number; isValid: boolean }>;
       };
+
+      // A timed-out request is assumed lost, not cancelled, so its reply may
+      // still land — possibly after the reply to the retry that replaced it.
+      // Publishing it would move every satellite backwards, and the epsilon
+      // gate below would NOT catch that: it compares position deltas, not
+      // sample times.
+      const decision = resolvePropagationResponse({
+        responseRequestId: requestId,
+        activeRequestId: activeRequestIdRef.current,
+        responseSampleTimeMs: timestamp,
+        lastPublishedSampleTimeMs: lastPublishedSampleTimeRef.current,
+      });
+      if (decisionClearsBusy(decision)) workerBusyRef.current = false;
+      if (decision !== 'accept') {
+        if (import.meta.env.DEV && decision === 'ignore-superseded') propagationCounters.superseded++;
+        return;
+      }
+      lastPublishedSampleTimeRef.current = timestamp;
       // Exclude invalid propagations (bad TLE, decayed orbit) — never move a
       // satellite to (0, 0, 0) which is a real coordinate in the Gulf of Guinea.
       const posMap = new Map(positions.filter((p) => p.isValid).map((p) => [p.id, p]));
@@ -165,73 +283,32 @@ export function useSatelliteLoader({
       const currentSelectedId = selectedSatelliteIdRef.current;
       const currentHoveredId  = hoveredSatelliteIdRef.current;
 
-      setSatellites((currentSatellites) => {
-        const selectionChanged = prevSelectedSatelliteRef.current !== currentSelectedId;
-        // §1.3 — Pre-index by ID to avoid O(n²) find() calls per tick
-        const prevById = new Map(prevSatellitesRef.current.map((s) => [s.id, s]));
+      // Selection bookkeeping lives OUT here: advancing a ref inside the
+      // updater is what StrictMode's double invocation turned into dropped
+      // position updates. See ./applyWorkerPositions.ts.
+      const selectionChanged = prevSelectedSatelliteRef.current !== currentSelectedId;
+      prevSelectedSatelliteRef.current = currentSelectedId;
 
-        // PERF-2: track whether ANY item actually changed reference. The
-        // per-item epsilon gate below already returns the same object when a
-        // satellite hasn't moved enough to matter, but the array itself was
-        // always a *new* container from .map() regardless — every consumer
-        // memoized on the bare `satellites` array (not its items) re-fired
-        // every ~1s tick for nothing. Mirrors the item-level stabilization
-        // this hook already does, one level up.
-        let anyItemChanged = false;
-        const updatedSatellites = currentSatellites.map((sat) => {
-          const workerPos = posMap.get(sat.id);
-          if (!workerPos) return sat;
+      if (import.meta.env.DEV) propagationCounters.accepted++;
 
-          const newPosition = {
-            lat: workerPos.lat,
-            lng: workerPos.lng,
-            alt: workerPos.alt,
-            sampleTimeMs: workerPos.sampleTimeMs,
-          };
-          const prev = prevById.get(sat.id);
+      setSatellites((currentSatellites) => applyWorkerPositions(currentSatellites, {
+        positions: posMap,
+        selectedSatelliteId: currentSelectedId,
+        hoveredSatelliteId: currentHoveredId,
+        selectionChanged,
+        computeCoverages: calculateCoverages,
+      }));
 
-          const positionChanged =
-            !prev ||
-            Math.abs(prev.position.lat - newPosition.lat) > POSITION_EPSILON_DEG ||
-            Math.abs(prev.position.lng - newPosition.lng) > POSITION_EPSILON_DEG ||
-            Math.abs(prev.position.alt - newPosition.alt) > ALTITUDE_EPSILON_KM;
-
-          const isSatelliteSelected = currentSelectedId === sat.id;
-          const isSatelliteHovered  = currentHoveredId === sat.id;
-          const shouldRecalculateCoverage =
-            sat.type === 'ONEWEB' &&
-            (isSatelliteSelected ||
-              isSatelliteHovered ||
-              selectionChanged ||
-              positionChanged ||
-              !sat.coverages?.length);
-
-          // Nothing changed → return same reference (prevents downstream re-renders)
-          if (!positionChanged && !shouldRecalculateCoverage) return sat;
-
-          anyItemChanged = true;
-          const updatedSat = positionChanged ? { ...sat, position: newPosition } : sat;
-          return shouldRecalculateCoverage
-            ? { ...updatedSat, coverages: calculateCoverages(updatedSat) }
-            : updatedSat;
-        });
-
-        prevSelectedSatelliteRef.current = currentSelectedId;
-        prevSatellitesRef.current = updatedSatellites;
-        // Every item is reference-identical to currentSatellites when nothing
-        // changed, so returning currentSatellites here is not just "close
-        // enough" — it's the exact same content, just without a new container.
-        return anyItemChanged ? updatedSatellites : currentSatellites;
-      });
-
-      // Schedule next tick after state update is applied
-      satelliteUpdateTimeoutRef.current = setTimeout(scheduleTick, SATELLITE_PROPAGATION_INTERVAL_MS);
+      // No rescheduling here on purpose: scheduleTick always armed the next
+      // tick before posting, so the loop's cadence no longer depends on this
+      // response arriving at all.
     };
 
-    worker.onerror = () => {
+    const handleWorkerError = () => {
       workerBusyRef.current = false;
-      satelliteUpdateTimeoutRef.current = setTimeout(scheduleTick, SATELLITE_PROPAGATION_INTERVAL_MS);
     };
+
+    attach(worker);
 
     scheduleTick();
 
@@ -274,10 +351,12 @@ export function useSatelliteLoader({
         clearTimeout(satelliteUpdateTimeoutRef.current);
         satelliteUpdateTimeoutRef.current = null;
       }
-      // Reset the gate in case it was left true by a background round-trip.
+      // A round trip that was in flight across the suspension will not be
+      // answered, so drop the latch and propagate immediately. This is now an
+      // OPTIMISATION for the resume case, not the recovery mechanism: the tick
+      // deadline recovers a lost response on its own while the tab stays
+      // visible.
       workerBusyRef.current = false;
-      // One immediate propagation — satLiveCellsRef will be refreshed before
-      // the next rAF frame that Cesium renders after tab resume.
       scheduleTick();
     };
 
@@ -297,18 +376,13 @@ export function useSatelliteLoader({
   // satellite selection gets an immediate propagation cycle so the OneWeb
   // coverage footprint refreshes instantly when the user selects a satellite.
   useEffect(() => {
-    const worker = workerRef.current;
-    if (!worker || workerBusyRef.current) return;
-    const sats = satellitesForResolutionRef.current;
-    if (sats.length === 0) return;
+    if (!workerRef.current || workerBusyRef.current) return;
+    if (satellitesForResolutionRef.current.length === 0) return;
 
-    if (satelliteUpdateTimeoutRef.current) clearTimeout(satelliteUpdateTimeoutRef.current);
-    workerBusyRef.current = true;
-    const propagateMsg: WorkerInMessage = {
-      type: 'propagate',
-      timestamp: Date.now() + SATELLITE_PROPAGATION_LOOKAHEAD_MS,
-    };
-    worker.postMessage(propagateMsg);
+    // Same lifecycle as every other request: it gets an id, a deadline and the
+    // same supersede rules. It must NOT cancel the loop's timer — that is how a
+    // selection change could previously leave the loop with nothing pending.
+    postPropagateRef.current?.();
   }, [selectedSatelliteId]);
 
   return { satellites, loading, satellitesForResolutionRef };

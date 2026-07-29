@@ -19,6 +19,7 @@ import {
 import type { SatelliteData } from '../../types/satellites';
 import { SATELLITE_GLYPH, LEO_SMOKED_GLYPH, DPR_FACTOR, calculateDynamicScale, type CameraMetricsSnapshot } from './utils';
 import type { SatelliteStatusCategory } from '../../utils/satelliteStatus';
+import { sameSatelliteVisualIdentity } from './satelliteVisualIdentity';
 // ─── Status color palette ─────────────────────────────────────────────────────
 // Pre-allocated Cesium Color instances so we never allocate on the hot render path.
 const STATUS_COLORS: Record<SatelliteStatusCategory, { eutelsat: Color; oneweb: Color }> = {
@@ -61,20 +62,40 @@ interface SatelliteLayerProps {
     commercialTechnologyFocus?: 'LEO' | 'GEO' | null;
 }
 
-const SatelliteEntity = React.memo<{
+interface SatelliteEntityProps {
     sat: SatelliteData;
     isManuallySelected: boolean;
     positionCallback: any;
+    getLatestSatellite: (satelliteId: string) => SatelliteData | undefined;
     viewerRef: React.RefObject<CesiumViewerType | null>;
     cameraMetricsRef: React.RefObject<CameraMetricsSnapshot>;
     satelliteSizeScale: number;
     commercialTechnologyFocus?: 'LEO' | 'GEO' | null;
     onSatelliteClick: (satellite: SatelliteData | null) => void;
     onSatelliteHover: (satelliteId: string | null) => void;
-}>(({
+}
+
+const satelliteEntityPropsEqual = (
+    previous: SatelliteEntityProps,
+    next: SatelliteEntityProps,
+): boolean => (
+    sameSatelliteVisualIdentity(previous.sat, next.sat)
+    && previous.isManuallySelected === next.isManuallySelected
+    && previous.positionCallback === next.positionCallback
+    && previous.getLatestSatellite === next.getLatestSatellite
+    && previous.viewerRef === next.viewerRef
+    && previous.cameraMetricsRef === next.cameraMetricsRef
+    && previous.satelliteSizeScale === next.satelliteSizeScale
+    && previous.commercialTechnologyFocus === next.commercialTechnologyFocus
+    && previous.onSatelliteClick === next.onSatelliteClick
+    && previous.onSatelliteHover === next.onSatelliteHover
+);
+
+const SatelliteEntity = React.memo<SatelliteEntityProps>(({
     sat,
     isManuallySelected,
     positionCallback,
+    getLatestSatellite,
     viewerRef,
     cameraMetricsRef,
     satelliteSizeScale,
@@ -82,11 +103,6 @@ const SatelliteEntity = React.memo<{
     onSatelliteClick,
     onSatelliteHover
 }) => {
-    // Refs let the stable CallbackProperty closure read the latest values
-    // without being recreated when position or sizeScale changes.
-    const satPositionRef = useRef(sat.position);
-    satPositionRef.current = sat.position;
-
     const satelliteSizeScaleRef = useRef(satelliteSizeScale);
     satelliteSizeScaleRef.current = satelliteSizeScale;
     const commercialTechnologyFocusRef = useRef(commercialTechnologyFocus);
@@ -103,7 +119,7 @@ const SatelliteEntity = React.memo<{
     const scaleCallback = useMemo(() => {
         const isGEO = sat.type === 'EUTELSAT';
         return new CallbackProperty(() => {
-            const { lat, lng, alt } = satPositionRef.current;
+            const { lat, lng, alt } = (getLatestSatellite(sat.id) ?? sat).position;
             Cartesian3.fromDegrees(lng, lat, alt * 1000, undefined, scratchPositionRef.current);
 
             const distance = Cartesian3.distance(
@@ -127,9 +143,12 @@ const SatelliteEntity = React.memo<{
             return baseScale * satelliteSizeScaleRef.current * commercialScale;
         }, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [sat.type, viewerRef, cameraMetricsRef]); // position & sizeScale read via refs
+    }, [sat.id, sat.type, getLatestSatellite, viewerRef, cameraMetricsRef]);
 
-    const handleClick = useCallback(() => onSatelliteClick(sat), [sat, onSatelliteClick]);
+    const handleClick = useCallback(
+        () => onSatelliteClick(getLatestSatellite(sat.id) ?? sat),
+        [getLatestSatellite, onSatelliteClick, sat],
+    );
     const handleMouseEnter = useCallback(() => onSatelliteHover(sat.id), [sat.id, onSatelliteHover]);
     const handleMouseLeave = useCallback(() => onSatelliteHover(null), [onSatelliteHover]);
 
@@ -138,10 +157,8 @@ const SatelliteEntity = React.memo<{
     const isCommercialSecondary = isCommercial && (
         commercialTechnologyFocus === null || commercialTechnologyFocus !== satelliteTech
     );
-    // Memoized: `Color.fromCssColorString(...).withAlpha(...)` allocated three new
-    // Color objects on every render, and this component re-renders once per second
-    // for every satellite that moves (the `sat` prop is a fresh object each
-    // propagation tick, which defeats the shallow React.memo above).
+    // Memoized: `Color.fromCssColorString(...).withAlpha(...)` previously
+    // allocated three new Color objects whenever a satellite entity rendered.
     const billboardColor = useMemo(() => (
         isCommercial && !isManuallySelected
             ? isCommercialSecondary
@@ -186,7 +203,7 @@ const SatelliteEntity = React.memo<{
             />
         </>
     );
-});
+}, satelliteEntityPropsEqual);
 
 SatelliteEntity.displayName = 'SatelliteEntity';
 
@@ -200,7 +217,10 @@ const SatelliteLayer: React.FC<SatelliteLayerProps> = ({
     satelliteSizeScale = 1,
     commercialTechnologyFocus,
 }) => {
-    const { getSatellitePositionCallback } = usePositionCallbacks(satellites, []);
+    const {
+        getSatellitePositionCallback,
+        getLatestSatellite,
+    } = usePositionCallbacks(satellites, [], undefined, 'satellite-layer');
 
     // Memoize satellite entities
     const satelliteEntities = useMemo(() => {
@@ -214,6 +234,7 @@ const SatelliteLayer: React.FC<SatelliteLayerProps> = ({
                     sat={sat}
                     isManuallySelected={isManuallySelected}
                     positionCallback={positionCallback}
+                    getLatestSatellite={getLatestSatellite}
                     viewerRef={viewerRef}
                     cameraMetricsRef={cameraMetricsRef}
                     satelliteSizeScale={satelliteSizeScale}
@@ -227,6 +248,7 @@ const SatelliteLayer: React.FC<SatelliteLayerProps> = ({
         satellites,
         selectedSatellite?.id,
         getSatellitePositionCallback,
+        getLatestSatellite,
         viewerRef,
         cameraMetricsRef,
         satelliteSizeScale,

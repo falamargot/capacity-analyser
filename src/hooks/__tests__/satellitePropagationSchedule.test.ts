@@ -1,0 +1,258 @@
+/**
+ * Liveness tests for the satellite propagation loop.
+ *
+ * The bug these exist for: on 2026-07-29 an authoritative browser soak measured
+ * a 319 km mean ground-track error on a VISIBLE tab whose interpolation cells
+ * were 311 ms old. Rendering was healthy; the propagation loop had simply
+ * stopped, because the only thing that armed the next tick was a worker
+ * response, and one response never arrived. Hiding and reopening the tab was
+ * the only way back.
+ *
+ * So the property under test is not accuracy — it is that the loop cannot stop.
+ */
+import { describe, expect, it } from 'vitest';
+import {
+  SATELLITE_PROPAGATION_INTERVAL_MS,
+  SATELLITE_PROPAGATION_RETRY_MS,
+  WORKER_RESPONSE_DEADLINE_MS,
+  actionPosts,
+  decisionClearsBusy,
+  resolvePropagationResponse,
+  resolvePropagationTick,
+} from '../satellitePropagationSchedule';
+
+const NOW = 1_700_000_000_000;
+
+describe('resolvePropagationTick', () => {
+  it('always returns a delay, so the caller can always arm the next tick', () => {
+    const states = [
+      { satelliteCount: 0, workerBusy: false, requestSentAtMs: 0, nowMs: NOW },
+      { satelliteCount: 651, workerBusy: false, requestSentAtMs: 0, nowMs: NOW },
+      { satelliteCount: 651, workerBusy: true, requestSentAtMs: NOW - 10, nowMs: NOW },
+      { satelliteCount: 651, workerBusy: true, requestSentAtMs: NOW - 60_000, nowMs: NOW },
+    ];
+
+    for (const state of states) {
+      expect(resolvePropagationTick(state).delayMs).toBeGreaterThan(0);
+    }
+  });
+
+  it('waits for the satellite fetch before propagating anything', () => {
+    const action = resolvePropagationTick({
+      satelliteCount: 0, workerBusy: false, requestSentAtMs: 0, nowMs: NOW,
+    });
+    expect(action).toEqual({ kind: 'await-satellites', delayMs: SATELLITE_PROPAGATION_RETRY_MS });
+    expect(actionPosts(action)).toBe(false);
+  });
+
+  it('posts on a normal idle tick', () => {
+    const action = resolvePropagationTick({
+      satelliteCount: 651, workerBusy: false, requestSentAtMs: NOW - 5000, nowMs: NOW,
+    });
+    expect(action.kind).toBe('post');
+    expect(action.delayMs).toBe(SATELLITE_PROPAGATION_INTERVAL_MS);
+    expect(actionPosts(action)).toBe(true);
+  });
+
+  it('does not stack requests while one is legitimately in flight', () => {
+    const action = resolvePropagationTick({
+      satelliteCount: 651, workerBusy: true, requestSentAtMs: NOW - 150, nowMs: NOW,
+    });
+    expect(action.kind).toBe('await-response');
+    expect(actionPosts(action)).toBe(false);
+  });
+
+  it('recovers a lost response once the deadline passes — the whole point', () => {
+    const justBefore = resolvePropagationTick({
+      satelliteCount: 651,
+      workerBusy: true,
+      requestSentAtMs: NOW - (WORKER_RESPONSE_DEADLINE_MS - 1),
+      nowMs: NOW,
+    });
+    expect(justBefore.kind).toBe('await-response');
+
+    const atDeadline = resolvePropagationTick({
+      satelliteCount: 651,
+      workerBusy: true,
+      requestSentAtMs: NOW - WORKER_RESPONSE_DEADLINE_MS,
+      nowMs: NOW,
+    });
+    expect(atDeadline.kind).toBe('recover-lost-response');
+    expect(actionPosts(atDeadline)).toBe(true);
+  });
+
+  it('recovers while the tab stays visible — a hide/resume is never required', () => {
+    // Replay the measured failure: a response is lost, and the tab is NEVER
+    // hidden. Previously nothing rescheduled and the app stayed stale for
+    // 56-90 s. Here the loop must re-post within a bounded number of ticks.
+    let busy = true;
+    const sentAtMs = NOW;
+    let posted = 0;
+    let ticks = 0;
+
+    for (let now = NOW; now <= NOW + 10_000; now += SATELLITE_PROPAGATION_INTERVAL_MS) {
+      ticks++;
+      const action = resolvePropagationTick({
+        satelliteCount: 651, workerBusy: busy, requestSentAtMs: sentAtMs, nowMs: now,
+      });
+      if (actionPosts(action)) { posted++; busy = true; break; }
+    }
+
+    expect(posted).toBe(1);
+    expect(ticks).toBeLessThanOrEqual(WORKER_RESPONSE_DEADLINE_MS / SATELLITE_PROPAGATION_INTERVAL_MS + 1);
+  });
+
+  it('keeps worst-case sample age inside the interpolation extrapolation cap', () => {
+    // A marker may extrapolate 4 s before it visibly freezes
+    // (SATELLITE_MAX_EXTRAPOLATION_MS). Recovery must land first: deadline plus
+    // one tick, plus the 1.2 s propagation lookahead already in hand.
+    expect(WORKER_RESPONSE_DEADLINE_MS + SATELLITE_PROPAGATION_INTERVAL_MS - 1200).toBeLessThanOrEqual(4000);
+  });
+
+  it('re-posts once per tick at most, so a dead worker cannot flood the queue', () => {
+    let posts = 0;
+    for (let i = 0; i < 20; i++) {
+      const action = resolvePropagationTick({
+        satelliteCount: 651,
+        workerBusy: true,
+        // Latch cleared and re-stamped by the caller on every recovery.
+        requestSentAtMs: NOW + i * SATELLITE_PROPAGATION_INTERVAL_MS,
+        nowMs: NOW + i * SATELLITE_PROPAGATION_INTERVAL_MS,
+      });
+      if (actionPosts(action)) posts++;
+    }
+    expect(posts).toBe(0);
+  });
+});
+
+/**
+ * A timed-out request is assumed lost, never cancelled — `postMessage` has no
+ * recall. So the retry and the original can both be answered, in either order.
+ * These replay that race end to end against a model of the loader's state, in
+ * the order the events actually reach the main thread.
+ */
+describe('late-response race', () => {
+  const LOOKAHEAD = 1200;
+
+  /** The pieces of useSatelliteLoader's state the race touches. */
+  function makeLoader() {
+    let seq = 0;
+    const state = {
+      busy: false,
+      activeRequestId: 0,
+      lastPublishedSampleTimeMs: 0,
+      published: [] as number[],
+    };
+    return {
+      state,
+      post(nowMs: number) {
+        const requestId = ++seq;
+        state.activeRequestId = requestId;
+        state.busy = true;
+        return { requestId, timestamp: nowMs + LOOKAHEAD };
+      },
+      deliver(response: { requestId: number; timestamp: number }) {
+        const decision = resolvePropagationResponse({
+          responseRequestId: response.requestId,
+          activeRequestId: state.activeRequestId,
+          responseSampleTimeMs: response.timestamp,
+          lastPublishedSampleTimeMs: state.lastPublishedSampleTimeMs,
+        });
+        if (decisionClearsBusy(decision)) state.busy = false;
+        if (decision === 'accept') {
+          state.lastPublishedSampleTimeMs = response.timestamp;
+          state.published.push(response.timestamp);
+        }
+        return decision;
+      },
+    };
+  }
+
+  it('publishes the retry when the first response is simply lost', () => {
+    const loader = makeLoader();
+    loader.post(NOW);                                   // times out, never answered
+    const retry = loader.post(NOW + WORKER_RESPONSE_DEADLINE_MS);
+
+    expect(loader.deliver(retry)).toBe('accept');
+    expect(loader.state.published).toEqual([NOW + WORKER_RESPONSE_DEADLINE_MS + LOOKAHEAD]);
+    expect(loader.state.busy).toBe(false);
+  });
+
+  it('ignores the old response when it arrives BEFORE the retry response', () => {
+    const loader = makeLoader();
+    const lost = loader.post(NOW);
+    const retry = loader.post(NOW + WORKER_RESPONSE_DEADLINE_MS);
+
+    expect(loader.deliver(lost)).toBe('ignore-superseded');
+    expect(loader.deliver(retry)).toBe('accept');
+    expect(loader.state.published).toEqual([NOW + WORKER_RESPONSE_DEADLINE_MS + LOOKAHEAD]);
+  });
+
+  it('ignores the old response when it arrives AFTER the retry response', () => {
+    // The dangerous ordering: without request identity this republished a
+    // 3 s-old sample and every satellite jumped ~18 km backwards.
+    const loader = makeLoader();
+    const lost = loader.post(NOW);
+    const retry = loader.post(NOW + WORKER_RESPONSE_DEADLINE_MS);
+
+    expect(loader.deliver(retry)).toBe('accept');
+    expect(loader.deliver(lost)).toBe('ignore-superseded');
+    expect(loader.state.published).toEqual([NOW + WORKER_RESPONSE_DEADLINE_MS + LOOKAHEAD]);
+  });
+
+  it('does not let a stale response clear the busy state of the current request', () => {
+    // Clearing the latch here would let a THIRD request be posted while the
+    // retry is still in flight.
+    const loader = makeLoader();
+    const lost = loader.post(NOW);
+    loader.post(NOW + WORKER_RESPONSE_DEADLINE_MS);
+
+    expect(loader.state.busy).toBe(true);
+    loader.deliver(lost);
+    expect(loader.state.busy).toBe(true);
+  });
+
+  it('never moves the published sample time backwards', () => {
+    const loader = makeLoader();
+    for (let i = 0; i < 25; i++) {
+      const request = loader.post(NOW + i * SATELLITE_PROPAGATION_INTERVAL_MS);
+      // Every third round trip is lost and answered late, out of order.
+      if (i % 3 === 0) continue;
+      loader.deliver(request);
+    }
+
+    const published = loader.state.published;
+    expect(published.length).toBeGreaterThan(0);
+    for (let i = 1; i < published.length; i++) {
+      expect(published[i]).toBeGreaterThan(published[i - 1]);
+    }
+  });
+
+  it('refuses a current-id response whose sample is not newer than what is shown', () => {
+    const loader = makeLoader();
+    const first = loader.post(NOW);
+    loader.deliver(first);
+
+    // Same id replayed, or a clock that stepped backwards.
+    expect(loader.deliver(first)).toBe('ignore-out-of-order');
+    expect(loader.state.published).toHaveLength(1);
+  });
+
+  it('keeps exactly one request outstanding across repeated timeouts', () => {
+    // Queue growth check: each deadline supersedes the previous id, so however
+    // many times the worker fails, only the newest request can ever be answered.
+    const loader = makeLoader();
+    const orphaned: { requestId: number; timestamp: number }[] = [];
+    for (let i = 0; i < 12; i++) {
+      orphaned.push(loader.post(NOW + i * WORKER_RESPONSE_DEADLINE_MS));
+    }
+
+    const newest = orphaned.pop()!;
+    for (const stale of orphaned) {
+      expect(loader.deliver(stale)).toBe('ignore-superseded');
+    }
+    expect(loader.deliver(newest)).toBe('accept');
+    expect(loader.state.published).toHaveLength(1);
+    expect(loader.state.busy).toBe(false);
+  });
+});

@@ -18,7 +18,8 @@
  * sites and 8 preRender/postRender handlers assume continuous rendering), so the
  * audit deliberately did not flip it. This module supplies the evidence needed
  * to decide and to prove the result: how many frames actually render, what they
- * cost, how many of them were necessary, and what React is doing meanwhile.
+ * cost, how many of them had an attributed cause, and what React is doing
+ * meanwhile.
  *
  * Everything here is DEV-ONLY and inert in production builds.
  *
@@ -34,7 +35,8 @@
  *   1. Load the app, select a scenario, then leave the mouse completely still.
  *   2. __perfReset()
  *   3. Wait 30 s without touching anything.
- *   4. __perfReport()  →  idleFrames is the cost PERF-1 imposes for nothing.
+ *   4. __perfReport()  →  unattributedFrames is the upper bound on the cost
+ *      PERF-1 imposes for nothing.
  */
 
 export interface FrameStats {
@@ -42,16 +44,34 @@ export interface FrameStats {
   frames: number;
   /** Wall-clock seconds the sample covers. */
   elapsedSec: number;
+  /** Average rendered frames per second over the whole sample window. */
   fps: number;
+  /** Cadence over the most recent rendered frames; excludes old idle history. */
+  recentFps: number;
   /** Frame-to-frame interval percentiles, in ms. */
   frameMs: { mean: number; p50: number; p95: number; max: number };
   /**
-   * Frames rendered while NOTHING changed — no camera movement, no pointer
-   * input, no scene-content mutation. Under `requestRenderMode: true` these are
-   * exactly the frames that would not have been drawn. This is the PERF-1
-   * measurement.
+   * Frames rendered with NO ATTRIBUTED CAUSE — no camera movement, no pointer
+   * input, and no `notifySceneMutated()` call from a layer.
+   *
+   * Renamed from `idleFrames` in Lot 2C.1, because "idle" asserted more than
+   * the counter can know. Cesium re-evaluates every non-constant
+   * `CallbackProperty` each frame, and such a property can change what is drawn
+   * WITHOUT anyone calling `notifySceneMutated()` — a time-driven pulse or
+   * flow particle is a real visual change that lands in this bucket. So this is
+   * an upper bound on wasted work, not a count of provably-unchanged frames:
+   * every skippable frame is unattributed, but not every unattributed frame is
+   * skippable. Attributing more of them (by converting time-dependent
+   * properties to explicitly-requested updates) is the point of the lot.
+   */
+  unattributedFrames: number;
+  unattributedFramePct: number;
+  /**
+   * @deprecated Same counter under its pre-Lot-2C.1 name. Kept so captures
+   * recorded before the rename stay comparable; read `unattributedFrames`.
    */
   idleFrames: number;
+  /** @deprecated Alias of `unattributedFramePct`. */
   idleFramePct: number;
 }
 
@@ -124,6 +144,11 @@ class Samples {
   }
   clear(): void { this.buf = []; }
   get count(): number { return this.buf.length; }
+  meanOfLast(count: number): number {
+    const values = this.buf.slice(-Math.max(1, count));
+    if (values.length === 0) return 0;
+    return values.reduce((sum, value) => sum + value, 0) / values.length;
+  }
   stats(): { mean: number; p50: number; p95: number; max: number } {
     if (this.buf.length === 0) return { mean: 0, p50: 0, p95: 0, max: 0 };
     const sorted = [...this.buf].sort((a, b) => a - b);
@@ -149,7 +174,7 @@ let detachInputListeners: (() => void) | null = null;
 export const ROOT_PROFILER_ID = 'app';
 
 let frameCount = 0;
-let idleFrameCount = 0;
+let unattributedFrameCount = 0;
 const frameIntervals = new Samples();
 let lastFrameAt = 0;
 
@@ -176,7 +201,9 @@ const marks: { label: string; atSec: number }[] = [];
 /**
  * "Something changed" flag. Set by camera movement, pointer input, and explicit
  * `notifySceneMutated()` calls from layers. A frame that renders while this is
- * false is an idle frame — one `requestRenderMode` would have skipped.
+ * false is an UNATTRIBUTED frame: nothing reported a cause for it. That makes
+ * it a candidate for elimination, not proof that nothing changed — see
+ * `FrameStats.unattributedFrames`.
  */
 let dirtySinceLastFrame = false;
 
@@ -187,7 +214,7 @@ export function setRuntimeProfilerViewerGetter(getter: ViewerGetter): void {
   viewerGetter = getter;
 }
 
-/** Marks the scene as changed, so the next rendered frame is not counted idle. */
+/** Marks the scene as changed, so the next rendered frame is attributed. */
 export function notifySceneMutated(): void {
   dirtySinceLastFrame = true;
 }
@@ -293,9 +320,14 @@ export function collectRuntimeStats(): RuntimeStats {
       frames: frameCount,
       elapsedSec,
       fps: elapsedSec > 0 ? frameCount / elapsedSec : 0,
+      recentFps: frameIntervals.count > 0
+        ? 1000 / frameIntervals.meanOfLast(64)
+        : 0,
       frameMs: frameIntervals.stats(),
-      idleFrames: idleFrameCount,
-      idleFramePct: frameCount > 0 ? (idleFrameCount / frameCount) * 100 : 0,
+      unattributedFrames: unattributedFrameCount,
+      unattributedFramePct: frameCount > 0 ? (unattributedFrameCount / frameCount) * 100 : 0,
+      idleFrames: unattributedFrameCount,
+      idleFramePct: frameCount > 0 ? (unattributedFrameCount / frameCount) * 100 : 0,
     },
     react: {
       commits: commitCount,
@@ -312,7 +344,7 @@ export function collectRuntimeStats(): RuntimeStats {
 export function resetRuntimeProfiler(): void {
   startedAt = performance.now();
   frameCount = 0;
-  idleFrameCount = 0;
+  unattributedFrameCount = 0;
   frameIntervals.clear();
   lastFrameAt = 0;
   commitCount = 0;
@@ -344,9 +376,9 @@ export function formatRuntimeReport(s: RuntimeStats = collectRuntimeStats()): st
     `  canvas pixels     : ${r.canvasPixels != null ? r.canvasPixels.toLocaleString('en-US') : 'unknown'}`,
     '',
     'FRAMES',
-    `  rendered          : ${f.frames}  (${f.fps.toFixed(1)} fps)`,
+    `  rendered          : ${f.frames}  (${f.fps.toFixed(1)} avg fps, ${f.recentFps.toFixed(1)} recent fps)`,
     `  interval ms       : mean ${f.frameMs.mean.toFixed(2)}  p50 ${f.frameMs.p50.toFixed(2)}  p95 ${f.frameMs.p95.toFixed(2)}  max ${f.frameMs.max.toFixed(2)}`,
-    `  IDLE frames       : ${f.idleFrames} (${f.idleFramePct.toFixed(1)}%)  ← wasted work requestRenderMode would remove`,
+    `  UNATTRIBUTED      : ${f.unattributedFrames} (${f.unattributedFramePct.toFixed(1)}%)  ← no camera/input/mutation cause; upper bound on skippable work`,
     '',
     'REACT',
     `  commits           : ${s.react.commits} (${s.react.mounts} mounts)`,
@@ -461,7 +493,7 @@ export function attachRuntimeProfilerToViewer(viewer: unknown): () => void {
       // Camera unavailable — fall back to the input-driven dirty flag only.
     }
 
-    if (!dirtySinceLastFrame) idleFrameCount++;
+    if (!dirtySinceLastFrame) unattributedFrameCount++;
     dirtySinceLastFrame = false;
   };
 

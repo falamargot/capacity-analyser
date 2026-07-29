@@ -17,6 +17,28 @@ const DEBOUNCE_MS = 400;
 const MIN_QUERY_LENGTH = 3;
 const NOMINATIM_LIMIT = 3;
 
+interface NominatimSearchResult {
+  display_name: string;
+  lat: string;
+  lon: string;
+}
+
+export function normalizeLocationSearchResults(data: NominatimSearchResult[]): LocationResult[] {
+  const unique = new Map<string, LocationResult>();
+
+  for (const item of data) {
+    const result = {
+      name: item.display_name.split(',').slice(0, 2).join(','),
+      lat: parseFloat(item.lat),
+      lng: parseFloat(item.lon),
+    };
+    const key = `${result.name}::${result.lat}::${result.lng}`;
+    if (!unique.has(key)) unique.set(key, result);
+  }
+
+  return [...unique.values()];
+}
+
 export function useLocationSearch(query: string): UseLocationSearchReturn {
   const [results, setResults] = useState<LocationResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -40,13 +62,7 @@ export function useLocationSearch(query: string): UseLocationSearchReturn {
           `https://nominatim.openstreetmap.org/search?format=json&limit=${NOMINATIM_LIMIT}&q=${encodeURIComponent(query)}`
         );
         const data = await response.json();
-        setResults(
-          data.map((item: { display_name: string; lat: string; lon: string }) => ({
-            name: item.display_name.split(',').slice(0, 2).join(','),
-            lat: parseFloat(item.lat),
-            lng: parseFloat(item.lon),
-          }))
-        );
+        setResults(normalizeLocationSearchResults(data));
         setError(null);
       } catch {
         setResults([]);

@@ -758,8 +758,9 @@ function EngineeringHeaderScenarioBuilder({
   siteB,
   analysisSource,
   compact,
+  collapsed,
   engineeringConfigure,
-}: Pick<HeaderScenarioBuilderProps, 'siteA' | 'siteB' | 'analysisSource' | 'compact'> & {
+}: Pick<HeaderScenarioBuilderProps, 'siteA' | 'siteB' | 'analysisSource' | 'compact' | 'collapsed'> & {
   engineeringConfigure: HeaderEngineeringConfigure;
 }) {
   const { baseline, candidates, onApply } = engineeringConfigure;
@@ -923,6 +924,53 @@ function EngineeringHeaderScenarioBuilder({
     if (mode === 'POINT_TO_POINT') return 'Point-to-Point';
     return 'Mesh';
   };
+
+  if (collapsed) {
+    const collapsedSiteRow = (
+      key: 'siteA' | 'siteB',
+      source: SiteConfig,
+      label: string,
+    ) => {
+      const config = buildDraftSiteConfig(key, source);
+      const isAircraft = analysisSource === 'aircraft';
+
+      return (
+        <div className="grid min-w-0 grid-cols-[2rem_minmax(8rem,1fr)_minmax(9.5rem,0.72fr)] items-center gap-1.5">
+          <span className="inline-flex h-6 w-7 items-center justify-center rounded-md bg-sky-500/10 text-[8px] font-black uppercase tracking-[0.12em] text-sky-700 dark:bg-sky-400/10 dark:text-sky-200">
+            {label}
+          </span>
+          <div className="min-w-0">
+            <SiteLocationEditor
+              endpoint={config.endpoint}
+              fallback={config.fallback}
+              roleLabel={config.roleLabel}
+              onSelect={config.onSelect}
+              onClear={config.onClear}
+              disabled={config.locationDisabled}
+              disabledReason={config.locationDisabledReason}
+            />
+          </div>
+          <WeatherAssumptionRow
+            weather={config.weather}
+            disabled={isAircraft}
+            realWeatherUnavailable={!config.endpoint}
+          />
+        </div>
+      );
+    };
+
+    return (
+      <fieldset
+        ref={configureRef}
+        tabIndex={-1}
+        className="grid h-full min-w-0 grid-cols-2 items-center gap-2 rounded-xl border border-slate-200/65 bg-slate-50/80 px-2 py-1 shadow-[0_12px_30px_-30px_rgba(15,23,42,0.38)] dark:border-white/[0.09] dark:bg-slate-900/72"
+        aria-label="Collapsed desktop engineering scenario configuration"
+      >
+        {collapsedSiteRow('siteA', siteA, 'S1')}
+        {collapsedSiteRow('siteB', siteB, 'S2')}
+      </fieldset>
+    );
+  }
 
   return (
     <fieldset
@@ -1109,6 +1157,7 @@ function HeaderScenarioBuilder({
       siteB={siteB}
       analysisSource={analysisSource}
       compact={compact}
+      collapsed={collapsed}
       engineeringConfigure={engineeringConfigure}
     />
   );

@@ -24,6 +24,14 @@ installRuntimeProfiler();
 // silently halve real measurements.
 configureRuntimeProfiler({ strictModeDoubleInvoke: true });
 
+// Dev-only, opt-in: orbital alignment diagnostic (__orbitalCheck('snapshot'|'soak')).
+// Nothing runs until it is called by name. `import.meta.env.DEV` is statically
+// false in a production build, so this whole import is dropped there.
+if (import.meta.env.DEV) {
+  void import('./diagnostics/orbitalAlignmentDiagnostic').then((m) => m.installOrbitalAlignmentDiagnostic());
+  void import('./diagnostics/resumeFrameProbe').then((m) => m.installResumeFrameProbe());
+}
+
 // Configure Cesium ION token at app startup (before any components render)
 const ionToken = import.meta.env.VITE_CESIUM_ION_ACCESS_TOKEN;
 if (ionToken) {

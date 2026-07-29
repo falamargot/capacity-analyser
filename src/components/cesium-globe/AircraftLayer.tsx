@@ -152,7 +152,7 @@ const AircraftLayer: React.FC<AircraftLayerProps> = ({
         requestGlobeRender(viewerRef.current);
     }, [viewerRef, aircraft, selectedAircraft]);
 
-    const { getAircraftPositionCallback } = usePositionCallbacks([], aircraft, interpolatedAircraftMapRef);
+    const { getAircraftPositionCallback } = usePositionCallbacks([], aircraft, interpolatedAircraftMapRef, 'aircraft-layer');
 
     // Memoize aircraft entities
     const aircraftEntities = useMemo(() => {

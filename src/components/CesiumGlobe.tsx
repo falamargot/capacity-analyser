@@ -26,7 +26,6 @@ import {
     defined,
     CallbackProperty,
     SceneMode,
-    ClockStep,
     JulianDate,
     ImageryLayer,
     Simon1994PlanetaryPositions,
@@ -46,6 +45,11 @@ import type { VesselInterpolation } from '../modules/maritimeTraffic/useMaritime
 import type { SatelliteScope } from './SatelliteScopeFilter';
 import type { CandidateCoverage, GEOBeam, MobileAnalysisMetrics, Selection } from '../types/analysis';
 import { getPosition, DPR_FACTOR, calculateDynamicScale, type CameraMetricsSnapshot } from './cesium-globe/utils';
+import {
+    CESIUM_TARGET_FRAME_RATE,
+    getCesiumRenderPerformancePolicy,
+    STANDBY_FRAME_INTERVAL_SECONDS,
+} from './cesium-globe/renderPerformancePolicy';
 import { useCesiumTheme } from '../hooks/useCesiumTheme';
 import {
     getEffectiveFillRateLayerVisible,
@@ -71,7 +75,9 @@ import RegulatoryLayer from './cesium-globe/RegulatoryLayer';
 import FiveGSpectrumLayer from './cesium-globe/FiveGSpectrumLayer';
 import SelectedCountryOutline from './cesium-globe/SelectedCountryOutline';
 import SelectedPointStatusMarker, { SelectionPulseMarker } from './cesium-globe/SelectedPointStatusMarker';
+import { registerCesiumClockDeltaReader, registerCesiumFrameProbe } from '../diagnostics/orbitalAlignmentProbe';
 import { usePositionCallbacks } from './cesium-globe/hooks';
+import { configureLiveCesiumClock } from './cesium-globe/liveClock';
 
 // UI components
 import GlobeIntelligenceRail from './cesium-globe/GlobeIntelligenceRail';
@@ -1163,21 +1169,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         suppressCommercialCameraFocus = false,
     } = commercialState;
     const handleEngineeringSatelliteClick = useCallback((satellite: SatelliteData | null) => {
-        if (!commercialMode || !satellite) {
-            const activeRouteSatelliteIds = new Set([
-                autoSelectedLEOSatellite?.id,
-                autoSelectedLEOSatelliteB?.id,
-                autoSelectedGEOSatellite?.id,
-                leoSiteToSiteResult?.servingSatelliteA?.id,
-                leoSiteToSiteResult?.servingSatelliteB?.id,
-            ].filter(Boolean));
-            if (!commercialMode && satellite && activeRouteSatelliteIds.has(satellite.id)) {
-                engineeringFocus.lock(activeConnectivityTab, 'path', 'globe');
-                return;
-            }
-        }
+        // A satellite remains an inspectable asset even when it participates in
+        // the active engineering route. Route lines and engineering route nodes
+        // have their own entity ids below and continue to focus the PATH stage.
+        // Hijacking an active satellite click here made globe selection disagree
+        // with the Explore selector and affected both GEO and OneWeb satellites.
         onSatelliteClick(satellite);
-    }, [activeConnectivityTab, autoSelectedGEOSatellite?.id, autoSelectedLEOSatellite?.id, autoSelectedLEOSatelliteB?.id, commercialMode, engineeringFocus, leoSiteToSiteResult?.servingSatelliteA?.id, leoSiteToSiteResult?.servingSatelliteB?.id, onSatelliteClick]);
+    }, [onSatelliteClick]);
 
     const handleEngineeringSnpClick = useCallback((snpName: string | null) => {
         const activeSnpName = typeof selectedSNP === 'string' ? selectedSNP : selectedSNP?.name;
@@ -1290,7 +1288,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         };
     }, [viewerReady]);
     const initialSceneReadyRef = useRef(false);
-    const { getSatellitePositionCallback } = usePositionCallbacks(satellites, aircraft, interpolatedAircraftMapRef);
+    const { getSatellitePositionCallback } = usePositionCallbacks(satellites, aircraft, interpolatedAircraftMapRef, 'globe-pulse-markers');
     const basemapApplyTokenRef = useRef(0);
     const basemapOptions = useMemo(() => {
         const byName = new Map<string, ProviderViewModel>();
@@ -1355,20 +1353,19 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             const viewer = e.cesiumElement;
             viewerRef.current = viewer;
 
-            // Match canvas resolution to the physical pixel ratio so the globe renders
-            // sharply on Retina / HiDPI displays.  Billboard and point scales are
-            // expressed in physical pixels when resolutionScale > 1, which is why
-            // DPR_FACTOR (= window.devicePixelRatio) is already baked into every
-            // calculateDynamicScale() call — the two cancel out and icons end up
-            // the same physical size on every device.
-            viewer.resolutionScale = window.devicePixelRatio ?? 1;
+            // Keep Retina rendering sharp without paying the full DPR² fragment
+            // cost. On DPR=2 this changes 4.00x fragments to 2.25x. The matching
+            // icon factor is computed by the same policy in utils.ts, preserving
+            // the established apparent marker sizes.
+            const renderPolicy = getCesiumRenderPerformancePolicy(window.devicePixelRatio);
+            viewer.resolutionScale = renderPolicy.resolutionScale;
 
             // Cap the render loop instead of redrawing at the display's native
             // refresh rate (60-120Hz) on every frame, even when nothing changes.
             // Satellite positions only update every 1-2s from the propagation
             // worker, so 30fps is visually indistinguishable while roughly
             // halving sustained CPU/GPU load and battery drain.
-            viewer.targetFrameRate = 30;
+            viewer.targetFrameRate = CESIUM_TARGET_FRAME_RATE;
 
             // ── On-demand rendering (PERF-1) ──────────────────────────────────
             //
@@ -1395,19 +1392,18 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             //     Rejected: `shouldAnimate` is true, so the clock advances every
             //     tick and this renders continuously — the current behaviour,
             //     saving nothing.
-            //   1.0 → a frame at most once per second of simulation time.
+            //   0.25 → a frame at most four times per second of simulation time.
             //
-            // 1.0 is chosen to match the cadence the underlying data actually
-            // moves at: the propagation worker republishes satellite positions on
-            // a 1 s interval (SATELLITE_PROPAGATION_INTERVAL_MS), and the LEO
-            // evidence pipeline recomputes at the same 1 Hz. Nothing in the scene
-            // carries information that changes faster than that on its own.
+            // Four standby frames per second make interpolated LEO motion legible
+            // even without an active path animation. This remains far below the
+            // old permanent 30 FPS loop. Active camera interaction may still use
+            // the full targetFrameRate, while PathFlowAnimation has its own
+            // bounded cadence.
             //
             // It also acts as a safety net rather than a cliff: if any update
             // path was missed in the wiring above, the worst case is a frame that
-            // is up to one second stale, not a permanently frozen layer. Idle
-            // cost still drops from ~30 fps to ~1 fps.
-            viewer.scene.maximumRenderTimeChange = 1.0;
+            // is up to 250 ms stale, not a permanently frozen layer.
+            viewer.scene.maximumRenderTimeChange = STANDBY_FRAME_INTERVAL_SECONDS;
 
             setViewerReady(true);
             onGlobeBootPhaseChange?.('viewer-ready');
@@ -1614,8 +1610,62 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
         const viewer = viewerRef.current;
 
-        viewer.clock.clockStep = ClockStep.SYSTEM_CLOCK;
-        viewer.clock.currentTime = JulianDate.now();
+        // LIVE mode: never let visualizer readiness stop the clock.
+        //
+        // Cesium defaults `allowDataSourcesToSuspendAnimation` to true, so
+        // `CesiumWidget._onTick` does `clock.canAnimate = dataSourceDisplay.update(time)`,
+        // and `Clock.prototype.tick` guards its ENTIRE time advance — including
+        // the `ClockStep.SYSTEM_CLOCK` branch that assigns `JulianDate.now()` —
+        // on `canAnimate && shouldAnimate`. With 651 satellites plus coverage and
+        // route geometry rebuilding, `update()` routinely reports not-ready, so
+        // the clock simply does not advance on those frames.
+        //
+        // Under continuous rendering that self-corrected within a frame or two.
+        // Under `requestRenderMode` (~1 FPS idle, none at all while hidden) the
+        // deficit accumulates and never clears: the 2026-07-29 post-resume frame
+        // probe measured the clock 27 s behind on the FIRST rendered frame after
+        // a resume, growing 1 ms per ms, and 48 s behind at worst.
+        //
+        // That is a correctness problem, not cosmetics: markers interpolate from
+        // `Date.now()` and are immune, but `propagateSatellite` builds route and
+        // TransmissionLinks endpoints from this clock, so they were drawn tens of
+        // seconds — hundreds of kilometres — out of date.
+        //
+        // Turning the flag off decouples clock advance from readiness. There is
+        // nothing to suspend for: this is wall-clock LIVE mode, so SYSTEM_CLOCK
+        // re-snaps to `now()` on every tick and drift becomes impossible by
+        // construction. `configureLiveCesiumClock` deliberately assigns
+        // SYSTEM_CLOCK last: Cesium's currentTime/shouldAnimate/multiplier
+        // setters otherwise demote it to SYSTEM_CLOCK_MULTIPLIER.
+        //
+        // It does not touch propagation, interpolation, or the render mode, and
+        // it is not simulated-time support.
+        configureLiveCesiumClock(viewer);
+    }, [viewerReady]);
+
+    // Dev-only: lets the orbital-alignment diagnostic read how far the Cesium
+    // clock has drifted from the system clock the interpolation is driven by.
+    // It receives a number, never the clock or the viewer. Eliminated in
+    // production builds.
+    useEffect(() => {
+        if (!import.meta.env.DEV || !viewerReady || !viewerRef.current) return;
+        const viewer = viewerRef.current;
+        const detachClock = registerCesiumClockDeltaReader(() => (
+            JulianDate.toDate(viewer.clock.currentTime).getTime() - Date.now()
+        ));
+        // Frame-level access for the post-resume rendered-frame check. The
+        // listener is only attached while that probe is armed and a resume is
+        // pending, so steady-state postRender subscribers are unchanged.
+        const detachFrame = registerCesiumFrameProbe({
+            getClockTimeMs: () => JulianDate.toDate(viewer.clock.currentTime).getTime(),
+            addPostRenderListener: (callback) => {
+                viewer.scene.postRender.addEventListener(callback);
+                return () => {
+                    try { viewer.scene.postRender.removeEventListener(callback); } catch { /* viewer gone */ }
+                };
+            },
+        });
+        return () => { detachClock(); detachFrame(); };
     }, [viewerReady]);
 
     useEffect(() => {
@@ -1854,17 +1904,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 }
 
                 const activeTechnology = activeConnectivityTab;
-                const activeSatelliteIds = new Set([
-                    autoSelectedLEOSatellite?.id,
-                    autoSelectedLEOSatelliteB?.id,
-                    autoSelectedGEOSatellite?.id,
-                    leoSiteToSiteResult?.servingSatelliteA?.id,
-                    leoSiteToSiteResult?.servingSatelliteB?.id,
-                ].filter(Boolean));
-                if (pickedId.startsWith('satellite-') && activeSatelliteIds.has(pickedId.slice('satellite-'.length))) {
-                    engineeringFocus.lock(activeTechnology, 'path', 'globe');
-                    return;
-                }
                 if (pickedId === 'engineering-node-site-a' || pickedId === 'engineering-node-site-b') {
                     engineeringFocus.lock(activeTechnology, 'scenario', 'globe');
                     return;
@@ -1972,7 +2011,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         const lat = CesiumMath.toDegrees(cartographic.latitude);
         const lng = CesiumMath.toDegrees(cartographic.longitude);
         onPointClick(lat, lng, pointerShiftPressedRef.current || shiftPressedRef.current);
-    }, [activeConnectivityTab, autoSelectedGEOSatellite?.id, autoSelectedLEOSatellite?.id, autoSelectedLEOSatelliteB?.id, commercialMode, engineeringFocus, leoSiteToSiteResult?.servingSatelliteA?.id, leoSiteToSiteResult?.servingSatelliteB?.id, onAircraftClick, onCommercialSelectedSegmentChange, onCoverageClick, onEmptyClick, onIssClick, onMoonSelectionChange, onPointClick, onSatelliteClick, onSnpClick, onVesselClick, resolvedAutoGeoGateway?.gatewayName, resolvedSelectedGeoGateway?.gatewayName, selectedSNP, selection.type]);
+    }, [activeConnectivityTab, commercialMode, engineeringFocus, onAircraftClick, onCommercialSelectedSegmentChange, onCoverageClick, onEmptyClick, onIssClick, onMoonSelectionChange, onPointClick, onSatelliteClick, onSnpClick, onVesselClick, resolvedAutoGeoGateway?.gatewayName, resolvedSelectedGeoGateway?.gatewayName, selectedSNP, selection.type]);
 
     const leoS2SVisualResult = leoSiteToSiteFullResult ?? leoSiteToSiteResult;
 

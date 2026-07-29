@@ -127,6 +127,32 @@ describe('HeaderScenarioBuilder engineering Configure workflow', () => {
     expect(markup).toContain('<select');
   });
 
+  it('reduces the collapsed engineering header to locations and weather only', () => {
+    const markup = renderToStaticMarkup(
+      <HeaderScenarioBuilder
+        siteA={site('Origin', 'Paris')}
+        siteB={site('Destination', 'Dakar')}
+        onSwap={() => undefined}
+        collapsed
+        engineeringConfigure={{
+          baseline: configureBaseline,
+          truths: {},
+          candidates: { siteA: [], siteB: [] },
+          onApply: () => undefined,
+        }}
+      />,
+    );
+
+    expect(markup).toContain('Collapsed desktop engineering scenario configuration');
+    expect(markup).toContain('Paris');
+    expect(markup).toContain('Dakar');
+    expect(markup.match(/Weather condition/g)).toHaveLength(2);
+    expect(markup).not.toContain('Terminal type');
+    expect(markup).not.toContain('GEO service');
+    expect(markup).not.toContain('LEO service');
+    expect(markup).not.toContain('GEO topology');
+  });
+
   it('uses canonical engineering coverage names for manual GEO options', () => {
     const downlink = {
       satelliteName: 'EUTELSAT 21B',

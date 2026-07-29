@@ -1,17 +1,21 @@
-import React, { useMemo } from 'react';
-import { Entity, LabelGraphics } from 'resium';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Entity, LabelGraphics, useCesium } from 'resium';
 import {
   Cartesian2,
   Cartesian3,
   CallbackProperty,
   CallbackPositionProperty,
   Color,
-  ColorMaterialProperty,
   ConstantProperty,
   HorizontalOrigin,
-  JulianDate,
   VerticalOrigin,
 } from 'cesium';
+import { requestGlobeRender } from '../../utils/globeRenderRequest';
+import {
+  createSelectionPulseProperties,
+  SETTLED_PULSE,
+  startSelectionPulse,
+} from './selectionPulse';
 import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
 import {
   deriveSelectedPointStatusPresentation,
@@ -53,6 +57,37 @@ const statusColor = (tone: ReturnType<typeof deriveSelectedPointStatusPresentati
 
 const SITE_B_MARKER_COLOR = Color.fromCssColorString('#ec4899');
 
+// Module-level constants: shared by every marker and never re-created per
+// render, so Resium has nothing to re-assign when the parent re-renders.
+const OUTLINE_ON = new ConstantProperty(true);
+const OUTLINE_WIDTH = new ConstantProperty(2);
+const GROUND_RING_HEIGHT = new ConstantProperty(GROUND_POINT_LAYER_HEIGHT_M);
+const ORBITAL_SUBDIVISIONS = new ConstantProperty(64);
+const ORBITAL_STACK_PARTITIONS = new ConstantProperty(32);
+const ORBITAL_SLICE_PARTITIONS = new ConstantProperty(32);
+
+/**
+ * Tracks `prefers-reduced-motion`. Local to this module rather than shared with
+ * PathFlowAnimation's copy, which Lot 2C.1 must not touch.
+ */
+const usePrefersReducedMotion = (): boolean => {
+  const [reduced, setReduced] = useState(() => (
+    typeof window !== 'undefined'
+    && typeof window.matchMedia === 'function'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  ));
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const query = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const handleChange = () => setReduced(query.matches);
+    query.addEventListener('change', handleChange);
+    return () => query.removeEventListener('change', handleChange);
+  }, []);
+
+  return reduced;
+};
+
 export const SelectionPulseMarker: React.FC<SelectionPulseMarkerProps> = ({
   entityId,
   position,
@@ -66,39 +101,55 @@ export const SelectionPulseMarker: React.FC<SelectionPulseMarkerProps> = ({
   showPoint = false,
   opacityMultiplier = 1,
 }) => {
-  const ringRadius = useMemo(() => new CallbackProperty((time?: JulianDate) => {
-    const now = time ? JulianDate.toDate(time).getTime() / 1000 : Date.now() / 1000;
-    const pulse = 0.5 + 0.5 * Math.sin(now * pulseSpeed * Math.PI);
-    return ringBaseRadius + pulse * ringBaseRadius * 0.55;
-  }, false), [pulseSpeed, ringBaseRadius]);
+  const { viewer } = useCesium();
+  const reducedMotion = usePrefersReducedMotion();
 
-  // Scratch instances reused across frames so the per-frame callbacks below never
-  // allocate. Closure-local to each useMemo => one scratch per CallbackProperty
-  // lifetime; recreated only when deps change.
-  const ringColor = useMemo(() => {
-    const scratchColor = new Color();
-    return new CallbackProperty((time?: JulianDate) => {
-      const now = time ? JulianDate.toDate(time).getTime() / 1000 : Date.now() / 1000;
-      const pulse = 0.5 + 0.5 * Math.sin(now * pulseSpeed * Math.PI);
-      Color.clone(baseColor, scratchColor);
-      scratchColor.alpha = (0.12 + pulse * 0.18) * opacityMultiplier;
-      return scratchColor;
-    }, false);
-  }, [baseColor, opacityMultiplier, pulseSpeed]);
+  // `baseColor` is frequently a fresh `Color.fromCssColorString(...)` created
+  // inline by CesiumGlobe's render, so it can never be a useMemo dependency:
+  // every parent re-render would rebuild the properties and restart the
+  // animation, which is exactly the "renders forever" behaviour Lot 2C.1
+  // removes. Depend on the colour's VALUE instead and read the instance
+  // through a ref.
+  const colorKey = `${baseColor.red},${baseColor.green},${baseColor.blue},${baseColor.alpha}`;
+  const baseColorRef = useRef(baseColor);
+  baseColorRef.current = baseColor;
 
-  const ringMaterial = useMemo(() => new ColorMaterialProperty(ringColor), [ringColor]);
-  const orbitalRadii = useMemo(() => {
-    const scratchRadii = new Cartesian3();
-    return new CallbackProperty((time?: JulianDate) => {
-      const now = time ? JulianDate.toDate(time).getTime() / 1000 : Date.now() / 1000;
-      const pulse = 0.5 + 0.5 * Math.sin(now * pulseSpeed * Math.PI);
-      const radius = ringBaseRadius + pulse * ringBaseRadius * 0.4;
-      scratchRadii.x = radius;
-      scratchRadii.y = radius;
-      scratchRadii.z = radius;
-      return scratchRadii;
-    }, false);
-  }, [pulseSpeed, ringBaseRadius]);
+  // Lot 2C.1: constant properties driven by a bounded animation, replacing the
+  // three time-dependent `CallbackProperty(fn, false)` instances that used to
+  // keep the scene rendering for as long as the marker existed. See
+  // ./selectionPulse.ts for the curve, the cadence and the settle rule.
+  const pulseProperties = useMemo(
+    () => createSelectionPulseProperties({
+      baseColor: baseColorRef.current,
+      ringBaseRadius,
+      opacityMultiplier,
+      anchorType,
+      outlineAlpha: anchorType === 'orbital' ? 0.9 : 0.85,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- colorKey stands in for baseColor (see above).
+    [anchorType, colorKey, opacityMultiplier, ringBaseRadius],
+  );
+
+  // One bounded pulse per mount, and one more whenever the marker's identity
+  // changes (colour/status, speed, radius, opacity, anchor) — a status change
+  // is precisely when the pulse is worth re-playing. Cancelled on unmount or
+  // replacement by the cleanup below.
+  useEffect(() => {
+    if (reducedMotion) {
+      pulseProperties.apply(SETTLED_PULSE);
+      requestGlobeRender(viewer);
+      return;
+    }
+    return startSelectionPulse({
+      pulseSpeed,
+      onPulse: (pulse) => {
+        pulseProperties.apply(pulse);
+        requestGlobeRender(viewer);
+      },
+    });
+  }, [pulseProperties, pulseSpeed, reducedMotion, viewer]);
+
+  const { ringRadius, orbitalRadii, ringMaterial, outlineColor } = pulseProperties;
 
   return (
     <>
@@ -109,12 +160,12 @@ export const SelectionPulseMarker: React.FC<SelectionPulseMarkerProps> = ({
               ellipsoid: {
                 radii: orbitalRadii,
                 material: ringMaterial,
-                outline: new ConstantProperty(true),
-                outlineColor: new ConstantProperty(baseColor.withAlpha(0.9 * opacityMultiplier)),
-                outlineWidth: new ConstantProperty(2),
-                subdivisions: new ConstantProperty(64),
-                stackPartitions: new ConstantProperty(32),
-                slicePartitions: new ConstantProperty(32),
+                outline: OUTLINE_ON,
+                outlineColor,
+                outlineWidth: OUTLINE_WIDTH,
+                subdivisions: ORBITAL_SUBDIVISIONS,
+                stackPartitions: ORBITAL_STACK_PARTITIONS,
+                slicePartitions: ORBITAL_SLICE_PARTITIONS,
               },
             }
           : {
@@ -122,10 +173,10 @@ export const SelectionPulseMarker: React.FC<SelectionPulseMarkerProps> = ({
                 semiMajorAxis: ringRadius,
                 semiMinorAxis: ringRadius,
                 material: ringMaterial,
-                outline: new ConstantProperty(true),
-                outlineColor: new ConstantProperty(baseColor.withAlpha(0.85 * opacityMultiplier)),
-                outlineWidth: new ConstantProperty(2),
-                height: new ConstantProperty(GROUND_POINT_LAYER_HEIGHT_M),
+                outline: OUTLINE_ON,
+                outlineColor,
+                outlineWidth: OUTLINE_WIDTH,
+                height: GROUND_RING_HEIGHT,
               },
             })}
       />

@@ -1,12 +1,13 @@
 /**
  * Explicit "the scene changed, please draw a frame" signal.
  *
- * BEHAVIOUR-NEUTRAL BY CONSTRUCTION (today)
- * -----------------------------------------
- * `viewer.scene.requestRender()` is a **no-op while `scene.requestRenderMode` is
- * false**, which is the current configuration. Every call added through this
- * helper therefore changes nothing at runtime right now — the globe keeps
- * rendering continuously at `targetFrameRate`.
+ * NO LONGER BEHAVIOUR-NEUTRAL
+ * ---------------------------
+ * `viewer.scene.requestRender()` is a no-op while `scene.requestRenderMode` is
+ * false. That WAS the configuration when this helper was introduced, which is
+ * why every call site could be added and reviewed with zero behavioural risk.
+ * `requestRenderMode` is now enabled, so each call here is load-bearing: a
+ * mutation that does not reach this function does not reach the screen.
  *
  * That is exactly the point. The readiness inventory
  * (docs/RequestRenderMode_Readiness_2026-07-28.md, steps 2b.2/2b.3) sequences
@@ -19,7 +20,7 @@
  * (89 %) rendered with nothing changed.
  *
  * Also notifies the runtime profiler, so a frame that follows a real mutation is
- * not miscounted as idle.
+ * attributed rather than counted as unattributed.
  */
 import { notifySceneMutated } from './runtimeProfiler';
 

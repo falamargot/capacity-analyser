@@ -54,10 +54,11 @@ export const MemoryMonitorHud: React.FC = () => {
     const heapPct = stats.heap ? Math.round((stats.heap.usedMB / stats.heap.limitMB) * 100) : null;
     const heapColor = heapPct == null ? '#9cf' : heapPct > 80 ? '#f99' : heapPct > 60 ? '#fc9' : '#9cf';
 
-    // Idle frames are the PERF-1 measurement: frames Cesium drew while nothing
-    // changed. Anything above a few percent is work requestRenderMode removes.
-    const idlePct = runtime?.frame.idleFramePct ?? 0;
-    const idleColor = idlePct > 50 ? '#f99' : idlePct > 20 ? '#fc9' : '#9f9';
+    // Unattributed frames are the PERF-1 measurement: frames Cesium drew with
+    // no camera, input or reported-mutation cause. An upper bound on skippable
+    // work — time-dependent properties can still change pixels in this bucket.
+    const unattributedPct = runtime?.frame.unattributedFramePct ?? 0;
+    const unattributedColor = unattributedPct > 50 ? '#f99' : unattributedPct > 20 ? '#fc9' : '#9f9';
     const fragMult = runtime?.render.fragmentCostMultiplier ?? null;
     const fragColor = fragMult != null && fragMult > 2 ? '#f99' : fragMult != null && fragMult > 1 ? '#fc9' : '#9f9';
 
@@ -106,14 +107,15 @@ export const MemoryMonitorHud: React.FC = () => {
             {runtime && (
                 <>
                     <div style={sectionTitle}>frames · {runtime.elapsedSec.toFixed(0)}s</div>
-                    <div style={row}><span>fps</span><span>{runtime.frame.fps.toFixed(1)}</span></div>
+                    <div style={row}><span>avg fps</span><span>{runtime.frame.fps.toFixed(1)}</span></div>
+                    <div style={row}><span>recent fps</span><span>{runtime.frame.recentFps.toFixed(1)}</span></div>
                     <div style={row}>
                         <span>frame p95</span>
                         <span>{runtime.frame.frameMs.p95.toFixed(1)} ms</span>
                     </div>
-                    <div style={{ ...row, color: idleColor }}>
-                        <span>idle frames</span>
-                        <span>{runtime.frame.idleFrames} ({idlePct.toFixed(0)}%)</span>
+                    <div style={{ ...row, color: unattributedColor }}>
+                        <span>unattrib. frames</span>
+                        <span>{runtime.frame.unattributedFrames} ({unattributedPct.toFixed(0)}%)</span>
                     </div>
                     <div style={{ ...row, opacity: 0.65 }}>
                         <span>requestRenderMode</span>

@@ -6,6 +6,7 @@ import * as satellite from 'satellite.js';
 import type { Feature, Geometry as GeoJsonGeometry, GeoJsonProperties } from 'geojson';
 import type { SatelliteData } from '../../types/satellites';
 import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
+import { getCesiumRenderPerformancePolicy } from './renderPerformancePolicy';
 
 export interface CameraMetricsSnapshot {
     position: Cartesian3;
@@ -205,10 +206,12 @@ export const calculateDynamicScale = (
 };
 
 /**
- * DPR factor - computed once at module load
- * Now returns the actual DPR for proper scaling on high-DPI displays
+ * Icon scaling follows the same effective DPR policy as the Cesium canvas.
+ * Moving both values together preserves apparent icon size on HiDPI displays.
  */
-export const DPR_FACTOR = Math.max(window.devicePixelRatio || 1, 2.0);
+export const DPR_FACTOR = getCesiumRenderPerformancePolicy(
+    typeof window === 'undefined' ? 1 : window.devicePixelRatio,
+).iconDprFactor;
 
 // SVG data URIs have inconsistent behaviour on Windows (ANGLE/D3D WebGL path):
 // images without explicit width/height can be rasterised at 0×0 and Cesium

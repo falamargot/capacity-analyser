@@ -2,8 +2,12 @@
  * satellitePositionWorker — SGP4 propagation off the main thread.
  *
  * Protocol:
- *   init     { type: 'init', satellites: [{id, satrec}] }  → (no response)
- *   propagate { type: 'propagate', timestamp: number }      → { positions: PosResult[] }
+ *   init      { type: 'init', satellites: [{id, satrec}] }        → (no response)
+ *   propagate { type: 'propagate', requestId, timestamp }         → { requestId, timestamp, positions }
+ *
+ * `requestId` is echoed untouched so the caller can tell a current response
+ * from a superseded one. The worker itself is stateless per request: it never
+ * inspects the id, it only hands it back.
  *
  * Satrec objects are stored in a persistent Map so the main thread only transfers
  * them once (on load / hourly refresh) instead of on every 1-second tick.
@@ -35,9 +39,13 @@ interface PosResult {
 
 type WorkerInMessage =
   | { type: 'init'; satellites: SatInput[] }
-  | { type: 'propagate'; timestamp: number };
+  | { type: 'propagate'; requestId: number; timestamp: number };
 
 export interface WorkerOutput {
+  /** Echo of the request's id — the caller drops responses that are not current. */
+  requestId: number;
+  /** Echo of the UTC instant propagated to. */
+  timestamp: number;
   positions: PosResult[];
 }
 
@@ -61,7 +69,7 @@ ctx.addEventListener('message', (event: MessageEvent<WorkerInMessage>) => {
   }
 
   // type === 'propagate'
-  const { timestamp } = msg;
+  const { requestId, timestamp } = msg;
   const date = new Date(timestamp);
 
   // Compute GMST once per tick — reused for every satellite's ECI → geodetic conversion.
@@ -90,5 +98,5 @@ ctx.addEventListener('message', (event: MessageEvent<WorkerInMessage>) => {
     positions.push({ id, lat: 0, lng: 0, alt: 0, sampleTimeMs: timestamp, isValid: false });
   }
 
-  ctx.postMessage({ positions } satisfies WorkerOutput);
+  ctx.postMessage({ requestId, timestamp, positions } satisfies WorkerOutput);
 });

@@ -5178,6 +5178,7 @@ const App: React.FC = () => {
                       onSwap={handleSwapRouteEndpoints}
                       analysisSource={activeAnalysisSource}
                       compact
+                      collapsed
                       engineeringConfigure={engineeringHeaderConfigure}
                     />
                   </div>

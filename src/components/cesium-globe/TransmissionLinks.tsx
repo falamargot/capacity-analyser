@@ -4,6 +4,7 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Entity, PolylineGraphics, PointGraphics, LabelGraphics, useCesium } from 'resium';
 import { requestGlobeRender } from '../../utils/globeRenderRequest';
+import { useStableRoutePositions } from './stableRoutePositions';
 import {
     Color,
     CallbackProperty,
@@ -390,34 +391,37 @@ const HighlightedRouteSegment = React.memo<HighlightedRouteSegmentProps>(({
                     arcType={arcType}
                 />
             </Entity>
-            {visualState === 'unavailable' && (
-                <Entity
-                    key={`${entityIdBase}-failure`}
-                    id={`${entityIdBase}-failure`}
-                    name={`${name} failure boundary`}
-                    position={failureEndPosition}
-                    show={show}
-                >
-                    <PointGraphics
-                        pixelSize={11}
-                        color={Color.fromCssColorString('#fb7185')}
-                        outlineColor={Color.WHITE}
-                        outlineWidth={2}
-                        disableDepthTestDistance={Number.POSITIVE_INFINITY}
-                    />
-                    <LabelGraphics
-                        text="×"
-                        font="700 16px sans-serif"
-                        fillColor={Color.WHITE}
-                        outlineColor={Color.fromCssColorString('#881337')}
-                        outlineWidth={3}
-                        style={LabelStyle.FILL_AND_OUTLINE}
-                        verticalOrigin={VerticalOrigin.CENTER}
-                        horizontalOrigin={HorizontalOrigin.CENTER}
-                        disableDepthTestDistance={Number.POSITIVE_INFINITY}
-                    />
-                </Entity>
-            )}
+            {/* Always mounted, visibility driven by `show` rather than JSX
+                presence: toggling presence made this entity race its own
+                deferred Resium removal on the next `unavailable` flip (see
+                useStableRoutePositions). Hidden entities are skipped by
+                Cesium's visualizers, so this costs nothing while inactive. */}
+            <Entity
+                key={`${entityIdBase}-failure`}
+                id={`${entityIdBase}-failure`}
+                name={`${name} failure boundary`}
+                position={failureEndPosition}
+                show={show && visualState === 'unavailable'}
+            >
+                <PointGraphics
+                    pixelSize={11}
+                    color={Color.fromCssColorString('#fb7185')}
+                    outlineColor={Color.WHITE}
+                    outlineWidth={2}
+                    disableDepthTestDistance={Number.POSITIVE_INFINITY}
+                />
+                <LabelGraphics
+                    text="×"
+                    font="700 16px sans-serif"
+                    fillColor={Color.WHITE}
+                    outlineColor={Color.fromCssColorString('#881337')}
+                    outlineWidth={3}
+                    style={LabelStyle.FILL_AND_OUTLINE}
+                    verticalOrigin={VerticalOrigin.CENTER}
+                    horizontalOrigin={HorizontalOrigin.CENTER}
+                    disableDepthTestDistance={Number.POSITIVE_INFINITY}
+                />
+            </Entity>
         </>
     );
 });
@@ -792,6 +796,15 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
             return [satPos, snpPos];
         }, false);
     }, [autoSelectedLEOSatellite, selectedSNP]);
+
+    // The two LEO route segments are the ones whose positions callback goes
+    // null and comes back mid-session — `autoSelectedLEOSatellite` is briefly
+    // unresolved on every serving-satellite handover, and `selectedSNP` follows
+    // it. Their entities therefore stay mounted against these stable properties
+    // and are toggled with `show`, instead of being unmounted and re-added
+    // under the same Cesium id while the previous removal is still pending.
+    const leoUplinkPositions = useStableRoutePositions(leoUplinkCallback);
+    const leoBackhaulPositions = useStableRoutePositions(leoBackhaulCallback);
 
     // GEO User -> Satellite link
     const geoUserLinkCallback = useMemo(() => {
@@ -1177,47 +1190,57 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         return null;
     }
 
+    // Same predicates as the JSX branches these replaced, so what is drawn is
+    // unchanged — only whether the entities exist while it is not drawn.
+    const showLeoAccessRoute = Boolean(
+        showLeoCommercialRoute && leoUplinkCallback && satelliteScope !== 'GEO' && !isSiteToSiteActive
+    );
+    const showLeoBackhaulRoute = Boolean(
+        showLeoCommercialRoute && leoBackhaulCallback && satelliteScope !== 'GEO' && selectedSNP && !isSiteToSiteActive
+    );
+
     return (
         <>
-            {/* LEO Uplink/Downlink - User to Satellite */}
-            {showLeoCommercialRoute && leoUplinkCallback && satelliteScope !== 'GEO' && !isSiteToSiteActive && (
-                <>
-                    <HighlightedRouteSegment
-                        name="LEO Uplink/Downlink"
-                        positions={leoUplinkCallback}
-                        width={commercialWidth('access', leoLinkWidth, 'LEO')}
-                        material={commercialLeoUserMaterial}
-                        entityIdBase={routeEntityIds.leoUplink}
-                        subdued={s2sIsSecondary}
-                        visualState={engineeringVisualState('leo-access', 'LEO')}
-                    />
-                    <EngineeringSegmentAnnotation
-                        entityId={`${routeEntityIds.leoUplink}-annotation`}
-                        text={segmentAnnotation('leo-access', 'LEO')}
-                        positions={leoUplinkCallback}
-                    />
-                </>
+            {/* LEO Uplink/Downlink - User to Satellite.
+                Mounted for the lifetime of this component and shown/hidden
+                natively — see useStableRoutePositions for why presence must not
+                track the route's availability. */}
+            <HighlightedRouteSegment
+                name="LEO Uplink/Downlink"
+                positions={leoUplinkPositions}
+                width={commercialWidth('access', leoLinkWidth, 'LEO')}
+                material={commercialLeoUserMaterial}
+                entityIdBase={routeEntityIds.leoUplink}
+                subdued={s2sIsSecondary}
+                visualState={engineeringVisualState('leo-access', 'LEO')}
+                show={showLeoAccessRoute}
+            />
+            {showLeoAccessRoute && (
+                <EngineeringSegmentAnnotation
+                    entityId={`${routeEntityIds.leoUplink}-annotation`}
+                    text={segmentAnnotation('leo-access', 'LEO')}
+                    positions={leoUplinkPositions}
+                />
             )}
 
             {/* LEO Backhaul to SNP - Satellite to Gateway */}
-            {showLeoCommercialRoute && leoBackhaulCallback && satelliteScope !== 'GEO' && selectedSNP && !isSiteToSiteActive && (
-                <>
-                    <HighlightedRouteSegment
-                        name="LEO Backhaul"
-                        positions={leoBackhaulCallback}
-                        width={commercialWidth('backhaul', leoLinkWidth, 'LEO')}
-                        material={commercialLeoFeederMaterial}
-                        entityIdBase={routeEntityIds.leoBackhaul}
-                        clampToGround={false}
-                        subdued={s2sIsSecondary}
-                        visualState={engineeringVisualState('leo-backhaul', 'LEO')}
-                    />
-                    <EngineeringSegmentAnnotation
-                        entityId={`${routeEntityIds.leoBackhaul}-annotation`}
-                        text={segmentAnnotation('leo-backhaul', 'LEO')}
-                        positions={leoBackhaulCallback}
-                    />
-                </>
+            <HighlightedRouteSegment
+                name="LEO Backhaul"
+                positions={leoBackhaulPositions}
+                width={commercialWidth('backhaul', leoLinkWidth, 'LEO')}
+                material={commercialLeoFeederMaterial}
+                entityIdBase={routeEntityIds.leoBackhaul}
+                clampToGround={false}
+                subdued={s2sIsSecondary}
+                visualState={engineeringVisualState('leo-backhaul', 'LEO')}
+                show={showLeoBackhaulRoute}
+            />
+            {showLeoBackhaulRoute && (
+                <EngineeringSegmentAnnotation
+                    entityId={`${routeEntityIds.leoBackhaul}-annotation`}
+                    text={segmentAnnotation('leo-backhaul', 'LEO')}
+                    positions={leoBackhaulPositions}
+                />
             )}
 
             {/* GEO User → Satellite (STAR modes only; MESH uses directional callbacks below) */}

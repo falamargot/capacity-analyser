@@ -309,8 +309,8 @@ Lot 2's own gate is "measure PERF-1/PERF-2 in a real browser before changing the
 
 | Item | Detail |
 |---|---|
-| **Runtime profiler** | `src/utils/runtimeProfiler.ts` — counts rendered frames, **idle frames** (rendered while camera still, no input, no reported mutation — the direct PERF-1 measurement), frame-interval percentiles, React commits and durations via `<Profiler>`, and named engineering-calculation counts. Reports `resolutionScale`, `devicePixelRatio` and the **squared** fragment-cost multiplier (PERF-2). Dev-only. |
-| **HUD** | `MemoryMonitorHud` (Ctrl+Shift+M) now shows fps, frame p95, idle-frame %, `requestRenderMode` state, fragment cost, commits/s, commit p95 and per-label engineering counts, with `reset` / `report` buttons. |
+| **Runtime profiler** | `src/utils/runtimeProfiler.ts` — counts rendered frames, **unattributed frames** (rendered while camera still, no input, no reported mutation — the PERF-1 measurement; renamed from *idle frames* in Lot 2C.1 because a time-dependent `CallbackProperty` can change pixels without reporting a mutation, so the count is an upper bound on skippable work rather than proof nothing changed. The `idleFrames` field is retained as a deprecated alias so earlier captures stay comparable), frame-interval percentiles, React commits and durations via `<Profiler>`, and named engineering-calculation counts. Reports `resolutionScale`, `devicePixelRatio` and the **squared** fragment-cost multiplier (PERF-2). Dev-only. |
+| **HUD** | `MemoryMonitorHud` (Ctrl+Shift+M) now shows fps, frame p95, unattributed-frame %, `requestRenderMode` state, fragment cost, commits/s, commit p95 and per-label engineering counts, with `reset` / `report` buttons. |
 | **Console API** | `__perfStats()`, `__perfReport()`, `__perfReset()`, `__perfMark(label)` |
 | **Engine counters** | `resolveCanonicalGeoRoute` and `buildActiveLeoRouteEvidence` now report to the profiler, making "engineering calculations per interaction" — a brief metric that was previously unmeasurable — directly observable. |
 | **TEST-2 fixed** | `formatNumber` in `formatters.ts` pins engineering figures to `en-US`. All **20** bare `toLocaleString()` call sites converted. |
@@ -329,7 +329,7 @@ Lot 2's own gate is "measure PERF-1/PERF-2 in a real browser before changing the
 
 ### Why the render loop was still not touched
 
-Respecting the gate this audit set. The `requestRenderMode` change depends on a number — the idle-frame percentage — that only a real browser can produce. The instrument to produce it now exists and takes about a minute to run (§2 of the readiness doc). If idle frames come back below 30 %, the premise is wrong and the plan should change rather than proceed.
+Respecting the gate this audit set. The `requestRenderMode` change depends on a number — the unattributed-frame percentage — that only a real browser can produce. The instrument to produce it now exists and takes about a minute to run (§2 of the readiness doc). If unattributed frames come back below 30 %, the premise is wrong and the plan should change rather than proceed.
 
 ### A codemod caveat worth recording
 

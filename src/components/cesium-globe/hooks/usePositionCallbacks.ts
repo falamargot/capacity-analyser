@@ -2,86 +2,53 @@
  * Hook to manage cached CallbackPositionProperty instances for satellites and aircraft
  * This prevents creating new callback instances on every render, which is critical for performance
  */
-import React, { useRef, useEffect, useMemo } from 'react';
+import React, { useId, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Cartesian3, CallbackPositionProperty, JulianDate } from 'cesium';
 import type { SatelliteData } from '../../../types/satellites';
 import type { Aircraft } from '../../../modules/airTraffic/airTrafficService';
 import type { AircraftInterpolation } from '../../../modules/airTraffic/useAirTraffic';
 import { getPosition, calculateDeadReckoning } from '../utils';
+import {
+    positionsMatch,
+    resolveDisplayedSatellitePosition,
+    SATELLITE_INTERPOLATION_FALLBACK_MS,
+    type SatellitePosition,
+    type SatelliteSampleWindow,
+} from './satelliteInterpolation';
+import {
+    registerOrbitalAlignmentProbe,
+    type DisplayedSatelliteSample,
+} from '../../../diagnostics/orbitalAlignmentProbe';
+
+/**
+ * Cells refreshed within this window of the newest refresh are treated as
+ * belonging to the same render pass. One React render walks its satellite list
+ * in well under a frame, so the grouping is unambiguous.
+ */
+const RENDER_PASS_TOLERANCE_MS = 250;
 
 interface PositionCallbackCache {
     satellites: Map<string, CallbackPositionProperty>;
     aircraft: Map<string, CallbackPositionProperty>;
 }
 
-type SatellitePosition = Pick<SatelliteData['position'], 'lat' | 'lng' | 'alt'>;
-
-interface SatelliteLiveCell {
+interface SatelliteLiveCell extends SatelliteSampleWindow {
     value: SatelliteData;
-    previousPosition: SatellitePosition;
-    currentPosition: SatellitePosition;
-    previousSampleTimeMs: number;
-    currentSampleTimeMs: number;
+    /**
+     * When a React render last handed this cell fresh worker output. Cells are
+     * refreshed inside getSatellitePositionCallback, so an instance that stops
+     * rendering stops refreshing its cells even though the Cesium callback keeps
+     * reading them. The dev-only alignment probe reports this so the two ways a
+     * marker goes stale can be told apart.
+     */
+    lastRefreshedAtMs: number;
 }
-
-const SATELLITE_INTERPOLATION_FALLBACK_MS = 1000;
-// How far past the latest sample we allow linear extrapolation before the satellite
-// appears frozen. During normal foreground operation the next worker tick arrives
-// ~200 ms before the current sample expires, so this cap is almost never reached.
-//
-// The cap is intentionally generous (4 s) to cover two tab-resume scenarios:
-//   1. The last background timer fired ≥2 s before the tab became visible.
-//   2. A React reconciliation burst on resume blocks rAF for 1-2 s while
-//      calculateCoverages runs for 640 satellites.
-// In both cases the satellite must keep moving on screen until the
-// visibilitychange handler (useSatelliteLoader) delivers fresh positions.
-// Linear drift over 4 s is ~30 km for a LEO satellite — acceptable for a
-// capacity analyser. Tighten this if orbital accuracy becomes a concern.
-const SATELLITE_MAX_EXTRAPOLATION_MS = 4000;
 
 const cloneSatellitePosition = (position: SatelliteData['position']): SatellitePosition => ({
     lat: position.lat,
     lng: position.lng,
     alt: position.alt,
 });
-
-const positionsMatch = (a: SatellitePosition, b: SatellitePosition): boolean => (
-    a.lat === b.lat &&
-    a.lng === b.lng &&
-    a.alt === b.alt
-);
-
-const lerp = (start: number, end: number, t: number): number => (
-    start + ((end - start) * t)
-);
-
-const interpolateLongitudeDegrees = (start: number, end: number, t: number): number => {
-    let delta = end - start;
-    if (delta > 180) delta -= 360;
-    if (delta < -180) delta += 360;
-
-    const value = start + (delta * t);
-    if (value > 180) return value - 360;
-    if (value < -180) return value + 360;
-    return value;
-};
-
-const getInterpolatedSatellitePosition = (
-    previousPosition: SatellitePosition,
-    currentPosition: SatellitePosition,
-    previousSampleTimeMs: number,
-    currentSampleTimeMs: number,
-    nowMs: number
-): SatellitePosition => {
-    const sampleDuration = Math.max(currentSampleTimeMs - previousSampleTimeMs, 1);
-    const maxProgress = 1 + (SATELLITE_MAX_EXTRAPOLATION_MS / sampleDuration);
-    const progress = Math.min(Math.max((nowMs - previousSampleTimeMs) / sampleDuration, 0), maxProgress);
-    return {
-        lat: lerp(previousPosition.lat, currentPosition.lat, progress),
-        lng: interpolateLongitudeDegrees(previousPosition.lng, currentPosition.lng, progress),
-        alt: lerp(previousPosition.alt, currentPosition.alt, progress),
-    };
-};
 
 /**
  * Hook that provides stable CallbackPositionProperty instances for entities
@@ -90,7 +57,9 @@ const getInterpolatedSatellitePosition = (
 export function usePositionCallbacks(
     satellites: SatelliteData[],
     aircraft: Aircraft[],
-    interpolatedAircraftMapRef?: React.RefObject<Map<string, AircraftInterpolation>>
+    interpolatedAircraftMapRef?: React.RefObject<Map<string, AircraftInterpolation>>,
+    /** Names this instance in the dev-only alignment report. Three instances exist. */
+    ownerLabel: string = 'unlabelled'
 ) {
     const cacheRef = useRef<PositionCallbackCache>({
         satellites: new Map(),
@@ -137,6 +106,61 @@ export function usePositionCallbacks(
         }
     }, [currentSatelliteIds, currentAircraftIds]);
 
+    // Dev-only probe for the orbital-alignment diagnostic. Reads the same live
+    // cells the position callbacks read and flattens them to plain numbers; it
+    // never propagates anything and never touches Cesium. `import.meta.env.DEV`
+    // is statically false in a production build, so this effect and the import
+    // it uses are eliminated there.
+    const ownerId = useId();
+    const satellitesRef = useRef(satellites);
+    satellitesRef.current = satellites;
+    useEffect(() => {
+        if (!import.meta.env.DEV) return;
+        const cells = satLiveCellsRef.current;
+        // Ids requested in the newest render pass share a refresh timestamp, so
+        // "currently rendered" is read off the cells themselves rather than
+        // tracked separately — no bookkeeping to leak or get out of sync.
+        const renderedIds = (): string[] => {
+            let newest = 0;
+            for (const cell of cells.values()) newest = Math.max(newest, cell.lastRefreshedAtMs);
+            if (newest === 0) return [];
+            const out: string[] = [];
+            for (const [id, cell] of cells) {
+                if (newest - cell.lastRefreshedAtMs <= RENDER_PASS_TOLERANCE_MS) out.push(id);
+            }
+            return out;
+        };
+        return registerOrbitalAlignmentProbe({
+            ownerId,
+            ownerLabel,
+            getSatelliteIds: () => satellitesRef.current
+                .filter((sat) => sat.type === 'ONEWEB')
+                .map((sat) => sat.id),
+            getSatrecs: () => satellitesRef.current
+                .filter((sat) => sat.type === 'ONEWEB' && sat.satrec)
+                .map((sat) => ({ id: sat.id, satrec: sat.satrec })),
+            getCellIds: () => [...cells.keys()],
+            getRenderedSatelliteIds: renderedIds,
+            sampleDisplayed: (ids, atMs) => {
+                const out: DisplayedSatelliteSample[] = [];
+                for (const id of ids) {
+                    const cell = cells.get(id);
+                    if (!cell) continue;
+                    const position = resolveDisplayedSatellitePosition(cell, atMs);
+                    out.push({
+                        id,
+                        lat: position.lat,
+                        lng: position.lng,
+                        alt: position.alt,
+                        workerSampleAgeMs: atMs - cell.currentSampleTimeMs,
+                        cellRefreshAgeMs: atMs - cell.lastRefreshedAtMs,
+                    });
+                }
+                return out;
+            },
+        });
+    }, [ownerId, ownerLabel]);
+
     // Cleanup all on unmount — capture the current refs to avoid ref-change warnings
     useEffect(() => {
         const cache = cacheRef.current;
@@ -166,6 +190,7 @@ export function usePositionCallbacks(
             const existing = satLiveCellsRef.current.get(sat.id);
             if (existing) {
                 existing.value = sat;
+                existing.lastRefreshedAtMs = now;
                 if (!positionsMatch(existing.currentPosition, nextPosition)) {
                     // Advance the window: the previous "current" (future) position becomes
                     // the new "previous", keyed to its original future timestamp.
@@ -180,6 +205,7 @@ export function usePositionCallbacks(
             } else {
                 satLiveCellsRef.current.set(sat.id, {
                     value: sat,
+                    lastRefreshedAtMs: now,
                     previousPosition: nextPosition,
                     currentPosition: nextPosition,
                     previousSampleTimeMs: nextSampleTimeMs - SATELLITE_INTERPOLATION_FALLBACK_MS,
@@ -191,20 +217,7 @@ export function usePositionCallbacks(
                 const liveCell = satLiveCellsRef.current.get(sat.id)!;
 
                 const callback = new CallbackPositionProperty(() => {
-                    const position = getInterpolatedSatellitePosition(
-                        liveCell.previousPosition,
-                        liveCell.currentPosition,
-                        liveCell.previousSampleTimeMs,
-                        liveCell.currentSampleTimeMs,
-                        Date.now()
-                    );
-                    const {
-                        previousPosition,
-                        currentPosition,
-                    } = liveCell;
-                    if (positionsMatch(previousPosition, currentPosition)) {
-                        return Cartesian3.fromDegrees(currentPosition.lng, currentPosition.lat, currentPosition.alt * 1000);
-                    }
+                    const position = resolveDisplayedSatellitePosition(liveCell, Date.now());
                     return Cartesian3.fromDegrees(position.lng, position.lat, position.alt * 1000);
                 }, false);
 
@@ -214,6 +227,16 @@ export function usePositionCallbacks(
             return cache.get(sat.id)!;
         };
     }, []);
+
+    /**
+     * Stable accessor for event handlers and scale callbacks in memoized
+     * SatelliteEntity children. The live cell is refreshed by the parent on
+     * every worker publication, so children do not need to re-render merely to
+     * observe a new position or return the latest satellite on click.
+     */
+    const getLatestSatellite = useCallback((satelliteId: string): SatelliteData | undefined => (
+        satLiveCellsRef.current.get(satelliteId)?.value
+    ), []);
 
     /**
      * Get or create a cached CallbackPositionProperty for aircraft.
@@ -256,6 +279,7 @@ export function usePositionCallbacks(
 
     return {
         getSatellitePositionCallback,
+        getLatestSatellite,
         getAircraftPositionCallback
     };
 }

@@ -1,7 +1,7 @@
 /**
  * Tests for the runtime profiler's measurement logic.
  *
- * The profiler is the evidence gate for the rendering lot: its idle-frame count
+ * The profiler is the evidence gate for the rendering lot: its unattributed-frame count
  * is what decides whether enabling Cesium's `requestRenderMode` is worth the
  * risk of rewiring 144 CallbackProperty sites. A profiler that miscounts would
  * send that decision the wrong way, so the counting rules are pinned here.
@@ -69,7 +69,7 @@ describe('frame accounting', () => {
     detach();
   });
 
-  it('counts frames rendered with nothing changing as IDLE — the PERF-1 measurement', () => {
+  it('counts frames rendered with no reported cause as UNATTRIBUTED — the PERF-1 measurement', () => {
     const fake = makeFakeViewer();
     const detach = attachRuntimeProfilerToViewer(fake.viewer);
 
@@ -80,37 +80,41 @@ describe('frame accounting', () => {
 
     const { frame } = collectRuntimeStats();
     expect(frame.frames).toBe(10);
-    expect(frame.idleFrames).toBe(9);
-    expect(frame.idleFramePct).toBeCloseTo(90, 0);
+    expect(frame.unattributedFrames).toBe(9);
+    expect(frame.unattributedFramePct).toBeCloseTo(90, 0);
+    // The pre-rename field is preserved so captures taken before Lot 2C.1 stay
+    // comparable against captures taken after it.
+    expect(frame.idleFrames).toBe(frame.unattributedFrames);
+    expect(frame.idleFramePct).toBeCloseTo(frame.unattributedFramePct, 6);
     detach();
   });
 
-  it('does not count a frame as idle when the camera moved', () => {
+  it('does not count a frame as unattributed when the camera moved', () => {
     const fake = makeFakeViewer();
     const detach = attachRuntimeProfilerToViewer(fake.viewer);
 
     fake.renderFrame();            // baseline
     fake.moveCamera();
-    fake.renderFrame();            // camera changed → not idle
-    fake.renderFrame();            // still again → idle
+    fake.renderFrame();            // camera changed → attributed
+    fake.renderFrame();            // still again → unattributed
 
     const { frame } = collectRuntimeStats();
     expect(frame.frames).toBe(3);
-    expect(frame.idleFrames).toBe(1);
+    expect(frame.unattributedFrames).toBe(1);
     detach();
   });
 
-  it('does not count a frame as idle when a layer reported a scene mutation', () => {
+  it('does not count a frame as unattributed when a layer reported a scene mutation', () => {
     const fake = makeFakeViewer();
     const detach = attachRuntimeProfilerToViewer(fake.viewer);
 
     fake.renderFrame();            // baseline
-    fake.renderFrame();            // idle
+    fake.renderFrame();            // unattributed
     notifySceneMutated();
-    fake.renderFrame();            // mutation reported → not idle
+    fake.renderFrame();            // mutation reported → attributed
 
     const { frame } = collectRuntimeStats();
-    expect(frame.idleFrames).toBe(1);
+    expect(frame.unattributedFrames).toBe(1);
     detach();
   });
 
@@ -207,7 +211,8 @@ describe('report', () => {
     expect(report).toContain('PERF-1');
     expect(report).toContain('PERF-2');
     expect(report).toContain('DISABLED');
-    expect(report).toContain('IDLE frames');
+    expect(report).toContain('UNATTRIBUTED');
+    expect(report).not.toContain('IDLE frames');
     detach();
   });
 });
