@@ -1251,7 +1251,7 @@ const DestinationArrivalMoment = React.memo<{
 
   const arrivalPosition = useMemo(() => {
     const scratch = new Cartesian3();
-    return new CallbackProperty((time?: JulianDate) => {
+    return new CallbackPositionProperty((time?: JulianDate) => {
       const now = time ? JulianDate.toDate(time).getTime() / 1000 : Date.now() / 1000;
       const raw = Math.min(1, Math.max(0, (now - startSecondsRef.current) / ARRIVAL_MOMENT_SECONDS));
       const eased = 1 - (1 - raw) ** 3;
@@ -1876,7 +1876,7 @@ const SymbolicServiceArc = React.memo<{
   const flowPositions = useMemo(() => (
     FLOW_PHASES.map((phase) => {
       const scratch = new Cartesian3();
-      return new CallbackProperty((time?: JulianDate) => {
+      return new CallbackPositionProperty((time?: JulianDate) => {
         const seconds = time ? JulianDate.secondsDifference(time, FLOW_EPOCH) : Date.now() / 1000;
         const forwardProgress = ((seconds / 2.6 + phase) % 1 + 1) % 1;
         const progress = reverseFlow ? 1 - forwardProgress : forwardProgress;

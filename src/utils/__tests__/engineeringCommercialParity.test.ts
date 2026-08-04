@@ -173,7 +173,7 @@ function commercialOptionFrom(canonicalRouteMetrics: CanonicalRouteMetricSet) {
     selectedSatellite: null,
     activeGeoSatellite: null,
     resolvedAutoLEO: null,
-    metrics: {},
+    metrics: { leo: null, geo: null, totalGbps: 0, coveredCount: 0 },
     canonicalRouteMetrics,
     leoTopologyMode: 'SINGLE_SITE',
     activeLeoRouteEvidence: null,

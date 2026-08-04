@@ -27,6 +27,7 @@ interface MapViewSwitcherProps {
   leoSiteToSiteFullResult?: LeoSiteToSiteResult | null;
   commercialState: CommercialStateProps;
   onCommercialSelectedSegmentChange?: (segmentId: string) => void;
+  onToggleSimulationSettings?: () => void;
   resolvedAutoGeoGateway?: ResolvedGeoGateway | null;
   resolvedSelectedGeoGateway?: ResolvedGeoGateway | null;
 }
@@ -49,6 +50,7 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   leoSiteToSiteFullResult = null,
   commercialState,
   onCommercialSelectedSegmentChange,
+  onToggleSimulationSettings,
   resolvedAutoGeoGateway = null,
   resolvedSelectedGeoGateway = null,
 }) => {
@@ -77,6 +79,7 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
         leoSiteToSiteFullResult={leoSiteToSiteFullResult}
         commercialState={commercialState}
         onCommercialSelectedSegmentChange={onCommercialSelectedSegmentChange}
+        onToggleSimulationSettings={onToggleSimulationSettings}
         resolvedAutoGeoGateway={resolvedAutoGeoGateway}
         resolvedSelectedGeoGateway={resolvedSelectedGeoGateway}
       />

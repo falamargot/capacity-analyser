@@ -123,6 +123,31 @@ describe('displayed vs SGP4 at the same UTC instant', () => {
     expect(worst).toBeLessThan(1);
   });
 
+  it.each([2, 5, 10])('tracks the real SGP4 ground path smoothly in reverse at %dx', (rate) => {
+    const startMs = fixture.time.getTime() + 60_000;
+    const endMs = startMs - (PROPAGATION_INTERVAL_MS * rate);
+    const win = {
+      previousPosition: subPointAt(startMs),
+      currentPosition: subPointAt(endMs),
+      previousSampleTimeMs: startMs,
+      currentSampleTimeMs: endMs,
+    };
+
+    let worstGeodesicM = 0;
+    for (let realElapsedMs = 0; realElapsedMs <= PROPAGATION_INTERVAL_MS; realElapsedMs += 25) {
+      const scenarioNowMs = startMs - (realElapsedMs * rate);
+      const displayed = resolveDisplayedSatellitePosition(win, scenarioNowMs, rate);
+      worstGeodesicM = Math.max(
+        worstGeodesicM,
+        geodesicDistanceM(displayed, subPointAt(scenarioNowMs)),
+      );
+    }
+
+    // A 10 s linear lat/lon chord is longer than the 1 s live chord, but its
+    // error remains tiny relative to a LEO footprint and visually continuous.
+    expect(worstGeodesicM).toBeLessThan(250);
+  });
+
   it('stays within ~10 m out to the forward extrapolation cap, then degrades predictably', () => {
     const t0 = fixture.time.getTime();
     const win = {

@@ -10,6 +10,7 @@ import * as satellite from 'satellite.js';
 import { calculateGSOAvoidanceAngle, getActiveBeamCount, getGsoMutedBeamSet } from '../utils/oneWebComb';
 import type { SatelliteData } from '../types/satellites';
 import { useSecondTick } from './useSecondTick';
+import { useSimulationClock, useSimulationClockSnapshot } from '../contexts/SimulationClockContext';
 
 export interface GSOAvoidanceData {
   pitchAngleDeg: number;
@@ -26,6 +27,8 @@ export interface GSOAvoidanceData {
  * Returns null for non-OneWeb satellites or when satrec is unavailable.
  */
 export function useGSOAvoidance(sat: SatelliteData | null): GSOAvoidanceData | null {
+  const simulationClock = useSimulationClock();
+  const simulationClockSnapshot = useSimulationClockSnapshot();
   const [data, setData] = useState<GSOAvoidanceData | null>(null);
   const tick = useSecondTick();
 
@@ -38,7 +41,7 @@ export function useGSOAvoidance(sat: SatelliteData | null): GSOAvoidanceData | n
     const satrec = sat.satrec;
 
     try {
-      const now = new Date();
+      const now = new Date(simulationClock.getTimeMs());
       const julianDate = JulianDate.fromDate(now);
 
       const positionAndVelocity = satellite.propagate(satrec, now);
@@ -72,7 +75,13 @@ export function useGSOAvoidance(sat: SatelliteData | null): GSOAvoidanceData | n
       // Propagation error — keep previous value
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sat?.id, sat?.satrec, tick]);
+  }, [
+    sat?.id,
+    sat?.satrec,
+    simulationClock,
+    simulationClockSnapshot.revision,
+    tick,
+  ]);
 
   return data;
 }

@@ -3,6 +3,7 @@ import type { CandidateCoverage } from '../../types/analysis';
 import type { SatelliteData } from '../../types/satellites';
 import type { LinkMode } from '../../types/linkMode';
 import { pickStarGatewayReferenceCoverage, resolveActiveStarTrafficGatewaySelection } from '../geoStarGatewaySelection';
+import { isServedStarGatewaySelection } from '../geoConnectivityModel';
 
 const createSatellite = (
   id: string,
@@ -93,6 +94,7 @@ describe('resolveActiveStarTrafficGatewaySelection', () => {
         uplinkAtUser: createCandidate(satellite, true, beamId),
         fallbackCoverage: null,
       });
+      if (!isServedStarGatewaySelection(selection)) throw new Error('Expected a served STAR gateway');
 
       expect(selection?.diagnostic.source).toBe('beam-gateway-assignment');
       expect(selection?.gateway.name).toBe(expectedGatewayName);
@@ -112,6 +114,7 @@ describe('resolveActiveStarTrafficGatewaySelection', () => {
       uplinkAtUser: createCandidate(kvhts, true, '9999'),
       fallbackCoverage: null,
     });
+    if (!isServedStarGatewaySelection(selection)) throw new Error('Expected a served STAR gateway');
 
     expect(selection?.gateway.name).toBe('Rambouillet');
     expect(selection?.diagnostic).toEqual(expect.objectContaining({
@@ -147,6 +150,7 @@ describe('resolveActiveStarTrafficGatewaySelection', () => {
         uplinkAtUser: uplinkBeam132,
         fallbackCoverage: null,
       });
+      if (!isServedStarGatewaySelection(selection)) throw new Error('Expected a served STAR gateway');
 
       expect(selection?.diagnostic.source).toBe('beam-gateway-assignment');
       expect(selection?.gateway.name).toBe('Scanzano / Palermo');
@@ -160,6 +164,7 @@ describe('resolveActiveStarTrafficGatewaySelection', () => {
         uplinkAtUser: uplinkBeam132,
         fallbackCoverage: null,
       });
+      if (!isServedStarGatewaySelection(selection)) throw new Error('Expected a served STAR gateway');
 
       expect(selection?.diagnostic.source).toBe('beam-gateway-assignment');
       expect(selection?.gateway.name).toBe('Rambouillet');
@@ -180,6 +185,7 @@ describe('gateway outage simulation (FAILOVER routing)', () => {
       fallbackCoverage: null,
       failedGatewaySiteIds: new Set(['geo-scanzano-palermo']),
     });
+    if (!isServedStarGatewaySelection(selection)) throw new Error('Expected a served STAR gateway');
 
     expect(selection?.diagnostic.source).toBe('beam-gateway-assignment');
     expect(selection?.beamRoute?.routingMode).toBe('FAILOVER');
@@ -198,6 +204,7 @@ describe('gateway outage simulation (FAILOVER routing)', () => {
       fallbackCoverage: null,
       failedGatewaySiteIds: new Set(['geo-scanzano-palermo']),
     });
+    if (!isServedStarGatewaySelection(selection)) throw new Error('Expected a served STAR gateway');
 
     expect(selection?.beamRoute?.routingMode).toBe('NOMINAL');
     expect(selection?.gateway.name).toBe('Rambouillet');

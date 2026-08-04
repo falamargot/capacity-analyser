@@ -41,8 +41,6 @@ import {
 import { estimateCurrentLeoBeamLink, findBestConnectedBeamInfo, hasRFConnectivity } from './rfConnectivity';
 import { countEngineCalculation } from './runtimeProfiler';
 import type {
-  LeoBottleneckFactor,
-  LeoBottleneckScope,
   LeoNetworkLayerBreakdown,
   LeoRfChainBreakdown,
   LeoThroughputLeg,
@@ -179,7 +177,7 @@ export interface BuildActiveLeoRouteEvidenceInput {
   weatherTypeB: WeatherType;
   simulationStateA: SimulationStateSnapshot;
   simulationStateB: SimulationStateSnapshot;
-  failedSnps: Set<string>;
+  failedSnps: ReadonlySet<string>;
   now: JulianDate;
 }
 
@@ -850,7 +848,7 @@ const _devProfile: LeoEvidenceProfile = import.meta.env.DEV
   ? { calls: 0, lastMs: {}, minMs: {}, maxMs: {}, sumMs: {}, lastLoggedAt: 0 }
   : (null as unknown as LeoEvidenceProfile);
 if (import.meta.env.DEV && typeof window !== 'undefined') {
-  (window as Record<string, unknown>).__leoEvidenceProfile = _devProfile;
+  (window as unknown as Record<string, unknown>).__leoEvidenceProfile = _devProfile;
 }
 function _devMark(label: string, tStart: number): number {
   const now = performance.now();
@@ -890,7 +888,7 @@ export function buildActiveLeoRouteEvidence(
 
   const inputSignature = buildInputSignature(input);
 
-  const _tSig = import.meta.env.DEV ? _devMark('① signature', _t0) : 0;
+  if (import.meta.env.DEV) _devMark('① signature', _t0);
   if (!input.activePoint) {
     if (import.meta.env.DEV) {
       _devProfile.calls += 1;
@@ -958,7 +956,7 @@ export function buildActiveLeoRouteEvidence(
   const rfAvailableA = input.servingSatelliteA
     ? hasRFConnectivity(input.activePoint, input.servingSatelliteA, input.now, input.simulationStateA)
     : false;
-  const _tPostRfA = import.meta.env.DEV ? _devMark('④ rfConnA', _tPreRfA) : 0;
+  if (import.meta.env.DEV) _devMark('④ rfConnA', _tPreRfA);
 
   if (input.topology === 'SINGLE_SITE') {
     const downloadMbps = finitePositive(leoPerformance?.downlinkGbps != null ? leoPerformance.downlinkGbps * 1000 : null);
@@ -1075,7 +1073,7 @@ export function buildActiveLeoRouteEvidence(
   const rfAvailableB = input.servingSatelliteB
     ? hasRFConnectivity(input.pointB, input.servingSatelliteB, input.now, input.simulationStateB)
     : false;
-  const _tPreRoute = import.meta.env.DEV ? _devMark('⑥ rfConnB', _tPreRfB) : 0;
+  if (import.meta.env.DEV) _devMark('⑥ rfConnB', _tPreRfB);
 
   const siteADlMbps = input.servingSatelliteA && rfAvailableA && leoPerformance?.downlinkGbps != null
     ? leoPerformance.downlinkGbps * 1000
@@ -1125,6 +1123,7 @@ export function buildActiveLeoRouteEvidence(
 
   const _tPreS2S = import.meta.env.DEV ? performance.now() : 0;
   const routeResult = computeLeoSiteToSiteResult({
+    now: JulianDate.toDate(input.now),
     endpointA: { lat: input.activePoint.lat, lng: input.activePoint.lng },
     endpointB: { lat: input.pointB.lat, lng: input.pointB.lng },
     servingSatelliteA: input.servingSatelliteA,

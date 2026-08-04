@@ -43,7 +43,7 @@ const createSatellite = (
   id: overrides.id ?? '54259',
   name: overrides.name ?? 'EUTELSAT 10B',
   noradId: overrides.noradId ?? '54259',
-  coverageFileId: overrides.coverageFileId,
+  coverageFileId: overrides.coverageFileId ?? null,
   type: 'EUTELSAT',
   orbitType: 'GEO',
   opsStatus: 'operational',

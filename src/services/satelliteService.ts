@@ -114,7 +114,7 @@ async function compressTLE(text: string): Promise<Uint8Array> {
 async function decompressTLE(data: Uint8Array): Promise<string> {
   const ds = new DecompressionStream('gzip');
   const writer = ds.writable.getWriter();
-  writer.write(data);
+  writer.write(new Uint8Array(data).buffer);
   writer.close();
   const chunks: Uint8Array[] = [];
   const reader = ds.readable.getReader();

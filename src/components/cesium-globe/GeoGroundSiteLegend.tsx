@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Cartesian3,
-  EllipsoidalOccluder,
   SceneMode,
   SceneTransforms,
   Viewer as CesiumViewerType,
@@ -56,9 +55,12 @@ const GeoGroundSiteLegend: React.FC<GeoGroundSiteLegendProps> = ({
 
     const scene = viewer.scene;
     const updateVisibleGateways = () => {
-      const occluder = scene.mode === SceneMode.SCENE3D
-        ? new EllipsoidalOccluder(scene.globe.ellipsoid, viewer.camera.position)
-        : null;
+      const cameraDirection = Cartesian3.normalize(viewer.camera.positionWC, new Cartesian3());
+      const cameraRadius = Cartesian3.magnitude(viewer.camera.positionWC);
+      const ellipsoidRadius = scene.globe.ellipsoid.maximumRadius;
+      const horizonCosine = cameraRadius > ellipsoidRadius
+        ? Math.cos(Math.acos(ellipsoidRadius / cameraRadius) + 0.01)
+        : 1;
       const nextVisibleNames = new Set<string>();
 
       for (const gateway of renderedGateways) {
@@ -67,7 +69,10 @@ const GeoGroundSiteLegend: React.FC<GeoGroundSiteLegendProps> = ({
           gateway.lat,
           GROUND_POINT_ALTITUDE_KM * 1000,
         );
-        if (occluder && !occluder.isPointVisible(worldPosition)) continue;
+        if (
+          scene.mode === SceneMode.SCENE3D
+          && Cartesian3.dot(cameraDirection, Cartesian3.normalize(worldPosition, new Cartesian3())) < horizonCosine
+        ) continue;
 
         const windowPosition = SceneTransforms.worldToWindowCoordinates(scene, worldPosition);
         if (!defined(windowPosition)) continue;

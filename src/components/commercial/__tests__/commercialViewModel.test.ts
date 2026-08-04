@@ -62,7 +62,7 @@ function buildInput(evidence: ActiveLeoRouteEvidence): Parameters<typeof buildCo
     selectedSatellite: null,
     activeGeoSatellite: null,
     resolvedAutoLEO: null,
-    metrics: {},
+    metrics: { leo: null, geo: null, totalGbps: 0, coveredCount: 0 },
     leoTopologyMode: 'SITE_TO_SITE',
     activeLeoRouteEvidence: evidence,
     geoPointStatus: null,

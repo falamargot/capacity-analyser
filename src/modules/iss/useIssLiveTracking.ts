@@ -8,6 +8,7 @@ import {
   type IssTle,
   type IssOrbitPath,
 } from './issService';
+import { useSimulationClock, useSimulationClockSnapshot } from '../../contexts/SimulationClockContext';
 
 export type IssFreshness = 'live' | 'stale' | 'offline';
 
@@ -26,8 +27,12 @@ const ORBIT_REFRESH_MS = 60_000;
 const TLE_REFRESH_MS = 2 * 60 * 60 * 1000;
 const STALE_THRESHOLD_MS = 15_000;
 
-function computeFreshness(pos: IssPosition | null): IssFreshness {
+function computeFreshness(pos: IssPosition | null, simulationMode: boolean): IssFreshness {
   if (!pos) return 'offline';
+  // A simulated timestamp is intentionally unrelated to wall time. Freshness
+  // here means that propagation data is available, not that the scenario date
+  // happens to be close to today.
+  if (simulationMode) return 'live';
   return Date.now() - pos.timestamp > STALE_THRESHOLD_MS ? 'stale' : 'live';
 }
 
@@ -35,6 +40,8 @@ export function useIssLiveTracking(enabled: boolean): IssLiveState & {
   setFollowing: (v: boolean) => void;
   refresh: () => void;
 } {
+  const simulationClock = useSimulationClock();
+  const simulationClockSnapshot = useSimulationClockSnapshot();
   const [tle, setTle] = useState<IssTle | null>(null);
   const [position, setPosition] = useState<IssPosition | null>(null);
   const [orbitPath, setOrbitPath] = useState<IssOrbitPath | null>(null);
@@ -68,18 +75,18 @@ export function useIssLiveTracking(enabled: boolean): IssLiveState & {
   const updatePosition = useCallback(async () => {
     const currentTle = await fetchTleIfNeeded();
     if (!currentTle) return;
-    const pos = propagateIss(currentTle, new Date());
+    const pos = propagateIss(currentTle, new Date(simulationClock.getTimeMs()));
     if (pos) {
       setPosition(pos);
       setError(null);
     }
-  }, [fetchTleIfNeeded]);
+  }, [fetchTleIfNeeded, simulationClock]);
 
   const updateOrbitPath = useCallback(() => {
     const currentTle = tleRef.current;
     if (!currentTle) return;
-    setOrbitPath(computeIssOrbitPath(currentTle, new Date()));
-  }, []);
+    setOrbitPath(computeIssOrbitPath(currentTle, new Date(simulationClock.getTimeMs())));
+  }, [simulationClock]);
 
   const refresh = useCallback(async () => {
     if (!enabled) return;
@@ -119,10 +126,11 @@ export function useIssLiveTracking(enabled: boolean): IssLiveState & {
         setTle(freshTle);
         setError(null);
 
-        const pos = propagateIss(freshTle, new Date());
+        const scenarioDate = new Date(simulationClock.getTimeMs());
+        const pos = propagateIss(freshTle, scenarioDate);
         if (!cancelled && pos) setPosition(pos);
 
-        if (!cancelled) setOrbitPath(computeIssOrbitPath(freshTle, new Date()));
+        if (!cancelled) setOrbitPath(computeIssOrbitPath(freshTle, scenarioDate));
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : 'ISS data unavailable');
       } finally {
@@ -145,7 +153,20 @@ export function useIssLiveTracking(enabled: boolean): IssLiveState & {
       clearInterval(posInterval);
       clearInterval(orbitInterval);
     };
-  }, [enabled, updatePosition, updateOrbitPath]);
+  }, [enabled, simulationClock, updatePosition, updateOrbitPath]);
+
+  // Timeline commands must be visible immediately rather than waiting for the
+  // next one-second position tick or the next orbit-path refresh.
+  useEffect(() => {
+    if (!enabled || !tleRef.current) return;
+    void updatePosition();
+    updateOrbitPath();
+  }, [
+    enabled,
+    simulationClockSnapshot.revision,
+    updateOrbitPath,
+    updatePosition,
+  ]);
 
   return {
     position,
@@ -154,7 +175,7 @@ export function useIssLiveTracking(enabled: boolean): IssLiveState & {
     isLoading,
     error,
     isFollowing,
-    freshness: computeFreshness(position),
+    freshness: computeFreshness(position, simulationClockSnapshot.mode === 'simulation'),
     setFollowing: setIsFollowing,
     refresh,
   };

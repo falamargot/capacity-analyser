@@ -11,6 +11,7 @@ import DualSegmentPanel, { GeoTopologyCockpitPanel } from './DualSegmentPanel';
 import RouteDiagram from './shared/RouteDiagram';
 import { buildGeoRouteDiagram } from './shared/routeDiagramBuilders';
 import type { DualSegmentResult } from '../../utils/geoDualSegmentBudget';
+import type { GeoPerformanceEstimate } from '../../types/geoPerformance';
 import LinkModeSelector from './LinkModeSelector';
 import type { ResolvedGeoGateway, StarTrafficGatewayResolution } from '../../utils/geoConnectivityModel';
 import { getGatewayTrafficStatusNote, getPrimaryControlRoleLabel } from '../globe/GlobeConfig';
@@ -71,12 +72,6 @@ const GeoLinkBudgetEvidence = ({
   activeMeshTab,
   onMeshTabChange,
   satelliteName,
-  latencyMs,
-  latencyLabel,
-  availabilityLabel,
-  confidenceLabel,
-  confidenceDetail,
-  confidence,
   coverageLabels,
   satellite,
   // The published truth is REQUIRED. This component used to fall back to building
@@ -181,14 +176,7 @@ interface GEOConnectivitySectionProps {
   showConfigurationControls?: boolean;
   resolvedGEOConnectivity: ResolvedGEOConnectivity | null;
   geoGeometry: GEOGeometry | null;
-  calculateGEOPerformance: (elevationDeg: number) => {
-    downlinkGbps: number;
-    uplinkGbps: number;
-    stability: string;
-    performanceFactor: number;
-    weatherFactor: number;
-    weatherLabel: string;
-  };
+  calculateGEOPerformance: (elevationDeg: number) => GeoPerformanceEstimate;
   terminalType: TerminalType;
   onTerminalTypeChange: (type: TerminalType) => void;
   weatherType: WeatherType;

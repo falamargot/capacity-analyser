@@ -28,6 +28,7 @@ import { getMoonSnapshot, MOON_MEAN_RADIUS_KM } from '../../utils/moonInfo';
 import { JulianDate } from 'cesium';
 import { selectActiveEngineeringTruth, type EngineeringTruthSet } from '../../utils/engineeringAnalysisViewModel';
 import { formatNumber } from '../../utils/formatters';
+import { useSimulationClock, useSimulationClockSnapshot } from '../../contexts/SimulationClockContext';
 
 interface MobileSelectedPoint {
     lat: number;
@@ -117,10 +118,10 @@ function formatNearestLocation(location: { city: string; country: string } | nul
     return [location?.city, location?.country].filter(Boolean).join(', ') || 'Ground position';
 }
 
-function formatWeatherSummary(weatherType: WeatherType, autoWeatherEnabled: boolean) {
+function formatWeatherSummary(weatherType: WeatherType, autoWeatherEnabled: boolean, scenarioAssumption = false) {
     const profile = WEATHER_PROFILES[weatherType];
     const attenuation = WEATHER_ATTENUATION_DB[toWeatherCondition(weatherType)].toFixed(1);
-    return `${weatherGlyph[weatherType]} ${profile.label} · ${attenuation} dB · ${autoWeatherEnabled ? 'Real' : 'Manual'}`;
+    return `${weatherGlyph[weatherType]} ${profile.label} · ${attenuation} dB · ${scenarioAssumption ? 'Scenario assumption' : autoWeatherEnabled ? 'Real' : 'Manual'}`;
 }
 
 function MobileSiteRouteSummary({
@@ -489,6 +490,19 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
     leoSiteToSiteResult = null,
     engineeringTruths = {},
 }) => {
+    const simulationClock = useSimulationClock();
+    const simulationClockSnapshot = useSimulationClockSnapshot();
+    // Sampled when the Moon is (re)selected and on any clock command, not during
+    // render — this panel re-renders on every analysis update, and reading the
+    // clock in the body would recompute the lunar ephemeris each time. The
+    // pre-simulation code sampled it once per selection, so this is no less
+    // fresh than before while now following the scenario timeline.
+    const scenarioTimeMs = useMemo(
+        () => simulationClock.getTimeMs(),
+        // Cadence keys, not values read by the callback.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [simulationClock, simulationClockSnapshot.revision, selectedMoon],
+    );
     const { failedSnps } = useSimulation();
     const activeEngineeringTruth = selectActiveEngineeringTruth(engineeringTruths, satelliteScope, activeConnectivityTab);
     const selectedPointStatus = useMemo(
@@ -505,8 +519,10 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
         return getAssignedGeoSatellitesForGateway(selectedGateway, satellites, GEO_GATEWAYS);
     }, [selectedGateway, satellites]);
     const moonSnapshot = useMemo(
-        () => (selectedMoon ? getMoonSnapshot(JulianDate.now()) : null),
-        [selectedMoon]
+        () => (selectedMoon
+            ? getMoonSnapshot(JulianDate.fromDate(new Date(scenarioTimeMs)))
+            : null),
+        [selectedMoon, scenarioTimeMs]
     );
 
     const summary = useMemo<SummaryHeader>(() => {
@@ -514,7 +530,7 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
             return {
                 eyebrow: 'Celestial Body',
                 title: 'Moon',
-                subtitle: 'Real-time lunar ephemeris',
+                subtitle: 'Lunar ephemeris at scenario time',
                 status: 'Selected object',
                 statusTone: 'neutral' as const,
             };
@@ -835,12 +851,12 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
             siteA: {
                 coordinates: formatCoordinates({ lat: selectedPoint.lat, lng: selectedPoint.lng }),
                 location: formatNearestLocation(nearestLocation),
-                weather: formatWeatherSummary(weatherType, autoWeatherEnabled),
+                weather: formatWeatherSummary(weatherType, autoWeatherEnabled, simulationClockSnapshot.mode !== 'live'),
             },
             siteB: {
                 coordinates: formatCoordinates({ lat: siteBPoint.lat, lng: siteBPoint.lng }),
                 location: formatNearestLocation(nearestLocationB),
-                weather: formatWeatherSummary(weatherTypeB, autoWeatherEnabledB),
+                weather: formatWeatherSummary(weatherTypeB, autoWeatherEnabledB, simulationClockSnapshot.mode !== 'live'),
             },
             accent,
             servingSatelliteName,
@@ -867,6 +883,7 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
         satelliteScope,
         servingSatelliteName,
         servingSatelliteNameB,
+        simulationClockSnapshot.mode,
         selectedAircraft,
         selectedGateway,
         selectedMoon,

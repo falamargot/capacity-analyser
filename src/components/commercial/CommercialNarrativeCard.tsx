@@ -2,7 +2,6 @@ import { memo, type ReactNode } from 'react';
 import {
   AlertTriangle,
   CheckCircle2,
-  ExternalLink,
   Network,
   RadioTower,
   Route,
@@ -54,7 +53,6 @@ function CommercialNarrativeCard({
   viewModel,
   selectedSegmentId,
   commercialRouteModel,
-  onViewFullAnalysis,
   compact = false,
 }: CommercialNarrativeCardProps) {
   const card = buildCommercialNarrativeCardModel({

@@ -20,7 +20,8 @@ const NOW = 1_700_000_000_000;
 const frame = (over: Partial<ResumeFrameRecord> = {}): ResumeFrameRecord => ({
   frameIndex: 1,
   firstFrameAfterResume: true,
-  systemUtcMs: NOW,
+  scenarioUtcMs: NOW,
+  wallClockMs: NOW,
   cesiumClockMs: NOW,
   clockSkewMs: 0,
   hiddenForMs: 27_000,

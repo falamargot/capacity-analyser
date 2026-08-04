@@ -101,8 +101,18 @@ export interface PDFExportData {
   geoDetails?: PDFConnectionDetails | null;
   evidenceSummary?: PDFEvidenceSummary | null;
   dataProvenance?: DataProvenanceModel | null;
+  simulationTime?: string;
+  simulationMode?: 'live' | 'simulation';
+  simulationSpeed?: number;
   globeElement: HTMLElement | null;
   cesiumViewer?: CesiumViewerLike | null;
+}
+
+export function formatSimulationContext(data: PDFExportData): string | null {
+  if (!data.simulationTime || !data.simulationMode || data.simulationSpeed == null) return null;
+  const speed = data.simulationSpeed === 0 ? 'Pause' : `${data.simulationSpeed}x`;
+  const mode = data.simulationMode === 'live' ? 'LIVE' : 'SIMULATION';
+  return `${mode} / ${data.simulationTime} / ${speed}`;
 }
 
 // Fonction pour générer le nom du fichier
@@ -139,32 +149,6 @@ export function toPdfSafeText(value: string): string {
     .replace(/[^\x20-\x7E°]/g, '?')
     .replace(/\s+/g, ' ')
     .trim();
-}
-
-// Fonction pour formater les valeurs
-function formatValue(value: number | null | undefined, unit: string = '', precision: number = 2): string {
-  if (value === null || value === undefined || !Number.isFinite(value)) return 'N/A';
-  
-  // Gérer la précision selon le type de valeur
-  let formattedValue: string;
-  if (unit.includes('°')) {
-    // Pour l'élévation, 1 décimale
-    formattedValue = value.toFixed(1);
-  } else if (unit.includes('ms')) {
-    // Pour la latence, entier
-    formattedValue = value.toFixed(0);
-  } else if (unit.includes('km')) {
-    // Pour la distance, entier
-    formattedValue = value.toFixed(0);
-  } else if (unit.includes('Mbps') || unit.includes('Gbps')) {
-    // Pour les débits, entier
-    formattedValue = value.toFixed(0);
-  } else {
-    // Pour les autres valeurs, utiliser la précision par défaut
-    formattedValue = value.toFixed(precision);
-  }
-  
-  return `${formattedValue}${unit}`;
 }
 
 function formatLocationLabel(location: LocationData): string {
@@ -331,6 +315,8 @@ function drawReportContext(pdf: jsPDF, title: string, data: PDFExportData): void
   pdf.setFont('helvetica', 'normal');
   pdf.text(`Location: ${formatLocationLabel(data.location)}`, 20, 30);
   pdf.text(`Scope filter: ${formatScopeLabel(data.scope)}`, 20, 36);
+  const simulationContext = formatSimulationContext(data);
+  if (simulationContext) pdf.text(`Scenario time: ${simulationContext}`, 20, 42);
 }
 
 function createComparisonPage(pdf: jsPDF, data: PDFExportData, snapshot: SnapshotImage | null, generatedAt: Date): void {
@@ -343,10 +329,12 @@ function createComparisonPage(pdf: jsPDF, data: PDFExportData, snapshot: Snapsho
   pdf.setFontSize(10);
   pdf.setFont('helvetica', 'normal');
   pdf.text(`Generated: ${format(generatedAt, 'PPpp')}`, 105, 30, { align: 'center' });
-  pdf.text(`Location: ${formatLocationLabel(location)}`, 105, 37, { align: 'center' });
-  pdf.text(`Scope filter: ${formatScopeLabel(data.scope)}`, 105, 43, { align: 'center' });
+  const simulationContext = formatSimulationContext(data);
+  if (simulationContext) pdf.text(`Scenario time: ${simulationContext}`, 105, 37, { align: 'center' });
+  pdf.text(`Location: ${formatLocationLabel(location)}`, 105, simulationContext ? 44 : 37, { align: 'center' });
+  pdf.text(`Scope filter: ${formatScopeLabel(data.scope)}`, 105, simulationContext ? 50 : 43, { align: 'center' });
 
-  let currentY = 54;
+  let currentY = simulationContext ? 61 : 54;
 
   pdf.setFontSize(12);
   pdf.setFont('helvetica', 'bold');
@@ -425,7 +413,7 @@ function createEvidencePage(pdf: jsPDF, data: PDFExportData): void {
     ['Prediction confidence', data.evidenceSummary.confidence],
     ['Indicative weather availability', data.evidenceSummary.availabilityContext ?? 'N/A'],
   ];
-  let currentY = drawTable(pdf, ['Evidence', 'Value'], evidenceRows, 48);
+  let currentY = drawTable(pdf, ['Evidence', 'Value'], evidenceRows, formatSimulationContext(data) ? 54 : 48);
   if (data.evidenceSummary.confidenceReasons.length) {
     currentY += 8;
     pdf.setFontSize(12);
@@ -449,14 +437,14 @@ function createProvenancePage(pdf: jsPDF, data: PDFExportData): void {
     row.note ? `${row.source} (${row.note})` : row.source,
     `${row.nature} · ${row.asOf}`,
   ]);
-  drawTable(pdf, ['Data', 'Source', 'Nature · as of'], provenanceRows, 48);
+  drawTable(pdf, ['Data', 'Source', 'Nature · as of'], provenanceRows, formatSimulationContext(data) ? 54 : 48);
 }
 
 function createDetailsPage(pdf: jsPDF, data: PDFExportData): void {
   pdf.addPage();
   const pageHeight = pdf.internal.pageSize.getHeight();
   const bottomLimit = pageHeight - 24;
-  const topStartY = 42;
+  const topStartY = formatSimulationContext(data) ? 48 : 42;
   let currentY = topStartY;
 
   const drawHeader = (continuation = false) => {
@@ -468,6 +456,8 @@ function createDetailsPage(pdf: jsPDF, data: PDFExportData): void {
     pdf.setFont('helvetica', 'normal');
     pdf.text(`Location: ${formatLocationLabel(data.location)}`, 20, 30);
     pdf.text(`Scope filter: ${formatScopeLabel(data.scope)}`, 20, 36);
+    const simulationContext = formatSimulationContext(data);
+    if (simulationContext) pdf.text(`Scenario time: ${simulationContext}`, 20, 42);
     currentY = topStartY;
   };
 

@@ -160,7 +160,6 @@ interface SkyBridgeEntityProps {
   showPrimaryLabel:   boolean;
   /** Show secondary detail label. Only when satellite segment is explicitly focused. */
   showSecondaryLabel: boolean;
-  viewerRef:          React.RefObject<CesiumViewerType | null>;
   cameraMetricsRef:   React.MutableRefObject<CameraMetricsSnapshot>;
   sizeScale:          number;
 }
@@ -185,7 +184,6 @@ const SkyBridgeEntity = React.memo<SkyBridgeEntityProps>(({
   animRef,
   showPrimaryLabel,
   showSecondaryLabel,
-  viewerRef,
   cameraMetricsRef,
   sizeScale,
 }) => {
@@ -445,7 +443,6 @@ const CommercialSkyBridgeLayer: React.FC<CommercialSkyBridgeLayerProps> = ({
           animRef={effectiveAnimRef}
           showPrimaryLabel={showPrimaryLabel}
           showSecondaryLabel={showSecondaryLabel}
-          viewerRef={viewerRef}
           cameraMetricsRef={cameraMetricsRef}
           sizeScale={sizeScale}
         />

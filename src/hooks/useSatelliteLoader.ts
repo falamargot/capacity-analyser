@@ -14,16 +14,20 @@ import { useState, useEffect, useRef } from 'react';
 import { fetchSatellites } from '../services/satelliteService';
 import { calculateCoverages } from '../utils/coverageCalculator';
 import { applyWorkerPositions } from './applyWorkerPositions';
+import { mergeRefreshedSatellites } from './mergeRefreshedSatellites';
 import type { SatelliteData } from '../types/satellites';
+import { useSimulationClock } from '../contexts/SimulationClockContext';
+import type {
+  SatellitePositionWorkerInput,
+  SatellitePositionWorkerOutput,
+} from '../workers/satellitePositionProtocol';
 import {
-  SATELLITE_PROPAGATION_INTERVAL_MS,
   actionPosts,
   decisionClearsBusy,
+  resolvePropagationSampleTimeMs,
   resolvePropagationResponse,
   resolvePropagationTick,
 } from './satellitePropagationSchedule';
-
-const SATELLITE_PROPAGATION_LOOKAHEAD_MS = 1200;
 
 /**
  * Dev-only proof that the response path is alive end to end.
@@ -41,10 +45,6 @@ if (import.meta.env.DEV && typeof window !== 'undefined') {
 }
 
 // ─── Worker message types ─────────────────────────────────────────────────────
-type WorkerInMessage =
-  | { type: 'init'; satellites: { id: string; satrec: unknown }[] }
-  | { type: 'propagate'; requestId: number; timestamp: number };
-
 interface SatelliteLoaderOptions {
   /** ID of the currently selected satellite, or null. Used to trigger an
    *  immediate worker tick on selection change. */
@@ -67,6 +67,7 @@ export function useSatelliteLoader({
   selectedSatelliteId,
   hoveredSatelliteId,
 }: SatelliteLoaderOptions): SatelliteLoaderResult {
+  const simulationClock = useSimulationClock();
   const [satellites, setSatellites] = useState<SatelliteData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -84,8 +85,11 @@ export function useSatelliteLoader({
   // carrying `activeRequestIdRef` may clear the latch or publish.
   const requestIdSeqRef          = useRef(0);
   const activeRequestIdRef       = useRef(0);
-  /** Newest sample time ever published, so published time cannot move backwards. */
-  const lastPublishedSampleTimeRef = useRef(0);
+  const activeTimelineRevisionRef = useRef(simulationClock.getSnapshot().revision);
+  /** Signed playback rate the in-flight request was created under. */
+  const playbackSpeedRef = useRef(simulationClock.getSnapshot().speed);
+  /** Newest sample in the active timeline; reset when clock controls change. */
+  const lastPublishedSampleTimeRef = useRef<number | null>(null);
   /** Posts one propagate request through the shared lifecycle. Set by the worker effect. */
   const postPropagateRef         = useRef<(() => void) | null>(null);
   const satelliteUpdateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -116,7 +120,10 @@ export function useSatelliteLoader({
     const loadSatellites = async () => {
       try {
         const data = await fetchSatellites();
-        setSatellites(data);
+        // The fetch seeds wall-clock positions. Mid-session those are wrong
+        // under a simulated clock and would drop the timeline stamp the
+        // analysis layer transacts on — keep what the loop has propagated.
+        setSatellites((current) => mergeRefreshedSatellites(current, data));
         // Signal the worker to refresh its satrec cache on the next tick.
         workerNeedsInitRef.current = true;
       } catch (error) {
@@ -164,13 +171,17 @@ export function useSatelliteLoader({
      * terminating it is the only reliable way to drop a request that is still
      * queued or mid-computation. Without this, every deadline would leave
      * another orphaned job behind and the queue would grow without bound.
-     * Exactly one worker exists at any moment: the old one is terminated before
-     * the new one is created, and the satrec cache is re-sent on the next post.
+     * A replacement is acquired before the old worker is terminated, so a
+     * transient constructor failure preserves the existing propagation path.
+     * On success, the satrec cache is re-sent on the next post.
      */
     const recycleWorker = (): boolean => {
-      worker?.terminate();
       const next = spawnWorker();
       if (!next) return false;
+      // Acquire the replacement before terminating the current worker. A
+      // transient constructor failure must not turn a recoverable stale sample
+      // into a permanently stopped propagation loop.
+      worker?.terminate();
       worker = next;
       workerRef.current = next;
       attach(next);
@@ -195,7 +206,7 @@ export function useSatelliteLoader({
       // hourly refresh, or a worker recycle). Each tick saves ~240 KB of
       // structured-clone traffic.
       if (workerNeedsInitRef.current) {
-        const initMsg: WorkerInMessage = {
+        const initMsg: SatellitePositionWorkerInput = {
           type: 'init',
           satellites: sats.map((sat) => ({ id: sat.id, satrec: sat.satrec })),
         };
@@ -207,10 +218,16 @@ export function useSatelliteLoader({
       if (import.meta.env.DEV) propagationCounters.sent++;
       workerBusyRef.current = true;
       workerRequestSentAtRef.current = Date.now();
-      const propagateMsg: WorkerInMessage = {
+      const clockSnapshot = simulationClock.getSnapshot();
+      const timestamp = simulationClock.getTimeMs();
+      activeTimelineRevisionRef.current = clockSnapshot.revision;
+      playbackSpeedRef.current = clockSnapshot.speed;
+      const propagateMsg: SatellitePositionWorkerInput = {
         type: 'propagate',
         requestId,
-        timestamp: Date.now() + SATELLITE_PROPAGATION_LOOKAHEAD_MS,
+        timelineRevision: clockSnapshot.revision,
+        timestamp,
+        renderTimestamp: resolvePropagationSampleTimeMs(timestamp, clockSnapshot.speed),
       };
       worker.postMessage(propagateMsg);
     };
@@ -230,6 +247,9 @@ export function useSatelliteLoader({
         workerBusy: workerBusyRef.current,
         requestSentAtMs: workerRequestSentAtRef.current,
         nowMs: Date.now(),
+        playbackSpeed: simulationClock.getSnapshot().speed,
+        hasPublishedCurrentTimeline: lastPublishedSampleTimeRef.current !== null,
+        satelliteCacheStale: workerNeedsInitRef.current,
       });
 
       armNextTick(action.delayMs);
@@ -252,11 +272,13 @@ export function useSatelliteLoader({
     };
 
     const handleWorkerMessage = (event: MessageEvent) => {
-      const { requestId, timestamp, positions } = event.data as {
-        requestId: number;
-        timestamp: number;
-        positions: Array<{ id: string; lat: number; lng: number; alt: number; sampleTimeMs: number; isValid: boolean }>;
-      };
+      const {
+        requestId,
+        timelineRevision,
+        timestamp,
+        positions,
+        renderPositions,
+      } = event.data as SatellitePositionWorkerOutput;
 
       // A timed-out request is assumed lost, not cancelled, so its reply may
       // still land — possibly after the reply to the retry that replaced it.
@@ -264,6 +286,9 @@ export function useSatelliteLoader({
       // gate below would NOT catch that: it compares position deltas, not
       // sample times.
       const decision = resolvePropagationResponse({
+        responseTimelineRevision: timelineRevision,
+        activeTimelineRevision: activeTimelineRevisionRef.current,
+        playbackSpeed: playbackSpeedRef.current,
         responseRequestId: requestId,
         activeRequestId: activeRequestIdRef.current,
         responseSampleTimeMs: timestamp,
@@ -271,13 +296,17 @@ export function useSatelliteLoader({
       });
       if (decisionClearsBusy(decision)) workerBusyRef.current = false;
       if (decision !== 'accept') {
-        if (import.meta.env.DEV && decision === 'ignore-superseded') propagationCounters.superseded++;
+        if (
+          import.meta.env.DEV
+          && (decision === 'ignore-superseded' || decision === 'ignore-obsolete-timeline')
+        ) propagationCounters.superseded++;
         return;
       }
       lastPublishedSampleTimeRef.current = timestamp;
       // Exclude invalid propagations (bad TLE, decayed orbit) — never move a
       // satellite to (0, 0, 0) which is a real coordinate in the Gulf of Guinea.
       const posMap = new Map(positions.filter((p) => p.isValid).map((p) => [p.id, p]));
+      const renderPosMap = new Map(renderPositions.filter((p) => p.isValid).map((p) => [p.id, p]));
 
       // Read selection/hover from refs — avoids stale closure over React state.
       const currentSelectedId = selectedSatelliteIdRef.current;
@@ -293,6 +322,8 @@ export function useSatelliteLoader({
 
       setSatellites((currentSatellites) => applyWorkerPositions(currentSatellites, {
         positions: posMap,
+        renderPositions: renderPosMap,
+        timelineRevision,
         selectedSatelliteId: currentSelectedId,
         hoveredSatelliteId: currentHoveredId,
         selectionChanged,
@@ -309,6 +340,28 @@ export function useSatelliteLoader({
     };
 
     attach(worker);
+
+    // A clock command invalidates all asynchronous work created against the
+    // previous timeline. Recycle the worker to drop an in-flight SGP4 batch
+    // rather than queueing obsolete work in front of the fresh request.
+    const unsubscribeClock = simulationClock.subscribe(() => {
+      const clockSnapshot = simulationClock.getSnapshot();
+      activeTimelineRevisionRef.current = clockSnapshot.revision;
+      playbackSpeedRef.current = clockSnapshot.speed;
+      lastPublishedSampleTimeRef.current = null;
+      workerBusyRef.current = false;
+
+      if (satelliteUpdateTimeoutRef.current) {
+        clearTimeout(satelliteUpdateTimeoutRef.current);
+        satelliteUpdateTimeoutRef.current = null;
+      }
+
+      // If replacement creation fails, the previous worker is deliberately
+      // retained and receives the fresh request. Its obsolete in-flight reply
+      // is still rejected by timeline revision and request identity.
+      recycleWorker();
+      scheduleTick();
+    });
 
     scheduleTick();
 
@@ -337,7 +390,7 @@ export function useSatelliteLoader({
       if (import.meta.env.DEV && tabHiddenAtMs > 0) {
         const hiddenMs = Date.now() - tabHiddenAtMs;
         const lastSampleMs = satellitesForResolutionRef.current[0]?.position.sampleTimeMs ?? 0;
-        const ageMs = lastSampleMs > 0 ? Date.now() - lastSampleMs : null;
+        const ageMs = lastSampleMs !== 0 ? simulationClock.getTimeMs() - lastSampleMs : null;
         console.log(
           `[sat] tab resume after ${Math.round(hiddenMs / 1000)}s hidden` +
           (ageMs !== null ? ` — last sample ${ageMs}ms ago (${ageMs < 0 ? 'future/fresh' : 'stale'})` : '') +
@@ -363,12 +416,14 @@ export function useSatelliteLoader({
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
+      unsubscribeClock();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (satelliteUpdateTimeoutRef.current) clearTimeout(satelliteUpdateTimeoutRef.current);
-      worker.terminate();
+      worker?.terminate();
       workerRef.current = null;
+      postPropagateRef.current = null;
     };
-  }, []);
+  }, [simulationClock]);
 
   // ── Immediate tick on satellite selection change ─────────────────────────
   //

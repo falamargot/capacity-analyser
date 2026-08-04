@@ -77,10 +77,6 @@ function toRad(deg: number): number {
   return (deg * Math.PI) / 180;
 }
 
-function toDeg(rad: number): number {
-  return (rad * 180) / Math.PI;
-}
-
 /**
  * Returns true if `point` is within the circular footprint centered on `subSat`.
  * `radiusKm` is a ground distance on the Earth surface (great-circle distance).

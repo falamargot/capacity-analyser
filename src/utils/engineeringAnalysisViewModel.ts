@@ -656,7 +656,7 @@ export function buildGeoEngineeringAnalysisViewModel(input: BuildGeoEngineeringA
       outputMbps: e2e.endToEndThroughputMbps,
       tone: 'accent',
     },
-    ...(activeNetworkLayer ? [
+    ...(activeNetworkLayer ? ([
       {
         label: 'Protocol efficiency',
         value: fmtMbps(activeNetworkLayer.protocolAdjustedMbps),
@@ -683,7 +683,7 @@ export function buildGeoEngineeringAnalysisViewModel(input: BuildGeoEngineeringA
         loss: fmtThroughputLoss(activeNetworkLayer.protocolAdjustedMbps, activeNetworkLayer.finalThroughputMbps),
         tone: activeNetworkLayer.finalThroughputMbps > 0 ? 'good' : 'danger',
       },
-    ] : []),
+    ] satisfies EngineeringClosureStep[]) : []),
   ] : [
     {
       label: 'RF path',

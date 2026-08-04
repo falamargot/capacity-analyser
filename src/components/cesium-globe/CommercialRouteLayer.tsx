@@ -44,7 +44,6 @@ import type {
   CommercialRouteNode,
   CommercialRouteEdge,
   CommercialRouteEdgeType,
-  CommercialRouteNodeType,
   CommercialRouteStatus,
   CommercialRouteTechnology,
   CommercialRouteSegmentId,

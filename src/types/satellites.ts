@@ -22,8 +22,10 @@ export interface SatelliteData {
     lat: number;
     lng: number;
     alt: number;
-    /** UTC timestamp (Date.now) used to propagate this position. */
+    /** UTC scenario timestamp used to propagate this position. */
     sampleTimeMs?: number;
+    /** Clock-control revision used to produce this orbital sample. */
+    timelineRevision?: number;
     x?: number;
     y?: number;
     z?: number;
@@ -34,6 +36,17 @@ export interface SatelliteData {
      * Undefined is treated as valid (legacy positions before this field was added).
      */
     isPositionValid?: boolean;
+  };
+  /**
+   * Visual-only bracketing sample. Connectivity, coverage and link budgets must
+   * always use `position`, which is propagated at the authoritative clock instant.
+   */
+  renderPosition?: {
+    lat: number;
+    lng: number;
+    alt: number;
+    sampleTimeMs: number;
+    timelineRevision: number;
   };
   coverageReferencePosition?: {
     lat: number;

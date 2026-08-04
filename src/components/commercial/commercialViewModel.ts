@@ -58,7 +58,6 @@ import {
   customerStateFromSegment,
   finitePositive,
   formatMaybeMbps,
-  gbpsToMbps,
   geoStatusLabel,
   linkMarginLabel,
   locationName,

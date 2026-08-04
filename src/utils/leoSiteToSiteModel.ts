@@ -329,6 +329,8 @@ function deriveServiceStatus(failureReason: LeoSiteToSiteFailureReason | null): 
 // ── Main computation ──────────────────────────────────────────────────────────
 
 export interface ComputeLeoSiteToSiteArgs {
+  /** Authoritative scenario instant used for pass-window evidence. */
+  now?: Date;
   endpointA: { lat: number; lng: number };
   endpointB: { lat: number; lng: number };
 
@@ -380,6 +382,7 @@ export interface ComputeLeoSiteToSiteArgs {
 
 export function computeLeoSiteToSiteResult(args: ComputeLeoSiteToSiteArgs): LeoSiteToSiteResult {
   const {
+    now,
     endpointA,
     endpointB,
     servingSatelliteA,
@@ -490,10 +493,12 @@ export function computeLeoSiteToSiteResult(args: ComputeLeoSiteToSiteArgs): LeoS
   const passWindowA = buildLeoPassWindowEvidence({
     satellite: servingSatelliteA,
     point: endpointA,
+    now,
   });
   const passWindowB = buildLeoPassWindowEvidence({
     satellite: servingSatelliteB,
     point: endpointB,
+    now,
   });
   const pathStability = stabilityFromPassWindows(passWindowA, passWindowB, elevationADeg, elevationBDeg);
   const confidence = deriveConfidence({

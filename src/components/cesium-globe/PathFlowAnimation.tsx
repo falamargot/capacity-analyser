@@ -1,12 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Entity, LabelGraphics, PointGraphics, useCesium } from 'resium';
-import { CallbackProperty, Cartesian2, Cartesian3, Color, HorizontalOrigin, JulianDate, LabelStyle, VerticalOrigin } from 'cesium';
+import { CallbackPositionProperty, CallbackProperty, Cartesian2, Cartesian3, Color, HorizontalOrigin, JulianDate, LabelStyle, VerticalOrigin } from 'cesium';
 import type { CameraMetricsSnapshot } from './utils';
 import { requestGlobeRender } from '../../utils/globeRenderRequest';
-import {
-    PATH_FLOW_FRAME_INTERVAL_MS,
-    shouldRequestPathFlowFrame,
-} from './renderPerformancePolicy';
+import { shouldRequestPathFlowFrame } from './renderPerformancePolicy';
 
 export type PathSegmentType = 'USER_LINK' | 'FEEDER_LINK' | 'BACKBONE' | 'GEO_RF';
 
@@ -75,7 +72,7 @@ const PathFlowAnimation: React.FC<PathFlowAnimationProps> = ({
                 const scratch = new Cartesian3();
                 const durationSeconds = segment.durationSeconds ?? segmentSpeedByType[segment.type];
                 const phaseOffset = segment.phaseOffset ?? segmentIndex * 0.17;
-                const position = new CallbackProperty((time?: JulianDate) => {
+                const position = new CallbackPositionProperty((time?: JulianDate) => {
                     const positions = readPositions(segment, time);
                     if (positions.length < 2) return undefined;
 
@@ -137,7 +134,7 @@ const PathFlowAnimation: React.FC<PathFlowAnimationProps> = ({
                     <Entity
                         name={`${particle.name} glow`}
                         position={particle.position}
-                        show={particle.show}
+                        show={particle.show as unknown as boolean}
                     >
                         <PointGraphics
                             pixelSize={particle.pixelSize + 6}
@@ -150,7 +147,7 @@ const PathFlowAnimation: React.FC<PathFlowAnimationProps> = ({
                     <Entity
                         name={particle.name}
                         position={particle.position}
-                        show={particle.show}
+                        show={particle.show as unknown as boolean}
                     >
                         {particle.reducedMotion ? (
                             <LabelGraphics

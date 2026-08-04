@@ -7,7 +7,7 @@
  *
  * The globe does not draw raw SGP4 output: a worker propagates the
  * constellation about once a second with a lookahead, and these functions blend
- * linearly between the last two samples using wall-clock time.
+ * linearly between the last two samples using authoritative scenario time.
  */
 
 export interface SatellitePosition {
@@ -24,6 +24,30 @@ export interface SatelliteSampleWindow {
     currentSampleTimeMs: number;
 }
 
+interface TimestampedSatellitePosition extends SatellitePosition {
+    sampleTimeMs?: number;
+}
+
+/**
+ * Builds the exact→lookahead window shared by Cesium and integration tests.
+ * The first endpoint is always the authoritative analysis position; therefore
+ * resolving the window at its timestamp can never display a different orbit.
+ */
+export const createSatelliteRenderWindow = (
+    exact: TimestampedSatellitePosition,
+    render: TimestampedSatellitePosition | undefined,
+    fallbackTimeMs: number,
+): SatelliteSampleWindow => {
+    const exactTimeMs = exact.sampleTimeMs ?? fallbackTimeMs;
+    const renderSample = render ?? exact;
+    return {
+        previousPosition: { lat: exact.lat, lng: exact.lng, alt: exact.alt },
+        currentPosition: { lat: renderSample.lat, lng: renderSample.lng, alt: renderSample.alt },
+        previousSampleTimeMs: exactTimeMs,
+        currentSampleTimeMs: renderSample.sampleTimeMs ?? exactTimeMs,
+    };
+};
+
 export const SATELLITE_INTERPOLATION_FALLBACK_MS = 1000;
 
 // How far past the latest sample we allow linear extrapolation before the satellite
@@ -38,6 +62,7 @@ export const SATELLITE_INTERPOLATION_FALLBACK_MS = 1000;
 // visibilitychange handler (useSatelliteLoader) delivers fresh positions.
 // Linear drift over 4 s is ~30 km for a LEO satellite — acceptable for a
 // capacity analyser. Tighten this if orbital accuracy becomes a concern.
+/** Maximum REAL elapsed time represented by forward scenario extrapolation. */
 export const SATELLITE_MAX_EXTRAPOLATION_MS = 4000;
 
 /**
@@ -56,6 +81,7 @@ export const SATELLITE_MAX_EXTRAPOLATION_MS = 4000;
  * bounded, so a late or out-of-order sample can never run the marker backwards
  * indefinitely.
  */
+/** Maximum REAL elapsed time represented by backward scenario extrapolation. */
 export const SATELLITE_MAX_BACKWARD_EXTRAPOLATION_MS = 400;
 
 export const positionsMatch = (a: SatellitePosition, b: SatellitePosition): boolean => (
@@ -84,12 +110,25 @@ export const getInterpolatedSatellitePosition = (
     currentPosition: SatellitePosition,
     previousSampleTimeMs: number,
     currentSampleTimeMs: number,
-    nowMs: number
+    nowMs: number,
+    /** Absolute scenario-time rate relative to real time. */
+    playbackRate: number = 1,
 ): SatellitePosition => {
-    const sampleDuration = Math.max(currentSampleTimeMs - previousSampleTimeMs, 1);
-    const maxProgress = 1 + (SATELLITE_MAX_EXTRAPOLATION_MS / sampleDuration);
-    const minProgress = -(SATELLITE_MAX_BACKWARD_EXTRAPOLATION_MS / sampleDuration);
-    const progress = Math.min(Math.max((nowMs - previousSampleTimeMs) / sampleDuration, minProgress), maxProgress);
+    const signedSampleDuration = currentSampleTimeMs - previousSampleTimeMs;
+    if (Math.abs(signedSampleDuration) < 1) return currentPosition;
+
+    // Bounds are product requirements in REAL elapsed time. Convert them to
+    // scenario milliseconds so 10x playback retains the same 400 ms / 4 s
+    // visual safety windows instead of freezing ten times too early.
+    const rate = Number.isFinite(playbackRate) && playbackRate > 0 ? playbackRate : 1;
+    const sampleDurationMagnitude = Math.abs(signedSampleDuration);
+    const maxProgress = 1
+        + ((SATELLITE_MAX_EXTRAPOLATION_MS * rate) / sampleDurationMagnitude);
+    const minProgress = -(
+        (SATELLITE_MAX_BACKWARD_EXTRAPOLATION_MS * rate) / sampleDurationMagnitude
+    );
+    const rawProgress = (nowMs - previousSampleTimeMs) / signedSampleDuration;
+    const progress = Math.min(Math.max(rawProgress, minProgress), maxProgress);
     return {
         lat: lerp(previousPosition.lat, currentPosition.lat, progress),
         lng: interpolateLongitudeDegrees(previousPosition.lng, currentPosition.lng, progress),
@@ -108,7 +147,8 @@ export const getInterpolatedSatellitePosition = (
  */
 export const resolveDisplayedSatellitePosition = (
     window: SatelliteSampleWindow,
-    nowMs: number
+    nowMs: number,
+    playbackRate: number = 1,
 ): SatellitePosition => {
     if (positionsMatch(window.previousPosition, window.currentPosition)) {
         return window.currentPosition;
@@ -118,6 +158,7 @@ export const resolveDisplayedSatellitePosition = (
         window.currentPosition,
         window.previousSampleTimeMs,
         window.currentSampleTimeMs,
-        nowMs
+        nowMs,
+        playbackRate,
     );
 };

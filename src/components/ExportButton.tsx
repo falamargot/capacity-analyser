@@ -9,6 +9,7 @@ import type {
   LocationData,
 } from '../utils/pdfExport';
 import type { DataProvenanceModel } from '../utils/dataProvenance';
+import { useSimulationClock } from '../contexts/SimulationClockContext';
 
 interface ExportButtonProps {
   location: LocationData | null;
@@ -39,6 +40,7 @@ const ExportButton: React.FC<ExportButtonProps> = ({
   cesiumViewerRef,
   disabled = false
 }) => {
+  const simulationClock = useSimulationClock();
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,6 +51,8 @@ const ExportButton: React.FC<ExportButtonProps> = ({
     setError(null);
 
     try {
+      const clockSnapshot = simulationClock.getSnapshot();
+      const generatedAt = new Date().toISOString();
       const exportData: PDFExportData = {
         location,
         scope,
@@ -57,7 +61,10 @@ const ExportButton: React.FC<ExportButtonProps> = ({
         leoDetails,
         geoDetails,
         evidenceSummary,
-        dataProvenance,
+        dataProvenance: dataProvenance ? { ...dataProvenance, generatedAt } : dataProvenance,
+        simulationTime: new Date(simulationClock.getTimeMs()).toISOString(),
+        simulationMode: clockSnapshot.mode,
+        simulationSpeed: clockSnapshot.speed,
         globeElement: globeRef?.current || null,
         cesiumViewer: cesiumViewerRef?.current
       };

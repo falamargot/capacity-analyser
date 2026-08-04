@@ -96,7 +96,10 @@ export const applyEngineeringFocusIntent = (
   if (intent.type === 'clear') return EMPTY_ENGINEERING_FOCUS;
   if (intent.type === 'clear-preview') return current.kind === 'preview' ? EMPTY_ENGINEERING_FOCUS : current;
   if (intent.type === 'preview' && current.kind === 'locked') return current;
-  return createEngineeringFocus(intent.type === 'lock' ? 'locked' : 'preview', intent.technology, intent.stageId, intent.origin);
+  if (intent.type === 'preview' || intent.type === 'lock') {
+    return createEngineeringFocus(intent.type === 'lock' ? 'locked' : 'preview', intent.technology, intent.stageId, intent.origin);
+  }
+  return current;
 };
 
 const visualStateFromEvidence = (

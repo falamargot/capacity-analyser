@@ -1,8 +1,6 @@
 /**
  * Types for analyzis state and related data structures
  */
-import type { Aircraft } from '../modules/airTraffic/airTrafficService';
-import type { SatelliteData } from './satellites';
 import type { SNPData } from '../components/globe/GlobeConfig';
 
 /**

@@ -106,7 +106,7 @@ export const densifyRingForGlobe = (
 };
 
 export const getCoverageGeometryLod = (cameraHeightMeters: number | null | undefined): CoverageGeometryLod => {
-  if (!Number.isFinite(cameraHeightMeters)) return 'medium';
+  if (typeof cameraHeightMeters !== 'number' || !Number.isFinite(cameraHeightMeters)) return 'medium';
   if (cameraHeightMeters <= COVERAGE_LOD_NEAR_MAX_HEIGHT_M) return 'near';
   if (cameraHeightMeters <= COVERAGE_LOD_MEDIUM_MAX_HEIGHT_M) return 'medium';
   return 'far';

@@ -30,6 +30,7 @@ const createMockGEOSatellite = (
     type: 'EUTELSAT',
     orbitType: 'GEO',
     opsStatus: 'operational',
+    coverageFileId: null,
     satrec: {} as any,
     position: { lat: 0, lng: 0, alt: 0 },
     referenced_coverages: { type: 'FeatureCollection', features: [] },

@@ -14,6 +14,7 @@ import { useSimulation } from '../../contexts/SimulationContext';
 import { getPosition, propagateSatellite } from './utils';
 import { buildSimulationStateSnapshot } from '../../types/simulation';
 import { BASE_OVERLAY_LAYER_HEIGHT_M } from './layerHeights';
+import { useSimulationClock, useSimulationClockSnapshot } from '../../contexts/SimulationClockContext';
 
 interface AggregatedConnectivityLayerProps {
     satelliteScope: SatelliteScope;
@@ -32,6 +33,8 @@ const AggregatedConnectivityLayer: React.FC<AggregatedConnectivityLayerProps> = 
     satellites,
     show
 }) => {
+    const simulationClock = useSimulationClock();
+    const simulationClockSnapshot = useSimulationClockSnapshot();
     const { coveragePolicy, weatherCondition, beamHealthFactors, hsBeamsSet, failedSnps } = useSimulation();
     const simulationState = useMemo(() => buildSimulationStateSnapshot({
         coveragePolicy,
@@ -55,25 +58,48 @@ const AggregatedConnectivityLayer: React.FC<AggregatedConnectivityLayerProps> = 
     const GRID_INTERVAL_MS = 5_000;
     const [gridSnapshot, setGridSnapshot] = useState<{ satellites: SatelliteData[]; time: JulianDate } | null>(null);
     const lastGridTimeRef = useRef<number>(0);
+    const lastTimelineRevisionRef = useRef<number>(simulationClockSnapshot.revision);
 
     useEffect(() => {
         if (!show) return;
 
+        if (lastTimelineRevisionRef.current !== simulationClockSnapshot.revision) {
+            lastTimelineRevisionRef.current = simulationClockSnapshot.revision;
+            lastGridTimeRef.current = 0;
+        }
+
+        // The satellite worker publishes at most once per real second. Running
+        // this expensive global grid more often would allocate identical data.
+        const gridIntervalMs = Math.max(
+            1_000,
+            GRID_INTERVAL_MS / Math.max(1, Math.abs(simulationClockSnapshot.speed)),
+        );
+
         const update = () => {
             const now = Date.now();
-            if (now - lastGridTimeRef.current >= GRID_INTERVAL_MS) {
+            if (now - lastGridTimeRef.current >= gridIntervalMs) {
                 lastGridTimeRef.current = now;
                 // Capture satellites + synchronized JulianDate atomically
-                setGridSnapshot({ satellites, time: JulianDate.fromDate(new Date()) });
+                setGridSnapshot({
+                    satellites,
+                    time: JulianDate.fromDate(new Date(simulationClock.getTimeMs())),
+                });
             }
         };
 
         // Run immediately on mount / show / scope change
         update();
 
-        const interval = setInterval(update, GRID_INTERVAL_MS);
+        const interval = setInterval(update, gridIntervalMs);
         return () => clearInterval(interval);
-    }, [satellites, satelliteScope, show]); // satellites in deps so initial snapshot is current
+    }, [
+        satellites,
+        satelliteScope,
+        show,
+        simulationClock,
+        simulationClockSnapshot.revision,
+        simulationClockSnapshot.speed,
+    ]); // satellites in deps so initial snapshot is current
 
     const { gridRectangles, backhaulPositions } = useMemo(() => {
         if (!show || !gridSnapshot) {

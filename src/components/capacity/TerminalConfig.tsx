@@ -199,10 +199,7 @@ LeoTerminalRFSettingsPanel.displayName = 'LeoTerminalRFSettingsPanel';
 const LeoTerminalModelControl = memo<LeoTerminalModelControlProps>(({
   terminalType,
   selectedTerminalId,
-  onTerminalModelIdChange,
   compact = false,
-  stacked = false,
-  disabled = false,
 }) => {
   const terminalOptions = useMemo(
     () => getEnabledLeoTerminalCatalogEntries(terminalType),

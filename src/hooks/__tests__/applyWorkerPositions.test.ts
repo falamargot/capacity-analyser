@@ -33,7 +33,14 @@ const makeSatellite = (
   orbitType: type === 'ONEWEB' ? 'LEO' : 'GEO',
   opsStatus: 'operational',
   satrec: null,
-  position: { lat, lng, alt: 1200, isPositionValid: true, sampleTimeMs },
+  position: {
+    lat,
+    lng,
+    alt: 1200,
+    isPositionValid: true,
+    sampleTimeMs,
+    timelineRevision: 0,
+  },
   capacity: { maxThroughput: 7.2, bandwidth: { ku: 250, ka: 100 }, availability: 0.99 },
   referenced_coverages: { type: 'FeatureCollection', features: [] },
   coverages: [{ id: 'existing' }],
@@ -54,6 +61,7 @@ const advance = (id: string, tick: number): WorkerPositionUpdate => ({
 
 const input = (positions: Map<string, WorkerPositionUpdate>, over: Partial<Parameters<typeof applyWorkerPositions>[1]> = {}) => ({
   positions,
+  timelineRevision: 0,
   selectedSatelliteId: null,
   hoveredSatelliteId: null,
   selectionChanged: false,
@@ -139,7 +147,7 @@ describe('applyWorkerPositions under StrictMode double invocation', () => {
 describe('applyWorkerPositions reference stabilisation and coverage semantics', () => {
   it('returns the same array when no satellite moved past the epsilon gate', () => {
     // A GEO satellite drifting 0.008°/tick — below POSITION_EPSILON_DEG.
-    const current = [makeSatellite('geo-1', 10, 20, BASE_MS, 'GEO')];
+    const current = [makeSatellite('geo-1', 10, 20, BASE_MS, 'EUTELSAT')];
     const args = input(positionsFrom([
       { id: 'geo-1', lat: 10.008, lng: 20.008, alt: 1200, sampleTimeMs: BASE_MS + 1000 },
     ]));
@@ -149,7 +157,7 @@ describe('applyWorkerPositions reference stabilisation and coverage semantics', 
   });
 
   it('keeps object identity for satellites that did not change', () => {
-    const current = [makeSatellite('leo-1', 10, 20, BASE_MS), makeSatellite('geo-1', 40, 50, BASE_MS, 'GEO')];
+    const current = [makeSatellite('leo-1', 10, 20, BASE_MS), makeSatellite('geo-1', 40, 50, BASE_MS, 'EUTELSAT')];
     const next = applyWorkerPositions(current, input(positionsFrom([advance('leo-1', 1)])));
 
     expect(next).not.toBe(current);
@@ -188,10 +196,26 @@ describe('applyWorkerPositions reference stabilisation and coverage semantics', 
   });
 
   it('never recomputes coverage for non-OneWeb satellites', () => {
-    const current = [makeSatellite('geo-1', 10, 20, BASE_MS, 'GEO')];
+    const current = [makeSatellite('geo-1', 10, 20, BASE_MS, 'EUTELSAT')];
     const next = applyWorkerPositions(current, input(positionsFrom([advance('geo-1', 1)])));
 
     expect(next[0].coverages).toEqual([{ id: 'existing' }]);
     expect(next[0].position.lat).toBe(10.5);
+  });
+
+  it('publishes a stationary sample once when the clock timeline changes', () => {
+    const current = [makeSatellite('geo-1', 10, 20, BASE_MS, 'EUTELSAT')];
+    const stationary = positionsFrom([
+      { id: 'geo-1', lat: 10, lng: 20, alt: 1200, sampleTimeMs: BASE_MS - 50_000 },
+    ]);
+
+    const next = applyWorkerPositions(current, input(stationary, { timelineRevision: 7 }));
+
+    expect(next).not.toBe(current);
+    expect(next[0].position.sampleTimeMs).toBe(BASE_MS - 50_000);
+    expect(next[0].position.timelineRevision).toBe(7);
+
+    const stable = applyWorkerPositions(next, input(stationary, { timelineRevision: 7 }));
+    expect(stable).toBe(next);
   });
 });

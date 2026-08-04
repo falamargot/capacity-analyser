@@ -1,8 +1,7 @@
 import type { CandidateCoverage } from '../../types/analysis';
-import type { LinkMode } from '../../types/linkMode';
 import type { SatelliteData } from '../../types/satellites';
 import type { GeoPointStatus } from '../../utils/selectedPointStatus';
-import { buildGeoRouteViewModel, formatRouteMbps } from '../../utils/activeRouteViewModel';
+import { formatRouteMbps } from '../../utils/activeRouteViewModel';
 import { formatCoordinates } from '../../utils/formatters';
 import { WEATHER_ATTENUATION_DB } from '../../utils/realisticSimulation';
 import { WEATHER_PROFILES, toWeatherCondition, type WeatherType } from '../capacity';
@@ -10,7 +9,6 @@ import type {
   CommercialCustomerServiceState,
   CommercialPoint,
   CommercialRecommendedTechnology,
-  CommercialRouteSegment,
   CommercialRouteSegmentStatus,
   CommercialStatus,
   CommercialTechnologyOption,
@@ -219,4 +217,3 @@ export function buildOptionStrengths(
 
   return strengths.slice(0, 3);
 }
-

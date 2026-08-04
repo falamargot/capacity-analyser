@@ -32,6 +32,7 @@ import type {
 import { analyzeLeoConnectivity } from '../utils/leoConnectivityModel';
 import { computeGeoConnectivity, findCandidateCoverages } from '../utils/geoCoverageSelection';
 import { useSimulation } from '../contexts/SimulationContext';
+import { useSimulationClock, useSimulationClockSnapshot } from '../contexts/SimulationClockContext';
 import { buildSimulationStateSnapshot, type SimulationStateSnapshot } from '../types/simulation';
 import type { PDFConnectionDetails } from '../utils/pdfExport';
 import type { LeoConnectivityViewModel } from '../utils/leoServiceViewModel';
@@ -43,9 +44,6 @@ import {
   findBestDownlinkMatch,
   findBestStarGatewayDownlinkMatch,
   findBestStarGatewayUplinkMatch,
-  buildStarForwardResult,
-  buildStarReturnResult,
-  buildMeshResult,
   type DualSegmentResult,
 } from '../utils/geoDualSegmentBudget';
 import {
@@ -68,7 +66,6 @@ import {
 } from '../utils/geoCanonicalRoute';
 import {
   augmentCandidatesWithSynthesizedDirections,
-  resolveStarGatewayFeederCandidate,
 } from '../utils/geoTopologySelection';
 import type { TerminalRFClassId, TerminalRFCustomParams } from '../utils/geoTerminalRFModel';
 import { supportsStarTrafficTopology } from '../utils/geoGroundInfrastructure';
@@ -383,6 +380,8 @@ export function useEngineeringAnalysis({
   globeRef,
   cesiumViewerRef,
 }: EngineeringAnalysisInputs): EngineeringAnalysis {
+  const simulationClock = useSimulationClock();
+  const simulationClockSnapshot = useSimulationClockSnapshot();
   const {
     coveragePolicy,
     failedSnps,
@@ -400,7 +399,9 @@ export function useEngineeringAnalysis({
 
   const [realTimeData, setRealTimeData] = useState<RealTimeCapacityData>({
     totalCapacity: 0,
-    coveredSatellites: []
+    coveredSatellites: [],
+    leoCapacityIsTerminalPeak: false,
+    hasLeoCoverage: false,
   });
 
   const selectedLeoTerminalProfile = useMemo(
@@ -433,9 +434,9 @@ export function useEngineeringAnalysis({
 
   // Shared time snapshot for all RF-layer computations in this render cycle.
   const nowTime = useMemo(
-    () => JulianDate.fromDate(new Date()),
+    () => JulianDate.fromDate(new Date(simulationClock.getTimeMs())),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selectedPoint, simulationState, leoClockTick],
+    [selectedPoint, simulationState, leoClockTick, simulationClock, simulationClockSnapshot.revision],
   );
 
   const resolvedLEOConnectivity = useMemo(() => {
@@ -579,7 +580,7 @@ export function useEngineeringAnalysis({
   const geoOperationalSatelliteSignature = useMemo(() => (
     satellites
       .filter((s) => s.orbitType === 'GEO' && s.opsStatus === 'operational')
-      .map((s) => s.id)
+      .map((s) => `${s.id}:${s.position.timelineRevision ?? 'legacy'}`)
       .sort()
       .join('|')
   ), [satellites]);
@@ -1408,10 +1409,10 @@ export function useEngineeringAnalysis({
     availableSatellites,
     point,
     focusedSatellite,
-    JulianDate.fromDate(new Date()),
+    JulianDate.fromDate(new Date(simulationClock.getTimeMs())),
     failedSnpsRef.current,
     simulationStateRef.current,
-  ), []);
+  ), [simulationClock]);
 
   useEffect(() => {
     const updateRealTimeData = () => {
@@ -1433,7 +1434,14 @@ export function useEngineeringAnalysis({
     const interval = setInterval(updateRealTimeData, 1000);
     return () => clearInterval(interval);
   // satellites intentionally omitted: the callback uses satellitesRef.current (always-fresh ref).
-  }, [activePoint, calculateServiceAwareRealTimeCapacity, failedSnps, selectedSatellite, simulationState]);
+  }, [
+    activePoint,
+    calculateServiceAwareRealTimeCapacity,
+    failedSnps,
+    selectedSatellite,
+    simulationClockSnapshot.revision,
+    simulationState,
+  ]);
 
   const exportButtonPayload = useMemo(() => buildEngineeringExportPayload({
     activePoint,
@@ -1490,7 +1498,7 @@ export function useEngineeringAnalysis({
   ]);
 
   const mobileMetrics = useMemo<MobileAnalysisMetrics>(() => ({
-    leo: mobileLeoMetrics,
+    leo: mobileLeoMetrics ? { ...mobileLeoMetrics, rtt: mobileLeoMetrics.rtt ?? null } : null,
     geo: mobileGeoMetrics,
     totalGbps: realTimeData.totalCapacity,
     coveredCount: realTimeData.coveredSatellites.length,

@@ -41,7 +41,6 @@ import { buildCommercialRouteModel } from './utils/commercialRouteModel';
 import { type TerminalType, type WeatherType, toWeatherCondition } from './components/capacity';
 import { SatelliteData } from './types/satellites';
 import type { CandidateCoverage, GEOBeam, SelectedSNP } from './types/analysis';
-import type { Selection } from './types/analysis';
 import { useSatelliteLoader } from './hooks/useSatelliteLoader';
 import { Feature, Geometry, GeoJsonProperties } from 'geojson';
 import {
@@ -63,7 +62,6 @@ import {
   getCandidateCoverageKey,
   getCoverageBeamId,
   getCoverageGroupId,
-  getCoverageMissionName,
   getFeatureBeamCoverageKey,
   rankCandidateCoverages,
   resolveCoverageSelection,
@@ -103,8 +101,8 @@ import {
   shouldDisableFillRateLayerForScope,
 } from './utils/fillRateUx';
 import { getConnectivityStatus } from './utils/rfConnectivity';
-import { deriveLeoConnectivityViewModel, type LeoConnectivityViewModel } from './utils/leoServiceViewModel';
-import { getGroundSegmentRoutingForSatellite, resolveStarTrafficGatewayForCoverage, selectTrafficGeoGateway, distanceKm, type ResolvedGeoGateway, type PointLLA } from './utils/geoConnectivityModel';
+import { deriveLeoConnectivityViewModel } from './utils/leoServiceViewModel';
+import { getGroundSegmentRoutingForSatellite, resolveStarTrafficGatewayForCoverage, selectTrafficGeoGateway, type ResolvedGeoGateway } from './utils/geoConnectivityModel';
 import type { GeoPointStatus } from './utils/selectedPointStatus';
 import type { CountryOverlayMode } from './types/countryOverlays';
 import type { LinkMode } from './types/linkMode';
@@ -113,7 +111,7 @@ import {
   formatRouteMbps,
   formatRouteMs,
 } from './utils/activeRouteViewModel';
-import { activeCanonicalDirection, canonicalHeaderMetrics } from './utils/canonicalRouteMetrics';
+import { canonicalHeaderMetrics } from './utils/canonicalRouteMetrics';
 import {
   augmentCandidatesWithSynthesizedDirections,
   selectBestTopologyPath,
@@ -169,6 +167,7 @@ import {
 import EngineeringConfigurePanel from './components/capacity/EngineeringConfigurePanel';
 import { EngineeringFocusProvider, useEngineeringFocusController } from './contexts/EngineeringFocusContext';
 import { EngineeringAnalysisProvider } from './contexts/EngineeringAnalysisContext';
+import { useSimulationClock, useSimulationClockSnapshot } from './contexts/SimulationClockContext';
 import { useEngineeringAnalysis } from './hooks/useEngineeringAnalysis';
 import { useScenarioState } from './state/scenario/useScenarioState';
 
@@ -261,8 +260,8 @@ const geoGatewayToCartesian = (
   gateway: ResolvedGeoGateway | GeoGatewayData | null | undefined,
 ) => {
   if (!gateway) return null;
-  const lat = 'latitude' in gateway ? gateway.latitude : gateway.lat;
-  const lng = 'longitude' in gateway ? gateway.longitude : gateway.lng;
+  const lat = gateway.latitude;
+  const lng = gateway.longitude;
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
   return Cartesian3.fromDegrees(lng, lat, ENGINEERING_CONTEXT_GROUND_ALTITUDE_KM * 1000);
 };
@@ -460,6 +459,8 @@ const getInitialDisplayDefaults = (): InitialDisplayDefaults => {
 };
 
 const App: React.FC = () => {
+  const simulationClock = useSimulationClock();
+  const simulationClockSnapshot = useSimulationClockSnapshot();
   const engineeringFocusController = useEngineeringFocusController();
   const [connectivityScenario, dispatchConnectivityScenario] = useReducer(
     connectivityScenarioReducer,
@@ -627,6 +628,12 @@ const App: React.FC = () => {
   useEffect(() => {
     resetActiveLeoRouteEvidenceState(activeLeoRouteEvidenceStateRef.current);
   }, [leoTerminalModelId, leoTerminalModelIdB, leoTerminalType, leoTerminalTypeB]);
+
+  useEffect(() => {
+    // A seek or playback-speed command starts a new temporal observation.
+    // Do not carry handover smoothing or stale route evidence across it.
+    resetActiveLeoRouteEvidenceState(activeLeoRouteEvidenceStateRef.current);
+  }, [simulationClockSnapshot.revision]);
 
   const syncScenarioOrigin = useCallback((
     lat: number,
@@ -849,6 +856,11 @@ const App: React.FC = () => {
 
   const [airTrafficEnabled, setAirTrafficEnabled] = useState(false);
   const [maritimeTrafficEnabled, setMaritimeTrafficEnabled] = useState(false);
+  const liveTrafficAvailable = simulationClockSnapshot.mode === 'live';
+  const effectiveAirTrafficEnabled = liveTrafficAvailable && airTrafficEnabled;
+  const effectiveMaritimeTrafficEnabled = liveTrafficAvailable && maritimeTrafficEnabled;
+  const liveTrafficDisabledLabel = 'Unavailable during time simulation';
+  const liveTrafficDisabledReason = 'Live traffic is unavailable while scenario time is simulated. Return to current time to enable it.';
   // Stable ref — updated by CesiumGlobe on camera moveEnd (debounced 400 ms).
   // Read by useAirTraffic/useMaritimeTraffic for viewport-aware filtering.
   const cameraViewBoundsRef = useRef<CameraViewBounds | null>(null);
@@ -879,6 +891,7 @@ const App: React.FC = () => {
   const [isDesktopHeaderCollapsed, setIsDesktopHeaderCollapsed] = useState(false);
   const [commandPaletteQuery, setCommandPaletteQuery] = useState('');
   const [isHelpMenuOpen, setIsHelpMenuOpen] = useState(false);
+  const [isSimulationSettingsOpen, setIsSimulationSettingsOpen] = useState(false);
 
   useLayoutEffect(() => {
     if (!isCustomerDecisionOpen || isMobile) return;
@@ -998,10 +1011,8 @@ const App: React.FC = () => {
   // Camera viewport bounds — updated by CesiumGlobe on camera moveEnd (debounced 400 ms).
   // Stored in both a ref (for read-only access in callbacks) and state (to trigger
   // useAirTraffic/useMaritimeTraffic to re-run with the new bounds on the next poll).
-  const [airTrafficCamBounds, setAirTrafficCamBounds] = useState<CameraViewBounds | null>(null);
   const handleCameraViewChange = useCallback((bounds: CameraViewBounds) => {
     cameraViewBoundsRef.current = bounds;
-    setAirTrafficCamBounds(bounds);
   }, []);
 
   const selectedPosition = useMemo(() => (
@@ -1112,7 +1123,7 @@ const App: React.FC = () => {
   ]);
 
   useEffect(() => {
-    if (!autoWeatherEnabled || !activeAnalysisPoint) return;
+    if (simulationClockSnapshot.mode !== 'live' || !autoWeatherEnabled || !activeAnalysisPoint) return;
 
     let cancelled = false;
 
@@ -1150,7 +1161,14 @@ const App: React.FC = () => {
       cancelled = true;
       if (interval) clearInterval(interval);
     };
-  }, [activeAnalysisPoint, activeAnalysisSource, autoWeatherEnabled, setWeatherCondition, setWeatherType]);
+  }, [
+    activeAnalysisPoint,
+    activeAnalysisSource,
+    autoWeatherEnabled,
+    setWeatherCondition,
+    setWeatherType,
+    simulationClockSnapshot.mode,
+  ]);
 
   const handleWeatherTypeChange = useCallback((nextType: WeatherType) => {
     setWeatherType(nextType);
@@ -1161,7 +1179,7 @@ const App: React.FC = () => {
   // Auto-weather detection for Site B — same logic as Site A but independent state.
   // weatherTypeB is passed to CapacityDetails and used for Site B RF chain (GEO and LEO S2S).
   useEffect(() => {
-    if (!autoWeatherEnabledB || !siteB) return;
+    if (simulationClockSnapshot.mode !== 'live' || !autoWeatherEnabledB || !siteB) return;
 
     let cancelled = false;
 
@@ -1187,7 +1205,7 @@ const App: React.FC = () => {
     fetchWeather();
 
     return () => { cancelled = true; };
-  }, [siteB, autoWeatherEnabledB, setWeatherTypeB]);
+  }, [siteB, autoWeatherEnabledB, setWeatherTypeB, simulationClockSnapshot.mode]);
 
   const handleWeatherTypeBChange = useCallback((nextType: WeatherType) => {
     setWeatherTypeB(nextType);
@@ -1280,6 +1298,27 @@ const App: React.FC = () => {
     selectedSatelliteId,
     hoveredSatelliteId,
   });
+  // Changes exactly once after the worker publishes the first orbital sample
+  // for a new clock-control revision. Unlike `satellites`, it stays stable on
+  // normal propagation ticks, making it a cheap transactional recompute key.
+  const propagatedTimelineRevision = useMemo(() => (
+    satellites.reduce<number | null>((latest, satellite) => {
+      const revision = satellite.position.timelineRevision;
+      return revision != null && (latest == null || revision > latest) ? revision : latest;
+    }, null)
+  ), [satellites]);
+  // Gates every analysis surface so a seek can never publish results computed
+  // against the previous timeline.
+  //
+  // Revision 0 is the one case where an unstamped position is still valid: the
+  // clock only leaves revision 0 through a user command, so at revision 0 it is
+  // necessarily LIVE, and the wall-clock positions seeded by the satellite fetch
+  // are positions on that very timeline. Requiring a stamp there would blank the
+  // whole analysis for good in any environment where `new Worker()` fails —
+  // a failure path the loader handles explicitly.
+  const isCurrentTimelinePropagated =
+    propagatedTimelineRevision === simulationClockSnapshot.revision
+    || (simulationClockSnapshot.revision === 0 && propagatedTimelineRevision === null);
   const {
     isSplashDismissed,
     splashReady,
@@ -1469,7 +1508,7 @@ const App: React.FC = () => {
 
   // Air traffic: fetch globally (server returns worldwide commercial flights).
   // No bbox or focus point — Cesium handles frustum culling for off-screen aircraft.
-  const airTraffic = useAirTraffic({ enabled: airTrafficEnabled });
+  const airTraffic = useAirTraffic({ enabled: effectiveAirTrafficEnabled });
 
   // ISS live tracking
   const iss = useIssLiveTracking(issLiveEnabled);
@@ -1491,7 +1530,7 @@ const App: React.FC = () => {
 
   // Maritime traffic data fetching and filtering
   const maritimeTraffic = useMaritimeTraffic(
-    { enabled: maritimeTrafficEnabled },
+    { enabled: effectiveMaritimeTrafficEnabled },
     null, // camera bounds - will be implemented with globe integration
     selectedPosition // focus point for distance filtering
   );
@@ -1503,12 +1542,12 @@ const App: React.FC = () => {
   // by interpolation. The Cesium position callbacks read from the maps directly.
   const interpolatedAircraftMapRef = useAirTrafficInterpolation(
     airTraffic.aircraft,
-    airTrafficEnabled
+    effectiveAirTrafficEnabled
   );
 
   const interpolatedVesselMapRef = useMaritimeTrafficInterpolation(
     maritimeTraffic.vessels,
-    maritimeTrafficEnabled
+    effectiveMaritimeTrafficEnabled
   );
 
   // O(1) satellite lookups via satelliteById Map — replaces O(n) find() calls
@@ -1541,7 +1580,7 @@ const App: React.FC = () => {
   const geoOperationalSatelliteSignature = useMemo(() => (
     satellites
       .filter((satellite) => satellite.orbitType === 'GEO' && satellite.opsStatus === 'operational')
-      .map((satellite) => satellite.id)
+      .map((satellite) => `${satellite.id}:${satellite.position.timelineRevision ?? 'legacy'}`)
       .sort()
       .join('|')
   ), [satellites]);
@@ -1599,14 +1638,6 @@ const App: React.FC = () => {
     const candidatePoolForMode = (linkMode === 'STAR_FORWARD' || linkMode === 'STAR_RETURN')
       ? augmentCandidatesWithSynthesizedDirections(candidateCoverages, geoOperationalSatellites)
       : candidateCoverages;
-
-    const hasRealDirection = (pool: CandidateCoverage[], satelliteId: string, isUplink: boolean) => (
-      pool.some((candidate) => (
-        candidate.satelliteId === satelliteId &&
-        candidate.isUplink === isUplink &&
-        !candidate.isSynthesized
-      ))
-    );
 
     const hasRealDirectionPair = (pool: CandidateCoverage[], satelliteId: string) => {
       const satelliteCandidates = pool.filter((candidate) => (
@@ -2163,20 +2194,29 @@ const App: React.FC = () => {
   }, [leoFillRateCells, leoTopologyMode, pointBLeo, leoRegulatoryResultB]);
 
   const leoConnectivityStatus = useMemo(() => {
+    if (!isCurrentTimelinePropagated) return null;
     const sat = autoSelectedLEOId
-      ? (satellitesForResolutionRef.current.find((s) => s.id === autoSelectedLEOId) ?? null)
+      ? (satellites.find((s) => s.id === autoSelectedLEOId) ?? null)
       : null;
     if (!activeAnalysisPoint || !sat) return null;
     return getConnectivityStatus(
       activeAnalysisPoint,
       sat,
-      JulianDate.fromDate(new Date()),
+      JulianDate.fromDate(new Date(simulationClock.getTimeMs())),
       simulationState
     );
-  // resolvedAutoLEO intentionally omitted: read from always-fresh satellitesForResolutionRef
-  // instead to avoid double-firing with leoEvidenceTick (which already triggers every second).
+  // `satellites` is sampled when propagatedTimelineRevision changes; omitting its
+  // array identity avoids a second execution on every normal propagation tick.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeAnalysisPoint, autoSelectedLEOId, leoEvidenceTick, simulationState]);
+  }, [
+    activeAnalysisPoint,
+    autoSelectedLEOId,
+    leoEvidenceTick,
+    propagatedTimelineRevision,
+    simulationClock,
+    simulationClockSnapshot.revision,
+    simulationState,
+  ]);
 
   // L-M4: RF availability is read from getConnectivityStatus (which already
   // computes it) instead of a second hasRFConnectivity memo over the same
@@ -2222,6 +2262,7 @@ const App: React.FC = () => {
   ]);
 
   const activeLeoRouteEvidence = useMemo(() => {
+    if (!isCurrentTimelinePropagated) return null;
     // Read satellite positions from the always-fresh ref rather than from resolvedAutoLEO /
     // resolvedAutoLEOB React state. Those state values depend on satelliteById which rebuilds
     // on every 1-second propagation tick, causing buildActiveLeoRouteEvidence (which runs
@@ -2230,10 +2271,10 @@ const App: React.FC = () => {
     // on the main thread starves Cesium's rAF loop and freezes satellite animation.
     // Using the ref gives identical, always-current data without adding a reactive dep.
     const satA = autoSelectedLEOId
-      ? (satellitesForResolutionRef.current.find((s) => s.id === autoSelectedLEOId) ?? null)
+      ? (satellites.find((s) => s.id === autoSelectedLEOId) ?? null)
       : null;
     const satB = autoSelectedLEOIdB
-      ? (satellitesForResolutionRef.current.find((s) => s.id === autoSelectedLEOIdB) ?? null)
+      ? (satellites.find((s) => s.id === autoSelectedLEOIdB) ?? null)
       : null;
     return buildActiveLeoRouteEvidence({
       topology: leoTopologyMode,
@@ -2259,11 +2300,10 @@ const App: React.FC = () => {
       simulationStateA: simulationState,
       simulationStateB,
       failedSnps,
-      now: JulianDate.fromDate(new Date()),
+      now: JulianDate.fromDate(new Date(simulationClock.getTimeMs())),
     }, activeLeoRouteEvidenceStateRef.current);
-  // resolvedAutoLEO / resolvedAutoLEOB intentionally omitted — satellite data is read
-  // from satellitesForResolutionRef at execution time so leoEvidenceTick alone drives
-  // the 1-second cadence without a second trigger from the satellite-state tick.
+  // Satellite data is sampled when propagatedTimelineRevision changes while
+  // leoEvidenceTick remains the sole driver during normal playback.
   // autoSelectedLEOId / autoSelectedLEOIdB retained so a satellite-selection change
   // triggers an immediate re-evaluation rather than waiting for the next tick.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2278,6 +2318,8 @@ const App: React.FC = () => {
     leoEvidenceTick,
     leoRegulatoryResult,
     leoRegulatoryResultB,
+    simulationClock,
+    simulationClockSnapshot.revision,
     leoTerminalModelId,
     leoTerminalModelIdB,
     leoTerminalType,
@@ -2286,6 +2328,7 @@ const App: React.FC = () => {
     leoServingAssignmentA,
     leoServingAssignmentB,
     pointBLeo,
+    propagatedTimelineRevision,
     selectedSNP,
     selectedSNPB,
     simulationState,
@@ -2294,7 +2337,7 @@ const App: React.FC = () => {
     weatherTypeB,
   ]);
 
-  const activeLeoSiteToSiteResult = activeLeoRouteEvidence.routeResult;
+  const activeLeoSiteToSiteResult = activeLeoRouteEvidence?.routeResult ?? null;
 
   // ── M2: single engineering analysis engine shared by every surface ────────
   const engineeringAnalysis = useEngineeringAnalysis({
@@ -2451,7 +2494,7 @@ const App: React.FC = () => {
     // displaying a single orbit or the presentation mode is changing. Keep the
     // expensive GEO route off by default in ENG, but never replace established
     // evidence with a transient null while the opt-in workflow is active.
-    if (!shouldBuildGeoDecisionAnalysis({
+    if (!isCurrentTimelinePropagated || !shouldBuildGeoDecisionAnalysis({
       uiMode,
       inspectorOpen: isCustomerDecisionOpen,
       objectiveSelected: !!connectivityScenario.commercialObjective,
@@ -2460,9 +2503,7 @@ const App: React.FC = () => {
     // Keep GEO commercial analysis off the per-second satellite state tick.
     // The live ref is fresh when the scenario changes, without forcing a
     // constellation-wide route recomputation for every visual propagation sample.
-    const routeSatellites = satellitesForResolutionRef.current.length > 0
-      ? satellitesForResolutionRef.current
-      : satellites;
+    const routeSatellites = satellites;
 
     return buildGeoRouteAnalysisViewModel({
       activePoint: activeAnalysisPoint,
@@ -2515,6 +2556,12 @@ const App: React.FC = () => {
     nearestLocation,
     nearestLocationB,
     pointB,
+    propagatedTimelineRevision,
+    // Paired with propagatedTimelineRevision so the gate above closes on the
+    // clock command and reopens on the first propagated batch. Without it, a
+    // seek left GEO showing the previous timeline's route while every LEO
+    // surface had already blanked.
+    simulationClockSnapshot.revision,
     satellites.length,
     selectedCoverage,
     selectedDownlinkCoverage,
@@ -2864,14 +2911,14 @@ const App: React.FC = () => {
   // selection — doubling an expensive SGP4 beam-polygon resolution pass.
   // The interval effect handles both the initial update and subsequent 5s refreshes.
 
-  // §1.1 — Re-resolve on explicit position/scope/policy changes.
-  // satellitesForResolutionRef is used instead of satellites to remove it from the dep array.
+  // §1.1 — Re-resolve on explicit position/scope/policy changes and exactly
+  // once when the first propagated batch for a new timeline is published.
   useEffect(() => {
-    if (!analyzisPosition) return;
-    const now = JulianDate.fromDate(new Date());
+    if (!analyzisPosition || !isCurrentTimelinePropagated) return;
+    const now = JulianDate.fromDate(new Date(simulationClock.getTimeMs()));
     const { autoSelectedLEOSat, servingAssignment } = resolveAutoSelectedSatellites(
       { lat: analyzisPosition.lat, lng: analyzisPosition.lng },
-      satellitesForResolutionRef.current,   // stable ref — not a dep
+      satellites,
       leoAnalysisScope,
       simulationState,
       now,
@@ -2881,15 +2928,20 @@ const App: React.FC = () => {
     );
     setAutoSelectedLEOId(autoSelectedLEOSat?.id || null);
     setLeoServingAssignmentA(servingAssignment);
+  // `satellites` is deliberately sampled without depending on its per-second
+  // array identity; propagatedTimelineRevision is the transactional trigger.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     analyzisPosition,
     autoSelectedLEOId,
     failedSnps,
     geoRFClassIdA,
     leoAnalysisScope,
+    propagatedTimelineRevision,
+    simulationClock,
+    simulationClockSnapshot.revision,
     simulationState,
-    satellitesForResolutionRef,
-  ]); // §1.1 — satellites removed
+  ]);
 
   // §1.3 — Periodic re-resolution for fixed positions (earth / vessel).
   //
@@ -2911,14 +2963,19 @@ const App: React.FC = () => {
     // Only run for static earth/vessel points — aircraft handles its own periodic update
     if (!analyzisPosition || analyzisPosition.source === 'aircraft') return;
 
-    const RESOLUTION_INTERVAL_MS = 15_000; // 15 s — ~105 km of LEO orbital travel
+    // Preserve the 15-second scenario cadence when playback is accelerated,
+    // without running faster than the one-second satellite propagation cadence.
+    const resolutionIntervalMs = Math.max(
+      1_000,
+      15_000 / Math.max(1, Math.abs(simulationClockSnapshot.speed)),
+    );
 
     const reResolve = () => {
       // Re-read position from ref in case it was cleared between ticks
       const pos = analyzisPosition;
       if (!pos || pos.source === 'aircraft') return;
 
-      const now = JulianDate.fromDate(new Date());
+      const now = JulianDate.fromDate(new Date(simulationClock.getTimeMs()));
       const { autoSelectedLEOSat, servingAssignment } = resolveAutoSelectedSatellites(
         { lat: pos.lat, lng: pos.lng },
         satellitesForResolutionRef.current,  // always-fresh satellite positions
@@ -2934,7 +2991,7 @@ const App: React.FC = () => {
       setLeoServingAssignmentA(servingAssignment);
     };
 
-    const interval = setInterval(reResolve, RESOLUTION_INTERVAL_MS);
+    const interval = setInterval(reResolve, resolutionIntervalMs);
     return () => clearInterval(interval);
   }, [
     analyzisPosition,
@@ -2942,6 +2999,9 @@ const App: React.FC = () => {
     failedSnps,
     geoRFClassIdA,
     leoAnalysisScope,
+    simulationClock,
+    simulationClockSnapshot.revision,
+    simulationClockSnapshot.speed,
     simulationState,
     satellitesForResolutionRef,
   ]); // re-arm when position/policy changes
@@ -2953,14 +3013,18 @@ const App: React.FC = () => {
       setLeoServingAssignmentB(null);
       return;
     }
+    if (!isCurrentTimelinePropagated) return;
 
-    const RESOLUTION_INTERVAL_MS = 15_000; // 15 s — same cadence as Site A LEO re-resolution
+    const resolutionIntervalMs = Math.max(
+      1_000,
+      15_000 / Math.max(1, Math.abs(simulationClockSnapshot.speed)),
+    );
 
-    const reResolve = () => {
-      const now = JulianDate.fromDate(new Date());
+    const reResolve = (availableSatellites = satellitesForResolutionRef.current) => {
+      const now = JulianDate.fromDate(new Date(simulationClock.getTimeMs()));
       const { autoSelectedLEOSat, servingAssignment } = resolveAutoSelectedSatellites(
         { lat: pointBLeo.lat, lng: pointBLeo.lng },
-        satellitesForResolutionRef.current,
+        availableSatellites,
         leoAnalysisScope,
         simulationState,
         now,
@@ -2972,16 +3036,23 @@ const App: React.FC = () => {
       setLeoServingAssignmentB(servingAssignment);
     };
 
-    reResolve();
-    const interval = setInterval(reResolve, RESOLUTION_INTERVAL_MS);
+    reResolve(satellites);
+    const interval = setInterval(reResolve, resolutionIntervalMs);
     return () => clearInterval(interval);
+  // `satellites` is sampled only for the first batch of a new timeline;
+  // periodic refreshes continue to use the stable live ref.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     autoSelectedLEOIdB,
     failedSnps,
     leoAnalysisScope,
     leoTopologyMode,
     pointBLeo,
+    propagatedTimelineRevision,
     satellitesForResolutionRef,
+    simulationClock,
+    simulationClockSnapshot.revision,
+    simulationClockSnapshot.speed,
     simulationState,
   ]);
 
@@ -3083,6 +3154,32 @@ const App: React.FC = () => {
     setLeoTopologyMode(m => m === 'SITE_TO_SITE' ? 'SINGLE_SITE' : m);
     handleLinkModeChange(LINK_MODE_REQUIRES_POINT_B.has(linkMode) ? 'STAR_FORWARD' : linkMode);
   }, [handleLinkModeChange, linkMode, setLeoTopologyMode]);
+
+  // Entering simulated time releases any live-traffic endpoint.
+  //
+  // The aircraft and vessel feeds are stopped while the clock is simulated, and
+  // a moving platform has no position at an arbitrary scenario instant. Left
+  // selected, it would keep handing the analysis its last real-time coordinates
+  // as though they were a scenario position — for a platform that is no longer
+  // drawn on the globe, no longer fetched, and no longer listed in its own
+  // selector. The regular teardown handlers are reused so the topology and link
+  // mode unwind exactly as they do when the user clears the site by hand.
+  useEffect(() => {
+    if (liveTrafficAvailable) return;
+    if (selectedAircraft || selectedVessel) {
+      setSelectedVessel(null);
+      handleClearSiteA();
+    } else if (selectedAircraftB) {
+      handleClearSiteB();
+    }
+  }, [
+    handleClearSiteA,
+    handleClearSiteB,
+    liveTrafficAvailable,
+    selectedAircraft,
+    selectedAircraftB,
+    selectedVessel,
+  ]);
 
   const handleAircraftSelectForSiteB = useCallback((aircraft: Aircraft | null, fromComboBox: boolean = false) => {
     if (!aircraft) {
@@ -3324,15 +3421,6 @@ const App: React.FC = () => {
     setIsSiteBArmed((current) => !current);
   }, [isTwoPointMode]);
 
-  const handleOpenCommandPalette = useCallback(() => {
-    setIsSatelliteModalOpen(false);
-    setIsTargetSourcesMenuOpen(false);
-    setIsHelpMenuOpen(false);
-    setCommandPaletteQuery('');
-    setIsCommandPaletteOpen(true);
-    requestAnimationFrame(() => commandPaletteSearchRef.current?.focus());
-  }, []);
-
   const handleCloseCommandPalette = useCallback(() => {
     setIsCommandPaletteOpen(false);
     setCommandPaletteQuery('');
@@ -3466,19 +3554,6 @@ const App: React.FC = () => {
     weatherTypeB,
   ]);
 
-  const handleDesktopTargetSearchFocus = useCallback(() => {
-    setIsSatelliteModalOpen(false);
-    setIsTargetSourcesMenuOpen(false);
-    setIsCommandPaletteOpen(true);
-  }, []);
-
-  const handleDesktopTargetSearchChange = useCallback((value: string) => {
-    setCommandPaletteQuery(value);
-    setIsSatelliteModalOpen(false);
-    setIsTargetSourcesMenuOpen(false);
-    setIsCommandPaletteOpen(true);
-  }, []);
-
   const handleMobileTargetSearchFocus = useCallback(() => {
     setIsTargetSourcesMenuOpen(false);
     setIsCommandPaletteOpen(true);
@@ -3494,13 +3569,6 @@ const App: React.FC = () => {
     setIsCommandPaletteOpen(false);
     setCommandPaletteQuery('');
     setIsTargetSourcesMenuOpen((current) => !current);
-  }, []);
-
-  const handleOpenTargetSourcesMenu = useCallback(() => {
-    setIsCommandPaletteOpen(false);
-    setCommandPaletteQuery('');
-    setIsHelpMenuOpen(false);
-    setIsTargetSourcesMenuOpen(true);
   }, []);
 
   const handleToggleHelpMenu = useCallback(() => {
@@ -3583,7 +3651,7 @@ const App: React.FC = () => {
   // The map is a stable ref, so it is excluded from deps — the interval is never
   // torn down by interpolation updates.
   useEffect(() => {
-    if (!selectedAircraft || !airTrafficEnabled) return;
+    if (!selectedAircraft || !effectiveAirTrafficEnabled) return;
 
     const updateSelectedAircraftPosition = () => {
       const pos = interpolatedAircraftMapRef.current.get(selectedAircraft!.icao24);
@@ -3607,10 +3675,10 @@ const App: React.FC = () => {
     const interval = setInterval(updateSelectedAircraftPosition, 5000);
     return () => clearInterval(interval);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedAircraft, airTrafficEnabled, selectTarget, syncScenarioOrigin]); // interpolatedAircraftMapRef/airTraffic.aircraft read via closure, not deps
+  }, [selectedAircraft, effectiveAirTrafficEnabled, selectTarget, syncScenarioOrigin]); // interpolatedAircraftMapRef/airTraffic.aircraft read via closure, not deps
 
   useEffect(() => {
-    if (!selectedAircraftB || !airTrafficEnabled) return;
+    if (!selectedAircraftB || !effectiveAirTrafficEnabled) return;
 
     const updateDestinationAircraftPosition = () => {
       const pos = interpolatedAircraftMapRef.current.get(selectedAircraftB.icao24);
@@ -3629,10 +3697,10 @@ const App: React.FC = () => {
     const interval = setInterval(updateDestinationAircraftPosition, 5000);
     return () => clearInterval(interval);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedAircraftB, airTrafficEnabled, syncScenarioDestination]);
+  }, [selectedAircraftB, effectiveAirTrafficEnabled, syncScenarioDestination]);
 
   useEffect(() => {
-    if (!selectedVessel || !maritimeTrafficEnabled) return;
+    if (!selectedVessel || !effectiveMaritimeTrafficEnabled) return;
 
     const updateSelectedVesselPosition = () => {
       const pos = interpolatedVesselMapRef.current.get(selectedVessel.mmsi);
@@ -3653,7 +3721,7 @@ const App: React.FC = () => {
     const interval = setInterval(updateSelectedVesselPosition, 5000);
     return () => clearInterval(interval);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedVessel, maritimeTrafficEnabled, selectTarget]);
+  }, [selectedVessel, effectiveMaritimeTrafficEnabled, selectTarget]);
 
   const handleSearchInput = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -3721,8 +3789,12 @@ const App: React.FC = () => {
   }, [countryOverlayMode, satelliteScope, showFillRateLayer]);
   const handleToggleFootprintProjection = useCallback(() => setShowFootprintProjection(v => !v), []);
   const handleToggleFlowAnimation = useCallback(() => setShowFlowAnimation(v => !v), []);
-  const handleToggleAirTraffic = useCallback(() => setAirTrafficEnabled(v => !v), []);
-  const handleToggleMaritimeTraffic = useCallback(() => setMaritimeTrafficEnabled(v => !v), []);
+  const handleToggleAirTraffic = useCallback(() => {
+    if (liveTrafficAvailable) setAirTrafficEnabled(v => !v);
+  }, [liveTrafficAvailable]);
+  const handleToggleMaritimeTraffic = useCallback(() => {
+    if (liveTrafficAvailable) setMaritimeTrafficEnabled(v => !v);
+  }, [liveTrafficAvailable]);
   const handleToggleIssLive = useCallback(() => {
     pendingIssAutoCenterRef.current = false;
     setIssLiveEnabled((current) => {
@@ -3837,23 +3909,23 @@ const App: React.FC = () => {
   ]);
 
   const airTrafficState = useMemo<AirTrafficStateProps>(() => ({
-    airTrafficEnabled,
+    airTrafficEnabled: effectiveAirTrafficEnabled,
     aircraft: airTraffic.aircraft,
     interpolatedAircraftMapRef,
   }), [
     airTraffic.aircraft,
-    airTrafficEnabled,
+    effectiveAirTrafficEnabled,
     interpolatedAircraftMapRef,
   ]);
 
   const maritimeTrafficState = useMemo<MaritimeTrafficStateProps>(() => ({
-    maritimeTrafficEnabled,
+    maritimeTrafficEnabled: effectiveMaritimeTrafficEnabled,
     vessels: maritimeTraffic.vessels,
     interpolatedVesselMapRef,
   }), [
     interpolatedVesselMapRef,
     maritimeTraffic.vessels,
-    maritimeTrafficEnabled,
+    effectiveMaritimeTrafficEnabled,
   ]);
 
   const trafficProps = useMemo<TrafficProps>(() => ({
@@ -4003,6 +4075,10 @@ const App: React.FC = () => {
     visibleManualGeoCoverageKeys,
   ]);
 
+  const handleToggleSimulationSettings = useCallback(() => {
+    setIsSimulationSettingsOpen((open) => !open);
+  }, []);
+
   // §4.1 — Shared props for both mobile and desktop MapViewSwitcher instances.
   // Avoids duplicating the full prop list in two places.
   //
@@ -4031,6 +4107,7 @@ const App: React.FC = () => {
     snpConnectedSatellites,
     leoSiteToSiteResult: activeLeoSiteToSiteResult,
     leoSiteToSiteFullResult: activeLeoSiteToSiteResult,
+    onToggleSimulationSettings: handleToggleSimulationSettings,
   }), [
     filteredSatellites, satelliteTypeByName, coverageFeaturesMemo, selectionAnalysisProps, callbackProps,
     resolvedAutoLEO, resolvedAutoLEOB, leoServiceViewModel,
@@ -4038,6 +4115,7 @@ const App: React.FC = () => {
     snpConnectedSatellites,
     topologyProps,
     activeLeoSiteToSiteResult,
+    handleToggleSimulationSettings,
   ]);
   const desktopCompactProgress = isMobile ? 0 : getCompactDesktopProgress(viewportSnapshot);
   const useCompactDesktopSidebar = desktopCompactProgress >= 0.35;
@@ -4071,7 +4149,7 @@ const App: React.FC = () => {
     };
   }, [selectedGateway, geoOperationalSatellites]);
 
-  const desktopSidebarHero = useMemo(() => {
+  const desktopSidebarHero = useMemo<Omit<React.ComponentProps<typeof SidebarHeroCard>, 'compact' | 'onReset'>>(() => {
     if (selectedMoon) {
       return {
         eyebrow: 'Celestial Body',
@@ -4280,7 +4358,7 @@ const App: React.FC = () => {
         eyebrow: activeAnalysisSource === 'aircraft' ? 'Airborne Analysis' : 'Site Analysis',
         title: formatCoordinates({ lat: activeAnalysisPoint.lat, lng: activeAnalysisPoint.lng }),
         subtitle: activeAnalysisSource === 'aircraft'
-          ? `${selectedAircraft?.callsign || 'Aircraft'} corridor`
+          ? 'Aircraft corridor'
           : (nearestLocationLabel || (activeAnalysisPoint.altitude ? `Altitude ${activeAnalysisPoint.altitude.toFixed(1)} km` : 'Ground position')),
         footer: null,
         tone: 'position' as const,
@@ -4331,7 +4409,6 @@ const App: React.FC = () => {
     && !isMobileAnalysisPanelOpen
     && !isEngineeringConfigureOpen
     && !isSatelliteModalOpen;
-  const isLeoS2S = leoTopologyMode === 'SITE_TO_SITE';
   const showMobilePointBMapControl = isMobile
     && !isFullscreen
     && hasMobileSelection
@@ -4685,83 +4762,6 @@ const App: React.FC = () => {
     satelliteScope,
     showEngineeringRouteStatus,
     uiMode,
-  ]);
-
-  const engineeringRouteContext = useMemo(() => {
-    const siteAName = activeAnalysisPoint
-      ? (commercialScenarioViewModel.siteA?.name ?? formatCoordinates(activeAnalysisPoint))
-      : 'No selected site';
-    const siteBName = siteB
-      ? (commercialScenarioViewModel.siteB?.name ?? formatCoordinates(siteB))
-      : null;
-    const activeTech = activeConnectivityTab;
-    const activeTruth = engineeringTruths[activeTech];
-    const topology = activeTech === 'LEO'
-      ? (leoTopologyMode === 'SITE_TO_SITE' ? 'LEO site-to-site' : 'LEO access')
-      : linkMode === 'STAR_FORWARD'
-        ? 'GEO star forward'
-        : linkMode === 'STAR_RETURN'
-          ? 'GEO star return'
-          : linkMode === 'MESH'
-            ? 'GEO mesh'
-            : 'GEO point-to-point';
-    const satelliteName = activeTech === 'LEO'
-      ? (leoTopologyMode === 'SITE_TO_SITE'
-          ? activeLeoSiteToSiteResult?.servingSatelliteA?.name ?? resolvedAutoLEO?.name ?? 'LEO satellite'
-          : resolvedAutoLEO?.name ?? 'LEO satellite')
-      : activeGeoSatellite?.name ?? 'GEO satellite';
-    const groundNode = activeTech === 'LEO'
-      ? (leoTopologyMode === 'SITE_TO_SITE'
-          ? activeLeoSiteToSiteResult?.selectedSnpA?.name ?? selectedSNP?.name ?? 'SNP'
-          : selectedSNP?.name ?? 'SNP')
-      : activeCommercialTrafficGeoGateway?.gatewayName ?? 'No commercial gateway resolved';
-    const routeNodes = activeTech === 'LEO'
-      ? (leoTopologyMode === 'SITE_TO_SITE'
-          ? [
-              siteAName,
-              activeLeoSiteToSiteResult?.servingSatelliteA?.name ?? 'Satellite A',
-              activeLeoSiteToSiteResult?.selectedSnpA?.name ?? 'SNP A',
-              activeLeoSiteToSiteResult?.selectedSnpB?.name ?? 'SNP B',
-              activeLeoSiteToSiteResult?.servingSatelliteB?.name ?? 'Satellite B',
-              siteBName ?? 'Site B',
-            ]
-          : [siteAName, satelliteName, groundNode])
-      : (siteBName && (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT')
-          ? [siteAName, satelliteName, siteBName]
-          : [siteAName, satelliteName, groundNode]);
-    const routeMetrics = canonicalRouteMetrics[activeTech];
-    const activeDirectionMetrics = activeCanonicalDirection(routeMetrics);
-
-    return {
-      activeTech,
-      topology,
-      siteAName,
-      siteBName,
-      satelliteName,
-      groundNode,
-      routeNodes,
-      confidence: activeTruth?.confidence?.display ?? activeTruth?.confidence?.label ?? 'Pending',
-      availability: activeTruth?.headline ?? 'Pending',
-      bottleneck: activeTruth?.decisiveFactor ?? (activeTruth?.state === 'available' ? 'None' : 'Pending route model'),
-      throughput: formatRouteMbps(routeMetrics.forward.throughputMbps),
-      upload: formatRouteMbps(routeMetrics.reverse.throughputMbps),
-      latency: formatRouteMs(activeDirectionMetrics.oneWayLatencyMs),
-    };
-  }, [
-    activeCommercialTrafficGeoGateway?.gatewayName,
-    activeConnectivityTab,
-    activeAnalysisPoint,
-    activeGeoSatellite?.name,
-    activeLeoSiteToSiteResult,
-    canonicalRouteMetrics,
-    commercialScenarioViewModel.siteA?.name,
-    commercialScenarioViewModel.siteB?.name,
-    engineeringTruths,
-    leoTopologyMode,
-    linkMode,
-    resolvedAutoLEO?.name,
-    selectedSNP?.name,
-    siteB,
   ]);
 
   const commercialAutoSelectedSiteSignatureRef = useRef<string | null>(null);
@@ -5258,6 +5258,7 @@ const App: React.FC = () => {
       onWeatherTypeChange: handleWeatherTypeChange,
       autoWeatherEnabled,
       onAutoWeatherChange: setAutoWeatherEnabled,
+      scenarioAssumption: simulationClockSnapshot.mode !== 'live',
     },
   };
 
@@ -5283,6 +5284,7 @@ const App: React.FC = () => {
       onWeatherTypeChange: handleWeatherTypeBChange,
       autoWeatherEnabled: autoWeatherEnabledB,
       onAutoWeatherChange: setAutoWeatherEnabledB,
+      scenarioAssumption: simulationClockSnapshot.mode !== 'live',
     },
   };
 
@@ -5373,7 +5375,11 @@ const App: React.FC = () => {
                       currentScope={satelliteScope}
                       onScopeChange={handleSatelliteScopeChange}
                     />
-                    <SimulationSettings satelliteScope={satelliteScope} />
+                    <SimulationSettings
+                      satelliteScope={satelliteScope}
+                      open={isSimulationSettingsOpen}
+                      onOpenChange={setIsSimulationSettingsOpen}
+                    />
                   </div>
                   <div className="flex-shrink-0">
                     <ThemeSelector />
@@ -5457,6 +5463,7 @@ const App: React.FC = () => {
                           onWeatherTypeChange: handleWeatherTypeChange,
                           autoWeatherEnabled,
                           onAutoWeatherChange: setAutoWeatherEnabled,
+                          scenarioAssumption: simulationClockSnapshot.mode !== 'live',
                         },
                       }}
                       siteB={{
@@ -5480,6 +5487,7 @@ const App: React.FC = () => {
                           onWeatherTypeChange: handleWeatherTypeBChange,
                           autoWeatherEnabled: autoWeatherEnabledB,
                           onAutoWeatherChange: setAutoWeatherEnabledB,
+                          scenarioAssumption: simulationClockSnapshot.mode !== 'live',
                         },
                       }}
                       onSwap={handleSwapRouteEndpoints}
@@ -5683,8 +5691,11 @@ const App: React.FC = () => {
                                     aircraft={airTraffic.aircraft}
                                     selectedAircraft={selectedAircraft}
                                     onSelect={(aircraft) => handleAircraftSelect(aircraft, true)}
-                                    liveModeEnabled={airTrafficEnabled}
-                                    onToggleLiveMode={() => setAirTrafficEnabled(!airTrafficEnabled)}
+                                    liveModeEnabled={effectiveAirTrafficEnabled}
+                                    onToggleLiveMode={handleToggleAirTraffic}
+                                    disabled={!liveTrafficAvailable}
+                                    disabledLabel={liveTrafficDisabledLabel}
+                                    disabledReason={liveTrafficDisabledReason}
                                     placeholder="Select Site A aircraft..."
                                     excludedAircraftId={selectedAircraftB?.icao24}
                                   />
@@ -5695,9 +5706,11 @@ const App: React.FC = () => {
                                     aircraft={airTraffic.aircraft}
                                     selectedAircraft={selectedAircraftB}
                                     onSelect={(aircraft) => handleAircraftSelectForSiteB(aircraft, true)}
-                                    liveModeEnabled={airTrafficEnabled}
-                                    onToggleLiveMode={() => setAirTrafficEnabled(!airTrafficEnabled)}
-                                    disabled={!activeAnalysisPoint}
+                                    liveModeEnabled={effectiveAirTrafficEnabled}
+                                    onToggleLiveMode={handleToggleAirTraffic}
+                                    disabled={!activeAnalysisPoint || !liveTrafficAvailable}
+                                    disabledLabel={!liveTrafficAvailable ? liveTrafficDisabledLabel : undefined}
+                                    disabledReason={!liveTrafficAvailable ? liveTrafficDisabledReason : undefined}
                                     placeholder={activeAnalysisPoint ? 'Select Site B aircraft...' : 'Select Site A first'}
                                     showLiveToggle={false}
                                     excludedAircraftId={selectedAircraft?.icao24}
@@ -5729,8 +5742,11 @@ const App: React.FC = () => {
                                   vessels={maritimeTraffic.vessels}
                                   selectedVessel={selectedVessel}
                                   onSelect={(vessel) => handleVesselSelect(vessel, true)}
-                                  liveModeEnabled={maritimeTrafficEnabled}
-                                  onToggleLiveMode={() => setMaritimeTrafficEnabled(!maritimeTrafficEnabled)}
+                                  liveModeEnabled={effectiveMaritimeTrafficEnabled}
+                                  onToggleLiveMode={handleToggleMaritimeTraffic}
+                                  disabled={!liveTrafficAvailable}
+                                  disabledLabel={liveTrafficDisabledLabel}
+                                  disabledReason={liveTrafficDisabledReason}
                                 />
                               </div>
                             </div>
@@ -5757,7 +5773,11 @@ const App: React.FC = () => {
                       currentScope={satelliteScope}
                       onScopeChange={handleSatelliteScopeChange}
                     />
-                    <SimulationSettings satelliteScope={satelliteScope} />
+                    <SimulationSettings
+                      satelliteScope={satelliteScope}
+                      open={isSimulationSettingsOpen}
+                      onOpenChange={setIsSimulationSettingsOpen}
+                    />
                   </div>
                   <div className="flex-shrink-0">
                     <ThemeSelector />
@@ -5856,8 +5876,11 @@ const App: React.FC = () => {
                 aircraft={airTraffic.aircraft}
                 selectedAircraft={selectedAircraft}
                 onSelect={(aircraft) => handleAircraftSelect(aircraft, true)}
-                liveModeEnabled={airTrafficEnabled}
-                onToggleLiveMode={() => setAirTrafficEnabled(!airTrafficEnabled)}
+                liveModeEnabled={effectiveAirTrafficEnabled}
+                onToggleLiveMode={handleToggleAirTraffic}
+                disabled={!liveTrafficAvailable}
+                disabledLabel={liveTrafficDisabledLabel}
+                disabledReason={liveTrafficDisabledReason}
                 placeholder="Select Site A aircraft..."
                 excludedAircraftId={selectedAircraftB?.icao24}
               />
@@ -5866,9 +5889,11 @@ const App: React.FC = () => {
                 aircraft={airTraffic.aircraft}
                 selectedAircraft={selectedAircraftB}
                 onSelect={(aircraft) => handleAircraftSelectForSiteB(aircraft, true)}
-                liveModeEnabled={airTrafficEnabled}
-                onToggleLiveMode={() => setAirTrafficEnabled(!airTrafficEnabled)}
-                disabled={!activeAnalysisPoint}
+                liveModeEnabled={effectiveAirTrafficEnabled}
+                onToggleLiveMode={handleToggleAirTraffic}
+                disabled={!activeAnalysisPoint || !liveTrafficAvailable}
+                disabledLabel={!liveTrafficAvailable ? liveTrafficDisabledLabel : undefined}
+                disabledReason={!liveTrafficAvailable ? liveTrafficDisabledReason : undefined}
                 placeholder={activeAnalysisPoint ? 'Select Site B aircraft...' : 'Select Site A first'}
                 showLiveToggle={false}
                 excludedAircraftId={selectedAircraft?.icao24}
@@ -5882,8 +5907,11 @@ const App: React.FC = () => {
                 handleVesselSelect(vessel, true);
                 setIsSatelliteModalOpen(false);
               }}
-              liveModeEnabled={maritimeTrafficEnabled}
-              onToggleLiveMode={() => setMaritimeTrafficEnabled(!maritimeTrafficEnabled)}
+              liveModeEnabled={effectiveMaritimeTrafficEnabled}
+              onToggleLiveMode={handleToggleMaritimeTraffic}
+              disabled={!liveTrafficAvailable}
+              disabledLabel={liveTrafficDisabledLabel}
+              disabledReason={liveTrafficDisabledReason}
             />
           </div>
         </div>

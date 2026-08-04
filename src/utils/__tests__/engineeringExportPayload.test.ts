@@ -198,7 +198,6 @@ const leoPdfDetails = buildLeoPdfDetails({
 const geoPdfDetails = buildGeoPdfDetails({
   resolvedGEOConnectivity: resolvedGeo,
   geoGeometry,
-  geoTerminalType: 'fixed',
   geoPerformance,
   canonicalRouteMetrics: canonicalRouteMetrics.GEO,
   geoModemIdA: 'idirect_mdm5010',
@@ -285,7 +284,6 @@ describe('M2 export payload golden', () => {
       geoModemIdA: 'idirect_mdm5010',
       geoModemIdB: 'idirect_mdm2510',
       selectedLeoTerminalProfile: getLeoTerminalProfile('fixed'),
-      linkMode: 'STAR_FORWARD',
       leoPdfDetails,
       geoPdfDetails,
     })).toMatchSnapshot();
@@ -308,7 +306,6 @@ describe('M2 export payload golden', () => {
       canonicalRouteMetrics,
       geoModemIdA: 'idirect_mdm5010',
       geoModemIdB: 'idirect_mdm2510',
-      linkMode: 'STAR_RETURN',
       leoPdfDetails: null,
       geoPdfDetails,
     })).toMatchSnapshot();
@@ -367,7 +364,6 @@ describe('M2 export payload golden', () => {
       resolvedGEOConnectivity: null,
       geoGeometry: null,
       geoPerformance: null,
-      linkMode: 'STAR_FORWARD',
       leoPdfDetails: null,
       geoPdfDetails: null,
     })).toBeNull();

@@ -11,6 +11,7 @@ import {
 import * as satellite from 'satellite.js';
 import type { SatelliteData } from '../../types/satellites';
 import { requestGlobeRender } from '../../utils/globeRenderRequest';
+import { useSimulationClock } from '../../contexts/SimulationClockContext';
 
 interface TrajectoryLayerProps {
     satellite: SatelliteData | null;
@@ -21,6 +22,7 @@ const TrajectoryLayer: React.FC<TrajectoryLayerProps> = ({
     satellite: sat,
     show
 }) => {
+    const simulationClock = useSimulationClock();
     // This layer takes no viewerRef prop, so the viewer comes from Resium's
     // context instead — the same source CoverageLayer and FillRateLayer use.
     const { viewer } = useCesium();
@@ -41,10 +43,11 @@ const TrajectoryLayer: React.FC<TrajectoryLayerProps> = ({
             const trajectoryPoints: Cartesian3[] = [];
             const period = sat.type === 'EUTELSAT' ? 1440 : 110; // minutes (GEO: 24h, LEO: ~2h)
             const timeStep = 5; // minutes
+            const scenarioStartMs = simulationClock.getTimeMs();
 
             for (let minutes = 0; minutes <= period; minutes += timeStep) {
                 try {
-                    const date = new Date(Date.now() + minutes * 60000);
+                    const date = new Date(scenarioStartMs + minutes * 60000);
                     const positionAndVelocity = satellite.propagate(sat.satrec, date);
 
                     if (positionAndVelocity?.position && typeof positionAndVelocity.position !== 'boolean') {
@@ -65,7 +68,7 @@ const TrajectoryLayer: React.FC<TrajectoryLayerProps> = ({
 
             return trajectoryPoints;
         }, false);
-    }, [sat?.satrec, sat?.type, show]);
+    }, [sat?.satrec, sat?.type, show, simulationClock]);
 
     if (!sat?.satrec || !show || !positionsCallback) {
         return null;

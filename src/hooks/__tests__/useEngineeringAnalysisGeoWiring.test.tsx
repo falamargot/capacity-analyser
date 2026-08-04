@@ -4,6 +4,7 @@ import type { CandidateCoverage } from '../../types/analysis';
 import type { SatelliteData } from '../../types/satellites';
 import type { GeoModemId } from '../../utils/geoModemCatalogue';
 import { useEngineeringAnalysis, type EngineeringAnalysis } from '../useEngineeringAnalysis';
+import { SimulationClockProvider } from '../../contexts/SimulationClockContext';
 
 /**
  * Production-level ENG wiring.
@@ -128,7 +129,11 @@ function runHook(scenario: Scenario): EngineeringAnalysis {
     return null;
   };
 
-  renderToStaticMarkup(<Probe />);
+  renderToStaticMarkup(
+    <SimulationClockProvider>
+      <Probe />
+    </SimulationClockProvider>,
+  );
   if (!published) throw new Error('hook did not publish an analysis');
   return published;
 }

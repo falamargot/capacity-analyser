@@ -9,7 +9,6 @@ import {
     Vessel,
     connectAISStream,
     disconnectAISStream,
-    getMockVesselData,
     filterVesselsByView
 } from './maritimeTrafficService';
 

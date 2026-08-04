@@ -12,6 +12,7 @@ import {
   CustomDataSource,
   Geometry as CesiumGeometry,
   GeometryAttribute,
+  GeometryAttributes,
   GeometryInstance,
   HorizontalOrigin,
   JulianDate,
@@ -62,11 +63,6 @@ const UPLINK_CONTOUR_COLOR = Color.fromCssColorString('#059669');
 const UPLINK_FILL_OUTER_COLOR = Color.fromCssColorString('#f0fdf4');
 const UPLINK_FILL_MID_COLOR = Color.fromCssColorString('#6ee7b7');
 const UPLINK_FILL_INNER_COLOR = Color.fromCssColorString('#047857');
-// Legacy alias (no direction context → falls back to downlink/blue)
-const SELECTED_GEO_CONTOUR_COLOR = DOWNLINK_CONTOUR_COLOR;
-const SELECTED_GEO_FILL_OUTER_COLOR = DOWNLINK_FILL_OUTER_COLOR;
-const SELECTED_GEO_FILL_MID_COLOR = DOWNLINK_FILL_MID_COLOR;
-const SELECTED_GEO_FILL_INNER_COLOR = DOWNLINK_FILL_INNER_COLOR;
 const DIMMED_CONTOUR_COLOR = Color.fromCssColorString('#94a3b8').withAlpha(0.34);
 const MAX_PREBUILT_FILL_TRIANGLES_PER_PART = 500_000;
 const GEO_FOOTPRINT_LABEL_LAYER_HEIGHT_M = GEO_FOOTPRINT_OUTLINE_LAYER_HEIGHT_M + 800;
@@ -711,7 +707,7 @@ const buildSatelliteOverviewContours = (
 
     if (shouldRenderSelectedCoverageContours) {
       const contours: RenderContour[] = [];
-      for (const [coverageKey, coverages] of coverageGroups.entries()) {
+      for (const coverageKey of coverageGroups.keys()) {
         const direction = coverageDirectionByKey.get(coverageKey);
         contours.push(
           ...buildCoverageContours(satellite, coverageKey, meshIndex, null)
@@ -789,7 +785,6 @@ const buildCoverageContours = (
 const resolveRenderContours = (
   satellites: SatelliteData[],
   selection: Selection,
-  selectedCoverage: CandidateCoverage | null,
   selectedUplinkCoverage: CandidateCoverage | null,
   selectedDownlinkCoverage: CandidateCoverage | null,
   meshIndex: Map<string, PrebuiltCoverageMesh> | null,
@@ -821,7 +816,7 @@ const resolveRenderContours = (
     // App.tsx (link mode + isSynthesized). The legacy selectedCoverage fallback
     // is intentionally dropped here — it would bypass those filters and render
     // the wrong footprint (e.g. a downlink beam in RETURN mode).
-    const candidatePairs: Array<[CandidateCoverage, RenderContour['direction']]> = [
+    const candidatePairs: Array<readonly [CandidateCoverage, RenderContour['direction']]> = [
       // Downlink first (blue, rendered below) — uplink on top (green, outline visible)
       ...(selectedDownlinkCoverage ? [[selectedDownlinkCoverage, 'downlink']] as const : []),
       ...(selectedUplinkCoverage   ? [[selectedUplinkCoverage,   'uplink'  ]] as const : []),
@@ -1011,13 +1006,12 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
     () => sortRenderContoursForDisplay(resolveRenderContours(
       relevantSatellite ? [relevantSatellite] : [],
       selection,
-      selectedCoverage,
       selectedUplinkCoverage,
       selectedDownlinkCoverage,
       activeMeshIndex,
       visibleCoverageKeySet
     )),
-    [activeMeshIndex, relevantSatellite, selection, selectedCoverage, selectedUplinkCoverage, selectedDownlinkCoverage, visibleCoverageKeySet]
+    [activeMeshIndex, relevantSatellite, selection, selectedUplinkCoverage, selectedDownlinkCoverage, visibleCoverageKeySet]
   );
   const renderLabels = useMemo(
     () => buildRenderContourLabels(renderContours, presentation, commercialLabel),
@@ -1157,17 +1151,17 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
       if (contour.showFill) {
         if (!commercialHero && shouldUsePrebuiltFillForContour(contour) && contour.prebuiltMesh) {
           const meshBuffers = getPrebuiltMeshBuffers(contour.prebuiltMesh);
+          const attributes = new GeometryAttributes();
+          attributes.position = new GeometryAttribute({
+            componentDatatype: ComponentDatatype.DOUBLE,
+            componentsPerAttribute: 3,
+            values: meshBuffers.positions,
+          });
           fillPrimitives.add(new Primitive({
             geometryInstances: new GeometryInstance({
               id: fillId,
               geometry: new CesiumGeometry({
-                attributes: {
-                  position: new GeometryAttribute({
-                    componentDatatype: ComponentDatatype.DOUBLE,
-                    componentsPerAttribute: 3,
-                    values: meshBuffers.positions,
-                  }),
-                },
+                attributes,
                 indices: meshBuffers.indices,
                 primitiveType: PrimitiveType.TRIANGLES,
                 boundingSphere: meshBuffers.boundingSphere,

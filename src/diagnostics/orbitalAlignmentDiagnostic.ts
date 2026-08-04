@@ -54,6 +54,7 @@ import {
   type AlignmentStats,
 } from './orbitalAlignmentMath';
 import {
+  getCesiumFrameProbe,
   listOrbitalAlignmentProbes,
   readCesiumClockDeltaMs,
   selectMeasurementProbe,
@@ -187,8 +188,9 @@ function captureBatch(state: RunState, ids: string[]): void {
   if (ids.length === 0) return;
 
   const startedAt = performance.now();
-  const atMs = Date.now();
-  const phase = classifyCapture(state, atMs);
+  const wallClockMs = Date.now();
+  const atMs = getCesiumFrameProbe()?.getScenarioTimeMs() ?? wallClockMs;
+  const phase = classifyCapture(state, wallClockMs);
   const samples = state.probe.sampleDisplayed(ids, atMs);
   const clockDeltaMs = readCesiumClockDeltaMs();
   if (samples.length > 0) {

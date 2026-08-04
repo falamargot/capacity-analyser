@@ -6,12 +6,16 @@ import {
     type ActiveScenarioLeoContext,
     type ActiveScenarioPathStatus,
 } from '../../utils/activeScenarioContextModel';
+import { useSimulationClock, useSimulationClockSnapshot } from '../../contexts/SimulationClockContext';
 
 interface ActiveScenarioContextProps {
     geo: ActiveScenarioGeoContext | null;
     leo: ActiveScenarioLeoContext | null;
     isPhone?: boolean;
     isFullscreen?: boolean;
+    onTimeToggle?: () => void;
+    onSatelliteFocus?: (satelliteName: string) => void;
+    onGeoCoverageFocus?: (direction: 'uplink' | 'downlink') => void;
 }
 
 const placeholderLabel: Record<Exclude<ActiveScenarioPathStatus, 'resolved'>, string> = {
@@ -44,15 +48,92 @@ const Placeholder = ({ status }: { status: Exclude<ActiveScenarioPathStatus, 're
     </span>
 );
 
+const SatelliteFocusName = ({
+    name,
+    technology,
+    onFocus,
+}: {
+    name: string;
+    technology: 'GEO' | 'LEO';
+    onFocus?: (satelliteName: string) => void;
+}) => {
+    if (!onFocus) {
+        return <span title={name}>{name}</span>;
+    }
+
+    return (
+        <button
+            type="button"
+            onClick={() => onFocus(name)}
+            className="pointer-events-auto rounded-sm text-left transition-colors hover:text-cyan-200 hover:underline hover:underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+            aria-label={`Focus ${technology} satellite ${name}`}
+            title={`Center the globe on ${name}`}
+        >
+            {name}
+        </button>
+    );
+};
+
+const GeoCoverageFocusName = ({
+    direction,
+    name,
+    onFocus,
+}: {
+    direction: 'uplink' | 'downlink';
+    name: string;
+    onFocus?: (direction: 'uplink' | 'downlink') => void;
+}) => {
+    const directionLabel = direction === 'uplink' ? 'Uplink' : 'Downlink';
+    const content = (
+        <>
+            <strong className="font-semibold text-slate-400">
+                {direction === 'uplink' ? 'UL' : 'DL'}
+            </strong>{' '}
+            {name}
+        </>
+    );
+
+    if (!onFocus) {
+        return <span className="min-w-0 truncate" title={`${directionLabel}: ${name}`}>{content}</span>;
+    }
+
+    return (
+        <button
+            type="button"
+            onClick={() => onFocus(direction)}
+            className="pointer-events-auto min-w-0 truncate rounded-sm text-left transition-colors hover:text-cyan-200 hover:underline hover:underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+            aria-label={`Focus GEO ${direction} coverage ${name}`}
+            title={`Center the globe on ${direction} coverage ${name}`}
+        >
+            {content}
+        </button>
+    );
+};
+
 const ActiveScenarioContext: React.FC<ActiveScenarioContextProps> = ({
     geo,
     leo,
     isPhone = false,
     isFullscreen = false,
+    onTimeToggle,
+    onSatelliteFocus,
+    onGeoCoverageFocus,
 }) => {
+    const simulationClock = useSimulationClock();
+    const simulationClockSnapshot = useSimulationClockSnapshot();
     const tick = useSecondTick();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    const utcTime = useMemo(() => formatActiveScenarioUtcTime(new Date()), [tick]);
+    // Sampled on the one-second tick, never during render — see MoonDetails.
+    const scenarioTimeMs = useMemo(
+        () => simulationClock.getTimeMs(),
+        // Cadence keys, not values read by the callback.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [simulationClock, simulationClockSnapshot.revision, tick],
+    );
+    const scenarioDate = useMemo(
+        () => new Date(scenarioTimeMs),
+        [scenarioTimeMs],
+    );
+    const utcTime = useMemo(() => formatActiveScenarioUtcTime(scenarioDate), [scenarioDate]);
 
     return (
         <aside
@@ -65,12 +146,20 @@ const ActiveScenarioContext: React.FC<ActiveScenarioContextProps> = ({
             }`}
             aria-label="Active scenario context"
         >
-            <time
-                className="block whitespace-nowrap text-[9px] font-medium tabular-nums tracking-[0.08em] text-slate-300"
-                dateTime={new Date().toISOString()}
+            <button
+                type="button"
+                onClick={onTimeToggle}
+                className="pointer-events-auto block rounded-sm text-left text-slate-300 transition-colors hover:text-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+                aria-label="Toggle scenario time controls"
+                title="Open or close scenario time controls"
             >
-                {utcTime}
-            </time>
+                <time
+                    className="block whitespace-nowrap text-[9px] font-medium tabular-nums tracking-[0.08em] text-inherit"
+                    dateTime={scenarioDate.toISOString()}
+                >
+                    {utcTime}
+                </time>
+            </button>
 
             {(geo || leo) && (
                 <div className="mt-1.5 space-y-1.5 border-t border-white/10 pt-1.5">
@@ -79,25 +168,33 @@ const ActiveScenarioContext: React.FC<ActiveScenarioContextProps> = ({
                             <div className="flex min-w-0 items-center gap-2">
                                 <StatusDot status={geo.status} />
                                 <TechnologyLabel technology="GEO" />
-                                {geo.status === 'resolved' ? (
-                                    <span className="truncate text-[10px] font-semibold text-slate-100" title={geo.satelliteName}>
-                                        {geo.satelliteName}
+                                {geo.status === 'resolved' && geo.satelliteName ? (
+                                    <span className="truncate text-[10px] font-semibold text-slate-100">
+                                        <SatelliteFocusName
+                                            name={geo.satelliteName}
+                                            technology="GEO"
+                                            onFocus={onSatelliteFocus}
+                                        />
                                     </span>
-                                ) : (
+                                ) : geo.status !== 'resolved' ? (
                                     <Placeholder status={geo.status} />
-                                )}
+                                ) : null}
                             </div>
                             {geo.status === 'resolved' && (geo.uplinkCoverage || geo.downlinkCoverage) && (
                                 <div className="mt-1 flex min-w-0 flex-wrap gap-x-2.5 gap-y-0.5 pl-[2.65rem] text-[9px] leading-3 text-slate-300">
                                     {geo.uplinkCoverage && (
-                                        <span className="min-w-0 truncate" title={`Uplink: ${geo.uplinkCoverage}`}>
-                                            <strong className="font-semibold text-slate-400">UL</strong> {geo.uplinkCoverage}
-                                        </span>
+                                        <GeoCoverageFocusName
+                                            direction="uplink"
+                                            name={geo.uplinkCoverage}
+                                            onFocus={onGeoCoverageFocus}
+                                        />
                                     )}
                                     {geo.downlinkCoverage && (
-                                        <span className="min-w-0 truncate" title={`Downlink: ${geo.downlinkCoverage}`}>
-                                            <strong className="font-semibold text-slate-400">DL</strong> {geo.downlinkCoverage}
-                                        </span>
+                                        <GeoCoverageFocusName
+                                            direction="downlink"
+                                            name={geo.downlinkCoverage}
+                                            onFocus={onGeoCoverageFocus}
+                                        />
                                     )}
                                 </div>
                             )}
@@ -111,10 +208,19 @@ const ActiveScenarioContext: React.FC<ActiveScenarioContextProps> = ({
                                 <TechnologyLabel technology="LEO" />
                                 {leo.status === 'resolved' ? (
                                     <span
-                                        className="truncate text-[10px] font-semibold text-slate-100"
+                                        className="flex min-w-0 items-center gap-1 truncate text-[10px] font-semibold text-slate-100"
                                         title={leo.satelliteNames?.join(' · ')}
                                     >
-                                        {leo.satelliteNames?.join(' · ')}
+                                        {leo.satelliteNames?.map((satelliteName, index) => (
+                                            <React.Fragment key={satelliteName}>
+                                                {index > 0 && <span aria-hidden="true"> · </span>}
+                                                <SatelliteFocusName
+                                                    name={satelliteName}
+                                                    technology="LEO"
+                                                    onFocus={onSatelliteFocus}
+                                                />
+                                            </React.Fragment>
+                                        ))}
                                     </span>
                                 ) : (
                                     <Placeholder status={leo.status} />

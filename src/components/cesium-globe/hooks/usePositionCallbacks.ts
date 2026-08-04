@@ -10,6 +10,7 @@ import type { AircraftInterpolation } from '../../../modules/airTraffic/useAirTr
 import { getPosition, calculateDeadReckoning } from '../utils';
 import {
     positionsMatch,
+    createSatelliteRenderWindow,
     resolveDisplayedSatellitePosition,
     SATELLITE_INTERPOLATION_FALLBACK_MS,
     type SatellitePosition,
@@ -19,6 +20,7 @@ import {
     registerOrbitalAlignmentProbe,
     type DisplayedSatelliteSample,
 } from '../../../diagnostics/orbitalAlignmentProbe';
+import { useSimulationClock } from '../../../contexts/SimulationClockContext';
 
 /**
  * Cells refreshed within this window of the newest refresh are treated as
@@ -34,6 +36,7 @@ interface PositionCallbackCache {
 
 interface SatelliteLiveCell extends SatelliteSampleWindow {
     value: SatelliteData;
+    timelineRevision: number;
     /**
      * When a React render last handed this cell fresh worker output. Cells are
      * refreshed inside getSatellitePositionCallback, so an instance that stops
@@ -57,10 +60,11 @@ const cloneSatellitePosition = (position: SatelliteData['position']): SatelliteP
 export function usePositionCallbacks(
     satellites: SatelliteData[],
     aircraft: Aircraft[],
-    interpolatedAircraftMapRef?: React.RefObject<Map<string, AircraftInterpolation>>,
+    _interpolatedAircraftMapRef?: React.RefObject<Map<string, AircraftInterpolation>>,
     /** Names this instance in the dev-only alignment report. Three instances exist. */
     ownerLabel: string = 'unlabelled'
 ) {
+    const simulationClock = useSimulationClock();
     const cacheRef = useRef<PositionCallbackCache>({
         satellites: new Map(),
         aircraft: new Map()
@@ -186,12 +190,24 @@ export function usePositionCallbacks(
             const now = Date.now();
             const nextPosition = cloneSatellitePosition(sat.position);
             const nextSampleTimeMs = sat.position.sampleTimeMs ?? now;
+            const nextTimelineRevision = sat.position.timelineRevision ?? 0;
+            const renderWindow = createSatelliteRenderWindow(sat.position, sat.renderPosition, now);
 
             const existing = satLiveCellsRef.current.get(sat.id);
             if (existing) {
                 existing.value = sat;
                 existing.lastRefreshedAtMs = now;
-                if (!positionsMatch(existing.currentPosition, nextPosition)) {
+                if (existing.timelineRevision !== nextTimelineRevision) {
+                    // Never interpolate across a seek or direction/rate change:
+                    // those samples belong to different orbital timelines.
+                    existing.timelineRevision = nextTimelineRevision;
+                    Object.assign(existing, renderWindow);
+                } else if (sat.renderPosition) {
+                    // A single worker response now carries an exact analysis
+                    // position and a visual-only lookahead. Replace the whole
+                    // bracket atomically so a seek is correct on its first frame.
+                    Object.assign(existing, renderWindow);
+                } else if (!positionsMatch(existing.currentPosition, nextPosition)) {
                     // Advance the window: the previous "current" (future) position becomes
                     // the new "previous", keyed to its original future timestamp.
                     // This keeps sampleDuration = tick interval (~1 s) regardless of when
@@ -203,13 +219,19 @@ export function usePositionCallbacks(
                     existing.currentSampleTimeMs = nextSampleTimeMs;
                 }
             } else {
+                const initialWindow = sat.renderPosition
+                    ? renderWindow
+                    : {
+                        previousPosition: nextPosition,
+                        currentPosition: nextPosition,
+                        previousSampleTimeMs: nextSampleTimeMs - SATELLITE_INTERPOLATION_FALLBACK_MS,
+                        currentSampleTimeMs: nextSampleTimeMs,
+                    };
                 satLiveCellsRef.current.set(sat.id, {
                     value: sat,
+                    timelineRevision: nextTimelineRevision,
                     lastRefreshedAtMs: now,
-                    previousPosition: nextPosition,
-                    currentPosition: nextPosition,
-                    previousSampleTimeMs: nextSampleTimeMs - SATELLITE_INTERPOLATION_FALLBACK_MS,
-                    currentSampleTimeMs: nextSampleTimeMs,
+                    ...initialWindow,
                 });
             }
 
@@ -217,7 +239,17 @@ export function usePositionCallbacks(
                 const liveCell = satLiveCellsRef.current.get(sat.id)!;
 
                 const callback = new CallbackPositionProperty(() => {
-                    const position = resolveDisplayedSatellitePosition(liveCell, Date.now());
+                    const clockSnapshot = simulationClock.getSnapshot();
+                    // Between a clock command and the first fresh worker reply,
+                    // freeze the last valid point. Extrapolating an old sample
+                    // window toward a newly selected date would create a jump.
+                    const position = liveCell.timelineRevision === clockSnapshot.revision
+                        ? resolveDisplayedSatellitePosition(
+                            liveCell,
+                            simulationClock.getTimeMs(),
+                            Math.abs(clockSnapshot.speed),
+                        )
+                        : liveCell.currentPosition;
                     return Cartesian3.fromDegrees(position.lng, position.lat, position.alt * 1000);
                 }, false);
 
@@ -226,7 +258,7 @@ export function usePositionCallbacks(
 
             return cache.get(sat.id)!;
         };
-    }, []);
+    }, [simulationClock]);
 
     /**
      * Stable accessor for event handlers and scale callbacks in memoized

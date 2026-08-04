@@ -4,6 +4,11 @@ import type { SatelliteData } from '../../types/satellites';
 import type { EngineeringTruth } from '../../utils/engineeringAnalysisViewModel';
 import type { LeoSiteToSiteResult } from '../../utils/leoSiteToSiteModel';
 import MobileAnalysisSummary from './MobileAnalysisSummary';
+import { SimulationClockProvider } from '../../contexts/SimulationClockContext';
+
+const renderSummary = (summary: React.ReactElement): string => renderToStaticMarkup(
+    <SimulationClockProvider>{summary}</SimulationClockProvider>,
+);
 
 const makeSatellite = (
     name: string,
@@ -46,7 +51,7 @@ const makeTruth = (technology: 'GEO' | 'LEO'): EngineeringTruth => ({
 
 describe('MobileAnalysisSummary serving satellite identity', () => {
     it('keeps the active LEO identifier in the compact single-site result title', () => {
-        const markup = renderToStaticMarkup(
+        const markup = renderSummary(
             <MobileAnalysisSummary
                 selectedSatellite={null}
                 autoSelectedLEOSatellite={makeSatellite('ONEWEB-0549', 'LEO')}
@@ -64,7 +69,7 @@ describe('MobileAnalysisSummary serving satellite identity', () => {
     });
 
     it('keeps two GEO points as context without replacing Summary', () => {
-        const markup = renderToStaticMarkup(
+        const markup = renderSummary(
             <MobileAnalysisSummary
                 selectedSatellite={null}
                 autoSelectedLEOSatellite={makeSatellite('ONEWEB-0549', 'LEO')}
@@ -97,7 +102,7 @@ describe('MobileAnalysisSummary serving satellite identity', () => {
             finalThroughputBtoAMbps: 35,
         } as unknown as LeoSiteToSiteResult;
 
-        const markup = renderToStaticMarkup(
+        const markup = renderSummary(
             <MobileAnalysisSummary
                 selectedSatellite={null}
                 autoSelectedLEOSatellite={satA}
@@ -125,7 +130,7 @@ describe('MobileAnalysisSummary serving satellite identity', () => {
         const satellite = technology === 'GEO'
             ? makeSatellite('EUTELSAT 21B', 'GEO')
             : makeSatellite('ONEWEB-0549', 'LEO');
-        const markup = renderToStaticMarkup(
+        const markup = renderSummary(
             <MobileAnalysisSummary
                 selectedSatellite={satellite}
                 autoSelectedLEOSatellite={makeSatellite('ONEWEB-0549', 'LEO')}

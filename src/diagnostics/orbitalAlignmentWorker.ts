@@ -91,7 +91,10 @@ function recordSkip(id: string, reason: SkipReason): void {
   if (skippedIds.size < SKIPPED_ID_LIMIT || skippedIds.has(id)) skippedIds.add(id);
 }
 
-const ctx = self as unknown as DedicatedWorkerGlobalScope;
+const ctx = self as unknown as {
+  addEventListener(type: 'message', listener: (event: MessageEvent<AlignmentWorkerIn>) => void): void;
+  postMessage(message: AlignmentWorkerReport): void;
+};
 
 /** Sub-satellite point + altitude (km) from SGP4, or null when propagation fails. */
 function referenceAt(satrec: satellite.SatRec, date: Date): { lat: number; lng: number; alt: number } | null {

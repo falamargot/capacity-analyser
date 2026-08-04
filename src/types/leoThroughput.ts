@@ -85,10 +85,10 @@ export interface LeoTerminalAssumptionSnapshot {
   sourceType: string;
   sourceLabel: string;
   sourceUrl?: string;
-  notes: string[];
-  assumptions: string[];
+  notes: readonly string[];
+  assumptions: readonly string[];
   certificationStatus: string;
-  supportedBands: string[];
+  supportedBands: readonly string[];
 }
 
 export interface LeoThroughputResult {

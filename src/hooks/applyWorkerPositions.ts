@@ -34,6 +34,7 @@
  * satellite, which is what the epsilon gate should have been comparing against.
  */
 import type { SatelliteData } from '../types/satellites';
+import type { SatellitePositionWorkerPosition } from '../workers/satellitePositionProtocol';
 
 // ── Epsilon gate calibration ─────────────────────────────────────────────────
 //
@@ -49,17 +50,15 @@ import type { SatelliteData } from '../types/satellites';
 export const POSITION_EPSILON_DEG = 0.01;
 export const ALTITUDE_EPSILON_KM = 0.5;
 
-export interface WorkerPositionUpdate {
-  id: string;
-  lat: number;
-  lng: number;
-  alt: number;
-  sampleTimeMs: number;
-}
+export type WorkerPositionUpdate = Omit<SatellitePositionWorkerPosition, 'isValid'>;
 
 export interface ApplyWorkerPositionsInput {
   /** Valid worker positions, keyed by satellite id. Invalid ones must be filtered out first. */
   positions: Map<string, WorkerPositionUpdate>;
+  /** Visual-only lookahead samples, keyed by satellite id. */
+  renderPositions?: Map<string, WorkerPositionUpdate>;
+  /** Clock timeline that produced every position in this batch. */
+  timelineRevision: number;
   selectedSatelliteId: string | null;
   hoveredSatelliteId: string | null;
   /**
@@ -84,19 +83,36 @@ export function applyWorkerPositions(
   currentSatellites: SatelliteData[],
   input: ApplyWorkerPositionsInput,
 ): SatelliteData[] {
-  const { positions, selectedSatelliteId, hoveredSatelliteId, selectionChanged, computeCoverages } = input;
+  const {
+    positions,
+    renderPositions,
+    timelineRevision,
+    selectedSatelliteId,
+    hoveredSatelliteId,
+    selectionChanged,
+    computeCoverages,
+  } = input;
 
   let anyItemChanged = false;
   const updatedSatellites = currentSatellites.map((sat) => {
     const workerPos = positions.get(sat.id);
     if (!workerPos) return sat;
+    const workerRenderPos = renderPositions?.get(sat.id);
 
     const newPosition = {
       lat: workerPos.lat,
       lng: workerPos.lng,
       alt: workerPos.alt,
       sampleTimeMs: workerPos.sampleTimeMs,
+      timelineRevision,
     };
+    const newRenderPosition = workerRenderPos ? {
+      lat: workerRenderPos.lat,
+      lng: workerRenderPos.lng,
+      alt: workerRenderPos.alt,
+      sampleTimeMs: workerRenderPos.sampleTimeMs,
+      timelineRevision,
+    } : undefined;
 
     // Compared against the satellite's OWN current position — the last thing
     // published for it — rather than a separately-tracked previous array. Same
@@ -105,6 +121,14 @@ export function applyWorkerPositions(
       Math.abs(sat.position.lat - newPosition.lat) > POSITION_EPSILON_DEG ||
       Math.abs(sat.position.lng - newPosition.lng) > POSITION_EPSILON_DEG ||
       Math.abs(sat.position.alt - newPosition.alt) > ALTITUDE_EPSILON_KM;
+    const timelineChanged = sat.position.timelineRevision !== timelineRevision;
+    const renderPositionChanged = newRenderPosition !== undefined && (
+      !sat.renderPosition
+      || Math.abs(sat.renderPosition.lat - newRenderPosition.lat) > POSITION_EPSILON_DEG
+      || Math.abs(sat.renderPosition.lng - newRenderPosition.lng) > POSITION_EPSILON_DEG
+      || Math.abs(sat.renderPosition.alt - newRenderPosition.alt) > ALTITUDE_EPSILON_KM
+      || sat.renderPosition.timelineRevision !== timelineRevision
+    );
 
     const isSatelliteSelected = selectedSatelliteId === sat.id;
     const isSatelliteHovered = hoveredSatelliteId === sat.id;
@@ -117,10 +141,16 @@ export function applyWorkerPositions(
         !sat.coverages?.length);
 
     // Nothing changed → return same reference (prevents downstream re-renders)
-    if (!positionChanged && !shouldRecalculateCoverage) return sat;
+    if (!positionChanged && !timelineChanged && !renderPositionChanged && !shouldRecalculateCoverage) return sat;
 
     anyItemChanged = true;
-    const updatedSat = positionChanged ? { ...sat, position: { ...sat.position, ...newPosition } } : sat;
+    const updatedSat = positionChanged || timelineChanged || renderPositionChanged
+      ? {
+          ...sat,
+          position: positionChanged || timelineChanged ? { ...sat.position, ...newPosition } : sat.position,
+          renderPosition: newRenderPosition ?? sat.renderPosition,
+        }
+      : sat;
     return shouldRecalculateCoverage
       ? { ...updatedSat, coverages: computeCoverages(updatedSat) }
       : updatedSat;

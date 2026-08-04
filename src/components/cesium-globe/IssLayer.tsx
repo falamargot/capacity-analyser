@@ -12,6 +12,7 @@ import {
   Cartesian2,
   Color,
   VerticalOrigin,
+  CallbackPositionProperty,
   CallbackProperty,
   LabelStyle,
   Viewer as CesiumViewerType,
@@ -46,7 +47,6 @@ const IssLayer: React.FC<IssLayerProps> = ({
   enabled,
   onIssClick,
   viewerRef,
-  cameraMetricsRef,
 }) => {
     // requestRenderMode wiring, step 2b.2 (Group B: data-cadence followers).
     // BEHAVIOUR-NEUTRAL: requestRender() is a no-op while scene.requestRenderMode
@@ -58,7 +58,7 @@ const IssLayer: React.FC<IssLayerProps> = ({
   // Stable CallbackPositionProperty — reads the ref each frame, no re-creation on position update
   const positionCallback = useMemo(
     () =>
-      new CallbackProperty(() => {
+      new CallbackPositionProperty(() => {
         const p = positionRef.current;
         if (!p) return Cartesian3.fromDegrees(0, 0, 420_000);
         return Cartesian3.fromDegrees(p.lng, p.lat, p.altKm * 1000);

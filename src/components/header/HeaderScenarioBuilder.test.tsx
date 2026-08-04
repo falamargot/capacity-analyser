@@ -64,6 +64,23 @@ const site = (roleLabel: string, label: string): SiteConfig => ({
   },
 });
 
+describe('HeaderScenarioBuilder simulated weather', () => {
+  it('labels weather as a scenario assumption instead of current weather', () => {
+    const siteA = site('Site A', 'Paris');
+    const siteB = site('Site B', 'Dakar');
+    siteA.weather.scenarioAssumption = true;
+    siteB.weather.scenarioAssumption = true;
+
+    const markup = renderToStaticMarkup(
+      <HeaderScenarioBuilder siteA={siteA} siteB={siteB} onSwap={() => undefined} />,
+    );
+
+    expect(markup).toContain('Scenario');
+    expect(markup).toContain('historical or forecast weather is not inferred');
+    expect(markup).not.toContain('aria-label="Use current weather"');
+  });
+});
+
 const configureBaseline: EngineeringConfigureDraft = {
   technology: 'GEO',
   geoLinkMode: 'MESH',
@@ -97,6 +114,30 @@ const configureBaseline: EngineeringConfigureDraft = {
 };
 
 describe('HeaderScenarioBuilder engineering Configure workflow', () => {
+  it('preserves the simulated-weather label while rebuilding the engineering draft', () => {
+    const siteA = site('Origin', 'Paris');
+    const siteB = site('Destination', 'Dakar');
+    siteA.weather.scenarioAssumption = true;
+    siteB.weather.scenarioAssumption = true;
+
+    const markup = renderToStaticMarkup(
+      <HeaderScenarioBuilder
+        siteA={siteA}
+        siteB={siteB}
+        onSwap={() => undefined}
+        engineeringConfigure={{
+          baseline: configureBaseline,
+          truths: {},
+          candidates: { siteA: [], siteB: [] },
+          onApply: () => undefined,
+        }}
+      />,
+    );
+
+    expect(markup.match(/Scenario/g)?.length).toBeGreaterThanOrEqual(2);
+    expect(markup).not.toContain('aria-label="Use current weather"');
+  });
+
   it('preserves horizontal endpoint assumptions as an instant-apply editor', () => {
     const markup = renderToStaticMarkup(
       <HeaderScenarioBuilder

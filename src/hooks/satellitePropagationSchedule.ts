@@ -29,6 +29,12 @@
 /** Nominal gap between propagation ticks. */
 export const SATELLITE_PROPAGATION_INTERVAL_MS = 1000;
 
+/**
+ * Real-time lookahead used to bracket smooth interpolation. It is multiplied
+ * by the signed playback speed before being applied to scenario time.
+ */
+export const SATELLITE_PROPAGATION_LOOKAHEAD_REAL_MS = 1200;
+
 /** Retry delay while the satellite list is still loading. */
 export const SATELLITE_PROPAGATION_RETRY_MS = 500;
 
@@ -42,6 +48,14 @@ export const SATELLITE_PROPAGATION_RETRY_MS = 500;
  */
 export const WORKER_RESPONSE_DEADLINE_MS = 3 * SATELLITE_PROPAGATION_INTERVAL_MS;
 
+/** Resolves the UTC SGP4 sample instant for the current playback direction. */
+export function resolvePropagationSampleTimeMs(
+  simulationTimeMs: number,
+  playbackSpeed: number,
+): number {
+  return simulationTimeMs + (SATELLITE_PROPAGATION_LOOKAHEAD_REAL_MS * playbackSpeed);
+}
+
 export interface PropagationTickState {
   /** Satellites currently available to propagate. */
   satelliteCount: number;
@@ -50,6 +64,17 @@ export interface PropagationTickState {
   /** When the in-flight request was posted; ignored when `workerBusy` is false. */
   requestSentAtMs: number;
   nowMs: number;
+  /** Signed playback rate; 0 means the scenario clock is paused. */
+  playbackSpeed: number;
+  /** True once a sample has been published for the current timeline. */
+  hasPublishedCurrentTimeline: boolean;
+  /**
+   * True while the worker's satrec cache does not describe the current
+   * satellite list — after the initial load, an hourly TLE refresh, or a worker
+   * recycle. A paused loop must still post in that state: the refresh can
+   * introduce satellites that have never been propagated to the frozen instant.
+   */
+  satelliteCacheStale: boolean;
 }
 
 export type PropagationTickAction =
@@ -57,6 +82,8 @@ export type PropagationTickAction =
   | { kind: 'await-satellites'; delayMs: number }
   /** A request is in flight and still within its deadline. */
   | { kind: 'await-response'; delayMs: number }
+  /** Scenario time is frozen and already drawn — nothing to recompute. */
+  | { kind: 'await-resume'; delayMs: number }
   /** Normal propagation. */
   | { kind: 'post'; delayMs: number }
   /** The in-flight request exceeded its deadline; clear the latch and re-post. */
@@ -65,10 +92,19 @@ export type PropagationTickAction =
 /**
  * Decides what a tick should do. The caller ALWAYS arms the next tick using
  * `delayMs`, whatever the decision — that is the property that makes the loop
- * unable to stop.
+ * unable to stop. `await-resume` is no exception: the timer keeps running so a
+ * paused loop is still a live loop.
  */
 export function resolvePropagationTick(state: PropagationTickState): PropagationTickAction {
-  const { satelliteCount, workerBusy, requestSentAtMs, nowMs } = state;
+  const {
+    satelliteCount,
+    workerBusy,
+    requestSentAtMs,
+    nowMs,
+    playbackSpeed,
+    hasPublishedCurrentTimeline,
+    satelliteCacheStale,
+  } = state;
 
   if (satelliteCount === 0) {
     return { kind: 'await-satellites', delayMs: SATELLITE_PROPAGATION_RETRY_MS };
@@ -83,6 +119,16 @@ export function resolvePropagationTick(state: PropagationTickState): Propagation
     // recycle the worker to drop whatever is still queued in it, and must
     // discard any late reply by request id. See resolvePropagationResponse.
     return { kind: 'recover-lost-response', delayMs: SATELLITE_PROPAGATION_INTERVAL_MS, inFlightMs };
+  }
+
+  // Paused, the frozen instant is already on screen, and the worker's cache
+  // still describes the satellites being drawn. Propagating again would run
+  // SGP4 over the whole constellation every second to reproduce the positions
+  // already displayed. The pause command itself resets the caller's published
+  // sentinel, so the first tick after pausing still posts once and pins the
+  // constellation to the exact instant the user stopped on.
+  if (playbackSpeed === 0 && hasPublishedCurrentTimeline && !satelliteCacheStale) {
+    return { kind: 'await-resume', delayMs: SATELLITE_PROPAGATION_INTERVAL_MS };
   }
 
   return { kind: 'post', delayMs: SATELLITE_PROPAGATION_INTERVAL_MS };
@@ -108,19 +154,30 @@ export function actionPosts(action: PropagationTickAction): boolean {
  * jump is exactly the kind of change it lets through.
  */
 export interface PropagationResponseState {
+  /** Timeline revision echoed by the worker. */
+  responseTimelineRevision: number;
+  /** Revision currently owned by the application clock. */
+  activeTimelineRevision: number;
+  /**
+   * Signed playback rate. Its sign gives the direction valid sample timestamps
+   * must progress in; 0 means time is frozen and there is no ordering to check.
+   */
+  playbackSpeed: number;
   /** Id echoed by the worker. */
   responseRequestId: number;
   /** Id of the only request whose reply is still wanted. */
   activeRequestId: number;
   /** UTC instant the response was propagated to. */
   responseSampleTimeMs: number;
-  /** Newest sample time already published; 0 before the first publication. */
-  lastPublishedSampleTimeMs: number;
+  /** Newest sample in this timeline; null before its first publication. */
+  lastPublishedSampleTimeMs: number | null;
 }
 
 export type PropagationResponseDecision =
   /** Current request, newer sample — clear the latch and publish. */
   | 'accept'
+  /** Reply produced for clock controls that are no longer active. */
+  | 'ignore-obsolete-timeline'
   /** Reply to a request that has been superseded — ignore completely. */
   | 'ignore-superseded'
   /** Current request, but its sample is not newer than what is already shown. */
@@ -129,18 +186,32 @@ export type PropagationResponseDecision =
 /**
  * Decides what to do with a worker response.
  *
- * Only the active request may clear the busy latch or publish, and a published
- * sample time can never move backwards.
+ * Only the active request on the active timeline may clear the busy latch or
+ * publish. Within one moving timeline, sample time cannot move against the
+ * direction of playback. Timeline changes reset the caller's last-published
+ * sentinel.
+ *
+ * While paused there is no ordering to enforce: every sample is the same frozen
+ * instant, so a reply cannot move anything backwards. Rejecting it as
+ * out-of-order would drop the only thing paused propagation is still used for —
+ * recomputing coverage for a satellite the user selects while stopped.
  */
 export function resolvePropagationResponse(
   state: PropagationResponseState,
 ): PropagationResponseDecision {
+  if (state.responseTimelineRevision !== state.activeTimelineRevision) {
+    return 'ignore-obsolete-timeline';
+  }
   if (state.responseRequestId !== state.activeRequestId) return 'ignore-superseded';
-  if (state.responseSampleTimeMs <= state.lastPublishedSampleTimeMs) return 'ignore-out-of-order';
+  if (state.playbackSpeed !== 0 && state.lastPublishedSampleTimeMs !== null) {
+    const direction = state.playbackSpeed < 0 ? -1 : 1;
+    const deltaMs = state.responseSampleTimeMs - state.lastPublishedSampleTimeMs;
+    if (deltaMs * direction <= 0) return 'ignore-out-of-order';
+  }
   return 'accept';
 }
 
 /** True when the decision means the in-flight latch may be released. */
 export function decisionClearsBusy(decision: PropagationResponseDecision): boolean {
-  return decision !== 'ignore-superseded';
+  return decision === 'accept' || decision === 'ignore-out-of-order';
 }

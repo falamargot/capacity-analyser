@@ -47,6 +47,7 @@ export interface SiteWeatherConfig {
   onWeatherTypeChange: (type: WeatherType) => void;
   autoWeatherEnabled?: boolean;
   onAutoWeatherChange?: (enabled: boolean) => void;
+  scenarioAssumption?: boolean;
 }
 
 export interface SiteConfig {
@@ -274,7 +275,14 @@ const WeatherAssumptionRow = memo(function WeatherAssumptionRow({
           ))}
         </select>
       </div>
-      <label
+      {weather.scenarioAssumption ? (
+        <span
+          className="shrink-0 whitespace-nowrap rounded-full border border-amber-400/40 bg-amber-400/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-amber-700 dark:text-amber-300"
+          title="Weather is a scenario assumption; historical or forecast weather is not inferred."
+        >
+          Scenario
+        </span>
+      ) : <label
         className={[
           'flex shrink-0 items-center gap-1 whitespace-nowrap text-[9px] font-bold uppercase tracking-[0.08em]',
           autoWeatherDisabled
@@ -293,6 +301,7 @@ const WeatherAssumptionRow = memo(function WeatherAssumptionRow({
         />
         <span className={compact ? 'sr-only' : undefined}>Real</span>
       </label>
+      }
     </div>
   );
 });
@@ -840,6 +849,7 @@ function EngineeringHeaderScenarioBuilder({
         onWeatherTypeChange: (weatherType) => updateSite(key, { weatherType, autoWeatherEnabled: false }),
         autoWeatherEnabled: configuredSite.autoWeatherEnabled,
         onAutoWeatherChange: (autoWeatherEnabled) => updateSite(key, { autoWeatherEnabled }),
+        scenarioAssumption: source.weather.scenarioAssumption,
       },
     };
   };
@@ -894,11 +904,13 @@ function EngineeringHeaderScenarioBuilder({
 
   const serviceCardClass = (technology: 'GEO' | 'LEO') => [
     'min-w-0 rounded-lg border px-2 py-1.5 transition-colors',
-    draft.technology === technology
-      ? technology === 'GEO'
-        ? 'border-emerald-400/65 bg-emerald-50/65 shadow-[inset_0_0_0_1px_rgba(52,211,153,0.12)] dark:border-emerald-400/45 dark:bg-emerald-950/20'
-        : 'border-sky-400/65 bg-sky-50/65 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.12)] dark:border-sky-400/45 dark:bg-sky-950/20'
-      : 'border-slate-200/70 bg-white/45 hover:border-slate-300 dark:border-white/[0.07] dark:bg-slate-950/20 dark:hover:border-slate-600',
+    technology === 'GEO'
+      ? draft.technology === technology
+        ? 'border-sky-300/80 bg-sky-50/80 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.14)] dark:border-sky-300/55 dark:bg-sky-950/34'
+        : 'border-sky-400/35 bg-sky-50/45 hover:border-sky-300/55 dark:border-sky-400/28 dark:bg-sky-950/20 dark:hover:border-sky-400/45'
+      : draft.technology === technology
+        ? 'border-pink-300/80 bg-pink-50/80 shadow-[inset_0_0_0_1px_rgba(244,114,182,0.14)] dark:border-pink-300/55 dark:bg-pink-950/34'
+        : 'border-pink-400/35 bg-pink-50/45 hover:border-pink-300/55 dark:border-pink-400/28 dark:bg-pink-950/20 dark:hover:border-pink-400/45',
   ].join(' ');
 
   const serviceFocusButton = (technology: 'GEO' | 'LEO') => (
@@ -908,12 +920,12 @@ function EngineeringHeaderScenarioBuilder({
       aria-pressed={draft.technology === technology}
       className="flex w-full min-w-0 items-center justify-between gap-2 rounded text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60"
     >
-      <span className={`inline-flex items-center gap-1.5 whitespace-nowrap text-[9px] font-black uppercase tracking-[0.13em] ${technology === 'GEO' ? 'text-emerald-700 dark:text-emerald-300' : 'text-sky-700 dark:text-sky-300'}`}>
+      <span className={`inline-flex items-center gap-1.5 whitespace-nowrap text-[9px] font-black uppercase tracking-[0.13em] ${technology === 'GEO' ? 'text-sky-700 dark:text-sky-300' : 'text-pink-700 dark:text-pink-300'}`}>
         {technology === 'GEO' ? <Satellite className="h-3.5 w-3.5" aria-hidden="true" /> : <Radio className="h-3.5 w-3.5" aria-hidden="true" />}
         {technology} service
       </span>
       {draft.technology === technology && (
-        <span className={`rounded-full px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.1em] ${technology === 'GEO' ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200' : 'bg-sky-500/15 text-sky-700 dark:text-sky-200'}`}>
+        <span className={`rounded-full px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.1em] ${technology === 'GEO' ? 'bg-sky-500/15 text-sky-700 dark:text-sky-200' : 'bg-pink-500/15 text-pink-700 dark:text-pink-200'}`}>
           Active
         </span>
       )}

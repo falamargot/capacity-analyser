@@ -1,6 +1,5 @@
 import { SatelliteData } from '../types/satellites';
 import { formatCoordinates } from '../utils/formatters';
-import { getActiveBeamCount } from '../utils/oneWebComb';
 import { calculateElevationAngle } from '../utils/capacityCalculator';
 import { JulianDate } from 'cesium';
 import { useState, useMemo } from 'react';
@@ -28,6 +27,7 @@ import type { RegulatoryResult } from '../services/regulatoryService';
 import type { BeamLoadResult } from '../utils/capacityLayer';
 import { PublicTranspondersSection } from './PublicTranspondersSection';
 import { formatNumber } from '../utils/formatters';
+import { useSimulationClock, useSimulationClockSnapshot } from '../contexts/SimulationClockContext';
 
 const formatLeoServiceZoneLabel = (elevationDeg: number | null): string => {
   if (elevationDeg === null || !Number.isFinite(elevationDeg)) return 'Below terminal elevation threshold';
@@ -179,11 +179,9 @@ const getSelectedSatellitePosition = (satellites: SatelliteData[], selectedSatel
 const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
   satellites,
   selectedSatellite,
-  selectedGeoMission = null,
   selectedGeoCoverageName = null,
   selectedGeoBeamId = null,
   visibleGeoCoverageKeys,
-  onSelectGeoMission,
   onSelectGeoCoverage,
   onSelectGeoBeam,
   onVisibleGeoCoverageKeysChange,
@@ -194,6 +192,8 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
   targetRegulatoryResult = null,
   targetBeamLoadResult = null,
 }) => {
+  const simulationClock = useSimulationClock();
+  const simulationClockSnapshot = useSimulationClockSnapshot();
   // NEW: Get coverage policy from simulation context
   const {
     coveragePolicy,
@@ -209,14 +209,24 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
   const currentSatellite = satellites.find(sat => sat.id === selectedSatellite.id);
   const effectiveSatellite = currentSatellite ?? selectedSatellite;
 
+  // Sampled when a fresh satellite sample arrives (one propagation tick) and on
+  // any clock command — not during render, which would defeat the SGP4 and
+  // RF-availability memos below on every render of this panel.
+  const scenarioTimeMs = useMemo(
+    () => simulationClock.getTimeMs(),
+    // Cadence keys, not values read by the callback.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [simulationClock, simulationClockSnapshot.revision, effectiveSatellite],
+  );
+
   // Orbital speed derived from the ECI velocity vector — updates whenever satellites prop updates
   const orbitalSpeedKms = useMemo(() => {
     const sat = effectiveSatellite;
-    const pv = satellite.propagate(sat.satrec, new Date());
+    const pv = satellite.propagate(sat.satrec, new Date(scenarioTimeMs));
     if (!pv || typeof pv.velocity === 'boolean' || !pv.velocity) return null;
     const v = pv.velocity as { x: number; y: number; z: number };
     return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-  }, [effectiveSatellite]);
+  }, [effectiveSatellite, scenarioTimeMs]);
 
   // Calculate nearest SNP for LEO satellites using current position (real-time)
   // Pass failedSnps so the nearest SNP lookup skips any failed ground stations
@@ -230,12 +240,12 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
     return hasRFConnectivity(
       activePoint,
       effectiveSatellite,
-      JulianDate.fromDate(new Date()),
+      JulianDate.fromDate(new Date(scenarioTimeMs)),
       {
         coveragePolicy,
         weatherCondition,
-        beamHealthFactors,
-        hsBeams: beamHsStatus,
+        beamHealthByIndex: new Map(beamHealthFactors.map((beam) => [beam.beamIndex, beam.healthFactor])),
+        hsBeams: new Set(beamHsStatus.flatMap((active, index) => active ? [index] : [])),
       }
     );
   }, [
@@ -245,6 +255,7 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
     coveragePolicy,
     effectiveSatellite,
     isOperational,
+    scenarioTimeMs,
     weatherCondition,
   ]);
 

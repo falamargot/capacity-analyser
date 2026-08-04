@@ -16,8 +16,8 @@ import type { TerminalType } from './TerminalConfig';
 import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
 import type { LeoBottleneckFactor, LeoThroughputLeg, LeoThroughputResult } from '../../types/leoThroughput';
 import { buildLeoSingleSiteConfidence, type PredictionConfidence } from '../../utils/predictionConfidence';
-import { buildLinkAvailabilityContext, formatLinkAvailabilityContext } from '../../utils/linkAvailabilityContext';
-import { isEngineeringDeliveryState, type EngineeringAnalysisViewModel } from '../../utils/engineeringAnalysisViewModel';
+import { buildLinkAvailabilityContext } from '../../utils/linkAvailabilityContext';
+import { buildLeoEngineeringAnalysisViewModel, isEngineeringDeliveryState, type EngineeringAnalysisViewModel } from '../../utils/engineeringAnalysisViewModel';
 import { fmtDb, fmtMs } from '../../utils/engineeringFormat';
 import { deriveLegLinkMarginDb } from '../../utils/leoBottleneck';
 import LatencyBreakdownCard from './shared/LatencyBreakdownCard';
@@ -91,12 +91,12 @@ export interface LEOGeometry {
 }
 
 export interface LEOPerformance {
-  rtt: number;
+  rtt?: number;
   downlinkGbps: number;
   uplinkGbps: number;
   stability: string;
   performanceFactor: number;
-  footprintFactor: number;
+  footprintFactor?: number;
   weatherFactor: number;
   weatherLabel: string;
   /**
@@ -152,14 +152,6 @@ const LIMITING_FACTOR_BADGE: Record<NonNullable<LimitingFactor>, { label: string
 };
 
 const fmtMhz = (hz: number) => `${(hz / 1e6).toFixed(0)} MHz`;
-
-// Atom: one label + value row used in the geometry and RF sections
-const MetricRow = ({ label, value, mono = true }: { label: string; value: string | number; mono?: boolean }) => (
-  <div>
-    <span className="block text-[9px] text-slate-500">{label}</span>
-    <span className={`text-[11px] text-slate-200 font-medium ${mono ? 'tabular-nums font-mono' : ''}`}>{value}</span>
-  </div>
-);
 
 const CockpitTile = ({
   label,
@@ -949,7 +941,7 @@ interface LEOConnectivitySectionProps {
   resolvedLEOConnectivity: ResolvedLEOConnectivity | null;
   leoGeometry: LEOGeometry | null;
   leoPerformance: LEOPerformance | null;
-  mobileLeoMetrics: { rtt: number; downlinkGbps: number; uplinkGbps: number } | null;
+  mobileLeoMetrics: { rtt?: number | null; downlinkGbps: number; uplinkGbps: number } | null;
   activePoint: { lat: number; lng: number; altitude?: number } | null;
   terminalType: TerminalType;
   onTerminalTypeChange: (type: TerminalType) => void;
@@ -1042,7 +1034,6 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   onLeoTopologyModeChange,
   siteToSiteResult = undefined,
   pointBLeo = null,
-  isPointBLeoArmed = false,
   activeMeshTab,
   terminalTypeB,
   onTerminalTypeBChange,

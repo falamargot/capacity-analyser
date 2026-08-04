@@ -99,7 +99,7 @@ export function selectMeasurementProbe(): OrbitalAlignmentProbe | null {
   return best;
 }
 
-/** Cesium clock − system clock, in ms. Supplied by the globe; a number, never the clock. */
+/** Cesium clock − scenario clock, in ms. Supplied by the globe; a number, never the clock. */
 let clockDeltaReader: (() => number) | null = null;
 
 export function registerCesiumClockDeltaReader(reader: () => number): () => void {
@@ -116,6 +116,8 @@ export function registerCesiumClockDeltaReader(reader: () => number): () => void
 export interface CesiumFrameProbe {
   /** Cesium clock currentTime as epoch ms. */
   getClockTimeMs: () => number;
+  /** Authoritative scenario time as epoch ms. */
+  getScenarioTimeMs: () => number;
   /** Subscribes to postRender; returns an unsubscribe. */
   addPostRenderListener: (callback: () => void) => () => void;
 }

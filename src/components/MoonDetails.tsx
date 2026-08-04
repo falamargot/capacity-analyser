@@ -4,6 +4,7 @@ import { JulianDate } from 'cesium';
 import { formatCoordinates, formatNumber as formatLocaleNumber } from '../utils/formatters';
 import { getMoonSnapshot, MOON_MEAN_RADIUS_KM } from '../utils/moonInfo';
 import { useSecondTick } from '../hooks/useSecondTick';
+import { useSimulationClock, useSimulationClockSnapshot } from '../contexts/SimulationClockContext';
 
 interface MoonDetailsProps {
   compactDesktop?: boolean;
@@ -18,10 +19,24 @@ const MoonDetails: React.FC<MoonDetailsProps> = ({
   compactDesktop = false,
   externalHeader = false,
 }) => {
+  const simulationClock = useSimulationClock();
+  const simulationClockSnapshot = useSimulationClockSnapshot();
   const tick = useSecondTick();
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const snapshot = useMemo(() => getMoonSnapshot(JulianDate.fromDate(new Date())), [tick]);
+  // Sampled on the one-second tick, never during render: reading the clock in
+  // the render body gives a new value on every render, which turns any memo
+  // keyed on it into a plain recomputation.
+  const scenarioTimeMs = useMemo(
+    () => simulationClock.getTimeMs(),
+    // Cadence keys, not values read by the callback.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [simulationClock, simulationClockSnapshot.revision, tick],
+  );
+
+  const snapshot = useMemo(
+    () => getMoonSnapshot(JulianDate.fromDate(new Date(scenarioTimeMs))),
+    [scenarioTimeMs],
+  );
   const illuminatedPercent = Math.round(snapshot.illuminatedFraction * 100);
   const containerClassName = externalHeader
     ? 'space-y-4'
@@ -36,7 +51,7 @@ const MoonDetails: React.FC<MoonDetailsProps> = ({
           </div>
           <h2 className="text-2xl font-semibold text-slate-950 dark:text-slate-50">Moon</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Real-time lunar ephemeris and illumination relative to Earth.
+            Lunar ephemeris and illumination at the displayed scenario time.
           </p>
         </div>
       )}

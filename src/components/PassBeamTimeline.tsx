@@ -37,6 +37,7 @@ import type { BeamHealthData } from '../utils/realisticSimulation';
 import { buildSimulationStateSnapshot } from '../types/simulation';
 import { useSimulation } from '../contexts/SimulationContext';
 import { countActiveBeams } from '../utils/beamActivation';
+import { useSimulationClock, useSimulationClockSnapshot } from '../contexts/SimulationClockContext';
 
 // ─────────────────────────────────────────────────────────────────
 // Types
@@ -125,8 +126,23 @@ const PassBeamTimeline: React.FC<PassBeamTimelineProps> = ({
   beamHealthFactors,
   maxDlMbps,
 }) => {
+  const simulationClock = useSimulationClock();
+  const simulationClockSnapshot = useSimulationClockSnapshot();
   const [isOpen, setIsOpen] = useState(false);
   const { coveragePolicy } = useSimulation();
+
+  // Re-read the scenario instant on the cadence a fresh satellite sample
+  // arrives on — one propagation tick — plus immediately on any clock command.
+  //
+  // Reading the clock in the render body instead would hand the timeline memo
+  // below a new key on EVERY render of the LEO panel, and that memo is 41 SGP4
+  // propagations, 41 GSO keep-out evaluations and 41 beam-polygon lookups.
+  const scenarioTimeMs = useMemo(
+    () => simulationClock.getTimeMs(),
+    // Cadence keys, not values read by the callback.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [simulationClock, simulationClockSnapshot.revision, satellite],
+  );
 
   // ── Compute the timeline (memoized on satellite + user position) ────────────
   const timeline = useMemo((): TimelinePoint[] => {
@@ -139,7 +155,7 @@ const PassBeamTimeline: React.FC<PassBeamTimelineProps> = ({
       hsBeams,
     });
 
-    const now = Date.now();
+    const now = scenarioTimeMs;
     const points: TimelinePoint[] = [];
 
     for (let step = 0; step <= TOTAL_STEPS; step++) {
@@ -220,7 +236,17 @@ const PassBeamTimeline: React.FC<PassBeamTimelineProps> = ({
     }
 
     return points;
-  }, [satellite, userPosition, failedSnps, hsBeams, weatherCondition, beamHealthFactors, maxDlMbps, coveragePolicy]);
+  }, [
+    satellite,
+    userPosition,
+    failedSnps,
+    hsBeams,
+    weatherCondition,
+    beamHealthFactors,
+    maxDlMbps,
+    coveragePolicy,
+    scenarioTimeMs,
+  ]);
 
   // Summary stats
   const inPassPoints    = timeline.filter(p => p.elevation > 0);

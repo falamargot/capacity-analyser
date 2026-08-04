@@ -8,6 +8,11 @@ interface VesselSelectorProps {
     onSelect: (vessel: Vessel | null) => void;
     liveModeEnabled: boolean;
     onToggleLiveMode: () => void;
+    disabled?: boolean;
+    /** Short in-field text for THIS disabled state — see AircraftSelector. */
+    disabledLabel?: string;
+    /** Long-form tooltip for the same state. */
+    disabledReason?: string;
 }
 
 const VesselSelector: React.FC<VesselSelectorProps> = ({
@@ -15,7 +20,10 @@ const VesselSelector: React.FC<VesselSelectorProps> = ({
     selectedVessel,
     onSelect,
     liveModeEnabled,
-    onToggleLiveMode
+    onToggleLiveMode,
+    disabled = false,
+    disabledLabel,
+    disabledReason,
 }) => {
     // Sort vessels by B2B priority (highest first), then by name
     const sortedVessels = [...vessels].sort((a, b) => {
@@ -62,11 +70,14 @@ const VesselSelector: React.FC<VesselSelectorProps> = ({
                 <select
                     value={selectedVessel?.mmsi || ''}
                     onChange={(e) => handleVesselSelect(e.target.value)}
-                    disabled={!liveModeEnabled}
+                    disabled={!liveModeEnabled || disabled}
+                    title={disabled ? disabledReason : undefined}
                     className="w-full min-w-0 pl-10 pr-8 py-2 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 disabled:bg-gray-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed transition-colors"
                 >
                     <option value="">
-                        {liveModeEnabled
+                        {disabled
+                            ? disabledLabel ?? 'Unavailable'
+                            : liveModeEnabled
                             ? `Select vessel... (${vessels.length})`
                             : 'Enable live mode'
                         }
@@ -90,11 +101,12 @@ const VesselSelector: React.FC<VesselSelectorProps> = ({
 
             <button
                 onClick={onToggleLiveMode}
+                disabled={disabled}
                 className={`shrink-0 flex items-center justify-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${liveModeEnabled
                         ? 'bg-green-600 text-white hover:bg-green-700'
                         : 'text-gray-700 bg-gray-200 hover:bg-gray-300 dark:bg-slate-700 dark:text-gray-300 dark:hover:bg-slate-600'
                     }`}
-                title={liveModeEnabled ? 'Disable live vessel data' : 'Enable live vessel data'}
+                title={disabled ? disabledReason : liveModeEnabled ? 'Disable live vessel data' : 'Enable live vessel data'}
             >
                 <Power className="h-4 w-4" />
             </button>

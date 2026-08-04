@@ -44,6 +44,7 @@ interface GlobeIntelligenceRailProps {
     onToggleAirTraffic: () => void;
     maritimeTrafficEnabled: boolean;
     onToggleMaritimeTraffic: () => void;
+    liveTrafficAvailable?: boolean;
     issLiveEnabled: boolean;
     onToggleIssLive: () => void;
     // Category B (display preferences, behind ⋯)
@@ -185,6 +186,7 @@ const GlobeIntelligenceRail: React.FC<GlobeIntelligenceRailProps> = ({
     onToggleAirTraffic,
     maritimeTrafficEnabled,
     onToggleMaritimeTraffic,
+    liveTrafficAvailable = true,
     issLiveEnabled,
     onToggleIssLive,
     enableLighting,
@@ -369,15 +371,17 @@ const GlobeIntelligenceRail: React.FC<GlobeIntelligenceRailProps> = ({
                 icon={<Plane className="h-4 w-4" />}
                 label="AIR"
                 active={airTrafficEnabled}
+                disabled={!liveTrafficAvailable}
                 onClick={onToggleAirTraffic}
-                title="Aircraft traffic layer"
+                title={liveTrafficAvailable ? 'Aircraft traffic layer' : 'Aircraft live feed is unavailable during time simulation. Return to current time.'}
             />
             <RailButton
                 icon={<Ship className="h-4 w-4" />}
                 label="SEA"
                 active={maritimeTrafficEnabled}
+                disabled={!liveTrafficAvailable}
                 onClick={onToggleMaritimeTraffic}
-                title="Maritime traffic layer"
+                title={liveTrafficAvailable ? 'Maritime traffic layer' : 'Maritime live feed is unavailable during time simulation. Return to current time.'}
             />
             <RailButton
                 icon={<Satellite className="h-4 w-4" />}
@@ -485,14 +489,16 @@ const GlobeIntelligenceRail: React.FC<GlobeIntelligenceRailProps> = ({
                                 label="Aircraft"
                                 enabled={airTrafficEnabled}
                                 onClick={onToggleAirTraffic}
-                                title="Aircraft traffic layer"
+                                title={liveTrafficAvailable ? 'Aircraft traffic layer' : 'Aircraft live feed is unavailable during time simulation. Return to current time.'}
+                                disabled={!liveTrafficAvailable}
                             />
                             <OverflowToggleRow
                                 icon={<Ship className="h-3.5 w-3.5" />}
                                 label="Maritime"
                                 enabled={maritimeTrafficEnabled}
                                 onClick={onToggleMaritimeTraffic}
-                                title="Maritime traffic layer"
+                                title={liveTrafficAvailable ? 'Maritime traffic layer' : 'Maritime live feed is unavailable during time simulation. Return to current time.'}
+                                disabled={!liveTrafficAvailable}
                             />
                             <OverflowToggleRow
                                 icon={<Satellite className="h-3.5 w-3.5" />}

@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  MIN_USER_TERMINAL_ELEVATION_DEG,
   STANDARD_SERVICE_ELEVATION_DEG,
   STANDARD_ELEVATION_DEG,
   footprintRadiusKm,

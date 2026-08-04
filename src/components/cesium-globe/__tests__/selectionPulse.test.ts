@@ -191,12 +191,12 @@ describe('createSelectionPulseProperties', () => {
 
     props.apply(1);
     expect(props.ringRadius.getValue()).toBeCloseTo(40000 * 1.55, 6);
-    const peak = props.ringMaterial.color.getValue() as Color;
+    const peak = props.ringMaterial.color!.getValue() as Color;
     expect(peak.alpha).toBeCloseTo(0.3, 6);
 
     props.apply(SETTLED_PULSE);
     expect(props.ringRadius.getValue()).toBeCloseTo(40000, 6);
-    const settled = props.ringMaterial.color.getValue() as Color;
+    const settled = props.ringMaterial.color!.getValue() as Color;
     expect(settled.alpha).toBeCloseTo(0.12, 6);
   });
 
@@ -218,7 +218,7 @@ describe('createSelectionPulseProperties', () => {
     });
 
     props.apply(1);
-    expect((props.ringMaterial.color.getValue() as Color).alpha).toBeCloseTo(0.15, 6);
+    expect((props.ringMaterial.color!.getValue() as Color).alpha).toBeCloseTo(0.15, 6);
     expect((props.outlineColor.getValue() as Color).alpha).toBeCloseTo(0.425, 6);
   });
 

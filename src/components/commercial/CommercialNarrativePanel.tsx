@@ -1,8 +1,6 @@
 import { memo, type ReactNode } from 'react';
 import {
   AlertTriangle,
-  ArrowDown,
-  ArrowUp,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -13,7 +11,6 @@ import {
   SatelliteDish,
   Star,
   Target,
-  Timer,
   X,
 } from 'lucide-react';
 import type { CommercialRouteModel, CommercialRouteSegmentId } from '../../types/commercialRouteModel';
@@ -603,7 +600,6 @@ function DestinationReceiveDiagram({ isGateway, endpointLabel }: { isGateway: bo
 function ServiceDeliveryBlock({
   card,
   viewModel,
-  commercialRouteModel,
 }: {
   card: CommercialNarrativeCardModel;
   viewModel: CommercialScenarioViewModel;
@@ -871,7 +867,6 @@ function CommercialNarrativePanel({
   commercialRouteModel,
   isOpen,
   onClose,
-  onViewFullAnalysis,
   onOpenCustomerDecision,
 }: CommercialNarrativePanelProps) {
   const card = buildCommercialNarrativeCardModel({

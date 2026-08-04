@@ -8,7 +8,7 @@ import type { TrafficTeleportCapability } from '../../../utils/geoGroundInfrastr
 import type { CandidateCoverage } from '../../../types/analysis';
 import type { SatelliteData } from '../../../types/satellites';
 import { GEO_GATEWAYS } from '../../globe/GlobeConfig';
-import { resolveStarTrafficGatewayForCoverage, type StarTrafficGatewaySelection } from '../../../utils/geoConnectivityModel';
+import { isServedStarGatewaySelection, resolveStarTrafficGatewayForCoverage, type StarTrafficGatewaySelection } from '../../../utils/geoConnectivityModel';
 import { buildGeoEngineeringAnalysisViewModel } from '../../../utils/engineeringAnalysisViewModel';
 import { activeGeoServiceDirection, resolveGeoRouteDelivery } from '../../../utils/geoDeliveryChain';
 
@@ -327,7 +327,9 @@ const resolveSelection = (
 } => {
   const selectedCoverage = createBeamCandidate(satellite, beamId, linkMode === 'STAR_RETURN');
   const selection = resolveStarTrafficGatewayForCoverage(satellite, selectedCoverage, GEO_GATEWAYS);
-  if (!selection) throw new Error(`Missing STAR gateway selection for ${satellite.name} beam ${beamId}`);
+  if (!isServedStarGatewaySelection(selection)) {
+    throw new Error(`Missing STAR gateway selection for ${satellite.name} beam ${beamId}`);
+  }
   return { selection, selectedCoverage };
 };
 

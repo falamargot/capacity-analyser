@@ -189,14 +189,6 @@ function selectedConstraint(
   return clean(segment?.limitation) ?? clean(viewModel.primaryWarning);
 }
 
-function routeParticipantLabel(segment: CommercialRouteSegment | undefined): string {
-  if (!segment) return 'Pending';
-  if (segment.isRouteParticipant) return 'Confirmed';
-  if (segment.status === 'blocked') return 'Not available';
-  if (segment.status === 'unknown') return 'Pending confirmation';
-  return customerStateLabel[segment.customerStatus];
-}
-
 function nodeLabelsForSegment(
   routeModel: CommercialRouteModel | undefined,
   segmentId: CommercialRouteSegmentId,
@@ -288,12 +280,6 @@ function serviceOutcomeStatement(viewModel: CommercialScenarioViewModel): string
     return 'No commercial service path is currently available.';
   }
   return 'The commercial recommendation is waiting for route data.';
-}
-
-function destinationTitle(viewModel: CommercialScenarioViewModel): string {
-  if (viewModel.display.destinationEndpointKind === 'geo_gateway') return 'Traffic Gateway Destination';
-  if (viewModel.siteB) return 'Customer Destination';
-  return 'Receiving Site';
 }
 
 function destinationNarrativeStatement(

@@ -50,9 +50,9 @@ const beamLoad = (capacityStatus: BeamLoadResult['capacityStatus']): BeamLoadRes
 
 const plannedBeamLoad = (capacityStatus: BeamLoadResult['capacityStatus'] = 'NOMINAL'): BeamLoadResult => ({
   ...beamLoad(capacityStatus),
-  loadSource: 'fillRate',
+  loadSource: 'reference',
   loadDataMode: 'calibrated_network_load_model',
-  method: 'fillRateAdjusted',
+  method: 'networkLoadModel',
 });
 
 const baseArgs = {

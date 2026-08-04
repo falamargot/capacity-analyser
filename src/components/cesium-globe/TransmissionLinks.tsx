@@ -124,12 +124,6 @@ const geoBackhaulSecondaryMaterial = new PolylineDashMaterialProperty({
     dashPattern: 3855
 });
 
-const pointToPointMaterial = new PolylineGlowMaterialProperty({
-    color: Color.fromCssColorString('#f59e0b').withAlpha(0.95),
-    glowPower: 0.18,
-    taperPower: 0.35,
-});
-
 // MESH/P2P full-path glow — colours the long Sat link so it's visible at any zoom.
 // Transmit leg: orange glow
 const meshTransmitMaterial = new PolylineGlowMaterialProperty({

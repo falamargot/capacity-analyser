@@ -3,7 +3,8 @@
  *
  * Protocol:
  *   init      { type: 'init', satellites: [{id, satrec}] }        → (no response)
- *   propagate { type: 'propagate', requestId, timestamp }         → { requestId, timestamp, positions }
+ *   propagate { type: 'propagate', requestId, timelineRevision,
+ *               timestamp, renderTimestamp }                     → exact + render positions
  *
  * `requestId` is echoed untouched so the caller can tell a current response
  * from a superseded one. The worker itself is stateless per request: it never
@@ -15,39 +16,13 @@
  */
 
 import * as satellite from 'satellite.js';
+import type {
+  SatellitePositionWorkerInput,
+  SatellitePositionWorkerOutput,
+  SatellitePositionWorkerPosition,
+} from './satellitePositionProtocol';
 
 // ─── Message contract ─────────────────────────────────────────────────────────
-
-interface SatInput {
-  id: string;
-  satrec: satellite.SatRec;
-}
-
-interface PosResult {
-  id: string;
-  lat: number;
-  lng: number;
-  alt: number;
-  sampleTimeMs: number;
-  /**
-   * False when SGP4 propagation failed (bad TLE, decayed orbit, numerical divergence).
-   * Consumers must exclude satellites with isValid === false from all rendering and
-   * coverage/connectivity logic — never treat (0, 0, 0) as a real position.
-   */
-  isValid: boolean;
-}
-
-type WorkerInMessage =
-  | { type: 'init'; satellites: SatInput[] }
-  | { type: 'propagate'; requestId: number; timestamp: number };
-
-export interface WorkerOutput {
-  /** Echo of the request's id — the caller drops responses that are not current. */
-  requestId: number;
-  /** Echo of the UTC instant propagated to. */
-  timestamp: number;
-  positions: PosResult[];
-}
 
 // ─── Satrec cache — persists across ticks ────────────────────────────────────
 
@@ -55,9 +30,19 @@ const satrecCache = new Map<string, satellite.SatRec>();
 
 // ─── Propagation ──────────────────────────────────────────────────────────────
 
-const ctx = self as unknown as DedicatedWorkerGlobalScope;
+interface SatellitePositionWorkerContext {
+  addEventListener(
+    type: 'message',
+    listener: (event: MessageEvent<SatellitePositionWorkerInput>) => void,
+  ): void;
+  postMessage(message: SatellitePositionWorkerOutput): void;
+}
 
-ctx.addEventListener('message', (event: MessageEvent<WorkerInMessage>) => {
+// Keep the worker contract local: tsconfig.app intentionally includes DOM but
+// not the full WebWorker lib, whose globals conflict with DOM declarations.
+const ctx = self as unknown as SatellitePositionWorkerContext;
+
+ctx.addEventListener('message', (event: MessageEvent<SatellitePositionWorkerInput>) => {
   const msg = event.data;
 
   if (msg.type === 'init') {
@@ -69,34 +54,44 @@ ctx.addEventListener('message', (event: MessageEvent<WorkerInMessage>) => {
   }
 
   // type === 'propagate'
-  const { requestId, timestamp } = msg;
-  const date = new Date(timestamp);
-
-  // Compute GMST once per tick — reused for every satellite's ECI → geodetic conversion.
-  const gmst = satellite.gstime(date);
-
-  const positions: PosResult[] = [];
-  for (const [id, satrec] of satrecCache) {
-    try {
-      const pv = satellite.propagate(satrec, date);
-      if (pv?.position && typeof pv.position !== 'boolean') {
-        const geo = satellite.eciToGeodetic(pv.position, gmst);
-        positions.push({
-          id,
-          lat: satellite.degreesLat(geo.latitude),
-          lng: satellite.degreesLong(geo.longitude),
-          alt: geo.height,
-          sampleTimeMs: timestamp,
-          isValid: true,
-        });
-        continue;
+  const { requestId, timelineRevision, timestamp, renderTimestamp } = msg;
+  const propagateAt = (sampleTimeMs: number): SatellitePositionWorkerPosition[] => {
+    const date = new Date(sampleTimeMs);
+    const gmst = satellite.gstime(date);
+    const result: SatellitePositionWorkerPosition[] = [];
+    for (const [id, satrec] of satrecCache) {
+      try {
+        const pv = satellite.propagate(satrec, date);
+        if (pv?.position && typeof pv.position !== 'boolean') {
+          const geo = satellite.eciToGeodetic(pv.position, gmst);
+          result.push({
+            id,
+            lat: satellite.degreesLat(geo.latitude),
+            lng: satellite.degreesLong(geo.longitude),
+            alt: geo.height,
+            sampleTimeMs,
+            isValid: true,
+          });
+          continue;
+        }
+      } catch {
+        // Propagation errors (decayed orbit, bad TLE) fall through to the invalid sentinel.
       }
-    } catch {
-      // Propagation errors (decayed orbit, bad TLE) fall through to the invalid sentinel.
+      // Do NOT use (0, 0, 0) as a real position — that is the Gulf of Guinea.
+      result.push({ id, lat: 0, lng: 0, alt: 0, sampleTimeMs, isValid: false });
     }
-    // Do NOT use (0, 0, 0) as a real position — that is the Gulf of Guinea.
-    positions.push({ id, lat: 0, lng: 0, alt: 0, sampleTimeMs: timestamp, isValid: false });
-  }
+    return result;
+  };
 
-  ctx.postMessage({ requestId, timestamp, positions } satisfies WorkerOutput);
+  const positions = propagateAt(timestamp);
+  const renderPositions = renderTimestamp === timestamp ? positions : propagateAt(renderTimestamp);
+
+  ctx.postMessage({
+    requestId,
+    timelineRevision,
+    timestamp,
+    renderTimestamp,
+    positions,
+    renderPositions,
+  } satisfies SatellitePositionWorkerOutput);
 });

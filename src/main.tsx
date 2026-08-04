@@ -6,6 +6,7 @@ import { Ion } from 'cesium';
 import App from './App';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { SimulationProvider } from './contexts/SimulationContext';
+import { SimulationClockProvider } from './contexts/SimulationClockContext';
 import { installMemoryMonitor } from './utils/memoryMonitor';
 import { configureRuntimeProfiler, installRuntimeProfiler, recordReactCommit, ROOT_PROFILER_ID } from './utils/runtimeProfiler';
 import './index.css';
@@ -52,9 +53,11 @@ if (!rootElement) {
 // zero-cost guarantee explicit rather than assumed.
 const app = (
   <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-    <SimulationProvider>
-      <App />
-    </SimulationProvider>
+    <SimulationClockProvider>
+      <SimulationProvider>
+        <App />
+      </SimulationProvider>
+    </SimulationClockProvider>
   </ThemeProvider>
 );
 

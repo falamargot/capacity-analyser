@@ -306,7 +306,7 @@ export function getEffectiveBeamRadiusKm(
   activeBeamCount: number,
   healthFactor: number,
   weather: WeatherCondition,
-  thresholdDb: number = -10
+  _thresholdDb: number = -10
 ): number {
   // 1. Scan loss scale factor
   const scanLossLinear = getScanLossLinear(beamIndex);

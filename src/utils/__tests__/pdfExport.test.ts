@@ -73,6 +73,9 @@ describe('PDF pagination', () => {
         availabilityContext: 'Indicative only; not an SLA',
       },
       dataProvenance: buildDataProvenance({ architecture: 'GEO', generatedAt }),
+      simulationTime: '2026-08-04T13:49:31.000Z',
+      simulationMode: 'simulation',
+      simulationSpeed: -5,
       globeElement: null,
     };
 
@@ -85,6 +88,7 @@ describe('PDF pagination', () => {
     expect(pageText[1]).not.toContain('RECOMMENDATION');
     expect(pageText.some((page) => page.includes('DECISION EVIDENCE'))).toBe(true);
     expect(pageText.some((page) => page.includes('DATA PROVENANCE'))).toBe(true);
+    expect(pageText.every((page, index) => index === 0 || page.includes('SIMULATION / 2026-08-04T13:49:31.000Z / -5x'))).toBe(true);
     expect(pageText.every((page, index) => index === 0 || page.includes(`Page ${index}/${pdf.getNumberOfPages()}`))).toBe(true);
   });
 });

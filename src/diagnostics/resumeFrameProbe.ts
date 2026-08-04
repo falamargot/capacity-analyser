@@ -36,16 +36,22 @@ export interface ResumeFrameRecord {
   /** Frames captured since the resume; 1 is the first rendered frame. */
   frameIndex: number;
   firstFrameAfterResume: boolean;
+  /** Authoritative scenario instant the frame was measured against. */
+  scenarioUtcMs: number;
   /** Wall clock at the moment the frame finished rendering. */
-  systemUtcMs: number;
+  wallClockMs: number;
   /** Cesium clock currentTime for that same frame. */
   cesiumClockMs: number;
-  /** cesiumClockMs − systemUtcMs. Negative means the scene is behind real time. */
+  /**
+   * cesiumClockMs − scenarioUtcMs. Negative means the scene is behind the
+   * authoritative timeline. Both clocks are scenario clocks, so this stays a
+   * meaningful drift measurement in simulated time as well as in LIVE mode.
+   */
   clockSkewMs: number;
-  /** How long the tab had been hidden. */
+  /** How long the tab had been hidden, in REAL time. */
   hiddenForMs: number;
   satelliteId: string;
-  /** What the billboard was drawing: interpolated from Date.now(). */
+  /** What the billboard was drawing: interpolated from the scenario clock. */
   marker: { lat: number; lng: number; alt: number };
   /** What a route endpoint would be: SGP4 at the Cesium clock time. */
   routeEndpoint: { lat: number; lng: number; alt: number } | null;
@@ -88,7 +94,11 @@ function captureFrame(): void {
   const probe = selectMeasurementProbe();
   if (!frames || !probe) return;
 
-  const systemUtcMs = Date.now();
+  const scenarioUtcMs = frames.getScenarioTimeMs();
+  // Kept separate from the scenario instant on purpose: "how long was the tab
+  // hidden" is a real-time question, and under simulated playback the two
+  // diverge by the playback rate.
+  const wallClockMs = Date.now();
   const cesiumClockMs = frames.getClockTimeMs();
 
   // One sampled satellite — and it must be one we can BOTH read a marker for
@@ -99,7 +109,7 @@ function captureFrame(): void {
   const satrecById = new Map(probe.getSatrecs().map((s) => [s.id, s.satrec as satellite.SatRec]));
   const candidateId = probe.getRenderedSatelliteIds().find((id) => satrecById.has(id));
   if (!candidateId) return;
-  const [marker] = probe.sampleDisplayed([candidateId], systemUtcMs);
+  const [marker] = probe.sampleDisplayed([candidateId], scenarioUtcMs);
   if (!marker) return;
 
   const satrec = satrecById.get(candidateId);
@@ -111,10 +121,11 @@ function captureFrame(): void {
   records.push({
     frameIndex,
     firstFrameAfterResume: frameIndex === 1,
-    systemUtcMs,
+    scenarioUtcMs,
+    wallClockMs,
     cesiumClockMs,
-    clockSkewMs: cesiumClockMs - systemUtcMs,
-    hiddenForMs: hiddenAtMs ? systemUtcMs - hiddenAtMs : 0,
+    clockSkewMs: cesiumClockMs - scenarioUtcMs,
+    hiddenForMs: hiddenAtMs ? wallClockMs - hiddenAtMs : 0,
     satelliteId: candidateId,
     marker: { lat: marker.lat, lng: marker.lng, alt: marker.alt },
     routeEndpoint,
@@ -230,7 +241,7 @@ export function formatResumeFrameReport(input: ResumeFrameRecord[] = records): s
   const verdict = evaluateResumeFrames(input);
   return [
     `── post-resume frames · ${verdict.frames} captured · ${verdict.pass ? 'PASS' : 'BREACH'} ──`,
-    `  worst |cesium−system| : ${verdict.worstClockSkewMs.toFixed(1)} ms  (limit ${RESUME_FRAME_CLOCK_SKEW_LIMIT_MS} ms)`,
+    `  worst |cesium−scenario| : ${verdict.worstClockSkewMs.toFixed(1)} ms  (limit ${RESUME_FRAME_CLOCK_SKEW_LIMIT_MS} ms)`,
     `  worst marker↔route    : ${verdict.worstMarkerToRouteM.toFixed(1)} m  (limit ${RESUME_FRAME_MARKER_ROUTE_LIMIT_M} m)`,
     `  unavailable comparison: ${verdict.unavailableMarkerToRoute}`,
     '',

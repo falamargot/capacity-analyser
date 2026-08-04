@@ -29,12 +29,15 @@ import {
     JulianDate,
     ImageryLayer,
     Simon1994PlanetaryPositions,
-    createDefaultImageryProviderViewModels,
     BoundingSphere,
     HeadingPitchRange,
     Rectangle,
     type ProviderViewModel
 } from 'cesium';
+// Cesium 1.142 exposes this runtime factory but omits it from the package's
+// generated public declarations. Keep the workaround isolated at the boundary.
+// @ts-expect-error -- missing upstream declaration for an exported widget factory
+import createDefaultImageryProviderViewModels from '@cesium/widgets/Source/BaseLayerPicker/createDefaultImageryProviderViewModels.js';
 import { Feature, Geometry, GeoJsonProperties } from 'geojson';
 import type { SatelliteData } from '../types/satellites';
 import type { Aircraft } from '../modules/airTraffic/airTrafficService';
@@ -77,7 +80,8 @@ import SelectedCountryOutline from './cesium-globe/SelectedCountryOutline';
 import SelectedPointStatusMarker, { SelectionPulseMarker } from './cesium-globe/SelectedPointStatusMarker';
 import { registerCesiumClockDeltaReader, registerCesiumFrameProbe } from '../diagnostics/orbitalAlignmentProbe';
 import { usePositionCallbacks } from './cesium-globe/hooks';
-import { configureLiveCesiumClock } from './cesium-globe/liveClock';
+import { configureCesiumClock } from './cesium-globe/liveClock';
+import { useSimulationClock, useSimulationClockSnapshot } from '../contexts/SimulationClockContext';
 
 // UI components
 import GlobeIntelligenceRail from './cesium-globe/GlobeIntelligenceRail';
@@ -100,7 +104,7 @@ import {
   buildLeoS2SSectionB,
 } from './cesium-globe/siteTooltipHelpers';
 import MoonLayer from './cesium-globe/MoonLayer';
-import { GEO_GATEWAYS, SNPS_DATA, type GeoGatewayData, type SNPData } from './globe/GlobeConfig';
+import { SNPS_DATA, type GeoGatewayData, type SNPData } from './globe/GlobeConfig';
 import type { ResolvedGeoGateway } from '../utils/geoConnectivityModel';
 import { getCoverageGroupId } from '../utils/geoCoverageSelection';
 import { isOperationalSatellite } from '../utils/satelliteStatus';
@@ -150,6 +154,9 @@ const formatCommercialFrequencyBand = (band: CandidateCoverage['band'] | undefin
 // Narrative altitudes used by commercial camera framing.
 const COMM_GEO_ALT_KM = 20_000;
 const COMM_LEO_ALT_KM = 2_000;
+const ACTIVE_CONTEXT_GEO_SATELLITE_PITCH_RADIANS = -CesiumMath.toRadians(72);
+const ACTIVE_CONTEXT_LEO_SATELLITE_PITCH_RADIANS = -CesiumMath.toRadians(52);
+const ACTIVE_CONTEXT_GEO_COVERAGE_PITCH_RADIANS = -CesiumMath.toRadians(76);
 
 interface CommercialGeoCoverageFocusFrame {
     sphere: BoundingSphere;
@@ -982,7 +989,7 @@ export interface CallbackProps {
     onAircraftClick: (aircraft: Aircraft | null) => void;
     onAircraftHover: (aircraft: Aircraft | null) => void;
     onVesselClick: (vessel: Vessel | null) => void;
-    onVesselHover: undefined;
+    onVesselHover?: (vessel: Vessel | null) => void;
     onIssClick: () => void;
     onToggleFullscreen: () => void;
     onToggleLighting: () => void;
@@ -1021,6 +1028,7 @@ interface CesiumGlobeProps {
     leoSiteToSiteFullResult?: import('../utils/leoSiteToSiteModel').LeoSiteToSiteResult | null;
     commercialState: CommercialStateProps;
     onCommercialSelectedSegmentChange?: (segmentId: string) => void;
+    onToggleSimulationSettings?: () => void;
     /** GEO gateway resolved for the auto-selected GEO satellite. Computed in App.tsx. */
     resolvedAutoGeoGateway?: ResolvedGeoGateway | null;
     /** GEO gateway resolved for the manually selected GEO satellite. Computed in App.tsx. */
@@ -1029,7 +1037,6 @@ interface CesiumGlobeProps {
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     satellites,
-    satelliteTypeByName,
     coverageFeatures,
     selectionAnalysisProps,
     callbackProps,
@@ -1047,9 +1054,12 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     leoSiteToSiteFullResult = null,
     commercialState,
     onCommercialSelectedSegmentChange,
+    onToggleSimulationSettings,
     resolvedAutoGeoGateway = null,
     resolvedSelectedGeoGateway = null,
 }) => {
+    const simulationClock = useSimulationClock();
+    const simulationClockSnapshot = useSimulationClockSnapshot();
     const engineeringFocus = useEngineeringFocus();
     const engineeringAnalyticalStage = !commercialState?.commercialMode
         && engineeringFocus.focus.kind === 'locked'
@@ -1309,17 +1319,12 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             byName.set(normalizeBasemapName(viewModel.name), viewModel);
         }
 
-        return DESIRED_BASEMAPS
-            .map((entry) => {
-                const viewModel = byName.get(entry.name);
-                if (!viewModel) return null;
-                return {
-                    id: entry.id,
-                    label: entry.label,
-                    viewModel,
-                };
-            })
-            .filter((entry): entry is BasemapOption => entry !== null);
+        const options: BasemapOption[] = [];
+        for (const entry of DESIRED_BASEMAPS) {
+            const viewModel = byName.get(entry.name);
+            if (viewModel) options.push({ id: entry.id, label: entry.label, viewModel });
+        }
+        return options;
     }, []);
     const [selectedBasemapId, setSelectedBasemapId] = useState<string>(() => {
         try {
@@ -1509,7 +1514,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             basemap: BasemapOption,
             onTileError?: (error: unknown) => void,
         ) => {
-            const created = basemap.viewModel.creationCommand();
+            const command = basemap.viewModel.creationCommand as unknown as () => unknown;
+            const created = command();
             const resolved = await Promise.resolve(created) as unknown;
             const providers = Array.isArray(resolved) ? resolved : [resolved];
 
@@ -1617,60 +1623,55 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         };
     }, [basemapOptions, onGlobeBootPhaseChange, onInitialGlobeReady, selectedBasemapId, viewerReady]);
 
-    // Keep Cesium clock aligned with real UTC time to avoid drift/lag
+    // Keep Cesium on the authoritative application timeline. The clock store
+    // emits only on user commands, so this does not create a React render loop.
     useEffect(() => {
         if (!viewerReady || !viewerRef.current) return;
 
         const viewer = viewerRef.current;
 
-        // LIVE mode: never let visualizer readiness stop the clock.
-        //
-        // Cesium defaults `allowDataSourcesToSuspendAnimation` to true, so
-        // `CesiumWidget._onTick` does `clock.canAnimate = dataSourceDisplay.update(time)`,
-        // and `Clock.prototype.tick` guards its ENTIRE time advance — including
-        // the `ClockStep.SYSTEM_CLOCK` branch that assigns `JulianDate.now()` —
-        // on `canAnimate && shouldAnimate`. With 651 satellites plus coverage and
-        // route geometry rebuilding, `update()` routinely reports not-ready, so
-        // the clock simply does not advance on those frames.
-        //
-        // Under continuous rendering that self-corrected within a frame or two.
-        // Under `requestRenderMode` (~1 FPS idle, none at all while hidden) the
-        // deficit accumulates and never clears: the 2026-07-29 post-resume frame
-        // probe measured the clock 27 s behind on the FIRST rendered frame after
-        // a resume, growing 1 ms per ms, and 48 s behind at worst.
-        //
-        // That is a correctness problem, not cosmetics: markers interpolate from
-        // `Date.now()` and are immune, but `propagateSatellite` builds route and
-        // TransmissionLinks endpoints from this clock, so they were drawn tens of
-        // seconds — hundreds of kilometres — out of date.
-        //
-        // Turning the flag off decouples clock advance from readiness. There is
-        // nothing to suspend for: this is wall-clock LIVE mode, so SYSTEM_CLOCK
-        // re-snaps to `now()` on every tick and drift becomes impossible by
-        // construction. `configureLiveCesiumClock` deliberately assigns
-        // SYSTEM_CLOCK last: Cesium's currentTime/shouldAnimate/multiplier
-        // setters otherwise demote it to SYSTEM_CLOCK_MULTIPLIER.
-        //
-        // It does not touch propagation, interpolation, or the render mode, and
-        // it is not simulated-time support.
-        configureLiveCesiumClock(viewer);
-    }, [viewerReady]);
+        const synchronizeClock = () => {
+            const snapshot = simulationClock.getSnapshot();
+            configureCesiumClock(viewer, snapshot, simulationClock.getTimeMs());
+
+            // Keep the existing four standby frames per real second at every
+            // simulation rate. Scaling the simulation-time threshold prevents
+            // x10 from accidentally turning the idle globe into a 40 FPS loop.
+            viewer.scene.maximumRenderTimeChange = STANDBY_FRAME_INTERVAL_SECONDS
+                * Math.max(1, Math.abs(snapshot.speed));
+            viewer.scene.requestRender();
+        };
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') synchronizeClock();
+        };
+
+        synchronizeClock();
+        const unsubscribe = simulationClock.subscribe(synchronizeClock);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            unsubscribe();
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [simulationClock, viewerReady]);
 
     // Dev-only: lets the orbital-alignment diagnostic read how far the Cesium
-    // clock has drifted from the system clock the interpolation is driven by.
+    // clock has drifted from the authoritative scenario clock.
     // It receives a number, never the clock or the viewer. Eliminated in
     // production builds.
     useEffect(() => {
         if (!import.meta.env.DEV || !viewerReady || !viewerRef.current) return;
         const viewer = viewerRef.current;
         const detachClock = registerCesiumClockDeltaReader(() => (
-            JulianDate.toDate(viewer.clock.currentTime).getTime() - Date.now()
+            JulianDate.toDate(viewer.clock.currentTime).getTime() - simulationClock.getTimeMs()
         ));
         // Frame-level access for the post-resume rendered-frame check. The
         // listener is only attached while that probe is armed and a resume is
         // pending, so steady-state postRender subscribers are unchanged.
         const detachFrame = registerCesiumFrameProbe({
             getClockTimeMs: () => JulianDate.toDate(viewer.clock.currentTime).getTime(),
+            getScenarioTimeMs: simulationClock.getTimeMs,
             addPostRenderListener: (callback) => {
                 viewer.scene.postRender.addEventListener(callback);
                 return () => {
@@ -1679,7 +1680,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             },
         });
         return () => { detachClock(); detachFrame(); };
-    }, [viewerReady]);
+    }, [simulationClock, viewerReady]);
 
     useEffect(() => {
         if (!viewerReady || !viewerRef.current) return;
@@ -1692,7 +1693,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
         updateCameraMetrics();
         viewer.scene.preRender.addEventListener(updateCameraMetrics);
-        return () => viewer.scene.preRender.removeEventListener(updateCameraMetrics);
+        return () => { viewer.scene.preRender.removeEventListener(updateCameraMetrics); };
     }, [viewerReady]);
 
     // Report viewport bounds to App after the camera settles (debounced 400 ms).
@@ -2165,6 +2166,85 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         () => new Map(satellites.map((item) => [item.id, item])),
         [satellites]
     );
+
+    const selectedPositionRef = useRef(selectedPosition);
+    selectedPositionRef.current = selectedPosition;
+    const activeScenarioUplinkCoverageRef = useRef(activeScenarioUplinkCoverage);
+    activeScenarioUplinkCoverageRef.current = activeScenarioUplinkCoverage;
+    const activeScenarioDownlinkCoverageRef = useRef(activeScenarioDownlinkCoverage);
+    activeScenarioDownlinkCoverageRef.current = activeScenarioDownlinkCoverage;
+
+    const handleActiveScenarioSatelliteFocus = useCallback((satelliteName: string) => {
+        const viewer = viewerRef.current;
+        let satellite: SatelliteData | undefined;
+        for (const candidate of satelliteByIdRef.current.values()) {
+            if (candidate.name === satelliteName) {
+                satellite = candidate;
+                break;
+            }
+        }
+        if (!viewer || !satellite || satellite.position.isPositionValid === false) return;
+
+        const { lat, lng, alt } = satellite.position;
+        if (![lat, lng, alt].every(Number.isFinite)) return;
+
+        // Orbital altitude has no useful visual meaning in the flat map. A
+        // satellite focus therefore switches back to the 3D globe before
+        // applying an orbit-appropriate camera frame.
+        if (viewer.scene.mode !== SceneMode.SCENE3D) {
+            viewer.scene.mode = SceneMode.SCENE3D;
+            onSceneModeChange?.('3D');
+        }
+
+        const isGeo = satellite.orbitType === 'GEO';
+        const target = getPosition(lat, lng, alt);
+        const sphere = new BoundingSphere(target, isGeo ? 1_250_000 : 320_000);
+
+        viewer.camera.cancelFlight();
+        viewer.camera.flyToBoundingSphere(sphere, {
+            duration: 1.35,
+            offset: new HeadingPitchRange(
+                CesiumMath.toRadians(isGeo ? 24 : 18),
+                isGeo
+                    ? ACTIVE_CONTEXT_GEO_SATELLITE_PITCH_RADIANS
+                    : ACTIVE_CONTEXT_LEO_SATELLITE_PITCH_RADIANS,
+                isGeo ? 8_000_000 : 2_200_000,
+            ),
+            complete: () => requestGlobeRender(viewer),
+        });
+        requestGlobeRender(viewer);
+    }, [onSceneModeChange]);
+
+    const handleActiveScenarioGeoCoverageFocus = useCallback((direction: 'uplink' | 'downlink') => {
+        const viewer = viewerRef.current;
+        const candidate = direction === 'uplink'
+            ? activeScenarioUplinkCoverageRef.current
+            : activeScenarioDownlinkCoverageRef.current;
+        if (!viewer || !candidate) return;
+
+        const satellite = satelliteByIdRef.current.get(candidate.satelliteId);
+        if (!satellite) return;
+
+        const frame = buildCommercialGeoCoverageFocusFrame(
+            [satellite],
+            selectedPositionRef.current,
+            [candidate],
+        );
+        if (!frame) return;
+
+        if (viewer.scene.mode !== SceneMode.SCENE3D) {
+            viewer.scene.mode = SceneMode.SCENE3D;
+            onSceneModeChange?.('3D');
+        }
+
+        viewer.camera.cancelFlight();
+        viewer.camera.flyToBoundingSphere(frame.sphere, {
+            duration: 1.35,
+            offset: new HeadingPitchRange(0, ACTIVE_CONTEXT_GEO_COVERAGE_PITCH_RADIANS, 0),
+            complete: () => requestGlobeRender(viewer),
+        });
+        requestGlobeRender(viewer);
+    }, [onSceneModeChange]);
 
     const aircraftByIdRef = useRef<Map<string, Aircraft>>(new Map());
     aircraftByIdRef.current = useMemo(
@@ -2765,6 +2845,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     leo={leoActiveScenarioContext}
                     isPhone={isPhone}
                     isFullscreen={isFullscreen}
+                    onTimeToggle={onToggleSimulationSettings}
+                    onSatelliteFocus={handleActiveScenarioSatelliteFocus}
+                    onGeoCoverageFocus={handleActiveScenarioGeoCoverageFocus}
                 />
             )}
 
@@ -2800,6 +2883,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 onToggleAirTraffic={onToggleAirTraffic ?? (() => {})}
                 maritimeTrafficEnabled={maritimeTrafficEnabled}
                 onToggleMaritimeTraffic={onToggleMaritimeTraffic ?? (() => {})}
+                liveTrafficAvailable={simulationClockSnapshot.mode === 'live'}
                 issLiveEnabled={issLiveEnabled}
                 onToggleIssLive={onToggleIssLive ?? (() => {})}
                 enableLighting={enableLighting}

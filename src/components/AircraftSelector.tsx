@@ -9,6 +9,16 @@ interface AircraftSelectorProps {
   liveModeEnabled: boolean;
   onToggleLiveMode: () => void;
   disabled?: boolean;
+  /**
+   * Short in-field text explaining THIS disabled state. A selector can be
+   * disabled for more than one reason — no Site A yet, or a simulated clock —
+   * and only the caller knows which applies, so the component never invents the
+   * message. Falls back to `placeholder`, which already carries the
+   * scenario-shaped explanation ("Select Site A first").
+   */
+  disabledLabel?: string;
+  /** Long-form tooltip for the same state. */
+  disabledReason?: string;
   placeholder?: string;
   showLiveToggle?: boolean;
   excludedAircraftId?: string;
@@ -21,6 +31,8 @@ const AircraftSelector: React.FC<AircraftSelectorProps> = ({
   liveModeEnabled,
   onToggleLiveMode,
   disabled = false,
+  disabledLabel,
+  disabledReason,
   placeholder,
   showLiveToggle = true,
   excludedAircraftId,
@@ -89,10 +101,13 @@ const AircraftSelector: React.FC<AircraftSelectorProps> = ({
           value={selectedAircraft?.icao24 || ''}
           onChange={(e) => handleAircraftSelect(e.target.value)}
           disabled={!liveModeEnabled || disabled}
+          title={disabled ? disabledReason : undefined}
           className="w-full min-w-0 pl-10 pr-8 py-2 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 disabled:bg-gray-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed transition-colors"
         >
           <option value="">
-            {!liveModeEnabled ? 'Enable live mode' : placeholder ?? 'Select aircraft...'}
+            {disabled
+              ? disabledLabel ?? placeholder ?? 'Unavailable'
+              : !liveModeEnabled ? 'Enable live mode' : placeholder ?? 'Select aircraft...'}
           </option>
           {sortedAircraft.map(ac => (
             <option key={ac.icao24} value={ac.icao24}>
@@ -114,12 +129,13 @@ const AircraftSelector: React.FC<AircraftSelectorProps> = ({
       {showLiveToggle && (
         <button
           onClick={onToggleLiveMode}
+          disabled={disabled}
           className={`shrink-0 flex items-center justify-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
             liveModeEnabled
               ? 'bg-green-600 text-white hover:bg-green-700'
               : 'text-gray-700 bg-gray-200 hover:bg-gray-300 dark:bg-slate-700 dark:text-gray-300 dark:hover:bg-slate-600'
           }`}
-          title={liveModeEnabled ? 'Disable live aircraft data' : 'Enable live aircraft data'}
+          title={disabled ? disabledReason : liveModeEnabled ? 'Disable live aircraft data' : 'Enable live aircraft data'}
         >
           <Power className="h-4 w-4" />
         </button>
