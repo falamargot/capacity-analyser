@@ -154,9 +154,15 @@ const formatCommercialFrequencyBand = (band: CandidateCoverage['band'] | undefin
 // Narrative altitudes used by commercial camera framing.
 const COMM_GEO_ALT_KM = 20_000;
 const COMM_LEO_ALT_KM = 2_000;
-const ACTIVE_CONTEXT_GEO_SATELLITE_PITCH_RADIANS = -CesiumMath.toRadians(72);
+const ACTIVE_CONTEXT_GEO_SATELLITE_PITCH_RADIANS = -CesiumMath.toRadians(83);
 const ACTIVE_CONTEXT_LEO_SATELLITE_PITCH_RADIANS = -CesiumMath.toRadians(52);
 const ACTIVE_CONTEXT_GEO_COVERAGE_PITCH_RADIANS = -CesiumMath.toRadians(76);
+const ACTIVE_CONTEXT_GEO_SATELLITE_HEADING_RADIANS = CesiumMath.toRadians(24);
+const ACTIVE_CONTEXT_LEO_SATELLITE_RANGE_METERS = 2_200_000;
+const ACTIVE_CONTEXT_LEO_SATELLITE_CENTER_BIAS_METERS = 550_000;
+const ACTIVE_CONTEXT_GEO_SATELLITE_RANGE_RADIUS_FACTOR = 1.17;
+const ACTIVE_CONTEXT_GEO_SATELLITE_SCREEN_BIAS_RADIANS = CesiumMath.toRadians(11);
+const ACTIVE_CONTEXT_GEO_COVERAGE_RADIUS_FACTOR = 0.9;
 
 interface CommercialGeoCoverageFocusFrame {
     sphere: BoundingSphere;
@@ -2198,20 +2204,75 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
         const isGeo = satellite.orbitType === 'GEO';
         const target = getPosition(lat, lng, alt);
-        const sphere = new BoundingSphere(target, isGeo ? 1_250_000 : 320_000);
+        let sphere: BoundingSphere;
+        if (isGeo) {
+            // A GEO focus is a scene composition, not a close-up: the satellite
+            // must remain in the foreground while the complete Earth (and thus
+            // its active footprints) stays legible behind it.
+            const earthSphere = new BoundingSphere(
+                Cartesian3.ZERO,
+                viewer.scene.globe.ellipsoid.maximumRadius,
+            );
+            const satelliteSphere = new BoundingSphere(target, 1_250_000);
+            sphere = BoundingSphere.union(earthSphere, satelliteSphere, new BoundingSphere());
+        } else {
+            const focusCenter = Cartesian3.subtract(
+                target,
+                Cartesian3.multiplyByScalar(
+                    Cartesian3.normalize(target, new Cartesian3()),
+                    ACTIVE_CONTEXT_LEO_SATELLITE_CENTER_BIAS_METERS,
+                    new Cartesian3(),
+                ),
+                new Cartesian3(),
+            );
+            sphere = new BoundingSphere(focusCenter, 320_000);
+        }
 
         viewer.camera.cancelFlight();
-        viewer.camera.flyToBoundingSphere(sphere, {
-            duration: 1.35,
-            offset: new HeadingPitchRange(
-                CesiumMath.toRadians(isGeo ? 24 : 18),
-                isGeo
-                    ? ACTIVE_CONTEXT_GEO_SATELLITE_PITCH_RADIANS
-                    : ACTIVE_CONTEXT_LEO_SATELLITE_PITCH_RADIANS,
-                isGeo ? 8_000_000 : 2_200_000,
-            ),
-            complete: () => requestGlobeRender(viewer),
-        });
+        if (isGeo) {
+            const camera = viewer.camera;
+            const range = sphere.radius * ACTIVE_CONTEXT_GEO_SATELLITE_RANGE_RADIUS_FACTOR;
+            const originalPosition = Cartesian3.clone(camera.positionWC, new Cartesian3());
+            const originalDirection = Cartesian3.clone(camera.directionWC, new Cartesian3());
+            const originalUp = Cartesian3.clone(camera.upWC, new Cartesian3());
+
+            // Plan the final camera pose synchronously so the vertical offset is
+            // part of the animation itself; this avoids a visible correction at
+            // the end of the flight.
+            camera.viewBoundingSphere(
+                sphere,
+                new HeadingPitchRange(
+                    ACTIVE_CONTEXT_GEO_SATELLITE_HEADING_RADIANS,
+                    ACTIVE_CONTEXT_GEO_SATELLITE_PITCH_RADIANS,
+                    range,
+                ),
+            );
+            camera.lookUp(ACTIVE_CONTEXT_GEO_SATELLITE_SCREEN_BIAS_RADIANS);
+            const destination = Cartesian3.clone(camera.positionWC, new Cartesian3());
+            const direction = Cartesian3.clone(camera.directionWC, new Cartesian3());
+            const up = Cartesian3.clone(camera.upWC, new Cartesian3());
+
+            camera.setView({
+                destination: originalPosition,
+                orientation: { direction: originalDirection, up: originalUp },
+            });
+            camera.flyTo({
+                destination,
+                orientation: { direction, up },
+                duration: 1.35,
+                complete: () => requestGlobeRender(viewer),
+            });
+        } else {
+            viewer.camera.flyToBoundingSphere(sphere, {
+                duration: 1.35,
+                offset: new HeadingPitchRange(
+                    CesiumMath.toRadians(18),
+                    ACTIVE_CONTEXT_LEO_SATELLITE_PITCH_RADIANS,
+                    ACTIVE_CONTEXT_LEO_SATELLITE_RANGE_METERS,
+                ),
+                complete: () => requestGlobeRender(viewer),
+            });
+        }
         requestGlobeRender(viewer);
     }, [onSceneModeChange]);
 
@@ -2237,8 +2298,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             onSceneModeChange?.('3D');
         }
 
+        const focusSphere = new BoundingSphere(
+            frame.sphere.center,
+            frame.sphere.radius * ACTIVE_CONTEXT_GEO_COVERAGE_RADIUS_FACTOR,
+        );
+
         viewer.camera.cancelFlight();
-        viewer.camera.flyToBoundingSphere(frame.sphere, {
+        viewer.camera.flyToBoundingSphere(focusSphere, {
             duration: 1.35,
             offset: new HeadingPitchRange(0, ACTIVE_CONTEXT_GEO_COVERAGE_PITCH_RADIANS, 0),
             complete: () => requestGlobeRender(viewer),
