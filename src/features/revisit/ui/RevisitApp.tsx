@@ -18,7 +18,9 @@ import { useSimulationClock } from '../../../contexts/SimulationClockContext';
 import { RevisitGlobe } from '../render/RevisitGlobe';
 import { useRevisitAnalysis } from '../hooks/useRevisitAnalysis';
 import { useRevisitSweep } from '../hooks/useRevisitSweep';
+import { explainRevisit } from '../analysis/explainRevisit';
 import { ValueCurve } from './ValueCurve';
+import { WhyThisRevisit } from './WhyThisRevisit';
 import { constellationFor } from '../analysis/runScenario';
 import {
     enumerateLadder, ladderPayloadCounts, selectedSatelliteIds,
@@ -88,13 +90,36 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
     const currentPayloadCount = selectedIds.size;
 
     /**
-     * Move the slider: pick the best-spread configuration at the requested
-     * payload count. `enumerateLadder` already orders ties by descending plane
-     * count, so the first match is the one to take — the engine's own sweep
-     * confirms spread beats concentration at equal payload count.
+     * Move the slider: take the configuration the sweep MEASURED as best at the
+     * requested payload count.
+     *
+     * Not the ladder's default ordering. `enumerateLadder` breaks ties by
+     * descending plane count, which is a deterministic default and NOT a claim
+     * that spread always wins — measurement says otherwise. At i = 87.9° with
+     * London well below the turning latitude, 4 planes beat 1 by ~69%; at
+     * i = 55°, with London just under the turning latitude of 55°, one plane
+     * with dense in-plane spacing beat two planes by the same order.
+     *
+     * Using the heuristic here while the value curve plots the measured best
+     * would let the chart promise a number the headline does not deliver — the
+     * kind of disagreement that ends a demo. Falls back to the ladder only while
+     * the sweep is still in flight.
      */
+    const sweepRef = useRef(sweep);
+    sweepRef.current = sweep;
+
     const handlePayloadCountChange = useCallback((count: number) => {
         setScenario((current) => {
+            const measured = sweepRef.current?.points.find((p) => p.payloadCount === count);
+            if (measured) {
+                return {
+                    ...current,
+                    selection: {
+                        ...measured.best.selection,
+                        planeShift: current.selection.planeShift,
+                    },
+                };
+            }
             const rung = enumerateLadder(current.reference.planes, current.reference.satsPerPlane)
                 .find((e) => e.payloadCount === count);
             if (!rung) return current;
@@ -121,6 +146,11 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
         const best = ladder[0];
         return `${best.selectedPlanes} planes × ${best.payloadsPerPlane} — best of ${ladder.length} splits at this count`;
     }, [scenario.reference.planes, scenario.reference.satsPerPlane, currentPayloadCount]);
+
+    const explanation = useMemo(
+        () => explainRevisit(scenario, analysis?.statistics ?? null, sweep),
+        [scenario, analysis, sweep]
+    );
 
     const getTimeMs = useCallback(() => clock.getTimeMs(), [clock]);
     const handleSeek = useCallback((ms: number) => clock.setDateTime(ms), [clock]);
@@ -232,6 +262,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
                             targetName={scenario.target.name}
                             onSelectPayloadCount={handlePayloadCountChange}
                         />
+                        <WhyThisRevisit explanation={explanation} />
                     </div>
                 </div>
 

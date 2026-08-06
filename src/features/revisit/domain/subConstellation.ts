@@ -142,8 +142,20 @@ export interface LadderEntry {
  *
  * Ties are kept, not collapsed: two configurations with the same payload count
  * but a different plane/in-plane split perform very differently, and comparing
- * them is one of the most persuasive outputs this tool has. Ties are ordered by
- * descending `selectedPlanes`, so the better-spread configuration comes first.
+ * them is one of the most persuasive outputs this tool has.
+ *
+ * Ties are ordered by descending `selectedPlanes`. That is a DETERMINISTIC
+ * DEFAULT ORDER, not a performance claim — do not read the first entry as "the
+ * best". Which split actually wins depends on the target latitude relative to
+ * the inclination, and only `runPayloadSweep` can say:
+ *
+ *   - target well below the turning latitude → spreading across planes wins,
+ *     because each plane contributes crossings at a different time of day;
+ *   - target just under the turning latitude → dense in-plane spacing can win,
+ *     because every orbit already brings that plane near the target.
+ *
+ * Both cases are measured in this codebase's own tests. Consumers choosing a
+ * configuration for the user must use the swept result, not this ordering.
  *
  * `z` is not part of the ladder — it redistributes a fixed number of payloads
  * rather than changing how many there are.
