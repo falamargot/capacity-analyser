@@ -26,51 +26,22 @@ import {
 import { computeGsoProtectionAngles, computeGsoMutedBeamSet } from './gsoProtection';
 import { getRadiusAtPowerLevel } from './leoBeamPattern';
 import type { SimulationStateSnapshot } from '../types/simulation';
-
-// Inlined to avoid transitive browser-API imports (capacityCalculator → satelliteService)
-const EARTH_RADIUS_KM = 6371;
+// Vector math and geodesic walking now live in a shared leaf module, so the
+// revisit engine can reuse them without importing this satellite.js-bound file.
+// sphericalGeometry imports only earthGeometry (itself import-free), which keeps
+// this file clear of the capacityCalculator → satelliteService browser-API chain
+// that the previously-inlined EARTH_RADIUS_KM constant existed to avoid.
+import {
+    type Vec3,
+    v3, neg, add, scale, dot, cross, normalize,
+    rotateAround,
+    toDeg,
+    destinationGeodesic,
+} from './sphericalGeometry';
 
 // Re-exported from the canonical config so existing worker/import sites keep working.
 export const TOTAL_BEAMS = CANONICAL_TOTAL_BEAMS;
 export const BEAM_WIDTH_KM = BEAM_SPACING_KM;
-
-// ─── Pure vector math (no Cesium) ─────────────────────────────────────────
-
-interface Vec3 { x: number; y: number; z: number }
-
-function v3(x: number, y: number, z: number): Vec3 { return { x, y, z }; }
-function neg(v: Vec3): Vec3 { return v3(-v.x, -v.y, -v.z); }
-function add(a: Vec3, b: Vec3): Vec3 { return v3(a.x + b.x, a.y + b.y, a.z + b.z); }
-function scale(v: Vec3, s: number): Vec3 { return v3(v.x * s, v.y * s, v.z * s); }
-function dot(a: Vec3, b: Vec3): number { return a.x * b.x + a.y * b.y + a.z * b.z; }
-function cross(a: Vec3, b: Vec3): Vec3 {
-    return v3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
-}
-function normalize(v: Vec3): Vec3 {
-    const len = Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-    return len > 0 ? v3(v.x / len, v.y / len, v.z / len) : v3(0, 0, 0);
-}
-
-/** Rodrigues' rotation: rotate vector v by angle (rad) around unit-vector axis. */
-function rotateAround(axis: Vec3, angle: number, v: Vec3): Vec3 {
-    const cos = Math.cos(angle);
-    const sin = Math.sin(angle);
-    const d = dot(axis, v);
-    const c = cross(axis, v);
-    return v3(
-        v.x * cos + c.x * sin + axis.x * d * (1 - cos),
-        v.y * cos + c.y * sin + axis.y * d * (1 - cos),
-        v.z * cos + c.z * sin + axis.z * d * (1 - cos),
-    );
-}
-
-const toRad = (deg: number) => deg * Math.PI / 180;
-const toDeg = (rad: number) => rad * 180 / Math.PI;
-const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
-
-function normalizeLng(lng: number): number {
-    return ((lng + 180) % 360 + 360) % 360 - 180;
-}
 
 // ─── Orbit propagation (no WeakMap — worker receives fresh clones each call) ─
 
@@ -191,26 +162,6 @@ function computeBeamCenters(groundCenter: { lat: number; lng: number }): Array<{
         const bearing = yOffsetKm <= 0 ? 0 : 180;
         return destinationGeodesic(lat, lng, bearing, Math.abs(yOffsetKm));
     });
-}
-
-// ─── Geodesic destination ──────────────────────────────────────────────────
-
-function destinationGeodesic(
-    lat: number, lng: number, brng: number, distKm: number
-): { lat: number; lng: number } {
-    const R = EARTH_RADIUS_KM;
-    const d = distKm / R;
-    const φ1 = toRad(lat);
-    const λ1 = toRad(lng);
-    const θ = toRad(brng);
-
-    const φ2 = Math.asin(Math.sin(φ1) * Math.cos(d) + Math.cos(φ1) * Math.sin(d) * Math.cos(θ));
-    const λ2 = λ1 + Math.atan2(Math.sin(θ) * Math.sin(d) * Math.cos(φ1), Math.cos(d) - Math.sin(φ1) * Math.sin(φ2));
-
-    return {
-        lat: clamp(toDeg(φ2), -90, 90),
-        lng: normalizeLng(toDeg(λ2)),
-    };
 }
 
 // ─── Public API ────────────────────────────────────────────────────────────
