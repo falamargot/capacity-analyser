@@ -21,6 +21,9 @@ interface RevisitKpiPanelProps {
     /** Customer requirement, ms. The verdict badge compares against it. */
     requirementMs: number | null;
     isComputing: boolean;
+    /** Selectable requirements, in hours. Omit to render the requirement read-only. */
+    requirementChoicesHours?: number[];
+    onRequirementChange?: (ms: number) => void;
 }
 
 function Metric({ label, value, tone = 'secondary' }: {
@@ -45,6 +48,7 @@ function Metric({ label, value, tone = 'secondary' }: {
 
 export const RevisitKpiPanel: React.FC<RevisitKpiPanelProps> = ({
     statistics, windowHours, requirementMs, isComputing,
+    requirementChoicesHours, onRequirementChange,
 }) => {
     const maxGapMs = statistics?.maxGapMs ?? null;
     const meets = requirementMs !== null && maxGapMs !== null && maxGapMs <= requirementMs;
@@ -106,6 +110,21 @@ export const RevisitKpiPanel: React.FC<RevisitKpiPanelProps> = ({
                 {windowHours} h window · max-gap definition · boundary gaps discarded
                 {isComputing && ' · recomputing…'}
             </p>
+
+            {requirementChoicesHours && onRequirementChange && (
+                <label className="mt-2 flex items-center gap-2 border-t border-slate-700/50 pt-2">
+                    <span className={REVISIT_LABEL}>Requirement</span>
+                    <select
+                        className="rounded border border-slate-700 bg-slate-900/80 px-1.5 py-0.5 text-[11px] font-bold text-slate-200 outline-none"
+                        value={requirementMs ?? ''}
+                        onChange={(e) => onRequirementChange(Number(e.target.value))}
+                    >
+                        {requirementChoicesHours.map((h) => (
+                            <option key={h} value={h * 3600_000}>{formatGap(h * 3600_000)}</option>
+                        ))}
+                    </select>
+                </label>
+            )}
         </div>
     );
 };

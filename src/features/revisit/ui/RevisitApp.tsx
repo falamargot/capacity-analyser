@@ -17,6 +17,8 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useSimulationClock } from '../../../contexts/SimulationClockContext';
 import { RevisitGlobe } from '../render/RevisitGlobe';
 import { useRevisitAnalysis } from '../hooks/useRevisitAnalysis';
+import { useRevisitSweep } from '../hooks/useRevisitSweep';
+import { ValueCurve } from './ValueCurve';
 import { constellationFor } from '../analysis/runScenario';
 import {
     enumerateLadder, ladderPayloadCounts, selectedSatelliteIds,
@@ -29,8 +31,11 @@ import { RevisitKpiPanel } from './RevisitKpiPanel';
 import { CoverageRibbon } from './CoverageRibbon';
 import { REVISIT_LABEL, REVISIT_PANEL } from './revisitTheme';
 
-/** The requirement the verdict badge compares against. Lot 3 makes this editable. */
+/** The customer requirement the verdict badge and the value curve compare against. */
 const DEFAULT_REQUIREMENT_MS = 2 * 3600_000;
+
+/** Requirements a customer actually states, in hours. */
+const REQUIREMENT_CHOICES_H = [0.5, 1, 2, 3, 6, 12, 24];
 
 const TOGGLES: Array<{ key: keyof RevisitSceneOptions; label: string }> = [
     { key: 'showOrbits', label: 'Orbits' },
@@ -61,7 +66,11 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
         showOrbits: true, showSwaths: true, showHostFleet: true,
     });
 
+    const [requirementMs, setRequirementMs] = useState(DEFAULT_REQUIREMENT_MS);
+
     const { analysis, isComputing, error, isMainThreadFallback } = useRevisitAnalysis(scenario);
+    // Its own worker, and keyed so the payload slider never re-triggers it.
+    const { sweep, isComputing: isSweeping } = useRevisitSweep(scenario);
 
     const fleet = useMemo(
         () => constellationFor(scenario.reference),
@@ -148,7 +157,15 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
                     />
                 </div>
 
-                <div className="flex items-start justify-between gap-2">
+                {/* `flex-1 min-h-0` is load-bearing: it gives this row the leftover
+                    height and lets the analysis column scroll inside it. Without
+                    min-h-0 a tall column grows the row instead, pushing the ribbon
+                    off-screen — and the ribbon is the most valuable thing here
+                    after the headline number. */}
+                <div className="flex min-h-0 flex-1 items-stretch justify-between gap-2">
+                  {/* `items-start` so each panel sizes to its own content rather
+                      than stretching to the width of the widest sibling. */}
+                  <div className="flex flex-col items-start justify-between">
                     {/* Display toggles — the slot ENG uses for REG / 5G / CONN / LOAD */}
                     <div className={`pointer-events-auto ${REVISIT_PANEL} flex flex-col gap-1 p-1.5`}>
                         {onExit && (
@@ -178,35 +195,43 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
                         ))}
                     </div>
 
-                    {(error || isMainThreadFallback) && (
-                        <div className={`pointer-events-auto ${REVISIT_PANEL} border-red-400/40 px-3 py-1.5 text-[11px] text-red-200`}>
-                            {error ?? 'Running on the main thread — Worker unavailable'}
-                        </div>
-                    )}
-
-                    <div className="pointer-events-auto w-[400px] shrink-0">
-                        <RevisitKpiPanel
-                            statistics={analysis?.statistics ?? null}
-                            windowHours={scenario.window.durationHours}
-                            requirementMs={DEFAULT_REQUIREMENT_MS}
-                            isComputing={isComputing}
-                        />
-                    </div>
-                </div>
-
-                {/* Spacer — pushes provenance and the ribbon to the bottom. */}
-                <div className="flex-1" />
-
-                {/* Model provenance — the credibility slot (UX §4.5). REVISIT has
-                    no TLE, so it carries the assumptions instead. */}
-                <div className="flex">
-                    <div className={`pointer-events-auto ${REVISIT_PANEL} px-3 py-2`}>
+                    {/* Model provenance — the credibility slot (UX §4.5). REVISIT
+                        has no TLE, so it carries the assumptions instead. */}
+                    <div className={`pointer-events-auto ${REVISIT_PANEL} mt-2 px-3 py-2`}>
                         <span className={REVISIT_LABEL}>Model provenance</span>
                         <ul className="mt-1 space-y-0.5 text-[10px] leading-4 text-slate-400">
                             <li>Kepler + J2 secular · no drag</li>
                             <li>Spherical earth R = 6371 km</li>
                             <li className="text-slate-600">Fit vs OneWeb TLE — not yet calibrated</li>
                         </ul>
+                    </div>
+                  </div>
+
+                    {(error || isMainThreadFallback) && (
+                        <div className={`pointer-events-auto ${REVISIT_PANEL} self-start border-red-400/40 px-3 py-1.5 text-[11px] text-red-200`}>
+                            {error ?? 'Running on the main thread — Worker unavailable'}
+                        </div>
+                    )}
+
+                    {/* The analysis column: headline, then the business case.
+                        Scrolls independently so it can never push the ribbon out. */}
+                    <div className="pointer-events-auto flex w-[400px] shrink-0 flex-col gap-2 overflow-y-auto">
+                        <RevisitKpiPanel
+                            statistics={analysis?.statistics ?? null}
+                            windowHours={scenario.window.durationHours}
+                            requirementMs={requirementMs}
+                            isComputing={isComputing}
+                            requirementChoicesHours={REQUIREMENT_CHOICES_H}
+                            onRequirementChange={setRequirementMs}
+                        />
+                        <ValueCurve
+                            sweep={sweep}
+                            isComputing={isSweeping}
+                            requirementMs={requirementMs}
+                            currentPayloadCount={currentPayloadCount}
+                            targetName={scenario.target.name}
+                            onSelectPayloadCount={handlePayloadCountChange}
+                        />
                     </div>
                 </div>
 

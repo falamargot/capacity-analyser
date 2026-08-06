@@ -19,6 +19,7 @@
 
 import type { RevisitScenario } from '../domain/types';
 import type { RevisitAnalysis } from '../analysis/runScenario';
+import type { PayloadSweepResult } from '../analysis/payloadSweep';
 
 export interface RevisitAnalyseRequest {
     type: 'analyse';
@@ -31,7 +32,36 @@ export interface RevisitAnalyseRequest {
     includeSweep: boolean;
 }
 
-export type RevisitWorkerInput = RevisitAnalyseRequest;
+/**
+ * Sweep the whole ladder, without the single-configuration analysis.
+ *
+ * Kept separate from `analyse` because the two have very different costs and,
+ * crucially, different invalidation. The sweep is a function of the
+ * constellation, the instrument, the target and the window — it does NOT depend
+ * on which satellites are currently selected, because it evaluates every rung
+ * anyway. So dragging the payload slider must not recompute it. Only
+ * `selection.planeShift` is read, since z redistributes payloads within each
+ * rung rather than changing the rungs.
+ */
+export interface RevisitSweepRequest {
+    type: 'sweep';
+    requestId: number;
+    timelineRevision: number;
+    scenario: RevisitScenario;
+}
+
+export type RevisitWorkerInput = RevisitAnalyseRequest | RevisitSweepRequest;
+
+/** The subset of a scenario the sweep actually depends on. */
+export function sweepInvalidationKey(scenario: RevisitScenario): string {
+    return JSON.stringify([
+        scenario.reference,
+        scenario.payload,
+        scenario.target,
+        scenario.window,
+        scenario.selection.planeShift,
+    ]);
+}
 
 interface RevisitEnvelope {
     requestId: number;
@@ -41,8 +71,9 @@ interface RevisitEnvelope {
 }
 
 export type RevisitWorkerOutput =
-    | (RevisitEnvelope & { ok: true; analysis: RevisitAnalysis })
-    | (RevisitEnvelope & { ok: false; error: string });
+    | (RevisitEnvelope & { ok: true; kind: 'analyse'; analysis: RevisitAnalysis })
+    | (RevisitEnvelope & { ok: true; kind: 'sweep'; sweep: PayloadSweepResult })
+    | (RevisitEnvelope & { ok: false; kind: 'analyse' | 'sweep'; error: string });
 
 /**
  * Should a response be published?

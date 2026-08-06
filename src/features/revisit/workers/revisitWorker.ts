@@ -18,25 +18,44 @@
  */
 
 import { runRevisitScenario, type ConstellationCache } from '../analysis/runScenario';
+import { runPayloadSweep } from '../analysis/payloadSweep';
 import type { RevisitWorkerInput, RevisitWorkerOutput } from './revisitProtocol';
 
 const cache: { current: ConstellationCache | null } = { current: null };
 
 self.addEventListener('message', (event: MessageEvent<RevisitWorkerInput>) => {
     const message = event.data;
-    if (!message || message.type !== 'analyse') return;
+    if (!message || (message.type !== 'analyse' && message.type !== 'sweep')) return;
 
-    const { requestId, timelineRevision, scenario, includeSweep } = message;
+    const { requestId, timelineRevision, scenario } = message;
+    const kind = message.type;
     const startedAt = performance.now();
 
     let response: RevisitWorkerOutput;
     try {
-        const analysis = runRevisitScenario(scenario, { includeSweep }, cache);
+        if (message.type === 'sweep') {
+            const sweep = runPayloadSweep(
+                scenario.reference, scenario.target, scenario.payload, scenario.window,
+                { planeShift: scenario.selection.planeShift }
+            );
+            self.postMessage({
+                requestId,
+                timelineRevision,
+                computeMs: performance.now() - startedAt,
+                ok: true,
+                kind: 'sweep',
+                sweep,
+            } satisfies RevisitWorkerOutput);
+            return;
+        }
+
+        const analysis = runRevisitScenario(scenario, { includeSweep: message.includeSweep }, cache);
         response = {
             requestId,
             timelineRevision,
             computeMs: performance.now() - startedAt,
             ok: true,
+            kind: 'analyse',
             analysis,
         };
     } catch (error) {
@@ -49,6 +68,7 @@ self.addEventListener('message', (event: MessageEvent<RevisitWorkerInput>) => {
             timelineRevision,
             computeMs: performance.now() - startedAt,
             ok: false,
+            kind,
             error: error instanceof Error ? error.message : String(error),
         };
     }
