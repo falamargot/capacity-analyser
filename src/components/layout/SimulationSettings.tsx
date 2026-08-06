@@ -194,7 +194,7 @@ const SimulationSettings: React.FC<SimulationSettingsProps> = ({
       {isOpen && (
         <div
           id={panelId}
-          className="absolute top-full right-0 z-50 mt-1 w-[24rem] max-w-[calc(100vw-1rem)] rounded-lg border border-gray-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900"
+          className="ui-global-popover absolute top-full right-0 mt-1 w-[24rem] max-w-[calc(100vw-1rem)] rounded-lg border border-gray-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900"
         >
           <div className="p-4">
             <section aria-labelledby={timelineHeadingId} className="mb-4">

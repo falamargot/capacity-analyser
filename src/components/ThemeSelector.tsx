@@ -70,7 +70,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({ isMobile }) => {
                 </button>
 
                 {showMobileMenu && (
-                    <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-slate-900 rounded-lg shadow-xl border border-gray-200 dark:border-slate-700 overflow-hidden z-50">
+                    <div className="ui-global-popover absolute right-0 top-full mt-2 w-48 bg-white dark:bg-slate-900 rounded-lg shadow-xl border border-gray-200 dark:border-slate-700 overflow-hidden">
                         <div className="p-1 flex flex-col gap-1">
                             <button
                                 onClick={() => { setTheme('light'); setShowMobileMenu(false); }}

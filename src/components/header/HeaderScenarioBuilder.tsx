@@ -509,7 +509,7 @@ function SiteColumn({
   return (
     <div
       className={[
-        'relative flex min-w-0 flex-1 flex-col justify-center gap-0.5 overflow-visible rounded-md px-2 py-1',
+        'header-site-section relative flex min-w-0 flex-1 flex-col justify-center gap-0.5 overflow-visible rounded-md px-2 py-1',
         'bg-slate-50/28 dark:bg-white/[0.018]',
         selectionSettling ? 'endpoint-selection-header-settle' : '',
       ].join(' ')}
@@ -619,7 +619,7 @@ function RouteMetric({
   caption: string;
 }) {
   return (
-    <div className="min-w-0 px-1 py-0.5" title={label}>
+    <div className="header-route-summary-metric min-w-0 px-1 py-0.5" title={label}>
       <div className="mb-0.5 flex min-w-0 items-center gap-1 text-[8px] font-black uppercase tracking-[0.1em] text-slate-500 dark:text-slate-300">
         <span className="shrink-0 text-sky-600 dark:text-sky-200">{icon}</span>
         <span className="truncate">{caption}</span>
@@ -646,17 +646,17 @@ function RouteStatusCard({ item, comparisonOnly = false }: { item: HeaderRouteSt
         <div className={`shrink-0 text-[14px] font-black uppercase tracking-[0.12em] ${routeTechnologyAccentClass[item.technology]}`}>
           {item.technology}
         </div>
-        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] ${routeStatusToneClass[item.statusTone]}`}>
+        <span className={`header-secondary-badge shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] ${routeStatusToneClass[item.statusTone]}`}>
           {item.statusLabel}
         </span>
         {item.recommended && (
-          <span className="inline-flex min-w-0 items-center gap-1 rounded-full bg-sky-500/15 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-sky-700 dark:text-sky-200">
+          <span className="header-secondary-badge inline-flex min-w-0 items-center gap-1 rounded-full bg-sky-500/15 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-sky-700 dark:text-sky-200">
             <Star className="h-2.5 w-2.5 shrink-0 fill-current" aria-hidden="true" />
             <span className="truncate">Recommended</span>
           </span>
         )}
         {item.selected && (
-          <span className="shrink-0 rounded-full bg-white/80 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-slate-600 dark:bg-sky-300/15 dark:text-sky-100">
+          <span className="header-secondary-badge shrink-0 rounded-full bg-white/80 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-slate-600 dark:bg-sky-300/15 dark:text-sky-100">
             Selected
           </span>
         )}
@@ -679,7 +679,7 @@ function RouteStatusCard({ item, comparisonOnly = false }: { item: HeaderRouteSt
   );
 
   const className = [
-    'relative min-w-0 overflow-hidden rounded-lg border px-3 py-2.5 text-left',
+    `header-route-summary-card ${item.selected ? 'is-selected' : ''} relative min-w-0 overflow-hidden rounded-lg border px-3 py-2.5 text-left`,
     'shadow-[0_14px_30px_-28px_rgba(15,23,42,0.68)]',
     technologyGradientClass,
     item.onSelect ? 'transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/70' : '',
@@ -690,6 +690,7 @@ function RouteStatusCard({ item, comparisonOnly = false }: { item: HeaderRouteSt
       <button
         type="button"
         className={className}
+        data-technology={item.technology}
         onClick={item.onSelect}
         aria-pressed={item.selected}
         aria-label={`Select ${item.technology} route view`}
@@ -699,7 +700,7 @@ function RouteStatusCard({ item, comparisonOnly = false }: { item: HeaderRouteSt
     );
   }
 
-  return <div className={className}>{content}</div>;
+  return <div className={className} data-technology={item.technology}>{content}</div>;
 }
 
 export function HeaderRouteStatusPanel({
@@ -717,7 +718,7 @@ export function HeaderRouteStatusPanel({
     : `${items.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} grid min-w-0 gap-2`;
 
   return (
-    <div className={className}>
+    <div className={`header-route-summary ${className}`}>
       {items.map(item => (
         <RouteStatusCard key={item.technology} item={item} comparisonOnly={routeStatus?.comparisonOnly} />
       ))}
@@ -1181,7 +1182,7 @@ function HeaderScenarioBuilder({
     return (
       <div
         className={[
-          'relative grid h-full min-w-0 grid-cols-[minmax(9rem,1fr)_2rem_minmax(9rem,1fr)] items-center gap-1.5',
+          'header-scenario-surface relative grid h-full min-w-0 grid-cols-[minmax(9rem,1fr)_2rem_minmax(9rem,1fr)] items-center gap-1.5',
           'rounded-xl border border-slate-200/80 bg-white px-2 py-1',
           'shadow-[0_14px_34px_-28px_rgba(15,23,42,0.42)]',
           'dark:border-slate-700/80 dark:bg-[linear-gradient(135deg,rgba(10,14,26,0.97),rgba(15,23,42,0.95))]',
@@ -1237,7 +1238,7 @@ function HeaderScenarioBuilder({
   return (
     <div
       className={[
-        'relative flex h-full min-w-0 flex-1 flex-col justify-center',
+        'header-scenario-surface relative flex h-full min-w-0 flex-1 flex-col justify-center',
         'rounded-xl border border-slate-200/70 bg-white',
         'shadow-[0_14px_36px_-30px_rgba(15,23,42,0.42)]',
         'dark:border-slate-700/80 dark:bg-[linear-gradient(135deg,rgba(10,14,26,0.97),rgba(15,23,42,0.95))]',

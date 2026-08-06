@@ -25,6 +25,7 @@ describe('HeaderRouteStatusPanel', () => {
     expect(markup).toContain('GEO');
     expect(markup).toContain('Available');
     expect(markup).toContain('Selected');
+    expect(markup).toContain('data-technology="GEO"');
     expect(markup).not.toContain('120 Mbps');
     expect(markup).not.toContain('76 ms');
     expect(markup).not.toContain('18 Mbps');

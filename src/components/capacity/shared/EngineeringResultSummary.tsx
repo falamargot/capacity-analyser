@@ -96,7 +96,7 @@ const provenanceLabel: Record<EngineeringTruthMetric['provenance'], string> = {
 
 
 const MetricTile = ({ metric, diagnostic = false }: { metric: EngineeringTruthMetric; diagnostic?: boolean }) => (
-  <div className={`min-w-0 rounded-lg border px-2.5 py-2 [@media(max-height:700px)]:py-1.5 ${
+  <div data-engineering-critical-metric="" className={`engineering-critical-metric min-w-0 rounded-lg border px-2.5 py-2 [@media(max-height:700px)]:py-1.5 ${
     diagnostic
       ? 'border-amber-200 bg-amber-50/55 dark:border-amber-800/70 dark:bg-amber-950/20'
       : 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-950/55'
@@ -330,7 +330,8 @@ const CauseStage = ({
         aria-label={`${stage.label}: ${accessibleDescription}. ${expanded ? 'Close Engineering Inspector.' : 'Open in Engineering Inspector and focus on globe.'}`}
         onClick={onToggle}
         onKeyDown={onKeyDown}
-        className={`group grid w-full min-w-0 grid-cols-[1.5rem_minmax(0,1fr)] gap-2.5 rounded-lg text-left outline-none transition-[background-color,box-shadow,transform] duration-150 focus-visible:ring-2 focus-visible:ring-sky-400 ${compact ? 'p-1.5' : 'p-1'} ${selected ? 'bg-sky-50 shadow-[inset_0_0_0_1px_rgba(14,165,233,0.3)] dark:bg-sky-950/30' : 'hover:bg-slate-50 dark:hover:bg-slate-900/75'}`}
+        data-engineering-cause-active={selected ? '' : undefined}
+        className={`engineering-cause-stage group grid w-full min-w-0 grid-cols-[1.5rem_minmax(0,1fr)] gap-2.5 rounded-lg text-left outline-none transition-[background-color,box-shadow,transform] duration-150 focus-visible:ring-2 focus-visible:ring-sky-400 ${compact ? 'p-1.5' : 'p-1'} ${selected ? 'bg-sky-50 shadow-[inset_0_0_0_1px_rgba(14,165,233,0.3)] dark:bg-sky-950/30' : 'hover:bg-slate-50 dark:hover:bg-slate-900/75'}`}
       >
         <span className={`relative z-10 inline-flex h-6 w-6 items-center justify-center rounded-full border ${styles.iconClass} ${selected ? 'ring-2 ring-sky-400/55 ring-offset-1 dark:ring-offset-slate-950' : ''}`}>
           <Icon className="h-3 w-3" aria-hidden="true" />
@@ -585,7 +586,7 @@ const EngineeringResultSummary = ({ technology, truth, stageEvidence, stageSumma
         }
       }}
     >
-      <div className={`sticky top-0 z-20 rounded-t-xl border-b border-slate-200/60 px-3 py-2.5 shadow-[0_8px_18px_-18px_rgba(15,23,42,0.8)] backdrop-blur-md dark:border-slate-800/70 [@media(max-height:700px)]:py-2 ${tone.wash} ${verdictPulse ? 'engineering-verdict-pulse' : ''}`}>
+      <div className={`engineering-verdict-primary sticky top-0 z-20 rounded-t-xl border-b border-slate-200/60 px-3 py-2.5 shadow-[0_8px_18px_-18px_rgba(15,23,42,0.8)] backdrop-blur-md dark:border-slate-800/70 [@media(max-height:700px)]:py-2 ${tone.wash} ${verdictPulse ? 'engineering-verdict-pulse' : ''}`}>
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
             <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${tone.marker}`} aria-hidden="true" />
@@ -594,7 +595,7 @@ const EngineeringResultSummary = ({ technology, truth, stageEvidence, stageSumma
             </span>
           </div>
         </div>
-        <h3 className="mt-1.5 text-[17px] font-bold leading-5 tracking-tight text-slate-950 dark:text-white">
+        <h3 className="engineering-verdict-title mt-1.5 text-[17px] font-bold leading-5 tracking-tight text-slate-950 dark:text-white">
           {truth.headline}
         </h3>
         <p className="mt-1 text-[11px] leading-4 text-slate-600 dark:text-slate-300">{truth.summary}</p>

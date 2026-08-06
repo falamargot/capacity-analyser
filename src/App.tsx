@@ -5315,14 +5315,14 @@ const App: React.FC = () => {
     <EngineeringAnalysisProvider value={engineeringAnalysis}>
     <div
       className={[
-        'bg-white transition-colors duration-300 dark:bg-slate-950',
+        'capacity-app bg-white transition-colors duration-300 dark:bg-slate-950',
         !isMobile
           ? 'flex h-screen flex-col overflow-hidden'
           : 'min-h-screen',
       ].join(' ')}
     >
       {!isPhone && (
-        <header className="shrink-0 border-b border-slate-200/70 bg-white shadow-[0_8px_24px_-22px_rgba(15,23,42,0.38)] transition-colors duration-300 dark:border-slate-800 dark:bg-slate-900">
+        <header className={`capacity-header relative shrink-0 border-b border-slate-200/70 bg-white shadow-[0_8px_24px_-22px_rgba(15,23,42,0.38)] transition-colors duration-300 dark:border-slate-800 dark:bg-slate-900 ${isFullscreen ? 'z-0' : 'z-[100]'}`}>
           <div className={`w-full px-2 py-0 sm:px-3 lg:px-4 ${isDesktopHeaderCollapsed ? 'md:py-1' : useCompactDesktopHeader ? 'md:py-1.5' : 'md:py-2'}`}>
             {isMobile ? (
               <div className="flex items-center justify-between">
@@ -5397,7 +5397,7 @@ const App: React.FC = () => {
                     </button>
 
                     {isHelpMenuOpen && (
-                      <div className="absolute right-0 mt-2 w-64 rounded-md bg-white p-3 text-sm shadow-lg dark:bg-slate-800">
+                      <div className="ui-global-popover absolute right-0 mt-2 w-64 rounded-md bg-white p-3 text-sm shadow-lg dark:bg-slate-800">
                         <div className="font-semibold text-slate-900 dark:text-slate-100">Keyboard shortcuts</div>
                         <div className="mt-2 text-xs text-slate-600 dark:text-slate-400">Press {shortcutModifier}+K to open the command palette.</div>
                       </div>
@@ -5500,7 +5500,7 @@ const App: React.FC = () => {
                   <div className="contents" ref={targetSourcesMenuRef}>
                       {isTargetSourcesMenuOpen && (
                         <div
-                          className="fixed left-4 z-[90] w-[760px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-[28px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.95))] shadow-[0_36px_90px_-42px_rgba(15,23,42,0.55)] backdrop-blur-xl dark:border-slate-700 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.96))]"
+                          className="ui-global-popover fixed left-4 w-[760px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-[28px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.95))] shadow-[0_36px_90px_-42px_rgba(15,23,42,0.55)] backdrop-blur-xl dark:border-slate-700 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.96))]"
                           style={{ top: explorePanelTop }}
                         >
                           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.12),transparent_24%),radial-gradient(circle_at_top_right,rgba(16,185,129,0.10),transparent_24%)]" />
@@ -5795,7 +5795,7 @@ const App: React.FC = () => {
                     </button>
 
                     {isHelpMenuOpen && (
-                      <div className="absolute right-0 mt-2 w-64 rounded-md bg-white shadow-lg p-3 text-sm dark:bg-slate-800">
+                      <div className="ui-global-popover absolute right-0 mt-2 w-64 rounded-md bg-white shadow-lg p-3 text-sm dark:bg-slate-800">
                         <div className="font-semibold text-slate-900 dark:text-slate-100">Keyboard shortcuts</div>
                         <div className="mt-2 text-xs text-slate-600 dark:text-slate-400">Press {shortcutModifier}+K to open the command palette.</div>
                       </div>
@@ -5825,7 +5825,7 @@ const App: React.FC = () => {
       )}
 
       {isMobile && isSatelliteModalOpen && (
-        <div className="fixed inset-0 z-[60] bg-white dark:bg-slate-900">
+        <div className="ui-global-dialog fixed inset-0 bg-white dark:bg-slate-900">
           <div
             className="flex items-center justify-between border-b border-gray-200 px-4 pb-3 dark:border-slate-700"
             style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)' }}
@@ -5923,7 +5923,7 @@ const App: React.FC = () => {
           <div className={`relative ${isPhone ? 'h-[100dvh]' : 'h-[calc(100vh-7rem)]'}`}>
             <div
               className={[
-                'absolute inset-0 overflow-hidden transition-[filter,opacity,transform] duration-[220ms]',
+                'capacity-map-layer absolute inset-0 overflow-hidden transition-[filter,opacity,transform] duration-[220ms]',
                 commercialMode ? 'bg-slate-950 commercial-mobile-globe-layer' : 'bg-white',
                 isFullscreen ? 'fixed inset-0 z-50' : '',
               ].join(' ')}
@@ -6001,7 +6001,7 @@ const App: React.FC = () => {
 
             {isCustomerDecisionOpen && !isFullscreen && (
               <div
-                className="fixed inset-0 z-[1450] flex items-end justify-center bg-slate-950/38 px-0 backdrop-blur-[2px] sm:px-3"
+                className="ui-global-dialog fixed inset-0 flex items-end justify-center bg-slate-950/38 px-0 backdrop-blur-[2px] sm:px-3"
                 role="dialog"
                 aria-modal="true"
                 aria-label="Customer decision support"
@@ -6114,7 +6114,7 @@ const App: React.FC = () => {
 
                 {isMobileAnalysisPanelOpen && (
                   <div
-                    className="fixed inset-0 z-[70] bg-slate-950/28 backdrop-blur-[2px]"
+                    className="ui-global-dialog fixed inset-0 bg-slate-950/28 backdrop-blur-[2px]"
                     role="dialog"
                     aria-modal="true"
                     aria-label="Engineering result investigation"
@@ -6292,9 +6292,9 @@ const App: React.FC = () => {
                 in both modes — React reuses the fiber, globe never remounts. */}
             <div
               className={uiMode === 'commercial'
-                ? 'flex min-w-0 flex-1 flex-col'
+                ? 'capacity-map-layer flex min-w-0 flex-1 flex-col'
                 : [
-                    'flex-1 relative bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300',
+                    'capacity-map-layer capacity-globe-shell flex-1 relative bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300',
                     isFullscreen ? 'fixed inset-0 z-50' : '',
                   ].filter(Boolean).join(' ')
               }
@@ -6395,7 +6395,8 @@ const App: React.FC = () => {
                 Remounts on switch — intentional; it does not contain the globe. */}
             {uiMode !== 'commercial' && (
               <div
-                className={`relative z-40 flex flex-shrink-0 flex-col overflow-visible rounded-[24px] border border-slate-200/80 bg-white/97 shadow-[0_30px_70px_-35px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-950/98 ${isFullscreen ? 'hidden' : ''}`}
+                className={`capacity-engineering-sidebar relative z-40 flex flex-shrink-0 flex-col overflow-visible rounded-[24px] border border-slate-200/80 bg-white/97 shadow-[0_30px_70px_-35px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-950/98 ${isFullscreen ? 'hidden' : ''}`}
+                data-active-technology={showEngineeringRouteStatus ? activeConnectivityTab : undefined}
                 style={{ width: desktopSidebarWidth }}
               >
                 <div
@@ -6409,6 +6410,17 @@ const App: React.FC = () => {
                   }}
                 />
                 <>
+                  {showEngineeringRouteStatus && (
+                    <div
+                      className="capacity-sidebar-technology-tab relative z-10 flex h-8 shrink-0 items-center gap-2 border-b px-3"
+                      data-technology={activeConnectivityTab}
+                      aria-label={`${activeConnectivityTab} focused analysis details`}
+                    >
+                      <span className="capacity-sidebar-technology-dot h-2 w-2 rounded-full" aria-hidden="true" />
+                      <span className="text-[10px] font-black uppercase tracking-[0.16em]">{activeConnectivityTab}</span>
+                      <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400">Focused analysis</span>
+                    </div>
+                  )}
                   {!showEngineeringRouteStatus && (
                     <SidebarHeroCard
                       eyebrow={desktopSidebarHero.eyebrow}
@@ -6424,7 +6436,7 @@ const App: React.FC = () => {
                     />
                   )}
 
-                  <div className={`flex-1 min-h-0 overflow-y-auto ${useCompactDesktopSidebar ? 'px-2.5 pb-2.5' : 'px-3 pb-3'}`}>
+                  <div className={`capacity-sidebar-scroll flex-1 min-h-0 overflow-y-auto ${useCompactDesktopSidebar ? 'px-2.5 pb-2.5' : 'px-3 pb-3'}`}>
                     <Suspense fallback={panelFallback}>
                       {selectedIss ? (
                         <IssDetails
@@ -6546,7 +6558,7 @@ const App: React.FC = () => {
           {isCustomerDecisionOpen && !isFullscreen && (
             <div
               data-customer-decision-host=""
-              className="pointer-events-none fixed z-[1450] w-[clamp(30rem,38vw,36rem)]"
+              className="ui-global-floating-window pointer-events-none fixed w-[clamp(30rem,38vw,36rem)]"
               style={{
                 right: commercialMode
                   ? 'calc(380px + 1rem)'
@@ -6570,7 +6582,7 @@ const App: React.FC = () => {
 
       {isMobile && isEngineeringConfigureOpen && (
         <div
-          className="fixed inset-0 z-[90] bg-white dark:bg-slate-950"
+          className="ui-global-dialog fixed inset-0 bg-white dark:bg-slate-950"
           role="dialog"
           aria-modal="true"
           aria-label="Configure engineering scenario"

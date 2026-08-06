@@ -58,6 +58,35 @@ body {
   overflow-x: hidden;
 }
 
+/* Application layer contract. Map controls and Cesium overlays may use large
+   local z-index values, but they must never escape above application windows. */
+:root {
+  --z-ui-popover: 2000;
+  --z-ui-floating-window: 2100;
+  --z-ui-dialog: 2200;
+  --z-ui-topmost: 3000;
+}
+
+.capacity-map-layer {
+  isolation: isolate;
+}
+
+.ui-global-popover {
+  z-index: var(--z-ui-popover) !important;
+}
+
+.ui-global-floating-window {
+  z-index: var(--z-ui-floating-window) !important;
+}
+
+.ui-global-dialog {
+  z-index: var(--z-ui-dialog) !important;
+}
+
+.ui-global-topmost {
+  z-index: var(--z-ui-topmost) !important;
+}
+
 /* Smooth transition for theme switching — targeted to avoid perf issues on canvas/SVG */
 body,
 header,
@@ -1289,4 +1318,539 @@ h1, h2, h3, h4 {
 
 @media (prefers-reduced-motion: reduce) {
   .engineering-verdict-pulse { animation: none; }
+}
+
+/* ── Shipping polish: three quiet neutral elevations ────────────────────────
+   These rules deliberately leave semantic GEO, LEO, status, warning and
+   decision colours untouched. Structure and workflow remain component-owned;
+   this layer only consolidates neutral surfaces, rules and interaction depth. */
+:root {
+  --surface-0: #f1f4f8;
+  --surface-1: #ffffff;
+  --surface-2: #f8fafc;
+  --neutral-rule: rgb(100 116 139 / 0.16);
+  --neutral-rule-strong: rgb(100 116 139 / 0.24);
+  --quiet-shadow: 0 18px 50px -42px rgb(15 23 42 / 0.42);
+  --focus-shadow: 0 18px 50px -36px rgb(15 23 42 / 0.5);
+}
+
+.dark {
+  --surface-0: #05070b;
+  --surface-1: #090d14;
+  --surface-2: #101620;
+  --neutral-rule: rgb(148 163 184 / 0.11);
+  --neutral-rule-strong: rgb(148 163 184 / 0.18);
+  --quiet-shadow: 0 20px 54px -42px rgb(0 0 0 / 0.9);
+  --focus-shadow: 0 24px 64px -38px rgb(0 0 0 / 0.95);
+}
+
+.capacity-app {
+  background: var(--surface-0) !important;
+}
+
+.capacity-header {
+  border-color: var(--neutral-rule) !important;
+  background: color-mix(in srgb, var(--surface-1) 96%, transparent) !important;
+  box-shadow: 0 12px 32px -30px rgb(15 23 42 / 0.7) !important;
+  backdrop-filter: blur(18px) saturate(115%);
+}
+
+.dark .capacity-header {
+  background: rgb(7 10 16 / 0.98) !important;
+  box-shadow: 0 12px 32px -28px rgb(0 0 0 / 0.95) !important;
+}
+
+.capacity-header .header-scenario-surface {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.capacity-header .header-site-section {
+  background: transparent !important;
+}
+
+.capacity-header [class*='border-slate-'],
+.capacity-header [class*='border-gray-'] {
+  border-color: var(--neutral-rule) !important;
+}
+
+.capacity-header button:not([class*='bg-blue-']):not([class*='bg-pink-']):not([class*='bg-sky-']):not([class*='bg-emerald-']):not([class*='bg-amber-']):not([class*='bg-rose-']) {
+  box-shadow: none;
+}
+
+.capacity-header button:focus-visible,
+.capacity-engineering-sidebar button:focus-visible,
+.engineering-inspector button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--surface-1), 0 0 0 4px rgb(56 189 248 / 0.58) !important;
+}
+
+.capacity-globe-shell {
+  border: 1px solid var(--neutral-rule);
+  box-shadow: 0 28px 76px -44px rgb(2 6 23 / 0.75) !important;
+}
+
+.dark .capacity-globe-shell {
+  border-color: rgb(255 255 255 / 0.06);
+  box-shadow: 0 32px 88px -42px rgb(0 0 0 / 0.98) !important;
+}
+
+.capacity-engineering-sidebar {
+  border-color: var(--neutral-rule) !important;
+  background: var(--surface-1) !important;
+  box-shadow: var(--quiet-shadow) !important;
+}
+
+.dark .capacity-engineering-sidebar {
+  background: #070b12 !important;
+}
+
+.sidebar-hero-card {
+  border-color: var(--neutral-rule) !important;
+  box-shadow: none !important;
+}
+
+.sidebar-hero-card:not([style*='background-image']) {
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: transparent !important;
+}
+
+.capacity-details-surface {
+  border-color: transparent !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.capacity-sidebar-scroll {
+  scrollbar-color: rgb(100 116 139 / 0.3) transparent;
+  scrollbar-gutter: stable;
+}
+
+.capacity-sidebar-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.capacity-sidebar-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgb(100 116 139 / 0.3);
+}
+
+.capacity-sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgb(100 116 139 / 0.48);
+}
+
+/* The selected route card acts as the tab for the engineering rail. The same
+   technology accent continues at the top of the sidebar so the relationship
+   remains visible even when the detailed report is scrolled. */
+.capacity-header .header-route-summary-card.is-selected[data-technology='GEO'] {
+  border-bottom-color: rgb(56 189 248 / 0.82) !important;
+  box-shadow: inset 0 -2px 0 rgb(56 189 248 / 0.9) !important;
+  filter: saturate(1);
+  opacity: 1;
+}
+
+.capacity-header .header-route-summary-card.is-selected[data-technology='LEO'] {
+  border-bottom-color: rgb(244 114 182 / 0.82) !important;
+  box-shadow: inset 0 -2px 0 rgb(244 114 182 / 0.9) !important;
+  filter: saturate(1);
+  opacity: 1;
+}
+
+.capacity-engineering-sidebar[data-active-technology='GEO'] {
+  border-top-color: rgb(56 189 248 / 0.62) !important;
+  box-shadow: inset 0 2px 0 rgb(56 189 248 / 0.72) !important;
+}
+
+.capacity-engineering-sidebar[data-active-technology='LEO'] {
+  border-top-color: rgb(244 114 182 / 0.62) !important;
+  box-shadow: inset 0 2px 0 rgb(244 114 182 / 0.72) !important;
+}
+
+.capacity-sidebar-technology-tab {
+  border-color: var(--neutral-rule) !important;
+  background: color-mix(in srgb, var(--surface-2) 78%, transparent);
+}
+
+.capacity-sidebar-technology-tab[data-technology='GEO'] {
+  color: rgb(2 132 199);
+}
+
+.capacity-sidebar-technology-tab[data-technology='LEO'] {
+  color: rgb(219 39 119);
+}
+
+.dark .capacity-sidebar-technology-tab[data-technology='GEO'] {
+  color: rgb(125 211 252);
+  background: linear-gradient(90deg, rgb(14 165 233 / 0.10), transparent 62%);
+}
+
+.dark .capacity-sidebar-technology-tab[data-technology='LEO'] {
+  color: rgb(249 168 212);
+  background: linear-gradient(90deg, rgb(236 72 153 / 0.11), transparent 62%);
+}
+
+.capacity-sidebar-technology-tab[data-technology='GEO'] .capacity-sidebar-technology-dot {
+  background: rgb(14 165 233);
+  box-shadow: 0 0 0 3px rgb(14 165 233 / 0.12);
+}
+
+.capacity-sidebar-technology-tab[data-technology='LEO'] .capacity-sidebar-technology-dot {
+  background: rgb(236 72 153);
+  box-shadow: 0 0 0 3px rgb(236 72 153 / 0.12);
+}
+
+/* Remove the three nested horizontal gutters around the ENG report. The
+   sidebar keeps one compact outer gutter; report components own their rhythm. */
+@media (min-width: 1100px) {
+  .capacity-engineering-sidebar .capacity-sidebar-scroll {
+    padding-right: 0.25rem !important;
+    padding-left: 0.25rem !important;
+  }
+
+  .capacity-engineering-sidebar .engineering-details-layout {
+    padding-right: 0 !important;
+    padding-left: 0 !important;
+  }
+
+  .capacity-engineering-sidebar .engineering-technology-workspace {
+    padding-right: 0.125rem !important;
+    padding-left: 0.125rem !important;
+  }
+}
+
+/* The sidebar reads as one report. Neutral nested cards step back while
+   coloured semantic states retain their existing border and fill colours. */
+.capacity-details-surface [class*='border-slate-'][class*='rounded-'],
+.capacity-details-surface [class*='border-gray-'][class*='rounded-'] {
+  border-color: var(--neutral-rule) !important;
+  box-shadow: none !important;
+}
+
+.capacity-details-surface [class*='bg-slate-50'][class*='rounded-'],
+.capacity-details-surface [class*='bg-gray-50'][class*='rounded-'] {
+  background-color: color-mix(in srgb, var(--surface-2) 64%, transparent) !important;
+}
+
+.dark .capacity-details-surface [class*='bg-slate-9'][class*='rounded-'],
+.dark .capacity-details-surface [class*='bg-slate-8'][class*='rounded-'] {
+  background-color: rgb(16 22 32 / 0.72) !important;
+}
+
+/* Continuous analysis surface. Only semantic callouts, interactive controls,
+   the primary verdict and explicitly tagged critical metrics remain framed. */
+.capacity-details-surface :is(div, section, article, details):not(.engineering-lens):not(.engineering-critical-metric):not([data-engineering-metric-tile]):not([role='radiogroup']):not([class*='absolute'])[class*='rounded-'][class*='border-slate-'],
+.capacity-details-surface :is(div, section, article, details):not(.engineering-lens):not(.engineering-critical-metric):not([data-engineering-metric-tile]):not([role='radiogroup']):not([class*='absolute'])[class*='rounded-'][class*='border-gray-'] {
+  border-color: transparent !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+.capacity-details-surface :is(div, section, article, details):not(.engineering-lens):not(.engineering-critical-metric):not([data-engineering-metric-tile]):not([role='radiogroup']):not([class*='absolute'])[class*='rounded-'][class*='bg-white'],
+.capacity-details-surface :is(div, section, article, details):not(.engineering-lens):not(.engineering-critical-metric):not([data-engineering-metric-tile]):not([role='radiogroup']):not([class*='absolute'])[class*='rounded-'][class*='bg-slate-'],
+.capacity-details-surface :is(div, section, article, details):not(.engineering-lens):not(.engineering-critical-metric):not([data-engineering-metric-tile]):not([role='radiogroup']):not([class*='absolute'])[class*='rounded-'][class*='bg-gray-'] {
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+.capacity-details-surface .continuous-section {
+  border-width: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.capacity-details-surface .continuous-section + .continuous-section {
+  margin-top: 1rem;
+}
+
+.capacity-details-surface .continuous-section > div:first-child {
+  padding-right: 0.25rem;
+  padding-left: 0.25rem;
+}
+
+.capacity-details-surface .continuous-section > div:last-child:not(:first-child) {
+  border-color: var(--neutral-rule) !important;
+  padding-right: 0.25rem;
+  padding-left: 0.25rem;
+}
+
+.capacity-details-surface .engineering-lens {
+  border-color: var(--neutral-rule-strong);
+  box-shadow: 0 16px 44px -38px rgb(15 23 42 / 0.68);
+}
+
+.dark .capacity-details-surface .engineering-lens {
+  box-shadow: 0 18px 48px -36px rgb(0 0 0 / 0.96);
+}
+
+.capacity-details-surface .engineering-critical-metric,
+.capacity-details-surface [data-engineering-metric-tile] {
+  box-shadow: none !important;
+}
+
+.capacity-details-surface > div > .overflow-y-auto > * + * {
+  margin-top: 1rem;
+}
+
+.capacity-details-surface h2,
+.capacity-details-surface h3,
+.capacity-details-surface h4 {
+  letter-spacing: -0.012em;
+}
+
+.capacity-details-surface [class*='uppercase'] {
+  letter-spacing: 0.09em;
+}
+
+/* Inspector: a continuous technical document with a single focused edge. */
+.engineering-inspector[data-engineering-inspector-variant='desktop'] {
+  border-color: var(--neutral-rule-strong) !important;
+  border-right-color: rgb(56 189 248 / 0.26) !important;
+  background: var(--surface-1) !important;
+  box-shadow: var(--focus-shadow) !important;
+}
+
+.dark .engineering-inspector[data-engineering-inspector-variant='desktop'] {
+  background: #0a0f17 !important;
+}
+
+.engineering-inspector-header {
+  border-bottom: 1px solid var(--neutral-rule);
+  background: color-mix(in srgb, var(--surface-1) 94%, transparent) !important;
+  box-shadow: none;
+}
+
+.engineering-inspector-header h2 {
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.engineering-inspector-header > button {
+  border-color: var(--neutral-rule) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.engineering-inspector-header > button:hover {
+  background: var(--surface-2) !important;
+}
+
+.engineering-inspector-content {
+  line-height: 1.55;
+}
+
+.engineering-inspector-workspace {
+  --engineering-rule: var(--neutral-rule);
+  --engineering-rule-strong: var(--neutral-rule-strong);
+}
+
+.engineering-stage-section-heading {
+  margin-top: 0.25rem;
+  padding-bottom: 0.625rem;
+}
+
+.engineering-stage-section-heading > span:first-child {
+  font-weight: 650;
+  letter-spacing: -0.005em;
+}
+
+.engineering-inspector-workspace [data-engineering-evidence-summary] dt,
+.engineering-inspector-workspace [data-engineering-metric-tile] > div:first-child {
+  font-weight: 650;
+  letter-spacing: 0.075em;
+}
+
+.engineering-inspector-workspace [data-engineering-evidence-summary] > div {
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+/* ── Attention hierarchy ────────────────────────────────────────────────────
+   Perceptual order: globe → verdict → active reasoning → supporting data. */
+.capacity-header {
+  border-bottom-color: rgb(100 116 139 / 0.09) !important;
+  box-shadow: none !important;
+}
+
+.dark .capacity-header {
+  background: rgb(5 8 13 / 0.975) !important;
+}
+
+.capacity-header .header-site-section {
+  opacity: 0.78;
+  transition: opacity 160ms ease;
+}
+
+.capacity-header .header-site-section:hover,
+.capacity-header .header-site-section:focus-within {
+  opacity: 1;
+}
+
+.capacity-header .header-route-summary {
+  align-content: center;
+}
+
+.capacity-header .header-route-summary-card {
+  border-color: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  opacity: 0.58;
+  filter: saturate(0.72);
+  transition: opacity 160ms ease, filter 160ms ease, background-color 160ms ease;
+}
+
+.capacity-header .header-route-summary-card.is-selected {
+  background: color-mix(in srgb, var(--surface-2) 58%, transparent) !important;
+  opacity: 0.76;
+}
+
+.capacity-header .header-route-summary-card:hover,
+.capacity-header .header-route-summary-card:focus-visible {
+  background: color-mix(in srgb, var(--surface-2) 78%, transparent) !important;
+  opacity: 1;
+  filter: saturate(0.92);
+}
+
+.capacity-header .header-route-summary-metric > div:first-child {
+  opacity: 0.68;
+  font-weight: 650;
+}
+
+.capacity-header .header-route-summary-metric > div:last-child {
+  font-weight: 650;
+}
+
+.capacity-header .header-secondary-badge {
+  opacity: 0.56;
+  font-weight: 650;
+  letter-spacing: 0.055em;
+}
+
+.capacity-globe-shell {
+  border-color: rgb(56 189 248 / 0.12) !important;
+  box-shadow: 0 34px 92px -40px rgb(2 6 23 / 0.86) !important;
+}
+
+.dark .capacity-globe-shell {
+  border-color: rgb(125 211 252 / 0.1) !important;
+  box-shadow: 0 38px 104px -38px rgb(0 0 0 / 1) !important;
+}
+
+.capacity-engineering-sidebar {
+  border-color: rgb(100 116 139 / 0.1) !important;
+  box-shadow: none !important;
+}
+
+.sidebar-hero-wrap {
+  opacity: 0.72;
+  transition: opacity 160ms ease;
+}
+
+.sidebar-hero-wrap:hover,
+.sidebar-hero-wrap:focus-within {
+  opacity: 0.94;
+}
+
+.capacity-details-surface .continuous-section,
+.capacity-details-surface [data-engineering-secondary-investigation] {
+  opacity: 0.76;
+  transition: opacity 160ms ease;
+}
+
+.capacity-details-surface .continuous-section:hover,
+.capacity-details-surface .continuous-section:focus-within,
+.capacity-details-surface [data-engineering-secondary-investigation]:hover,
+.capacity-details-surface [data-engineering-secondary-investigation]:focus-within {
+  opacity: 0.96;
+}
+
+/* The engineering verdict is the strongest object in the annotation rail. */
+.capacity-details-surface .engineering-lens {
+  border-color: rgb(56 189 248 / 0.34) !important;
+  background: color-mix(in srgb, var(--surface-1) 96%, rgb(56 189 248 / 0.04)) !important;
+  box-shadow: 0 22px 58px -36px rgb(14 116 144 / 0.52) !important;
+}
+
+.dark .capacity-details-surface .engineering-lens {
+  background: rgb(10 16 25 / 0.98) !important;
+  box-shadow: 0 26px 68px -34px rgb(0 0 0 / 1), 0 0 0 1px rgb(56 189 248 / 0.08) !important;
+}
+
+.capacity-details-surface .engineering-verdict-primary {
+  border-bottom-color: var(--neutral-rule-strong) !important;
+  background: color-mix(in srgb, var(--surface-2) 86%, transparent) !important;
+}
+
+.dark .capacity-details-surface .engineering-verdict-primary {
+  background: rgb(15 23 34 / 0.96) !important;
+}
+
+.capacity-details-surface .engineering-verdict-title {
+  font-size: 1.1875rem;
+  font-weight: 720;
+  line-height: 1.4rem;
+  letter-spacing: -0.026em;
+}
+
+.engineering-cause-stage {
+  opacity: 0.66;
+  filter: saturate(0.76);
+}
+
+.engineering-cause-stage:hover,
+.engineering-cause-stage:focus-visible {
+  opacity: 0.9;
+  filter: saturate(0.92);
+}
+
+.engineering-cause-stage[data-engineering-cause-active] {
+  position: relative;
+  opacity: 1;
+  filter: saturate(1);
+  background: color-mix(in srgb, rgb(14 165 233 / 0.12) 70%, transparent) !important;
+  box-shadow: inset 2px 0 0 rgb(56 189 248 / 0.9) !important;
+}
+
+.engineering-cause-stage[data-engineering-cause-active]::after {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 12px 30px -24px rgb(14 116 144 / 0.75);
+  content: '';
+  pointer-events: none;
+}
+
+.engineering-cause-stage[data-engineering-cause-active] > span:last-child > div > span:first-child {
+  font-weight: 750;
+  color: rgb(15 23 42);
+}
+
+.dark .engineering-cause-stage[data-engineering-cause-active] > span:last-child > div > span:first-child {
+  color: rgb(241 245 249);
+}
+
+.engineering-inspector-content [data-engineering-primary-investigation] {
+  opacity: 0.94;
+}
+
+.engineering-inspector-content [data-engineering-secondary-investigation] {
+  opacity: 0.68;
+}
+
+@media (min-width: 1100px) {
+  .capacity-engineering-sidebar,
+  .capacity-globe-shell {
+    border-radius: 20px !important;
+  }
+
+  .sidebar-hero-wrap {
+    padding-bottom: 0.75rem;
+  }
 }

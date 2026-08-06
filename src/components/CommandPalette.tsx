@@ -303,7 +303,7 @@ const CommandPalette = memo<CommandPaletteProps>(({
   };
 
   return (
-    <div className="fixed inset-0 z-[70]">
+    <div className="ui-global-dialog fixed inset-0">
       {!isAnchored && <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />}
 
       {/* Palette */}

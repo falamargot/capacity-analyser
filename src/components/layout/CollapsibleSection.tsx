@@ -70,7 +70,7 @@ const CollapsibleSection = memo<CollapsibleSectionProps>(({
   }, [collapsible, storageKey]);
 
   return (
-    <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg border border-gray-200/70 dark:border-slate-700/70 overflow-hidden">
+    <div className="continuous-section bg-gray-50 dark:bg-slate-800/50 rounded-lg border border-gray-200/70 dark:border-slate-700/70 overflow-hidden">
       <div
         className={`relative flex w-full items-center justify-between gap-3 px-3 py-2 text-left ${collapsible ? 'hover:bg-gray-100/50 dark:hover:bg-slate-700/30 transition-colors' : ''}`}
       >

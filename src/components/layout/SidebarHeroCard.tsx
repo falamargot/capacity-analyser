@@ -181,7 +181,7 @@ const SidebarHeroCard = memo<SidebarHeroCardProps>(({
   // Two-point mode: two standalone site cards, no enclosing container card
   if (siteToSite) {
     return (
-      <div className={outerPad}>
+      <div className={`sidebar-hero-wrap ${outerPad}`}>
         <div className="relative grid grid-cols-2 gap-2">
           <SiteCardInner site={siteToSite.siteA} />
           {siteToSite.directionIndicator && (
@@ -195,9 +195,9 @@ const SidebarHeroCard = memo<SidebarHeroCardProps>(({
 
   // Standard single-site card
   return (
-    <div className={outerPad}>
+    <div className={`sidebar-hero-wrap ${outerPad}`}>
       <div
-        className={`overflow-hidden rounded-2xl border bg-gradient-to-br ${toneClass} bg-white dark:bg-slate-900 shadow-[0_20px_45px_-28px_rgba(15,23,42,0.55)]`}
+        className={`sidebar-hero-card overflow-hidden rounded-2xl border bg-gradient-to-br ${toneClass} bg-white dark:bg-slate-900 shadow-[0_20px_45px_-28px_rgba(15,23,42,0.55)]`}
         style={backgroundImageUrl ? {
           backgroundImage: `linear-gradient(135deg, rgba(8, 15, 30, 0.78), rgba(8, 47, 73, 0.60)), url(${backgroundImageUrl})`,
           backgroundSize: 'cover',
