@@ -100,7 +100,9 @@ export function useRevisitAnalysis(
 
         worker.addEventListener('message', (event: MessageEvent<RevisitWorkerOutput>) => {
             const response = event.data;
-            if (!mountedRef.current) return;
+            // This worker only ever receives `analyse`, but the guard keeps the
+            // two hooks' response handling symmetric and type-narrowed.
+            if (!mountedRef.current || response.kind !== 'analyse') return;
             if (!isCurrentResponse(response, pendingRef.current ?? { requestId: null, timelineRevision: -1 })) {
                 return;
             }
