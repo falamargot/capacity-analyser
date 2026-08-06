@@ -38,7 +38,16 @@ const TOGGLES: Array<{ key: keyof RevisitSceneOptions; label: string }> = [
     { key: 'showHostFleet', label: 'Fleet' },
 ];
 
-export const RevisitApp: React.FC = () => {
+interface RevisitAppProps {
+    /**
+     * Return to the main application. REVISIT unmounts `<App/>` entirely, so the
+     * three-peer switch that lives in App's header is not on screen here — this
+     * view has to carry its own way back or the user is stranded.
+     */
+    onExit?: () => void;
+}
+
+export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
     const clock = useSimulationClock();
 
     // The analysis window is anchored ONCE, at mount. The playhead moves within
@@ -142,6 +151,15 @@ export const RevisitApp: React.FC = () => {
                 <div className="flex items-start justify-between gap-2">
                     {/* Display toggles — the slot ENG uses for REG / 5G / CONN / LOAD */}
                     <div className={`pointer-events-auto ${REVISIT_PANEL} flex flex-col gap-1 p-1.5`}>
+                        {onExit && (
+                            <button
+                                type="button"
+                                onClick={onExit}
+                                className="mb-0.5 rounded-md border-b border-slate-700/60 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-slate-400 transition-colors hover:text-slate-100"
+                            >
+                                ‹ Back
+                            </button>
+                        )}
                         {TOGGLES.map(({ key, label }) => (
                             <button
                                 key={key}

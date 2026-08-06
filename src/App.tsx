@@ -86,7 +86,8 @@ import { useSelectionState } from './hooks/useSelectionState';
 import { useAuthorshipEasterEgg } from './hooks/useAuthorshipEasterEgg';
 import { useViewport, type ViewportSnapshot } from './hooks/useViewport';
 import { useGlobeBootState } from './hooks/useGlobeBootState';
-import { useUiModeState } from './hooks/useUiModeState';
+import { useUiModeState, type UiMode } from './hooks/useUiModeState';
+import type { AppMode } from './hooks/useAppModeState';
 import { useSecondTick } from './hooks/useSecondTick';
 import { formatCoordinates } from './utils/formatters';
 import { buildSimulationStateSnapshot } from './types/simulation';
@@ -458,7 +459,21 @@ const getInitialDisplayDefaults = (): InitialDisplayDefaults => {
   };
 };
 
-const App: React.FC = () => {
+/**
+ * The mode is owned by the root shell, not by this component.
+ *
+ * This is the single documented modification to App.tsx that the revisit module
+ * required (ADR-001 §4). It *removes* responsibility from this file rather than
+ * adding to it: App no longer decides which top-level view is active, it is told.
+ * That is what lets REVISIT be a peer view which unmounts App entirely, instead
+ * of a third `uiMode` mounted inside it and inheriting its re-render cost.
+ */
+interface AppProps {
+  appMode: AppMode;
+  onAppModeChange: (mode: AppMode) => void;
+}
+
+const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
   const simulationClock = useSimulationClock();
   const simulationClockSnapshot = useSimulationClockSnapshot();
   const engineeringFocusController = useEngineeringFocusController();
@@ -734,14 +749,16 @@ const App: React.FC = () => {
   const [hoveredSatelliteId, setHoveredSatelliteId] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(initialDisplayDefaults.isFullscreen);
   const {
-    uiMode,
-    commercialMode,
     satelliteScope,
     activeConnectivityTab,
-    handleUiModeChange,
     handleTechnologyChange,
     handleTechnologyScopeChange,
   } = useUiModeState();
+  // App is only mounted for the two skins it implements; `revisit` unmounts it.
+  // The narrowing keeps every existing `uiMode` consumer below unchanged.
+  const uiMode: UiMode = appMode === 'revisit' ? 'engineering' : appMode;
+  const commercialMode = uiMode === 'commercial';
+  const handleUiModeChange = onAppModeChange;
   const [commercialSelectedSegment, setCommercialSelectedSegment] = useState<string>('summary');
   const [isCustomerDecisionOpen, setIsCustomerDecisionOpen] = useState(false);
   const [customerDecisionPanelTop, setCustomerDecisionPanelTop] = useState(64);
@@ -5129,8 +5146,15 @@ const App: React.FC = () => {
     }
   }, [handleLeoTopologyModeChange, handleLinkModeChange, handleTechnologyChange, handleTechnologyScopeChange, linkMode, setActiveMeshTab]);
 
-  const handleModeSwitch = useCallback((mode: 'engineering' | 'commercial') => {
-    if (mode === uiMode) return;
+  const handleModeSwitch = useCallback((mode: AppMode) => {
+    if (mode === appMode) return;
+
+    // REVISIT is a peer view, not a skin of this one: it unmounts App entirely,
+    // so there is no engineering state worth snapshotting on the way out.
+    if (mode === 'revisit') {
+      handleUiModeChange(mode);
+      return;
+    }
 
     if (mode === 'commercial') {
       engineeringModeSnapshotRef.current = captureEngineeringModeSnapshot();
@@ -5147,7 +5171,7 @@ const App: React.FC = () => {
       restoreEngineeringModeSnapshot(snapshot);
       engineeringModeSnapshotRef.current = null;
     }
-  }, [captureEngineeringModeSnapshot, handleUiModeChange, restoreEngineeringModeSnapshot, uiMode]);
+  }, [appMode, captureEngineeringModeSnapshot, handleUiModeChange, restoreEngineeringModeSnapshot]);
 
   if (loading) {
     return (
@@ -5197,28 +5221,39 @@ const App: React.FC = () => {
 
   const renderUiModeSwitch = (compact = false, hud = false) => (
     <div className={`inline-flex shrink-0 border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800 ${hud ? 'rounded-[16px] p-0.5 text-[11px] shadow-sm' : compact ? 'rounded-[22px] p-1 text-[13px] shadow-sm' : 'rounded-xl p-1 text-sm'}`}>
+      {/* Three peer buttons (ADR-001 §4). REVISIT shares no scenario data with
+          the other two — only the clock and the theme — so it is separated by a
+          rule rather than sitting flush against them, to blunt the assumption
+          that an ENG scenario carries over (UX §9, first open question). */}
       {([
         ['engineering', compact ? 'Eng' : 'Engineering'],
         ['commercial', compact ? 'Comm' : 'Commercial'],
+        ['revisit', 'Revisit'],
       ] as const).map(([mode, label]) => (
-        <button
-          key={mode}
-          type="button"
-          onClick={() => handleModeSwitch(mode)}
-          className={[
-            compact
-              ? hud
-                ? 'rounded-[12px] px-2.5 py-1.5 font-semibold transition-colors'
-                : 'rounded-[16px] px-4 py-2.5 font-semibold transition-colors'
-              : 'rounded-lg px-4 py-2.5 font-semibold transition-colors',
-            uiMode === mode
-              ? 'bg-slate-950 text-white shadow-sm dark:bg-white dark:text-slate-950'
-              : 'text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-700',
-          ].join(' ')}
-          aria-pressed={uiMode === mode}
-        >
-          {label}
-        </button>
+        <React.Fragment key={mode}>
+          {mode === 'revisit' && (
+            <span aria-hidden="true" className="mx-1 my-1.5 w-px bg-slate-300 dark:bg-slate-600" />
+          )}
+          <button
+            type="button"
+            onClick={() => handleModeSwitch(mode)}
+            className={[
+              compact
+                ? hud
+                  ? 'rounded-[12px] px-2.5 py-1.5 font-semibold transition-colors'
+                  : 'rounded-[16px] px-4 py-2.5 font-semibold transition-colors'
+                : 'rounded-lg px-4 py-2.5 font-semibold transition-colors',
+              // Compared against appMode, not uiMode: uiMode is narrowed to the
+              // two skins App implements and can never equal 'revisit'.
+              appMode === mode
+                ? 'bg-slate-950 text-white shadow-sm dark:bg-white dark:text-slate-950'
+                : 'text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-700',
+            ].join(' ')}
+            aria-pressed={appMode === mode}
+          >
+            {label}
+          </button>
+        </React.Fragment>
       ))}
     </div>
   );

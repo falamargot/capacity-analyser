@@ -3,11 +3,7 @@ import { createRoot } from 'react-dom/client';
 // Importation des styles de base de Cesium (indispensable)
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import { Ion } from 'cesium';
-import App from './App';
-import { RevisitApp } from './features/revisit/ui/RevisitApp';
-import { ThemeProvider } from './contexts/ThemeContext';
-import { SimulationProvider } from './contexts/SimulationContext';
-import { SimulationClockProvider } from './contexts/SimulationClockContext';
+import { RootShell } from './RootShell';
 import { installMemoryMonitor } from './utils/memoryMonitor';
 import { configureRuntimeProfiler, installRuntimeProfiler, recordReactCommit, ROOT_PROFILER_ID } from './utils/runtimeProfiler';
 import './index.css';
@@ -52,31 +48,7 @@ if (!rootElement) {
 // one interaction cost?" — neither was measurable before. React strips Profiler
 // overhead from production builds anyway, but keeping it dev-only makes the
 // zero-cost guarantee explicit rather than assumed.
-// REVISIT mode is an isolated slice (ADR-001 §4): a separate view selected here
-// rather than a third `uiMode` inside App.tsx. `<App/>` is fully unmounted in
-// revisit mode, so none of its ~2 Hz re-render amplification is inherited.
-//
-// One entry point, one bundle, one Cesium chunk — the audit (§5, F3) established
-// that a second HTML entry is unnecessary, which removed the chunk-duplication
-// risk entirely rather than merely mitigating it.
-//
-// RevisitApp sits OUTSIDE SimulationProvider: it needs no RF simulation state,
-// and staying outside makes the isolation structural rather than conventional.
-const isRevisitMode = new URLSearchParams(window.location.search).get('mode') === 'revisit';
-
-const app = (
-  <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-    <SimulationClockProvider>
-      {isRevisitMode
-        ? <RevisitApp />
-        : (
-          <SimulationProvider>
-            <App />
-          </SimulationProvider>
-        )}
-    </SimulationClockProvider>
-  </ThemeProvider>
-);
+const app = <RootShell />;
 
 createRoot(rootElement).render(
   <React.StrictMode>
