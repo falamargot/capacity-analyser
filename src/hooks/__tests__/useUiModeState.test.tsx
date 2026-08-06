@@ -5,6 +5,11 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { useUiModeState } from '../useUiModeState';
 
+// The mode-switch suite that used to live here moved to useAppModeState.test.tsx
+// when the top-level mode was lifted to the root shell. What remains in this
+// hook is scope and technology focus — ENG/COMM concepts that deliberately did
+// NOT travel up (audit §5.1) and that had no coverage of their own before.
+
 let root: Root | null = null;
 let container: HTMLDivElement;
 
@@ -21,31 +26,64 @@ afterEach(async () => {
   document.body.replaceChildren();
 });
 
-function ModeSwitchHarness() {
-  const { uiMode, handleUiModeChange } = useUiModeState();
+function ScopeHarness() {
+  const {
+    satelliteScope, activeConnectivityTab, handleTechnologyChange, handleTechnologyScopeChange,
+  } = useUiModeState();
   return (
     <>
-      <output data-testid="mode">{uiMode}</output>
-      <button type="button" onClick={() => handleUiModeChange('commercial')}>Commercial</button>
-      <button type="button" onClick={() => handleUiModeChange('engineering')}>Engineering</button>
+      <output data-testid="scope">{satelliteScope}</output>
+      <output data-testid="tech">{activeConnectivityTab}</output>
+      <button type="button" onClick={() => handleTechnologyChange('GEO')}>Tech GEO</button>
+      <button type="button" onClick={() => handleTechnologyScopeChange('GEO')}>Scope GEO</button>
+      <button type="button" onClick={() => handleTechnologyScopeChange('ALL')}>Scope ALL</button>
     </>
   );
 }
 
+const clickButton = async (label: string) => {
+  const button = Array.from(container.querySelectorAll('button'))
+    .find((candidate) => candidate.textContent === label);
+  await act(async () => button?.click());
+};
+
+const read = (id: string) => container.querySelector(`[data-testid="${id}"]`)?.textContent;
+
 describe('useUiModeState', () => {
-  it('commits each primary mode change on the first click', async () => {
-    await act(async () => root?.render(<ModeSwitchHarness />));
+  it('starts at ALL scope on LEO', async () => {
+    await act(async () => root?.render(<ScopeHarness />));
+    expect(read('scope')).toBe('ALL');
+    expect(read('tech')).toBe('LEO');
+  });
 
-    const commercial = Array.from(container.querySelectorAll('button'))
-      .find((button) => button.textContent === 'Commercial');
-    const engineering = Array.from(container.querySelectorAll('button'))
-      .find((button) => button.textContent === 'Engineering');
-    const mode = container.querySelector('[data-testid="mode"]');
+  // The documented invariant: scope is either ALL or equal to the active
+  // technology, and both handlers maintain it synchronously so no render ever
+  // observes the two disagreeing.
+  it('leaves an ALL scope alone when the technology focus changes', async () => {
+    await act(async () => root?.render(<ScopeHarness />));
+    await clickButton('Tech GEO');
+    expect(read('tech')).toBe('GEO');
+    expect(read('scope')).toBe('ALL');
+  });
 
-    await act(async () => commercial?.click());
-    expect(mode?.textContent).toBe('commercial');
+  it('follows the technology focus when scope is already narrowed', async () => {
+    await act(async () => root?.render(<ScopeHarness />));
+    await clickButton('Scope GEO');
+    expect(read('scope')).toBe('GEO');
+    expect(read('tech')).toBe('GEO');
+  });
 
-    await act(async () => engineering?.click());
-    expect(mode?.textContent).toBe('engineering');
+  it('moves the technology focus when a narrow scope is chosen', async () => {
+    await act(async () => root?.render(<ScopeHarness />));
+    await clickButton('Scope GEO');
+    expect(read('tech')).toBe('GEO');
+  });
+
+  it('keeps the technology focus when scope widens back to ALL', async () => {
+    await act(async () => root?.render(<ScopeHarness />));
+    await clickButton('Scope GEO');
+    await clickButton('Scope ALL');
+    expect(read('scope')).toBe('ALL');
+    expect(read('tech')).toBe('GEO');
   });
 });
