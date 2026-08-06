@@ -249,3 +249,80 @@ into tolerated slop.
 author against the same understanding of the problem. It demonstrates that the
 implementation matches independent derivations of the same physics; it cannot
 demonstrate that the physics is the right physics. R4 stands.
+
+---
+
+# REVISIT — Lot 2
+
+Items recorded during **Lot 2** (the view), 2026-08-07.
+
+## R7. requestRenderMode needs a render request for every async completion
+
+**Where:** `src/features/revisit/render/RevisitGlobe.tsx`
+
+**Found by running it, not by reading it.** REVISIT is the first place in this
+codebase with `requestRenderMode = true`. With on-demand rendering, anything
+that resolves asynchronously must ask for a frame or its result is never drawn.
+Imagery tiles resolve long after the first render, so the globe could sit black
+permanently: the surface had tiles it was never asked to paint.
+
+Worst case is a user switching tabs during load — rAF stops, our animation loop
+stops with it, and nothing is left to request a frame. Same failure class as the
+LEO visibility freeze already fixed once in this codebase.
+
+**Fixed:** `tileLoadProgressEvent`, `visibilitychange` and a `ResizeObserver`
+each request a frame. `visibilitychange` calls `viewer.resize()` FIRST, because
+a hidden tab collapses the viewport to 0×0 and Cesium latches the canvas size —
+a bare `requestRender` would redraw at zero size and change nothing.
+
+**Carry this to the main app.** The architecture audit flags enabling
+`requestRenderMode` app-wide as PERF-1. Anyone doing that must handle every
+async completion the same way — imagery, terrain, entity data sources, and the
+existing 8 no-op `requestRender()` call sites. Enabling the flag alone would
+ship a black globe.
+
+## R8. The 60 fps at 256 satellites target is still unmeasured
+
+**Where:** proposal §4, Lot 2 exit criterion
+
+Frame rate could NOT be measured: the automation browser pane keeps its tab
+hidden, which suspends `requestAnimationFrame` and with it both Cesium's render
+loop and ours. Correctness was verified instead by framebuffer pixel sampling
+and DOM inspection.
+
+What IS known: the engine is far from the bottleneck (default preset 45 ms, full
+96-satellite fleet over 72 h 403 ms, full 24-rung sweep 1.85 s), and the scene
+follows the mandated shapes — one `PointPrimitiveCollection`, P orbit polylines
+rather than P·S, swaths for the highlighted subset only.
+
+**Still to do:** open the app in a real foreground browser at `P·S = 256` and
+measure. Until then the 60 fps figure remains a design target, exactly as the
+Lot 0 audit said of it.
+
+## R9. Orbit rings are drawn in ECEF, not the inertial frame
+
+**Where:** `src/features/revisit/render/useRevisitScene.ts`
+
+Everything is computed in ECEF from the engine's own GMST, so a satellite is
+drawn exactly where `containment.ts` says it is. The design note §5.2 instead
+wanted `SampledPositionProperty(ReferenceFrame.INERTIAL)` so orbit rings stay
+fixed while the Earth turns underneath — the visual that "sells the concept".
+
+**Deferred because** that needs `Transforms.preloadIcrfFixed()` and a network
+fetch that can fail, and because ECEF rings precessing westward is what an
+observer on the ground actually sees, which makes ground-track drift legible.
+
+**Revisit in Lot 3** if the fixed-ring visual is wanted for the demo. It is a
+presentation change only — no number moves.
+
+## R10. Preset constants are placeholders
+
+**Where:** `src/features/revisit/domain/presets.ts`
+
+The reference constellation, the three IR FOV half-angles and the target list
+are all defensible enough to demo but are NOT yet claims about a real
+instrument. ADR-001 §5 leaves each of them explicitly open until Lot 3. The file
+says so at the top; this is the cross-reference so it is not forgotten.
+
+The 2 h requirement the verdict badge compares against is likewise hard-coded in
+`RevisitApp.tsx` and should become a user input in Lot 3.
