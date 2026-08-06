@@ -124,6 +124,22 @@ export interface AnalysisWindow {
     stepSeconds: number;
 }
 
+/**
+ * Everything the engine needs to produce a result. One plain-data object, so it
+ * survives a structured clone into the worker and can be compared by value to
+ * decide whether a recompute is needed.
+ */
+export interface RevisitScenario {
+    /** The host fleet. */
+    reference: WalkerSpec;
+    /** Which of its satellites carry our payload. */
+    selection: SubConstellationSpec;
+    /** The instrument. */
+    payload: FovSpec;
+    target: Target;
+    window: AnalysisWindow;
+}
+
 /** A continuous span during which at least one selected satellite sees the target. */
 export interface AccessInterval {
     startMs: number;
