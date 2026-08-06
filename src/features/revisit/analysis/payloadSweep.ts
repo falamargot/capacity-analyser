@@ -7,9 +7,16 @@
  *     "You need 6 payloads to see London every 2 hours."
  *
  * WHERE TWO CONFIGURATIONS SHARE A PAYLOAD COUNT, KEEP THE BETTER AND RECORD
- * BOTH. Eight payloads spread over eight planes beat eight in two planes, often
- * by a wide margin, and being able to say so is one of the most persuasive
- * outputs this tool has. Collapsing the tie silently throws that away.
+ * BOTH. Being able to say "these N payloads placed this way beat the same N
+ * placed that way, by this much" is one of the most persuasive outputs this
+ * tool has. Collapsing the tie silently throws that away.
+ *
+ * Which placement wins is MEASURED here, never assumed. It flips with the target
+ * latitude: well below the turning latitude, spreading across planes wins by a
+ * wide margin; just under the turning latitude, dense in-plane spacing can win
+ * instead, because every orbit already carries that plane past the target. Both
+ * cases appear in this codebase's tests. Nothing downstream may substitute the
+ * ladder's default ordering for this result.
  */
 
 import type {
