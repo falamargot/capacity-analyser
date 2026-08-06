@@ -118,3 +118,134 @@ persist indefinitely, creating permanent visual noise in the engineering UI.
 reminder that a validation workflow (Ops confirms commercial capacity per site →
 engineer updates `trafficStatus: 'CONFIRMED'` in `GlobeConfig.ts`) needs to
 exist.
+
+---
+---
+
+# REVISIT
+
+Items recorded during **Lot 1** (headless engine), 2026-08-06. Lot 1 exit gate
+passed: 0 TypeScript errors, 1614 tests passing.
+
+## R1. Design note §4.3 swath table mixes two Earth radii
+
+**Where:** `docs/REVISIT_SIMULATOR_DESIGN.md` §4.3, and `REVISIT_LOT1_KICKOFF.md`
+§7 test 2, which repeats it.
+
+**Issue:** Within a single row of that table, the swath widths were computed with
+**R = 6371 km** but the *max off-nadir* and *period* columns with **R = 6378.137 km**
+(WGS84 equatorial). Verified numerically:
+
+| Figure at h = 600 km | Table | R = 6371 | R = 6378.137 |
+|---|---|---|---|
+| Swath widths (15/30/45°) | 323 / 704 / 1265 | **323 / 704 / 1265** ✅ | 323 / 705 / 1267 |
+| Max off-nadir (horizon) | 66.07° | **66.054°** | 66.067° ✅ |
+| Period | 96.69 min | **96.539 min** | 96.687 min ✅ |
+
+**Resolved as:** ADR-001 §2 is unambiguous — spherical, R = 6371 — so the engine
+uses 6371 throughout and the tests pin the values it actually produces. The
+swath widths, which are the substance of the gate test, reproduce **exactly**.
+The two off-figures are noted in place in `footprint.test.ts` and
+`keplerJ2.test.ts`.
+
+**Future fix:** correct the two columns in the design note so the table is
+internally consistent. Cosmetic — no code change.
+
+## R2. ELLIPSE containment is tested in tangent space, not angle space
+
+**Where:** `src/features/revisit/fov/containment.ts`
+
+**Issue:** The design note §4.2(a) writes the ellipse test as
+`(α/θ₁)² + (β/θ₂)² ≤ 1` over the angles. The implementation uses
+`(tanα/tanθ₁)² + (tanβ/tanθ₂)² ≤ 1`.
+
+**Deferred because:** this is a deliberate, documented deviation, not an
+oversight, and it moves the model *toward* the specification's own validation
+case. In tangent space, ELLIPSE with θ₁ = θ₂ is **exactly** the circular cone
+`angle(d, b̂) ≤ θ` that design note §7.1 is closed-form against; the angle form
+is not (at θ = 45° it under-reports the diagonal by ~4°). It also matches the
+rectangular pyramid a detector array actually projects. RECTANGLE is unaffected —
+`|α| ≤ θ₁` and `|tanα| ≤ tanθ₁` are the same condition.
+
+`evaluateContainment` returns α, β **and** the true off-boresight angle, so an
+engineering panel can display either convention.
+
+**Future fix:** none needed unless a customer specifies FOV in angle-space
+half-widths. Then add a metric flag rather than changing the default.
+
+## R3. The payload/revisit curve is not monotonic — by design
+
+**Where:** `src/features/revisit/analysis/payloadSweep.ts`
+
+**Finding, not a defect.** Ladder configurations are **not nested**: the next
+rung up can move payloads into *fewer* planes. For `P=6, S=4` the only way to
+place 8 payloads is 2 planes × 4, which loses to 6 payloads over 3 planes × 2
+(5.27 h vs 4.34 h worst-case gap over 72 h — stable across window lengths).
+
+This is the effect the feature exists to demonstrate. `payloadSweep.test.ts`
+pins it explicitly so that nobody later "fixes" the sweep into a tidy 1/N curve
+and erases the tool's most persuasive output.
+
+## R4. Not carried out in Lot 1
+
+- **External cross-check against GMAT or STK** (design note §7.4). This is the
+  credibility anchor to cite on the slide and it has *not* been done. An
+  independent-oracle suite was added instead — see R6 — which catches
+  implementation error but, being written by the same author against the same
+  understanding, cannot catch a shared modelling misconception.
+  **Still do this before the tool is shown to anyone senior.**
+- **Area targets.** `types.ts` defines `POINT` only; `Target` is a one-member
+  union so adding `AREA` is additive. Already deferred by ADR-001 §5 to Lot 4.
+- **`frames.ts`.** Design note §5 listed it separately; kickoff §6.2 did not.
+  GMST, ECI↔ECEF and the geodetic helpers live in `keplerJ2.ts` under a
+  clearly-marked section. Split it out if a second propagator ever arrives.
+
+## R5. Small, deliberate implementation choices
+
+- **Velocity omits the `∂r/∂Ω · Ω̇` term.** Ω̇ ~1e-7 rad/s against u̇ ~1e-3, so it
+  perturbs the along-track *direction* by ~0.006° — four orders of magnitude
+  below the FOV half-angles the LVLH frame is used to test. Documented at the
+  call site.
+- **`sphericalGeometry.ts` adds `sub` and `length`** beyond the pure move of
+  §6.1. Both are trivial and additive; no existing behaviour changed, and the
+  three `oneWebCombCore` tests pass untouched.
+- **`sphericalGeometry.ts` imports `EARTH_RADIUS_KM` from `earthGeometry.ts`**
+  rather than re-inlining the literal. `earthGeometry` has zero imports, so the
+  module stays worker-safe, and this keeps exactly one definition of the Earth
+  radius on the coverage-geometry side.
+- **`shiftHasNoEffect` is true at `z = 0`.** That is the literal rule from the
+  spec (`y > 1 && z mod y === 0`) and at `z = 0` it is the expected baseline
+  rather than a surprise, so `validateSelection` raises the flag but emits no
+  warning text. UI should present the warning only for `z ≠ 0`.
+
+## R6. Independent-oracle validation suite — added, with one open residual
+
+**Where:** `src/features/revisit/__tests__/validation.test.ts` (26 tests)
+
+Five cross-checks against results derived by a *different* method than the one
+the engine uses:
+
+| | Engine | Independent oracle | Result |
+|---|---|---|---|
+| **V1** | analytic J2 secular rates | RK4 integration of the J2 force model | agrees within 1 %, residual explained below |
+| **V2** | sun-synchronous condition | published SSO inclination table, 400–1000 km | within 0.01° at all six altitudes |
+| **V3** | geodesic-walk footprint | ray/sphere intersection | agrees to 1e-8 degrees |
+| **V4** | bisected intervals + gap arithmetic | brute-force sampling on a fine grid | fraction in view within 1 %, pass counts exact |
+| **V5** | LVLH tangent containment | direct off-nadir angle test | exact on 20 000 random and 5 000 boundary cases |
+
+**The V1 residual, and why it is not a defect.** Numerical integration gives a
+nodal drift 0.34–0.47 % larger in magnitude than the analytic rate, consistently
+in the same direction. This is the mean-vs-osculating element difference: the
+integrator is seeded with an *osculating* circular state while the analytic
+first-order rate is a *mean*-element result, and since `Ω̇ ∝ a^(−3.5)` an
+O(J₂) difference in `a` produces ≈ 3.5·J₂ ≈ 0.4 % in the rate.
+
+Confirmed by experiment rather than asserted: halving J₂ halves the discrepancy
+(0.470 % → 0.244 %), which a formula error would not do. That scaling is itself
+a test, so the residual stays pinned as a known artefact rather than drifting
+into tolerated slop.
+
+**What this suite does not establish.** Every oracle was written by the same
+author against the same understanding of the problem. It demonstrates that the
+implementation matches independent derivations of the same physics; it cannot
+demonstrate that the physics is the right physics. R4 stands.
