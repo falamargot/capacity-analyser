@@ -126,6 +126,41 @@ export function selectSubConstellation(
     return constellation.filter((el) => ids.has(el.id));
 }
 
+/**
+ * Repair a selection after the constellation changed underneath it.
+ *
+ * Editing P or S in the Advanced drawer can invalidate the current strides —
+ * `x` must divide `P`, `y` must divide `S`, and `z` must lie in `[0, S−1]`.
+ * Rather than throwing at the user mid-edit, snap to the nearest legal value.
+ *
+ * Ties go to the SMALLER stride, which selects more satellites: silently
+ * dropping payloads when someone edits an unrelated field would misreport the
+ * headline number without any visible cause.
+ */
+export function reconcileSelection(
+    spec: Pick<WalkerSpec, 'planes' | 'satsPerPlane'>,
+    selection: SubConstellationSpec
+): SubConstellationSpec {
+    const nearestDivisor = (n: number, wanted: number): number => {
+        const options = divisorsOf(n);
+        if (options.length === 0) return 1;
+        return options.reduce((best, candidate) => {
+            const dBest = Math.abs(best - wanted);
+            const dCandidate = Math.abs(candidate - wanted);
+            if (dCandidate < dBest) return candidate;
+            if (dCandidate === dBest) return Math.min(best, candidate);
+            return best;
+        }, options[0]);
+    };
+
+    const satStride = nearestDivisor(spec.satsPerPlane, selection.satStride);
+    return {
+        planeStride: nearestDivisor(spec.planes, selection.planeStride),
+        satStride,
+        planeShift: Math.min(Math.max(0, Math.round(selection.planeShift)), spec.satsPerPlane - 1),
+    };
+}
+
 /** One rung of the executive payload-count ladder. */
 export interface LadderEntry {
     planeStride: number;
@@ -146,16 +181,15 @@ export interface LadderEntry {
  *
  * Ties are ordered by descending `selectedPlanes`. That is a DETERMINISTIC
  * DEFAULT ORDER, not a performance claim — do not read the first entry as "the
- * best". Which split actually wins depends on the target latitude relative to
- * the inclination, and only `runPayloadSweep` can say:
+ * best". Only `runPayloadSweep` can say which split wins, and the answer is not
+ * predictable from the parameters: measured on this engine, concentrating a
+ * fixed payload count into ONE plane beats spreading it at i = 55° and at
+ * i = 87.9°, yet spreading wins at i = 70°, all else equal. It also flips with
+ * instrument width at fixed inclination.
  *
- *   - target well below the turning latitude → spreading across planes wins,
- *     because each plane contributes crossings at a different time of day;
- *   - target just under the turning latitude → dense in-plane spacing can win,
- *     because every orbit already brings that plane near the target.
- *
- * Both cases are measured in this codebase's own tests. Consumers choosing a
- * configuration for the user must use the swept result, not this ordering.
+ * No rule of thumb reproduced that pattern, which is precisely why the sweep
+ * exists. Consumers choosing a configuration for the user must use the swept
+ * result, never this ordering.
  *
  * `z` is not part of the ladder — it redistributes a fixed number of payloads
  * rather than changing how many there are.

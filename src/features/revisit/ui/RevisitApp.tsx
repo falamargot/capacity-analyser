@@ -21,6 +21,7 @@ import { useRevisitSweep } from '../hooks/useRevisitSweep';
 import { explainRevisit } from '../analysis/explainRevisit';
 import { ValueCurve } from './ValueCurve';
 import { WhyThisRevisit } from './WhyThisRevisit';
+import { AdvancedDrawer } from './AdvancedDrawer';
 import { constellationFor } from '../analysis/runScenario';
 import {
     enumerateLadder, ladderPayloadCounts, selectedSatelliteIds,
@@ -263,6 +264,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
                             onSelectPayloadCount={handlePayloadCountChange}
                         />
                         <WhyThisRevisit explanation={explanation} />
+                        <AdvancedDrawer scenario={scenario} onChange={setScenario} />
                     </div>
                 </div>
 

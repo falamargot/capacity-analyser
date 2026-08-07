@@ -11,12 +11,15 @@
  * placed that way, by this much" is one of the most persuasive outputs this
  * tool has. Collapsing the tie silently throws that away.
  *
- * Which placement wins is MEASURED here, never assumed. It flips with the target
- * latitude: well below the turning latitude, spreading across planes wins by a
- * wide margin; just under the turning latitude, dense in-plane spacing can win
- * instead, because every orbit already carries that plane past the target. Both
- * cases appear in this codebase's tests. Nothing downstream may substitute the
- * ladder's default ordering for this result.
+ * Which placement wins is MEASURED here, never assumed — and it is genuinely
+ * not predictable. Concentrating a fixed payload count into one plane beats
+ * spreading it at i = 55° and i = 87.9°, while spreading wins at i = 70°, all
+ * else equal; it flips again with instrument width. No rule of thumb tried
+ * against this engine reproduced that pattern.
+ *
+ * That unpredictability is the justification for paying one engine run per rung
+ * instead of ranking configurations analytically. Nothing downstream may
+ * substitute the ladder's default ordering for this result.
  */
 
 import type {
