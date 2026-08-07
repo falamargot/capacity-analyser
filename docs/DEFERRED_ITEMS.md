@@ -326,3 +326,68 @@ says so at the top; this is the cross-reference so it is not forgotten.
 
 The 2 h requirement the verdict badge compares against is likewise hard-coded in
 `RevisitApp.tsx` and should become a user input in Lot 3.
+
+---
+
+# REVISIT — Lot 3
+
+Items recorded during **Lot 3** (the business case), 2026-08-07.
+
+## R11. "Spread beats concentration" is false as a general rule
+
+**Where:** `domain/subConstellation.ts`, `analysis/payloadSweep.ts`
+
+Lot 3a shipped UI copy and doc comments asserting that spreading a fixed
+payload count across more planes beats concentrating it. **Measurement refutes
+it.** At a 700 km swath, concentration wins at *both* i = 55° and i = 87.9°
+while spread wins at i = 70°; the winner also moves with instrument width. No
+rule of thumb tried against this engine reproduced the pattern.
+
+This was a **live bug**, not just wrong prose: the payload slider picked the
+ladder's heuristic best while the value curve plotted the *measured* best, so
+the chart could promise a number the headline did not deliver. Fixed — the
+slider now takes the swept result, and a test pins the existence of rungs where
+concentration wins.
+
+**Consequence for the pitch:** do not say "spread your payloads". Say "the tool
+measures which placement wins, and it is not predictable" — which is also the
+justification for paying one engine run per ladder rung.
+
+## R12. The 60 fps / 256-satellite target is STILL unmeasured
+
+Carried forward unchanged from R8. Lot 3 added three sidebar panels and a second
+worker, so the case for measuring it is stronger, not weaker. Still blocked on
+the same cause: the automation pane keeps its tab hidden, which suspends rAF.
+
+**One run in a real foreground browser at `P·S = 256` would close it.**
+
+## R13. FOV presets are still not from an instrument datasheet
+
+The swath-based presets (350 / 700 / 1400 km) are internally consistent and
+portable across altitude — a genuine improvement on fixed off-nadir angles — but
+they remain an `ONEWEB_GEN1_OPERATIONAL_APPROXIMATION`-class assumption. Replace
+them with real optics before any figure derived from them is quoted externally.
+Flagged at the top of `domain/presets.ts`.
+
+## R14. Calibration fits ONE epoch, not a trajectory
+
+`fitWalker` fits mean elements at a single instant. It says nothing about how
+well the parametric model tracks the real fleet over hours or days — which is
+the question that matters for a 72-hour revisit window.
+
+**What would close it:** propagate both the fitted shell and the real TLEs
+forward and compare positions over the analysis window. That needs SGP4 and so
+must live outside `src/features/revisit/` behind the same adapter boundary. It
+is the natural companion to R4's external cross-check and would upgrade the
+provenance line from "fits the shell today" to "tracks the fleet over the
+window".
+
+## R15. The phasing factor is the weakest fitted parameter
+
+On the real fleet one f-step is 0.57° while the in-plane residual is 1.88°, so
+`f` is not resolvable — the fit reports it as indicative and says why. The
+plane-level parameters (P, i, h, fudge, RAAN) are solid: RAAN RMS 0.03°,
+altitude RMS 13.9 km.
+
+**If f matters**, it needs a better estimator than the per-plane median offset —
+likely a global least-squares fit over all satellites simultaneously.
