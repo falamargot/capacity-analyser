@@ -87,11 +87,26 @@ interface RevisitEnvelope {
     computeMs: number;
 }
 
+/**
+ * Incremental progress for a long area run.
+ *
+ * Carries no result — it exists so a grid of hundreds of cells reports movement
+ * instead of the UI showing a progress value that never changes.
+ */
+export interface RevisitAreaProgress {
+    kind: 'area-progress';
+    requestId: number;
+    timelineRevision: number;
+    completed: number;
+    total: number;
+}
+
 export type RevisitWorkerOutput =
     | (RevisitEnvelope & { ok: true; kind: 'analyse'; analysis: RevisitAnalysis })
     | (RevisitEnvelope & { ok: true; kind: 'sweep'; sweep: PayloadSweepResult })
     | (RevisitEnvelope & { ok: true; kind: 'area'; area: AreaAnalysis })
-    | (RevisitEnvelope & { ok: false; kind: 'analyse' | 'sweep' | 'area'; error: string });
+    | (RevisitEnvelope & { ok: false; kind: 'analyse' | 'sweep' | 'area'; error: string })
+    | RevisitAreaProgress;
 
 /**
  * Should a response be published?

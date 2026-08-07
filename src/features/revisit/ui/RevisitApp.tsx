@@ -13,7 +13,7 @@
  * opens on a preset, already computing, with a number on screen.
  */
 
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSimulationClock } from '../../../contexts/SimulationClockContext';
 import { RevisitGlobe } from '../render/RevisitGlobe';
 import { useRevisitAnalysis } from '../hooks/useRevisitAnalysis';
@@ -26,6 +26,9 @@ import { constellationFor } from '../analysis/runScenario';
 import {
     enumerateLadder, ladderPayloadCounts, reconcileSelection, selectedSatelliteIds,
 } from '../domain/subConstellation';
+import {
+    reconcileToMeasuredBest, sameSelection, selectionStatus, type SelectionSource,
+} from '../domain/selectionReconcile';
 import { useOneWebCalibration } from '../hooks/useOneWebCalibration';
 import { useAreaAnalysis } from '../hooks/useAreaAnalysis';
 import { AREA_PRESETS, areaForPreset } from '../domain/areaPresets';
@@ -98,6 +101,13 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
     });
 
     const [requirementMs, setRequirementMs] = useState(DEFAULT_REQUIREMENT_MS);
+    /**
+     * Where the current selection came from. The preset counts as `auto`, so the
+     * opening scenario reconciles to the measured best as soon as the sweep
+     * lands — which is what stops the KPI and the value curve describing
+     * different constellations.
+     */
+    const [selectionSource, setSelectionSource] = useState<SelectionSource>('auto');
 
     const { analysis, isComputing, error, isMainThreadFallback } = useRevisitAnalysis(scenario);
     // Its own worker, and keyed so the payload slider never re-triggers it.
@@ -138,6 +148,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
     sweepRef.current = sweep;
 
     const handlePayloadCountChange = useCallback((count: number) => {
+        setSelectionSource('auto');
         setScenario((current) => {
             const measured = sweepRef.current?.points.find((p) => p.payloadCount === count);
             if (measured) {
@@ -160,6 +171,19 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
                     planeShift: current.selection.planeShift,
                 },
             };
+        });
+    }, []);
+
+    /**
+     * Advanced-drawer edits. Changing the SELECTION here is a deliberate
+     * engineering choice and switches provenance to `manual`, so the sweep stops
+     * overriding it. Changing anything else (constellation, window) leaves
+     * provenance alone — the user did not pick a split.
+     */
+    const handleAdvancedChange = useCallback((next: RevisitScenario) => {
+        setScenario((current) => {
+            if (!sameSelection(current.selection, next.selection)) setSelectionSource('manual');
+            return next;
         });
     }, []);
 
@@ -195,13 +219,49 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
             : [...names, scenario.target.name];
     }, [scenario.target.name]);
 
+    const status = useMemo(
+        () => selectionStatus(scenario.selection, currentPayloadCount, sweep),
+        [scenario.selection, currentPayloadCount, sweep]
+    );
+
+    /**
+     * Reconcile the shown configuration with the measured best.
+     *
+     * The preset ships a split chosen from the ladder's ordering, which is not a
+     * measurement. Once the sweep lands, an automatically-chosen selection moves
+     * to whatever actually measured best — otherwise the KPI and the value curve
+     * describe two different constellations while both look authoritative.
+     *
+     * A selection the user set in the Advanced drawer is left alone; the
+     * comparison is reported instead.
+     */
+    useEffect(() => {
+        const better = reconcileToMeasuredBest(
+            scenario.selection, currentPayloadCount, sweep, selectionSource
+        );
+        if (better) setScenario((current) => ({ ...current, selection: better }));
+    }, [sweep, scenario.selection, currentPayloadCount, selectionSource]);
+
+    /**
+     * The header's sub-label. Only ever states what the sweep measured — while it
+     * is in flight this says nothing rather than repeating the ladder's guess.
+     */
     const spreadNote = useMemo(() => {
-        const ladder = enumerateLadder(scenario.reference.planes, scenario.reference.satsPerPlane)
-            .filter((e) => e.payloadCount === currentPayloadCount);
-        if (ladder.length < 2) return null;
-        const best = ladder[0];
-        return `${best.selectedPlanes} planes × ${best.payloadsPerPlane} — best of ${ladder.length} splits at this count`;
-    }, [scenario.reference.planes, scenario.reference.satsPerPlane, currentPayloadCount]);
+        if (!sweep) {
+            return isSweeping ? 'comparing splits at this payload count…' : null;
+        }
+        if (status.configurationCount < 2 || !status.bestSplit) return null;
+
+        if (status.isBest) {
+            return `${status.bestSplit.planes} planes × ${status.bestSplit.perPlane}`
+                + ` — measured best of ${status.configurationCount} splits at this count`;
+        }
+        const gain = status.improvementAvailable !== null
+            ? ` (${Math.round(status.improvementAvailable * 100)}% better)`
+            : '';
+        return `manual split — ${status.bestSplit.planes} planes × ${status.bestSplit.perPlane}`
+            + ` measured better${gain}`;
+    }, [sweep, isSweeping, status]);
 
     const calibration = useOneWebCalibration();
     const areaRun = useAreaAnalysis(scenario);
@@ -376,6 +436,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
                             analysis={areaRun.analysis}
                             isRunning={areaRun.isRunning}
                             error={areaRun.error}
+                            progress={areaRun.progress}
                             requirementMs={requirementMs}
                             onRun={handleRunArea}
                             onClear={areaRun.clear}
@@ -402,7 +463,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
                                 Sweep
                             </button>
                         </div>
-                        <AdvancedDrawer scenario={scenario} onChange={setScenario} />
+                        <AdvancedDrawer scenario={scenario} onChange={handleAdvancedChange} />
                     </div>
                 </div>
 

@@ -146,7 +146,21 @@ export function useRevisitScene(
         let lastUpdateMs = 0;
         const scratch = new Cartesian3();
         let propagators: PropagatorState[] = [];
-        let propagatorKey = '';
+        /**
+         * Cache identity, NOT a digest of a few fields.
+         *
+         * This previously keyed on `length | fleet[0].id | semiMajorAxis |
+         * inclination`, which is invariant under `phasingF`, `fudge` and
+         * `raan0Deg`: satellite `P00_S00` sits at argument of latitude 0 whatever
+         * the phasing, and at `raan0` whatever the fudge. Editing any of those in
+         * the Advanced drawer therefore updated every number while the globe kept
+         * drawing the previous geometry.
+         *
+         * The fleet array is regenerated whenever the Walker spec changes, so its
+         * identity is an exact invalidation signal and cannot drift out of step
+         * with the fields it summarises.
+         */
+        let propagatorFleet: OrbitalElements[] | null = null;
 
         const tick = () => {
             frame = requestAnimationFrame(tick);
@@ -163,10 +177,9 @@ export function useRevisitScene(
             } = stateRef.current;
 
             // Rebuild propagators only when the fleet actually changes.
-            const key = `${fl.length}|${fl[0]?.id}|${fl[0]?.semiMajorAxisKm}|${fl[0]?.inclinationDeg}`;
-            if (key !== propagatorKey) {
+            if (fl !== propagatorFleet) {
                 propagators = preparePropagators(fl);
-                propagatorKey = key;
+                propagatorFleet = fl;
             }
 
             const epochMs = sc.window.startMs;

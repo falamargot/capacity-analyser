@@ -21,6 +21,8 @@ interface AreaPanelProps {
     analysis: AreaAnalysis | null;
     isRunning: boolean;
     error: string | null;
+    /** 0–1 while running, null when idle. */
+    progress: number | null;
     requirementMs: number;
     onRun: (presetName: string) => void;
     onClear: () => void;
@@ -28,7 +30,7 @@ interface AreaPanelProps {
 }
 
 export const AreaPanel: React.FC<AreaPanelProps> = ({
-    scenario, analysis, isRunning, error, requirementMs, onRun, onClear, onExportCsv,
+    scenario, analysis, isRunning, error, progress, requirementMs, onRun, onClear, onExportCsv,
 }) => {
     const unbounded = analysis !== null && analysis.neverInViewCount > 0;
 
@@ -36,8 +38,21 @@ export const AreaPanel: React.FC<AreaPanelProps> = ({
         <div className={`${REVISIT_PANEL} px-3 py-2.5`}>
             <div className="flex items-baseline justify-between">
                 <span className={REVISIT_LABEL}>Area coverage</span>
-                {isRunning && <span className="text-[9px] text-slate-500">running cells…</span>}
+                {isRunning && (
+                    <span className="text-[9px] tabular-nums text-slate-500">
+                        {progress === null ? 'running cells…' : `${Math.round(progress * 100)}%`}
+                    </span>
+                )}
             </div>
+
+            {isRunning && progress !== null && (
+                <div className="mt-1 h-0.5 w-full overflow-hidden rounded bg-slate-700/60">
+                    <div
+                        className="h-full bg-amber-400 transition-[width] duration-150"
+                        style={{ width: `${Math.round(progress * 100)}%` }}
+                    />
+                </div>
+            )}
 
             <div className="mt-1.5 flex flex-wrap gap-1">
                 {AREA_PRESETS.map((preset) => {
