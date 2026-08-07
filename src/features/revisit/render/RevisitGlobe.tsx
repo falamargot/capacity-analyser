@@ -16,13 +16,15 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Viewer as ResiumViewer, type CesiumComponentRef } from 'resium';
 import {
-    Cartesian3, Color, Ellipsoid, ImageryLayer, TileMapServiceImageryProvider,
+    Cartesian3, Color, Ellipsoid, ImageryLayer, Rectangle, TileMapServiceImageryProvider,
     buildModuleUrl, Viewer as CesiumViewer,
 } from 'cesium';
 import { setMemoryMonitorViewerGetter } from '../../../utils/memoryMonitor';
 import type { OrbitalElements, RevisitScenario } from '../domain/types';
 import { REVISIT_COLORS } from '../ui/revisitTheme';
 import { frameGlobe, useRevisitScene, type RevisitSceneOptions } from './useRevisitScene';
+import { heatColorFor } from './heatMapColors';
+import type { AreaAnalysis } from '../analysis/areaAnalysis';
 
 interface RevisitGlobeProps {
     scenario: RevisitScenario;
@@ -30,10 +32,14 @@ interface RevisitGlobeProps {
     selectedIds: Set<string>;
     options: RevisitSceneOptions;
     getTimeMs: () => number;
+    /** Per-cell area results to drape as a heat map. Null hides the layer. */
+    areaAnalysis: AreaAnalysis | null;
+    /** The requirement the heat scale is anchored to. */
+    requirementMs: number;
 }
 
 export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
-    scenario, fleet, selectedIds, options, getTimeMs,
+    scenario, fleet, selectedIds, options, getTimeMs, areaAnalysis, requirementMs,
 }) => {
     const viewerRef = useRef<CesiumViewer | null>(null);
     const [viewer, setViewer] = useState<CesiumViewer | null>(null);
@@ -191,6 +197,37 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
             viewer.entities.remove(entity);
         };
     }, [viewer, scenario]);
+
+    // ── Area heat map ───────────────────────────────────────────────────────
+    // One rectangle per grid cell, as entities. Cell counts are bounded to 400
+    // by validateArea, which is well inside what the entity layer handles — the
+    // per-entity cost that the 256-satellite fleet must avoid does not bite at
+    // this scale, and rectangles are static so they never update per frame.
+    useEffect(() => {
+        if (!viewer || viewer.isDestroyed?.() || !areaAnalysis) return;
+
+        const half = areaAnalysis.area.gridSpacingDeg / 2;
+        const added = areaAnalysis.cells.map((cell) => {
+            const { rgb } = heatColorFor(cell.maxGapMs, requirementMs);
+            return viewer.entities.add({
+                rectangle: {
+                    coordinates: Rectangle.fromDegrees(
+                        cell.target.lonDeg - half, cell.target.latDeg - half,
+                        cell.target.lonDeg + half, cell.target.latDeg + half,
+                    ),
+                    material: new Color(rgb[0], rgb[1], rgb[2], 0.55),
+                    height: 0,
+                },
+            });
+        });
+
+        viewer.scene.requestRender();
+        return () => {
+            if (viewer.isDestroyed?.()) return;
+            for (const entity of added) viewer.entities.remove(entity);
+            viewer.scene.requestRender();
+        };
+    }, [viewer, areaAnalysis, requirementMs]);
 
     return (
         <ResiumViewer
