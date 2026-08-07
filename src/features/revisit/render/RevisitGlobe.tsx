@@ -1,11 +1,14 @@
 /**
  * RevisitGlobe — the evidence.
  *
- * Its own Cesium viewer, isolated from `CesiumGlobe.tsx`. That isolation is
- * what makes this the right place to turn **requestRenderMode on** for the
- * first time in this codebase (proposal §3.6): a revisit scene is mostly static
- * between control changes, the blast radius is contained, and it produces real
- * evidence for the main-app change the architecture audit flags as PERF-1.
+ * Its own Cesium viewer, isolated from `CesiumGlobe.tsx`.
+ *
+ * `requestRenderMode` is on here. Proposal §3.6 described this as the first
+ * place in the codebase to enable it — that is NO LONGER TRUE: `CesiumGlobe.tsx`
+ * enables it too, behind a systematic migration (`globeRenderRequest.ts` plus
+ * the "step 2b.x" wiring across a dozen layers). This viewer is a second,
+ * independent consumer of the same mode, not a pathfinder for it, and the main
+ * app already owns the render-request discipline described below.
  *
  * Basemap is Cesium's bundled Natural Earth II — offline, deterministic, boots
  * instantly, and dim enough that amber payload satellites and swaths carry the

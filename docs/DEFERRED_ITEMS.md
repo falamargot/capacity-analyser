@@ -275,11 +275,19 @@ each request a frame. `visibilitychange` calls `viewer.resize()` FIRST, because
 a hidden tab collapses the viewport to 0×0 and Cesium latches the canvas size —
 a bare `requestRender` would redraw at zero size and change nothing.
 
-**Carry this to the main app.** The architecture audit flags enabling
-`requestRenderMode` app-wide as PERF-1. Anyone doing that must handle every
-async completion the same way — imagery, terrain, entity data sources, and the
-existing 8 no-op `requestRender()` call sites. Enabling the flag alone would
-ship a black globe.
+**⚠ CORRECTED 2026-08-07.** This item originally called REVISIT "the first place
+in this codebase with `requestRenderMode = true`" and told the reader to carry
+the lesson to the main app. **Both claims were wrong.** `CesiumGlobe.tsx` already
+enables it, behind a systematic migration — `globeRenderRequest.ts` plus the
+"step 2b.x" wiring across a dozen layers, and `runtimeProfiler` reports the flag
+in the memory HUD. The main app owns this discipline already; REVISIT is a
+second, independent consumer that had to learn it separately.
+
+The technical content of the fix stands, and the general rule is worth stating
+once: **under `requestRenderMode`, every asynchronous completion must request a
+frame, or its result is never drawn.** That is what the main app's Group A–D
+classification encodes. REVISIT reached the same conclusion the hard way because
+it wired its own viewer from scratch rather than reusing that machinery.
 
 ## R8. The 60 fps at 256 satellites target is still unmeasured
 

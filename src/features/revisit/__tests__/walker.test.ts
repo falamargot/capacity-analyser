@@ -120,4 +120,45 @@ describe('walker — constellation generation', () => {
     it('is deterministic — the same spec yields a deeply identical fleet', () => {
         expect(generateWalkerConstellation(spec())).toEqual(generateWalkerConstellation(spec()));
     });
+
+    /**
+     * Regression guard for a render-cache bug.
+     *
+     * `useRevisitScene` used to invalidate its prepared propagators on a digest
+     * of `length | fleet[0].id | semiMajorAxisKm | inclinationDeg`. Satellite
+     * `P00_S00` is the fixed point of this generator: its argument of latitude is
+     * 0 for every `phasingF`, and its RAAN is `raan0Deg` for every `fudge`. So
+     * that digest was blind to three real inputs and the globe kept drawing stale
+     * geometry while every number updated.
+     *
+     * These assertions state the property the cache now relies on: each of those
+     * inputs genuinely changes the fleet, while leaving `fleet[0]` untouched in
+     * the fields the old digest sampled.
+     */
+    it.each([
+        ['phasingF', { phasingF: 3 }],
+        ['fudge', { fudge: 0.8 }],
+        ['raan0Deg', { raan0Deg: 45 }],
+    ] as const)('changes the fleet when %s changes', (_name, patch) => {
+        const base = generateWalkerConstellation(spec());
+        const changed = generateWalkerConstellation(spec(patch));
+        expect(changed).not.toEqual(base);
+    });
+
+    it('leaves the fields the old cache digest sampled unchanged under phasingF', () => {
+        // Why the old key could not see it: the sampled fields are identical.
+        const base = generateWalkerConstellation(spec())[0];
+        const changed = generateWalkerConstellation(spec({ phasingF: 3 }))[0];
+        expect(changed.id).toBe(base.id);
+        expect(changed.semiMajorAxisKm).toBe(base.semiMajorAxisKm);
+        expect(changed.inclinationDeg).toBe(base.inclinationDeg);
+        expect(changed.argLatDeg).toBe(base.argLatDeg);
+    });
+
+    it('regenerates a distinct array each call, so identity is a sound cache key', () => {
+        const a = generateWalkerConstellation(spec());
+        const b = generateWalkerConstellation(spec());
+        expect(a).not.toBe(b);
+        expect(a).toEqual(b);
+    });
 });

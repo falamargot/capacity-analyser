@@ -39,13 +39,29 @@ self.addEventListener('message', (event: MessageEvent<RevisitWorkerInput>) => {
     try {
         if (message.type === 'area') {
             const { target: _ignored, ...rest } = scenario;
+
+            // Report progress at most ~50 times regardless of grid size: enough
+            // for a smooth bar, few enough that postMessage does not become a
+            // measurable share of the run.
+            let lastReported = 0;
+            const area = analyseArea(rest, message.area, {
+                onProgress: (completed, total) => {
+                    const stride = Math.max(1, Math.floor(total / 50));
+                    if (completed !== total && completed - lastReported < stride) return;
+                    lastReported = completed;
+                    self.postMessage({
+                        kind: 'area-progress', requestId, timelineRevision, completed, total,
+                    } satisfies RevisitWorkerOutput);
+                },
+            });
+
             self.postMessage({
                 requestId,
                 timelineRevision,
                 computeMs: performance.now() - startedAt,
                 ok: true,
                 kind: 'area',
-                area: analyseArea(rest, message.area),
+                area,
             } satisfies RevisitWorkerOutput);
             return;
         }

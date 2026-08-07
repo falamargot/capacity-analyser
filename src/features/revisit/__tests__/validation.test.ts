@@ -70,6 +70,27 @@ function rk4Step(s: State6, dt: number, j2: number): State6 {
     return s.map((e, i) => e + (dt / 6) * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i])) as State6;
 }
 
+/**
+ * Argument of latitude from the state — the angle from the ascending node.
+ *
+ * Like `raanFromState`, derived from the integrated Cartesian state by a route
+ * the engine never takes.
+ */
+function argLatFromState(s: State6): number {
+    const [x, y, z, vx, vy, vz] = s;
+    const hx = y * vz - z * vy;
+    const hy = z * vx - x * vz;
+    // Node vector = ẑ × h = (−h_y, h_x, 0).
+    const nx = -hy;
+    const ny = hx;
+    const nLen = Math.hypot(nx, ny);
+    const rLen = Math.hypot(x, y, z);
+    if (nLen === 0 || rLen === 0) return 0;
+    const cos = Math.max(-1, Math.min(1, (nx * x + ny * y) / (nLen * rLen)));
+    const u = Math.acos(cos);
+    return z < 0 ? 2 * Math.PI - u : u;
+}
+
 /** RAAN from the angular momentum vector — an element the engine never computes. */
 function raanFromState(s: State6): number {
     const [x, y, z, vx, vy, vz] = s;
@@ -175,6 +196,100 @@ describe('V1 — analytic J2 secular rates vs numerical integration', () => {
 });
 
 // ─── V2 — the published sun-synchronous inclination table ───────────────────
+
+// ── V1b — the argument-of-latitude rate ────────────────────────────────────
+
+/** Least-squares secular rate of a state-derived angle, rad/s. */
+function integratedAngleRate(
+    altKm: number, incDeg: number, angleOf: (s: State6) => number, orbits = 30
+): number {
+    const a = EARTH_RADIUS_KM + altKm;
+    const i = toRad(incDeg);
+    const speed = Math.sqrt(MU_EARTH_KM3_S2 / a);
+    let s: State6 = [a, 0, 0, 0, speed * Math.cos(i), speed * Math.sin(i)];
+
+    const dt = 1;
+    const steps = Math.round((orbits * 2 * Math.PI) / meanMotionRadPerSec(a) / dt);
+    let prev = angleOf(s);
+    let unwrapped = prev;
+    const base = prev;
+    const ts: number[] = [];
+    const ys: number[] = [];
+
+    for (let k = 1; k <= steps; k++) {
+        s = rk4Step(s, dt, J2);
+        const cur = angleOf(s);
+        let delta = cur - prev;
+        while (delta > Math.PI) delta -= 2 * Math.PI;
+        while (delta < -Math.PI) delta += 2 * Math.PI;
+        unwrapped += delta;
+        prev = cur;
+        if (k % 50 === 0) { ts.push(k * dt); ys.push(unwrapped - base); }
+    }
+
+    const n = ts.length;
+    const st = ts.reduce((p, c) => p + c, 0);
+    const sy = ys.reduce((p, c) => p + c, 0);
+    const stt = ts.reduce((p, c) => p + c * c, 0);
+    const sty = ts.reduce((p, c, k) => p + c * ys[k], 0);
+    return (n * sty - st * sy) / (n * stt - st * st);
+}
+
+describe('V1b — argument-of-latitude rate vs numerical integration', () => {
+    // V1 validated the NODE and nothing else. Ω̇ governs how the orbit plane
+    // drifts; u̇ governs where the satellite is along that plane, which is what
+    // sets access times — so leaving it unchecked left the more consequential
+    // rate unvalidated. This closes that gap.
+    //
+    // A direct rate comparison cannot settle the formula on its own: the
+    // mean-vs-osculating contamination documented in V1 is ~0.1–0.2 % here,
+    // which is the same size as the differences between candidate formulations.
+    // The cos²i SLOPE is immune to it — a constant bias lands entirely in the
+    // intercept — so that is what is asserted.
+    const ALT_KM = 1200;
+
+    it('has a cos²i coefficient of 5, matching the engine and excluding ω̇ + Ṁ', () => {
+        const a = EARTH_RADIUS_KM + ALT_KM;
+        const n = meanMotionRadPerSec(a);
+        const unit = 0.75 * n * J2 * (EARTH_RADIUS_KM / a) ** 2;
+
+        // i = 0 is excluded: the node vector, and hence the argument of latitude,
+        // is undefined for an equatorial orbit.
+        const inclinations = [15, 30, 45, 60, 75, 90];
+        const xs = inclinations.map((deg) => Math.cos(toRad(deg)) ** 2);
+        const ys = inclinations.map(
+            (deg) => (integratedAngleRate(ALT_KM, deg, argLatFromState) - n) / unit
+        );
+
+        const m = xs.length;
+        const sx = xs.reduce((p, c) => p + c, 0);
+        const sy = ys.reduce((p, c) => p + c, 0);
+        const sxx = xs.reduce((p, c) => p + c * c, 0);
+        const sxy = xs.reduce((p, c, k) => p + c * ys[k], 0);
+        const slope = (m * sxy - sx * sy) / (m * sxx - sx * sx);
+
+        // The engine's `u̇ = n + (3/4)nJ₂(Rₑ/a)²(5cos²i − 1)` predicts 5.
+        // The `ω̇ + Ṁ` form sometimes proposed instead predicts 8.
+        expect(slope).toBeGreaterThan(4.7);
+        expect(slope).toBeLessThan(5.3);
+        expect(Math.abs(slope - 8)).toBeGreaterThan(2.5);
+    }, 60_000);
+
+    it('tracks the engine to better than 0.25 % at representative orbits', () => {
+        for (const [altKm, incDeg] of [[1200, 87.9], [600, 97.8], [600, 51.6]] as const) {
+            const numerical = integratedAngleRate(altKm, incDeg, argLatFromState, 20);
+            const analytic = argLatRateRadPerSec(EARTH_RADIUS_KM + altKm, incDeg);
+            expect(Math.abs(numerical - analytic) / numerical).toBeLessThan(0.0025);
+        }
+    }, 60_000);
+
+    it('stays close to the Keplerian mean motion — J2 perturbs, it does not dominate', () => {
+        const a = EARTH_RADIUS_KM + ALT_KM;
+        const numerical = integratedAngleRate(ALT_KM, 87.9, argLatFromState, 20);
+        expect(Math.abs(numerical - meanMotionRadPerSec(a)) / meanMotionRadPerSec(a))
+            .toBeLessThan(0.01);
+    }, 60_000);
+});
 
 describe('V2 — sun-synchronous inclination table', () => {
     // Gate test 1 checks Ω̇ at one inclination. This inverts the relation and

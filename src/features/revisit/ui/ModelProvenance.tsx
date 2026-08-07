@@ -45,8 +45,15 @@ export const ModelProvenance: React.FC<ModelProvenanceProps> = ({
                 <li>Kepler + J2 secular · no drag</li>
                 <li>Spherical earth R = 6371 km</li>
                 {fit ? (
+                    // "Fit vs OneWeb TLE · N km RMS" reads as trajectory
+                    // validation. It is not: this is a mean-element fit at ONE
+                    // epoch and says nothing about how the model tracks the fleet
+                    // across the analysis window. The qualifier is part of the
+                    // claim, not decoration.
                     <li className="text-sky-300">
-                        Fit vs OneWeb TLE · {fit.alongTrackRmsKm.toFixed(0)} km RMS along-track
+                        Single-epoch shell fit vs OneWeb TLE ·{' '}
+                        {fit.alongTrackRmsKm.toFixed(0)} km RMS along-track
+                        <span className="block text-slate-500">not trajectory-validated</span>
                     </li>
                 ) : (
                     <li className="text-slate-600">Fit vs OneWeb TLE — not yet calibrated</li>
