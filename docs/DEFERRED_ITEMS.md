@@ -391,3 +391,76 @@ altitude RMS 13.9 km.
 
 **If f matters**, it needs a better estimator than the per-plane median offset —
 likely a global least-squares fit over all satellites simultaneously.
+
+---
+
+# REVISIT — Lot 4
+
+Items recorded during **Lot 4** (depth), 2026-08-07.
+
+## R16. Promotion to a third `uiMode` — deliberately NOT done
+
+Proposal §4 lists "promotion to a third `uiMode`" as optional Lot 4 work. It was
+considered and rejected, and this is the record so it is not read as an
+oversight.
+
+**What the user asked for is already delivered.** The switcher shows three peer
+buttons `Eng | Comm | Revisit` (Lot 2c), so from the outside REVISIT already is
+a peer mode.
+
+**What "promotion" would additionally mean** is mounting REVISIT *inside*
+`App.tsx` rather than beside it — and that is the exact arrangement ADR-001 §4
+rejected, for reasons that have not changed: `App.tsx` is ~6,650 lines and
+re-renders at least twice a second forever, and anything mounted inside inherits
+that. REVISIT's time model (a precomputed window over days) is also different in
+kind from live tracking of now.
+
+Doing it would be a regression bought for no user-visible gain. **Reverse only
+if** the two views start needing to share scenario state, which today they do
+not — they share the clock and the theme and nothing else.
+
+## R17. Area support is points-in-a-trench-coat, and that is deliberate
+
+`analyseArea` grids the polygon and calls the *unchanged* point engine per cell.
+`containment.ts`, `accessIntervals.ts` and `gapStatistics.ts` do not know areas
+exist. This keeps the validated core validated (Lot 1 gate test 5) at the cost of
+one engine run per cell, which is what bounds the grid to 400 cells.
+
+**What would change it:** a genuinely area-native access test — sweeping a
+footprint polygon against a target polygon over time — would be far faster for
+large areas but is a new piece of geometry that must be exactly right, in the
+same category as §6.6. Not worth it until grids larger than a few hundred cells
+are actually needed.
+
+## R18. Area cell means are not area-weighted
+
+Cells sit on a regular lat/lon lattice, so they cover less ground as latitude
+rises and high-latitude cells are over-weighted in `meanCellMaxGapMs`. For the
+areas this tool targets the bias is small, but it is real.
+
+Stated in the code, in the panel and in the CSV rather than buried — but **do
+not quote the mean as an area-weighted average**. Worst cell, the headline, is
+unaffected.
+
+**Fix if needed:** weight each cell by `cos(lat)`, or grid on an equal-area
+lattice.
+
+## R19. Heat map uses one entity per cell
+
+Design note §5.2 recommends rasterising coverage into an offscreen canvas draped
+as a `SingleTileImageryProvider`. The heat map instead adds one rectangle entity
+per cell, because `validateArea` bounds the grid to 400 — well inside what the
+entity layer handles, and the rectangles are static so they never update per
+frame.
+
+**Revisit if** the cell budget is ever raised substantially, or if accumulated
+coverage painting (which is unbounded, and is what §5.2 was actually written
+about) gets built.
+
+## R20. Still outstanding from earlier lots
+
+- **R4** — external GMAT/STK cross-check. Unchanged since Lot 1 and still the
+  single most valuable thing to do before this is shown to anyone senior.
+- **R12** — 60 fps at 256 satellites, still unmeasured.
+- **R13** — FOV presets still not from an instrument datasheet.
+- **R14** — calibration fits one epoch, not a trajectory.
