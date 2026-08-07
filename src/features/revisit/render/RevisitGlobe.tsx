@@ -16,8 +16,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Viewer as ResiumViewer, type CesiumComponentRef } from 'resium';
 import {
-    Cartesian3, Color, Ellipsoid, ImageryLayer, Rectangle, TileMapServiceImageryProvider,
-    buildModuleUrl, Viewer as CesiumViewer,
+    Cartesian2, Cartesian3, Cartographic, Color, Ellipsoid, ImageryLayer,
+    Math as CesiumMath, Rectangle, ScreenSpaceEventHandler, ScreenSpaceEventType,
+    TileMapServiceImageryProvider, buildModuleUrl, Viewer as CesiumViewer,
 } from 'cesium';
 import { setMemoryMonitorViewerGetter } from '../../../utils/memoryMonitor';
 import type { OrbitalElements, RevisitScenario } from '../domain/types';
@@ -36,10 +37,15 @@ interface RevisitGlobeProps {
     areaAnalysis: AreaAnalysis | null;
     /** The requirement the heat scale is anchored to. */
     requirementMs: number;
+    /** Slow automatic rotation. */
+    autoRotate: boolean;
+    /** Called when the user clicks a point on the globe. */
+    onPickTarget: (latDeg: number, lonDeg: number) => void;
 }
 
 export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
     scenario, fleet, selectedIds, options, getTimeMs, areaAnalysis, requirementMs,
+    autoRotate, onPickTarget,
 }) => {
     const viewerRef = useRef<CesiumViewer | null>(null);
     const [viewer, setViewer] = useState<CesiumViewer | null>(null);
@@ -141,8 +147,12 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
     }, [viewer]);
 
     // Slow automatic rotation — ENG's framing, a full globe (UX §4.3).
+    //
+    // Switchable, because rotation actively fights three things the mode needs:
+    // reading a swath's position, clicking an exact point, and holding a stable
+    // frame while someone photographs the screen.
     useEffect(() => {
-        if (!viewer || viewer.isDestroyed?.()) return;
+        if (!viewer || viewer.isDestroyed?.() || !autoRotate) return;
         let frame = 0;
         let last = performance.now();
         const spin = () => {
@@ -157,7 +167,37 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
         };
         frame = requestAnimationFrame(spin);
         return () => cancelAnimationFrame(frame);
-    }, [viewer]);
+    }, [viewer, autoRotate]);
+
+    // ── Click the globe to place the target ─────────────────────────────────
+    // The UX spec left "city picker, map click, or both" open (§9). Both: the
+    // picker carries the story targets, and a click answers "what about here?"
+    // without anyone editing coordinates mid-demo.
+    //
+    // LEFT_CLICK fires only for a press-and-release without drag, so this does
+    // not fight camera rotation.
+    useEffect(() => {
+        if (!viewer || viewer.isDestroyed?.()) return;
+        const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
+
+        handler.setInputAction((event: { position: Cartesian2 }) => {
+            if (viewer.isDestroyed?.()) return;
+            // pickEllipsoid returns undefined when the click misses the globe —
+            // space, or past the limb.
+            const cartesian = viewer.camera.pickEllipsoid(
+                event.position, viewer.scene.globe.ellipsoid
+            );
+            if (!cartesian) return;
+
+            const carto = Cartographic.fromCartesian(cartesian);
+            onPickTarget(
+                CesiumMath.toDegrees(carto.latitude),
+                CesiumMath.toDegrees(carto.longitude),
+            );
+        }, ScreenSpaceEventType.LEFT_CLICK);
+
+        return () => handler.destroy();
+    }, [viewer, onPickTarget]);
 
     useRevisitScene(viewer, scenario, fleet, selectedIds, options, getTimeMs);
 
@@ -176,7 +216,12 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
             },
             label: {
                 text: target.name.toUpperCase(),
-                font: '600 13px system-ui, sans-serif',
+                // Concrete families only. Cesium rasterises label glyphs to a
+                // canvas atlas, and the CSS-level `system-ui` keyword does not
+                // resolve there reliably — it measured the full string but drew
+                // almost none of it, which showed up as a picked coordinate
+                // label rendering as a single stray character.
+                font: '600 13px Helvetica, Arial, sans-serif',
                 fillColor: Color.WHITE,
                 showBackground: true,
                 backgroundColor: Color.fromCssColorString('#0B1220').withAlpha(0.75),
