@@ -3,8 +3,17 @@ import {
     constellationFor, runRevisitScenario, validateScenario, type ConstellationCache,
 } from '../analysis/runScenario';
 import { isCurrentResponse } from '../workers/revisitProtocol';
-import { DEFAULT_REFERENCE, defaultScenario, FOV_PRESETS, TARGET_PRESETS } from '../domain/presets';
+import {
+    DEFAULT_REFERENCE, defaultScenario, FOV_PRESET_SWATH_KM, FOV_PRESETS, fovForSwath,
+    fovPresets, offNadirDegForSwath, swathKmForFov, TARGET_PRESETS,
+} from '../domain/presets';
 import type { RevisitScenario } from '../domain/types';
+/** By name, not by index — the preset list's order is not a contract. */
+const targetNamed = (name: string) => {
+    const found = TARGET_PRESETS.find((t) => t.name === name);
+    if (!found) throw new Error(`preset target ${name} missing`);
+    return found;
+};
 
 const EPOCH = Date.UTC(2026, 7, 6, 0, 0, 0);
 
@@ -17,7 +26,7 @@ function smallScenario(over: Partial<RevisitScenario> = {}): RevisitScenario {
         },
         selection: { planeStride: 2, satStride: 2, planeShift: 0 },
         payload: FOV_PRESETS.STANDARD,
-        target: TARGET_PRESETS[0],
+        target: targetNamed('London'),
         window: { startMs: EPOCH, durationHours: 24, stepSeconds: 20 },
         ...over,
     };
@@ -118,9 +127,9 @@ describe('runScenario — constellation cache', () => {
         const cache: { current: ConstellationCache | null } = { current: null };
         const cached = runRevisitScenario(smallScenario(), {}, cache);
         const recached = runRevisitScenario(
-            smallScenario({ target: TARGET_PRESETS[1] }), {}, cache
+            smallScenario({ target: targetNamed('Singapore') }), {}, cache
         );
-        const uncached = runRevisitScenario(smallScenario({ target: TARGET_PRESETS[1] }));
+        const uncached = runRevisitScenario(smallScenario({ target: targetNamed('Singapore') }));
         expect(recached.statistics).toEqual(uncached.statistics);
         expect(cached.scenario.target.name).toBe('London');
     });
@@ -176,12 +185,13 @@ describe('presets — the entry moment', () => {
         expect(defaultScenario(EPOCH).window.durationHours).toBe(72);
     });
 
-    it('offers targets spanning below, near and above the inclination', () => {
+    it('offers targets spanning the equator to the high Arctic, both hemispheres', () => {
         const lats = TARGET_PRESETS.map((t) => t.latDeg);
-        const inclination = DEFAULT_REFERENCE.inclinationDeg;
-        expect(Math.min(...lats)).toBeLessThan(30);
-        expect(Math.max(...lats)).toBeGreaterThan(70);
-        expect(lats.every((l) => l < inclination)).toBe(true);
+        expect(Math.min(...lats)).toBeLessThan(-30);   // southern mid-latitude
+        expect(Math.max(...lats)).toBeGreaterThan(70); // high Arctic
+        expect(lats.some((l) => Math.abs(l) < 5)).toBe(true); // equatorial
+        // Every preset target is reachable by the default near-polar shell.
+        expect(lats.every((l) => Math.abs(l) < DEFAULT_REFERENCE.inclinationDeg)).toBe(true);
     });
 
     it('keeps the FOV presets ordered and inside the horizon at 1200 km', () => {
@@ -189,5 +199,48 @@ describe('presets — the entry moment', () => {
         expect(FOV_PRESETS.STANDARD.halfAngle1Deg).toBeLessThan(FOV_PRESETS.WIDE.halfAngle1Deg);
         // Horizon off-nadir at 1200 km is ~57.9°; every preset must stay inside it.
         expect(FOV_PRESETS.WIDE.halfAngle1Deg).toBeLessThan(57);
+    });
+});
+
+describe('presets — FOV defined by swath, not by off-nadir angle', () => {
+    it('round-trips swath → half-angle → swath at every altitude', () => {
+        for (const altitudeKm of [500, 600, 800, 1200, 1500]) {
+            for (const swathKm of [200, 350, 700, 1400, 2500]) {
+                const fov = fovForSwath(altitudeKm, swathKm);
+                expect(swathKmForFov(altitudeKm, fov)).toBeCloseTo(swathKm, 6);
+            }
+        }
+    });
+
+    it('reproduces the design-note table: 30° off-nadir is a 704 km swath at 600 km', () => {
+        expect(offNadirDegForSwath(600, 704.4)).toBeCloseTo(30, 2);
+        expect(offNadirDegForSwath(600, 322.7)).toBeCloseTo(15, 2);
+        expect(offNadirDegForSwath(600, 1264.8)).toBeCloseTo(45, 2);
+    });
+
+    it('holds the swath constant as altitude changes — the reason for this design', () => {
+        // A preset frozen at one off-nadir angle would not: 30° gives 704 km at
+        // 600 km but 1435 km at 1200 km.
+        for (const altitudeKm of [600, 900, 1200]) {
+            const presets = fovPresets(altitudeKm);
+            expect(swathKmForFov(altitudeKm, presets.STANDARD))
+                .toBeCloseTo(FOV_PRESET_SWATH_KM.STANDARD, 6);
+        }
+        // And the half-angle really does move to achieve that.
+        expect(fovPresets(600).STANDARD.halfAngle1Deg)
+            .not.toBeCloseTo(fovPresets(1200).STANDARD.halfAngle1Deg, 1);
+    });
+
+    it('refuses a swath beyond the horizon rather than silently clamping', () => {
+        // The horizon ground arc at 1200 km is ~32.4°, i.e. ~7200 km of swath.
+        expect(offNadirDegForSwath(1200, 20000)).toBeNull();
+        expect(() => fovForSwath(1200, 20000)).toThrow(/beyond the horizon/);
+    });
+
+    it('grows the required half-angle with the requested swath', () => {
+        const narrow = offNadirDegForSwath(1200, 350)!;
+        const wide = offNadirDegForSwath(1200, 1400)!;
+        expect(narrow).toBeGreaterThan(0);
+        expect(wide).toBeGreaterThan(narrow);
     });
 });

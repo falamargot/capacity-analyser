@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-    divisorsOf, enumerateLadder, ladderPayloadCounts, payloadCount,
+    divisorsOf, enumerateLadder, ladderPayloadCounts, payloadCount, reconcileSelection,
     selectSubConstellation, selectedSatelliteIds, validateSelection,
 } from '../domain/subConstellation';
 import { generateWalkerConstellation } from '../domain/walker';
@@ -137,6 +137,64 @@ describe('subConstellation — selection', () => {
         expect(selected).toHaveLength(16);
         const positions = selected.map((s) => fleet.indexOf(s));
         expect(positions).toEqual([...positions].sort((a, b) => a - b));
+    });
+});
+
+describe('subConstellation — reconcileSelection', () => {
+    it('leaves an already-legal selection untouched', () => {
+        const selection = { planeStride: 3, satStride: 2, planeShift: 5 };
+        expect(reconcileSelection(P12S8, selection)).toEqual(selection);
+    });
+
+    it('snaps a stride that no longer divides the new constellation', () => {
+        // P drops 12 → 10: x = 3 is no longer a divisor. Divisors of 10 are
+        // 1, 2, 5, 10 — the nearest to 3 is 2.
+        const repaired = reconcileSelection(
+            { planes: 10, satsPerPlane: 8 },
+            { planeStride: 3, satStride: 2, planeShift: 0 }
+        );
+        expect(repaired.planeStride).toBe(2);
+        expect(10 % repaired.planeStride).toBe(0);
+    });
+
+    it('breaks ties toward the smaller stride, which keeps more payloads', () => {
+        // Divisors of 8 are 1,2,4,8. A wanted stride of 3 is equidistant from
+        // 2 and 4; taking 4 would silently halve the payload count.
+        const repaired = reconcileSelection(
+            { planes: 8, satsPerPlane: 8 },
+            { planeStride: 3, satStride: 1, planeShift: 0 }
+        );
+        expect(repaired.planeStride).toBe(2);
+    });
+
+    it('clamps the plane shift into the new in-plane range', () => {
+        const repaired = reconcileSelection(
+            { planes: 12, satsPerPlane: 4 },
+            { planeStride: 1, satStride: 1, planeShift: 7 }
+        );
+        expect(repaired.planeShift).toBe(3);
+    });
+
+    it('always produces a selection that validates', () => {
+        // Sweep a grid of constellation edits against a stale selection.
+        for (const planes of [1, 2, 5, 7, 10, 12, 16]) {
+            for (const satsPerPlane of [1, 3, 4, 6, 8, 9]) {
+                const repaired = reconcileSelection(
+                    { planes, satsPerPlane },
+                    { planeStride: 5, satStride: 7, planeShift: 11 }
+                );
+                const check = validateSelection({ planes, satsPerPlane }, repaired);
+                expect(check.ok).toBe(true);
+                expect(check.errors).toEqual([]);
+            }
+        }
+    });
+
+    it('degrades to the only legal selection when P = S = 1', () => {
+        expect(reconcileSelection(
+            { planes: 1, satsPerPlane: 1 },
+            { planeStride: 4, satStride: 4, planeShift: 3 }
+        )).toEqual({ planeStride: 1, satStride: 1, planeShift: 0 });
     });
 });
 
