@@ -24,15 +24,17 @@ import { WhyThisRevisit } from './WhyThisRevisit';
 import { AdvancedDrawer } from './AdvancedDrawer';
 import { constellationFor } from '../analysis/runScenario';
 import {
-    enumerateLadder, ladderPayloadCounts, selectedSatelliteIds,
+    enumerateLadder, ladderPayloadCounts, reconcileSelection, selectedSatelliteIds,
 } from '../domain/subConstellation';
+import { useOneWebCalibration } from '../hooks/useOneWebCalibration';
+import { ModelProvenance } from './ModelProvenance';
 import { defaultScenario, TARGET_PRESETS } from '../domain/presets';
-import type { RevisitScenario } from '../domain/types';
+import type { RevisitScenario, WalkerSpec } from '../domain/types';
 import type { RevisitSceneOptions } from '../render/useRevisitScene';
 import { RevisitHeader } from './RevisitHeader';
 import { RevisitKpiPanel } from './RevisitKpiPanel';
 import { CoverageRibbon } from './CoverageRibbon';
-import { REVISIT_LABEL, REVISIT_PANEL } from './revisitTheme';
+import { REVISIT_PANEL } from './revisitTheme';
 
 /** The customer requirement the verdict badge and the value curve compare against. */
 const DEFAULT_REQUIREMENT_MS = 2 * 3600_000;
@@ -148,6 +150,21 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
         return `${best.selectedPlanes} planes × ${best.payloadsPerPlane} — best of ${ladder.length} splits at this count`;
     }, [scenario.reference.planes, scenario.reference.satsPerPlane, currentPayloadCount]);
 
+    const calibration = useOneWebCalibration();
+
+    /**
+     * Adopt the fitted shell. The selection must be repaired in the same step:
+     * the real fleet's plane count rarely matches the preset's, so the current
+     * strides may no longer divide P and S.
+     */
+    const handleAdoptFit = useCallback((fitted: WalkerSpec) => {
+        setScenario((current) => ({
+            ...current,
+            reference: fitted,
+            selection: reconcileSelection(fitted, current.selection),
+        }));
+    }, []);
+
     const explanation = useMemo(
         () => explainRevisit(scenario, analysis?.statistics ?? null, sweep),
         [scenario, analysis, sweep]
@@ -226,15 +243,15 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
                         ))}
                     </div>
 
-                    {/* Model provenance — the credibility slot (UX §4.5). REVISIT
-                        has no TLE, so it carries the assumptions instead. */}
-                    <div className={`pointer-events-auto ${REVISIT_PANEL} mt-2 px-3 py-2`}>
-                        <span className={REVISIT_LABEL}>Model provenance</span>
-                        <ul className="mt-1 space-y-0.5 text-[10px] leading-4 text-slate-400">
-                            <li>Kepler + J2 secular · no drag</li>
-                            <li>Spherical earth R = 6371 km</li>
-                            <li className="text-slate-600">Fit vs OneWeb TLE — not yet calibrated</li>
-                        </ul>
+                    <div className="pointer-events-auto mt-2 max-w-[300px]">
+                        <ModelProvenance
+                            reference={scenario.reference}
+                            fit={calibration.fit}
+                            isRunning={calibration.isRunning}
+                            error={calibration.error}
+                            onCalibrate={calibration.calibrate}
+                            onAdoptFit={handleAdoptFit}
+                        />
                     </div>
                   </div>
 
