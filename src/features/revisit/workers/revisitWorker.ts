@@ -19,13 +19,17 @@
 
 import { runRevisitScenario, type ConstellationCache } from '../analysis/runScenario';
 import { runPayloadSweep } from '../analysis/payloadSweep';
+import { analyseArea } from '../analysis/areaAnalysis';
 import type { RevisitWorkerInput, RevisitWorkerOutput } from './revisitProtocol';
 
 const cache: { current: ConstellationCache | null } = { current: null };
 
 self.addEventListener('message', (event: MessageEvent<RevisitWorkerInput>) => {
     const message = event.data;
-    if (!message || (message.type !== 'analyse' && message.type !== 'sweep')) return;
+    if (!message
+        || (message.type !== 'analyse' && message.type !== 'sweep' && message.type !== 'area')) {
+        return;
+    }
 
     const { requestId, timelineRevision, scenario } = message;
     const kind = message.type;
@@ -33,6 +37,19 @@ self.addEventListener('message', (event: MessageEvent<RevisitWorkerInput>) => {
 
     let response: RevisitWorkerOutput;
     try {
+        if (message.type === 'area') {
+            const { target: _ignored, ...rest } = scenario;
+            self.postMessage({
+                requestId,
+                timelineRevision,
+                computeMs: performance.now() - startedAt,
+                ok: true,
+                kind: 'area',
+                area: analyseArea(rest, message.area),
+            } satisfies RevisitWorkerOutput);
+            return;
+        }
+
         if (message.type === 'sweep') {
             const sweep = runPayloadSweep(
                 scenario.reference, scenario.target, scenario.payload, scenario.window,

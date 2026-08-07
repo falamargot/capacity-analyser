@@ -27,7 +27,14 @@ import {
     enumerateLadder, ladderPayloadCounts, reconcileSelection, selectedSatelliteIds,
 } from '../domain/subConstellation';
 import { useOneWebCalibration } from '../hooks/useOneWebCalibration';
+import { useAreaAnalysis } from '../hooks/useAreaAnalysis';
+import { AREA_PRESETS, areaForPreset } from '../domain/areaPresets';
+import {
+    accessIntervalsCsv, areaAnalysisCsv, csvFilename, payloadSweepCsv,
+} from '../analysis/csvExport';
+import { downloadCsv } from './downloadCsv';
 import { ModelProvenance } from './ModelProvenance';
+import { AreaPanel } from './AreaPanel';
 import { defaultScenario, TARGET_PRESETS } from '../domain/presets';
 import type { RevisitScenario, WalkerSpec } from '../domain/types';
 import type { RevisitSceneOptions } from '../render/useRevisitScene';
@@ -151,6 +158,39 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
     }, [scenario.reference.planes, scenario.reference.satsPerPlane, currentPayloadCount]);
 
     const calibration = useOneWebCalibration();
+    const areaRun = useAreaAnalysis(scenario);
+
+    const handleRunArea = useCallback((presetName: string) => {
+        const preset = AREA_PRESETS.find((p) => p.name === presetName);
+        if (!preset) return;
+        areaRun.run(areaForPreset(preset, scenario.reference, scenario.payload));
+    }, [areaRun, scenario.reference, scenario.payload]);
+
+    /** Exports carry the calibration when one has been run — see csvExport. */
+    const handleExportAccessCsv = useCallback(() => {
+        if (!analysis) return;
+        downloadCsv(
+            csvFilename('access', scenario),
+            accessIntervalsCsv(analysis, calibration.fit)
+        );
+    }, [analysis, scenario, calibration.fit]);
+
+    const handleExportSweepCsv = useCallback(() => {
+        if (!sweep) return;
+        downloadCsv(
+            csvFilename('sweep', scenario),
+            payloadSweepCsv(scenario, sweep, calibration.fit)
+        );
+    }, [sweep, scenario, calibration.fit]);
+
+    const handleExportAreaCsv = useCallback(() => {
+        if (!areaRun.analysis) return;
+        const { target: _dropped, ...rest } = scenario;
+        downloadCsv(
+            csvFilename('area', scenario).replace('area-', `area-${areaRun.analysis.area.name.toLowerCase().replace(/\s+/g, '-')}-`),
+            areaAnalysisCsv(rest, areaRun.analysis, calibration.fit)
+        );
+    }, [areaRun.analysis, scenario, calibration.fit]);
 
     /**
      * Adopt the fitted shell. The selection must be repaired in the same step:
@@ -186,6 +226,8 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
                     selectedIds={selectedIds}
                     options={options}
                     getTimeMs={getTimeMs}
+                    areaAnalysis={areaRun.analysis}
+                    requirementMs={requirementMs}
                 />
             </div>
 
@@ -281,6 +323,37 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
                             onSelectPayloadCount={handlePayloadCountChange}
                         />
                         <WhyThisRevisit explanation={explanation} />
+                        <AreaPanel
+                            scenario={scenario}
+                            analysis={areaRun.analysis}
+                            isRunning={areaRun.isRunning}
+                            error={areaRun.error}
+                            requirementMs={requirementMs}
+                            onRun={handleRunArea}
+                            onClear={areaRun.clear}
+                            onExportCsv={handleExportAreaCsv}
+                        />
+                        <div className={`${REVISIT_PANEL} flex items-center gap-2 px-3 py-2`}>
+                            <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">
+                                Export
+                            </span>
+                            <button
+                                type="button"
+                                onClick={handleExportAccessCsv}
+                                disabled={!analysis}
+                                className="rounded border border-slate-600 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-slate-300 hover:border-sky-400/50 hover:text-sky-200 disabled:opacity-40"
+                            >
+                                Accesses
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleExportSweepCsv}
+                                disabled={!sweep}
+                                className="rounded border border-slate-600 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-slate-300 hover:border-sky-400/50 hover:text-sky-200 disabled:opacity-40"
+                            >
+                                Sweep
+                            </button>
+                        </div>
                         <AdvancedDrawer scenario={scenario} onChange={setScenario} />
                     </div>
                 </div>

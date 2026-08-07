@@ -20,6 +20,8 @@
 import type { RevisitScenario } from '../domain/types';
 import type { RevisitAnalysis } from '../analysis/runScenario';
 import type { PayloadSweepResult } from '../analysis/payloadSweep';
+import type { AreaAnalysis } from '../analysis/areaAnalysis';
+import type { AreaTarget } from '../domain/areaTarget';
 
 export interface RevisitAnalyseRequest {
     type: 'analyse';
@@ -50,7 +52,22 @@ export interface RevisitSweepRequest {
     scenario: RevisitScenario;
 }
 
-export type RevisitWorkerInput = RevisitAnalyseRequest | RevisitSweepRequest;
+/**
+ * Grid an area and run every cell.
+ *
+ * `scenario.target` is ignored — the area supplies the points. Cost scales with
+ * the cell count, which `validateArea` bounds before this is ever dispatched.
+ */
+export interface RevisitAreaRequest {
+    type: 'area';
+    requestId: number;
+    timelineRevision: number;
+    scenario: RevisitScenario;
+    area: AreaTarget;
+}
+
+export type RevisitWorkerInput =
+    | RevisitAnalyseRequest | RevisitSweepRequest | RevisitAreaRequest;
 
 /** The subset of a scenario the sweep actually depends on. */
 export function sweepInvalidationKey(scenario: RevisitScenario): string {
@@ -73,7 +90,8 @@ interface RevisitEnvelope {
 export type RevisitWorkerOutput =
     | (RevisitEnvelope & { ok: true; kind: 'analyse'; analysis: RevisitAnalysis })
     | (RevisitEnvelope & { ok: true; kind: 'sweep'; sweep: PayloadSweepResult })
-    | (RevisitEnvelope & { ok: false; kind: 'analyse' | 'sweep'; error: string });
+    | (RevisitEnvelope & { ok: true; kind: 'area'; area: AreaAnalysis })
+    | (RevisitEnvelope & { ok: false; kind: 'analyse' | 'sweep' | 'area'; error: string });
 
 /**
  * Should a response be published?
