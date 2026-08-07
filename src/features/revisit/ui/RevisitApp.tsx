@@ -49,11 +49,30 @@ const DEFAULT_REQUIREMENT_MS = 2 * 3600_000;
 /** Requirements a customer actually states, in hours. */
 const REQUIREMENT_CHOICES_H = [0.5, 1, 2, 3, 6, 12, 24];
 
-const TOGGLES: Array<{ key: keyof RevisitSceneOptions; label: string }> = [
+/** Scene layers plus the camera behaviour the user can switch. */
+interface DisplayOptions extends RevisitSceneOptions {
+    autoRotate: boolean;
+}
+
+const TOGGLES: Array<{ key: keyof DisplayOptions; label: string }> = [
     { key: 'showOrbits', label: 'Orbits' },
     { key: 'showSwaths', label: 'Swath' },
     { key: 'showHostFleet', label: 'Fleet' },
+    { key: 'autoRotate', label: 'Spin' },
 ];
+
+/**
+ * A readable label for a picked coordinate: `51.51°N 0.13°W`.
+ *
+ * Used as the target's NAME, so a picked point flows through the header, the
+ * value curve's sentence ("…to see 51.51°N 0.13°W every 2 h") and the CSV
+ * filename exactly like a named city does.
+ */
+function formatCoordinate(latDeg: number, lonDeg: number): string {
+    const lat = `${Math.abs(latDeg).toFixed(2)}°${latDeg >= 0 ? 'N' : 'S'}`;
+    const lon = `${Math.abs(lonDeg).toFixed(2)}°${lonDeg >= 0 ? 'E' : 'W'}`;
+    return `${lat} ${lon}`;
+}
 
 interface RevisitAppProps {
     /**
@@ -74,8 +93,8 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
     const [scenario, setScenario] = useState<RevisitScenario>(
         () => defaultScenario(epochRef.current)
     );
-    const [options, setOptions] = useState<RevisitSceneOptions>({
-        showOrbits: true, showSwaths: true, showHostFleet: true,
+    const [options, setOptions] = useState<DisplayOptions>({
+        showOrbits: true, showSwaths: true, showHostFleet: true, autoRotate: true,
     });
 
     const [requirementMs, setRequirementMs] = useState(DEFAULT_REQUIREMENT_MS);
@@ -149,6 +168,33 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
         if (target) setScenario((current) => ({ ...current, target }));
     }, []);
 
+    /**
+     * Place the target where the user clicked the globe.
+     *
+     * Named rather than left as bare coordinates so it reads in the header, in
+     * the value curve's sentence and in the CSV filename like any other target.
+     */
+    const handlePickTarget = useCallback((latDeg: number, lonDeg: number) => {
+        setScenario((current) => ({
+            ...current,
+            target: {
+                kind: 'POINT',
+                name: formatCoordinate(latDeg, lonDeg),
+                latDeg,
+                lonDeg,
+            },
+        }));
+    }, []);
+
+    const targetOptions = useMemo(() => {
+        const names = TARGET_PRESETS.map((t) => t.name);
+        // A picked point is not in the preset list; without this the select
+        // would render blank and look broken.
+        return names.includes(scenario.target.name)
+            ? names
+            : [...names, scenario.target.name];
+    }, [scenario.target.name]);
+
     const spreadNote = useMemo(() => {
         const ladder = enumerateLadder(scenario.reference.planes, scenario.reference.satsPerPlane)
             .filter((e) => e.payloadCount === currentPayloadCount);
@@ -213,7 +259,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
     const getTimeMs = useCallback(() => clock.getTimeMs(), [clock]);
     const handleSeek = useCallback((ms: number) => clock.setDateTime(ms), [clock]);
 
-    const toggle = useCallback((key: keyof RevisitSceneOptions) => {
+    const toggle = useCallback((key: keyof DisplayOptions) => {
         setOptions((current) => ({ ...current, [key]: !current[key] }));
     }, []);
 
@@ -228,6 +274,8 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
                     getTimeMs={getTimeMs}
                     areaAnalysis={areaRun.analysis}
                     requirementMs={requirementMs}
+                    autoRotate={options.autoRotate}
+                    onPickTarget={handlePickTarget}
                 />
             </div>
 
@@ -241,7 +289,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
                         payloadCounts={payloadCounts}
                         currentPayloadCount={currentPayloadCount}
                         onPayloadCountChange={handlePayloadCountChange}
-                        targetNames={TARGET_PRESETS.map((t) => t.name)}
+                        targetNames={targetOptions}
                         onTargetChange={handleTargetChange}
                         spreadNote={spreadNote}
                     />
