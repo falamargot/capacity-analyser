@@ -24,10 +24,12 @@ import type {
 } from '../domain/types';
 import type { AreaTarget } from '../domain/areaTarget';
 import { generateGrid, validateArea } from '../domain/areaTarget';
+import { mergeValidations } from '../domain/inputValidation';
 import { selectSubConstellation } from '../domain/subConstellation';
 import { constellationFor, type ConstellationCache } from './runScenario';
 import { computeAccessIntervals } from './accessIntervals';
 import { computeGapStatistics } from './gapStatistics';
+import { validateScenarioBase } from './scenarioValidation';
 
 export interface AreaCellResult {
     target: PointTarget;
@@ -68,7 +70,13 @@ export function analyseArea(
     area: AreaTarget,
     options: AreaAnalysisOptions = {}
 ): AreaAnalysis {
-    const validation = validateArea(area, scenario.reference, scenario.payload);
+    // The area path never goes through `validateScenario` — it has no single
+    // target — so it has to check the instrument and fleet itself, or an invalid
+    // FOV would produce a full heat map of plausible nonsense.
+    const validation = mergeValidations(
+        validateArea(area, scenario.reference, scenario.payload),
+        validateScenarioBase(scenario),
+    );
     if (!validation.ok) {
         throw new Error(`Invalid area target: ${validation.errors.join('; ')}`);
     }

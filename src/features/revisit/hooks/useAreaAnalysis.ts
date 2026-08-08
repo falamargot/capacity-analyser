@@ -74,23 +74,7 @@ export function useAreaAnalysis(scenario: RevisitScenario): UseAreaAnalysisResul
     const scenarioRef = useRef(scenario);
     scenarioRef.current = scenario;
 
-    useEffect(() => {
-        mountedRef.current = true;
-        return () => { mountedRef.current = false; };
-    }, []);
-
-    // ── Rule 1: a result belongs to the scenario that produced it ───────────
-    useEffect(() => {
-        setAnalysis(null);
-        setError(null);
-        setProgress(null);
-        setIsRunning(false);
-        // Any in-flight run is now against stale inputs; drop its response.
-        pendingRef.current = null;
-    }, [scenarioKey]);
-
-    // ── Rule 2: the worker is owned for the lifetime of the hook ───────────
-    useEffect(() => {
+    const createWorker = useCallback((): Worker | null => {
         let worker: Worker | null = null;
         try {
             worker = new Worker(
@@ -98,7 +82,7 @@ export function useAreaAnalysis(scenario: RevisitScenario): UseAreaAnalysisResul
                 { type: 'module' }
             );
         } catch {
-            return; // Main-thread fallback happens in `run`.
+            return null; // Main-thread fallback happens in `run`.
         }
 
         worker.addEventListener('message', (event: MessageEvent<RevisitWorkerOutput>) => {
@@ -142,13 +126,45 @@ export function useAreaAnalysis(scenario: RevisitScenario): UseAreaAnalysisResul
             setError(event.message || 'Area worker failed');
         });
 
-        workerRef.current = worker;
+        return worker;
+    }, []);
+
+    /**
+     * Termination is the only reliable way to interrupt synchronous worker code.
+     * Replacing the dedicated area worker therefore provides real cancellation:
+     * a new request never waits behind an abandoned grid run.
+     */
+    const replaceWorker = useCallback(() => {
+        const previous = workerRef.current;
+        workerRef.current = null;
+        previous?.terminate();
+        if (mountedRef.current) workerRef.current = createWorker();
+    }, [createWorker]);
+
+    // ── Rule 2: the worker is owned for the lifetime of the hook ───────────
+    useEffect(() => {
+        mountedRef.current = true;
+        replaceWorker();
         return () => {
-            worker?.terminate();
+            mountedRef.current = false;
+            workerRef.current?.terminate();
             workerRef.current = null;
             pendingRef.current = null;
         };
-    }, []);
+    }, [replaceWorker]);
+
+    // ── Rule 1: a result belongs to the scenario that produced it ───────────
+    useEffect(() => {
+        const wasRunning = pendingRef.current !== null;
+        pendingRef.current = null;
+        // Kill the active computation rather than merely ignoring its eventual
+        // reply. Otherwise the next area request sits behind obsolete work.
+        if (wasRunning) replaceWorker();
+        setAnalysis(null);
+        setError(null);
+        setProgress(null);
+        setIsRunning(false);
+    }, [scenarioKey, replaceWorker]);
 
     const run = useCallback((area: AreaTarget) => {
         const current = scenarioRef.current;
@@ -161,6 +177,10 @@ export function useAreaAnalysis(scenario: RevisitScenario): UseAreaAnalysisResul
             setAnalysis(null);
             return;
         }
+
+        // Defensive latest-request-wins behavior even if a future caller allows
+        // a second area button while the first run is still active.
+        if (pendingRef.current) replaceWorker();
 
         setIsRunning(true);
         setError(null);
@@ -194,17 +214,17 @@ export function useAreaAnalysis(scenario: RevisitScenario): UseAreaAnalysisResul
             type: 'area', requestId, timelineRevision, scenario: current, area,
         };
         worker.postMessage(request);
-    }, [clock]);
+    }, [clock, replaceWorker]);
 
     const clear = useCallback(() => {
-        // Also abandons any in-flight run: its response will find no pending
-        // entry and be dropped.
+        const wasRunning = pendingRef.current !== null;
         pendingRef.current = null;
+        if (wasRunning) replaceWorker();
         setAnalysis(null);
         setError(null);
         setProgress(null);
         setIsRunning(false);
-    }, []);
+    }, [replaceWorker]);
 
     return useMemo(
         () => ({ analysis, isRunning, error, progress, run, clear }),

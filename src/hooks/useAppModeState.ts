@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 /**
  * The top-level view the user is in.
@@ -28,12 +28,44 @@ function initialModeFromLocation(): AppMode {
  * either, and giving the root shell knowledge of them would re-couple exactly
  * what this split exists to separate (audit §5.1).
  */
+/** The mode REVISIT falls back to when it was entered directly by URL. */
+const DEFAULT_TELECOM_MODE: AppMode = 'engineering';
+
 export const useAppModeState = () => {
   const [appMode, setAppMode] = useState<AppMode>(initialModeFromLocation);
 
+  /**
+   * The ENG/COMM mode the user was in before entering REVISIT.
+   *
+   * REVISIT unmounts `<App/>`, so leaving it has to restore a mode rather than
+   * reveal one. Without this, COMM → REVISIT → Back landed in ENG: the user was
+   * silently moved to a view they had not chosen, and the commercial scenario
+   * they had set up was gone with no way back to it.
+   *
+   * A ref, not state: nothing renders from it, and it must not cause a render of
+   * its own while a mode switch is already in flight.
+   */
+  const originRef = useRef<Exclude<AppMode, 'revisit'>>(
+    initialModeFromLocation() === 'revisit' ? DEFAULT_TELECOM_MODE : 'engineering'
+  );
+
   const handleAppModeChange = useCallback((mode: AppMode) => {
-    setAppMode(mode);
+    setAppMode((current) => {
+      // Remember where we are leaving from, not where we are going.
+      if (mode === 'revisit' && current !== 'revisit') originRef.current = current;
+      return mode;
+    });
   }, []);
 
-  return { appMode, setAppMode, handleAppModeChange };
+  /**
+   * Leave REVISIT for wherever the user came from.
+   *
+   * Falls back to engineering when REVISIT was opened directly by `?mode=revisit`
+   * and there is no origin to return to.
+   */
+  const returnFromRevisit = useCallback(() => {
+    setAppMode(originRef.current);
+  }, []);
+
+  return { appMode, setAppMode, handleAppModeChange, returnFromRevisit };
 };

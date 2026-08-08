@@ -20,7 +20,7 @@
  * 2 Hz amplification this module was isolated to avoid.
  */
 
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { formatGap } from '../analysis/gapStatistics';
 import type { AccessInterval, GapStatistics } from '../domain/types';
 import { computeGaps } from '../analysis/gapStatistics';
@@ -41,6 +41,8 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
     intervals, statistics, windowStartMs, windowHours, getTimeMs, onSeek,
 }) => {
     const svgRef = useRef<SVGSVGElement | null>(null);
+    /** Playhead position for `aria-valuenow`; see the throttling note below. */
+    const [currentHours, setCurrentHours] = useState(0);
     const playheadRef = useRef<SVGLineElement | null>(null);
     const windowMs = windowHours * 3600_000;
 
@@ -58,20 +60,41 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
     }, [intervals, statistics, windowStartMs, windowHours]);
 
     // Playhead animation — outside React, for the reason in the header note.
+    //
+    // `currentHours` is the one value React does need, because `aria-valuenow`
+    // has to be a real attribute. It is throttled hard — at most twice a second,
+    // and only when the tenth-of-an-hour changes — so announcing the position
+    // does not drag the per-frame playhead back into the render cycle.
     useEffect(() => {
         let frame = 0;
+        let lastAriaMs = 0;
         const tick = () => {
             frame = requestAnimationFrame(tick);
             const line = playheadRef.current;
             if (!line) return;
-            const x = fractionOf(getTimeMs()) * 100;
+            const nowMs = getTimeMs();
+            const x = fractionOf(nowMs) * 100;
             line.setAttribute('x1', `${x}%`);
             line.setAttribute('x2', `${x}%`);
+
+            const wall = performance.now();
+            if (wall - lastAriaMs >= 500) {
+                lastAriaMs = wall;
+                const hours = ((nowMs - windowStartMs) / 3600_000);
+                setCurrentHours((previous) =>
+                    Math.abs(previous - hours) >= 0.1 ? hours : previous
+                );
+            }
         };
         frame = requestAnimationFrame(tick);
         return () => cancelAnimationFrame(frame);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [getTimeMs, windowStartMs, windowMs]);
+
+    const seekToHours = (hours: number) => {
+        const clamped = Math.max(0, Math.min(windowHours, hours));
+        onSeek(windowStartMs + clamped * 3600_000);
+    };
 
     const handleClick = (event: React.MouseEvent<SVGSVGElement>) => {
         const svg = svgRef.current;
@@ -79,6 +102,26 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
         const rect = svg.getBoundingClientRect();
         const fraction = (event.clientX - rect.left) / rect.width;
         onSeek(windowStartMs + Math.max(0, Math.min(1, fraction)) * windowMs);
+    };
+
+    /** Slider keyboard conventions: arrows fine, Page coarse, Home/End absolute. */
+    const handleKeyDown = (event: React.KeyboardEvent<SVGSVGElement>) => {
+        const current = (getTimeMs() - windowStartMs) / 3600_000;
+        let next: number | null = null;
+
+        switch (event.key) {
+            case 'ArrowRight': case 'ArrowUp': next = current + 1; break;
+            case 'ArrowLeft': case 'ArrowDown': next = current - 1; break;
+            case 'PageUp': next = current + 6; break;
+            case 'PageDown': next = current - 6; break;
+            case 'Home': next = 0; break;
+            case 'End': next = windowHours; break;
+            default: return;
+        }
+
+        event.preventDefault();
+        seekToHours(next);
+        setCurrentHours(Math.max(0, Math.min(windowHours, next)));
     };
 
     const hourTicks = useMemo(() => {
@@ -91,21 +134,38 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
 
     return (
         <div className={`${REVISIT_PANEL} px-4 py-3`}>
-            <div className="mb-2 flex items-center justify-between">
-                <span className={REVISIT_LABEL}>Coverage timeline</span>
+            <div className="mb-2 flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
+                <div>
+                    <div className={REVISIT_LABEL}>Coverage timeline</div>
+                    <div className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+                        {windowHours} h analysis window · amber access · dark gaps
+                    </div>
+                </div>
                 {longestGap && (
-                    <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-red-300">
+                    <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.12em] text-red-300">
                         Longest gap {formatGap(longestGap.durationMs)}
                     </span>
                 )}
             </div>
 
+            {/* A seek control, not decoration.
+                It was marked `role="presentation"` while carrying a click
+                handler — the one combination that guarantees assistive tech
+                cannot reach it. It is a slider over the analysis window: arrows
+                step an hour, Page keys six, Home/End jump to the ends. */}
             <svg
                 ref={svgRef}
-                className="w-full cursor-pointer"
+                className="w-full cursor-pointer rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300"
                 height={RIBBON_HEIGHT}
                 onClick={handleClick}
-                role="presentation"
+                onKeyDown={handleKeyDown}
+                role="slider"
+                tabIndex={0}
+                aria-label={`Seek within the ${windowHours} hour analysis window`}
+                aria-valuemin={0}
+                aria-valuemax={windowHours}
+                aria-valuenow={Number(currentHours.toFixed(2))}
+                aria-valuetext={`${currentHours.toFixed(1)} hours into the window`}
             >
                 {/* Empty track — the gaps. */}
                 <rect x={0} y={0} width="100%" height={RIBBON_HEIGHT} rx={4}
@@ -121,7 +181,8 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                     );
                     return (
                         <rect key={i} x={`${x}%`} y={0} width={`${w}%`} height={RIBBON_HEIGHT}
-                            fill={REVISIT_COLORS.accent} opacity={0.92} />
+                            fill={REVISIT_COLORS.accent} opacity={0.94}
+                            stroke={REVISIT_COLORS.bright} strokeOpacity={0.35} strokeWidth={0.5} />
                     );
                 })}
 

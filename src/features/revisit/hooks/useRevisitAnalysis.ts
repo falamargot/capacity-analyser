@@ -114,6 +114,10 @@ export function useRevisitAnalysis(
                 setAnalysis(response.analysis);
                 setError(null);
             } else {
+                // Never leave the last valid KPI on screen after the current
+                // scenario has been rejected; it would look like the invalid
+                // inputs produced that number.
+                setAnalysis(null);
                 setError(response.error);
             }
         });
@@ -156,6 +160,7 @@ export function useRevisitAnalysis(
                     setError(null);
                 } catch (e) {
                     if (!mountedRef.current) return;
+                    setAnalysis(null);
                     setError(e instanceof Error ? e.message : String(e));
                 } finally {
                     if (mountedRef.current) {

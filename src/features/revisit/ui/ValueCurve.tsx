@@ -36,6 +36,10 @@ interface ValueCurveProps {
     isComputing: boolean;
     requirementMs: number;
     currentPayloadCount: number;
+    /** Gap produced by the exact selection shown in the KPI, not the sweep optimum. */
+    currentMaxGapMs: number | null;
+    /** Whether the exact current selection is the sweep winner at this payload count. */
+    currentIsMeasuredBest: boolean;
     targetName: string;
     onSelectPayloadCount: (count: number) => void;
 }
@@ -45,7 +49,8 @@ const H = 150;
 const PAD = { left: 40, right: 12, top: 12, bottom: 26 };
 
 export const ValueCurve: React.FC<ValueCurveProps> = ({
-    sweep, isComputing, requirementMs, currentPayloadCount, targetName, onSelectPayloadCount,
+    sweep, isComputing, requirementMs, currentPayloadCount,
+    currentMaxGapMs, currentIsMeasuredBest, targetName, onSelectPayloadCount,
 }) => {
     const model = useMemo(() => {
         if (!sweep) return null;
@@ -59,7 +64,11 @@ export const ValueCurve: React.FC<ValueCurveProps> = ({
 
         const xMin = Math.log(Math.min(...counts));
         const xMax = Math.log(Math.max(...counts));
-        const yValues = [...gaps, requirementMs];
+        const yValues = [
+            ...gaps,
+            requirementMs,
+            ...(currentMaxGapMs !== null && currentMaxGapMs > 0 ? [currentMaxGapMs] : []),
+        ];
         const yMin = Math.log(Math.min(...yValues) * 0.8);
         const yMax = Math.log(Math.max(...yValues) * 1.25);
 
@@ -71,21 +80,31 @@ export const ValueCurve: React.FC<ValueCurveProps> = ({
             PAD.top + (1 - (Math.log(ms) - yMin) / (yMax - yMin)) * plotH;
 
         return { points, sx, sy, plotH };
-    }, [sweep, requirementMs]);
+    }, [sweep, requirementMs, currentMaxGapMs]);
 
     const answer = sweep ? payloadsRequiredFor(sweep, requirementMs) : null;
+    const currentSweepPoint = sweep?.points
+        .find((point) => point.payloadCount === currentPayloadCount) ?? null;
 
     return (
         <div className={`${REVISIT_PANEL} px-3 py-2.5`}>
-            <div className="flex items-baseline justify-between">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                 <span className={REVISIT_LABEL}>Payloads vs revisit</span>
-                {isComputing && <span className="text-[9px] text-slate-500">computing…</span>}
+                <span className="text-right text-[9px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+                    {!sweep
+                        ? (isComputing ? 'computing…' : 'no valid sweep')
+                        : 'measured outputs · lower is better'}
+                </span>
             </div>
 
             {/* The deliverable sentence, produced by the tool. */}
             <p className="mt-1.5 text-[11px] leading-4 text-slate-300">
                 {!sweep ? (
-                    <span className="text-slate-500">Sweeping the configuration ladder…</span>
+                    <span className="text-slate-500">
+                        {isComputing
+                            ? 'Sweeping the configuration ladder…'
+                            : 'No valid sweep is available for these inputs.'}
+                    </span>
                 ) : answer ? (
                     <>
                         You need{' '}
@@ -98,6 +117,23 @@ export const ValueCurve: React.FC<ValueCurveProps> = ({
                     </span>
                 )}
             </p>
+
+            {/* `aria-live`: selecting a rung by keyboard changes the headline
+                number somewhere else on the page. Without an announcement a
+                screen-reader user gets no feedback that anything happened. */}
+            {sweep && currentMaxGapMs !== null && (
+                <p
+                    className="mt-1 text-[10px] font-semibold tabular-nums text-slate-400"
+                    aria-live="polite"
+                    aria-atomic="true"
+                >
+                    {currentIsMeasuredBest ? 'Current configuration' : 'Current manual split'}:{' '}
+                    <span className="text-amber-200">
+                        {currentPayloadCount} payload{currentPayloadCount === 1 ? '' : 's'}
+                    </span>
+                    {' · '}worst case <span className="text-slate-200">{formatGap(currentMaxGapMs)}</span>
+                </p>
+            )}
 
             {model && (
                 <svg viewBox={`0 0 ${W} ${H}`} className="mt-1.5 w-full" role="img"
@@ -123,23 +159,78 @@ export const ValueCurve: React.FC<ValueCurveProps> = ({
                             .join(' ')}
                     />
 
-                    {/* Every rung is clickable — the chart doubles as a control. */}
-                    {model.points.map((p) => {
-                        const isCurrent = p.payloadCount === currentPayloadCount;
+                    {/* Every rung is a real control, reachable by keyboard.
+                        `<g role="button" tabIndex>` rather than a bare click
+                        handler: the payload count is the mode's single most
+                        important input, and it was previously mouse-only. Arrow
+                        keys walk the ladder, matching how the header slider
+                        already behaves. */}
+                    {model.points.map((p, index) => {
+                        const isCurrentBest = currentIsMeasuredBest
+                            && p.payloadCount === currentPayloadCount;
                         const meets = p.maxGapMs! <= requirementMs;
+                        // Read aloud, so it is written to be spoken: pluralised,
+                        // and "by" rather than the "×" a screen reader would
+                        // announce as "times" or skip entirely.
+                        const plural = (n: number, word: string) =>
+                            `${n} ${word}${n === 1 ? '' : 's'}`;
+                        const label = `${plural(p.payloadCount, 'payload')}, worst case `
+                            + `${formatGap(p.maxGapMs)}, `
+                            + `${plural(p.best.selectedPlanes, 'plane')} by `
+                            + `${plural(p.best.payloadsPerPlane, 'payload')} each`;
                         return (
-                            <g key={p.payloadCount}
-                                className="cursor-pointer"
-                                onClick={() => onSelectPayloadCount(p.payloadCount)}>
+                            <g
+                                key={p.payloadCount}
+                                className="cursor-pointer focus:outline-none [&:focus-visible>.focus-ring]:opacity-100"
+                                role="button"
+                                tabIndex={0}
+                                aria-label={label}
+                                aria-current={isCurrentBest ? 'true' : undefined}
+                                onClick={() => onSelectPayloadCount(p.payloadCount)}
+                                onKeyDown={(event) => {
+                                    if (event.key === 'Enter' || event.key === ' ') {
+                                        event.preventDefault();
+                                        onSelectPayloadCount(p.payloadCount);
+                                        return;
+                                    }
+                                    const step = event.key === 'ArrowRight' || event.key === 'ArrowUp'
+                                        ? 1
+                                        : event.key === 'ArrowLeft' || event.key === 'ArrowDown'
+                                            ? -1
+                                            : 0;
+                                    if (step === 0) return;
+                                    event.preventDefault();
+                                    const next = model.points[index + step];
+                                    if (!next) return;
+                                    onSelectPayloadCount(next.payloadCount);
+                                    // Move focus with the selection so repeated
+                                    // presses walk the ladder.
+                                    const siblings = event.currentTarget.parentElement?.children;
+                                    const target = siblings?.[
+                                        Array.prototype.indexOf.call(siblings, event.currentTarget) + step
+                                    ];
+                                    (target as SVGGElement | undefined)?.focus?.();
+                                }}
+                            >
                                 {/* Generous invisible hit area — the dots are tiny. */}
                                 <circle cx={model.sx(p.payloadCount)} cy={model.sy(p.maxGapMs!)}
                                     r={9} fill="transparent" />
+                                {/* Focus ring, revealed by :focus-visible above. */}
+                                <circle
+                                    className="focus-ring pointer-events-none opacity-0 transition-opacity"
+                                    cx={model.sx(p.payloadCount)} cy={model.sy(p.maxGapMs!)}
+                                    r={9} fill="none" stroke="#7DD3FC" strokeWidth={1.5}
+                                />
+                                {isCurrentBest && (
+                                    <circle
+                                        cx={model.sx(p.payloadCount)} cy={model.sy(p.maxGapMs!)}
+                                        r={7} fill="none" stroke="#ffffff" strokeWidth={1.25}
+                                    />
+                                )}
                                 <circle
                                     cx={model.sx(p.payloadCount)} cy={model.sy(p.maxGapMs!)}
-                                    r={isCurrent ? 4.5 : 2.6}
+                                    r={isCurrentBest ? 4 : 2.6}
                                     fill={meets ? REVISIT_COLORS.pass : REVISIT_COLORS.accent}
-                                    stroke={isCurrent ? '#ffffff' : 'none'}
-                                    strokeWidth={isCurrent ? 1.5 : 0}
                                 />
                                 <title>
                                     {p.payloadCount} payloads · {formatGap(p.maxGapMs)} · {' '}
@@ -149,13 +240,49 @@ export const ValueCurve: React.FC<ValueCurveProps> = ({
                         );
                     })}
 
+                    {/* A manual split can share the payload count but not the
+                        sweep winner's gap. Plot its exact KPI result separately
+                        so "current" never points at a different constellation. */}
+                    {!currentIsMeasuredBest
+                        && currentSweepPoint
+                        && currentMaxGapMs !== null
+                        && currentMaxGapMs > 0 && (
+                        <g aria-label={`Current manual split: ${formatGap(currentMaxGapMs)}`}>
+                            <circle
+                                cx={model.sx(currentPayloadCount)}
+                                cy={model.sy(currentMaxGapMs)}
+                                r={7}
+                                fill="none"
+                                stroke="#ffffff"
+                                strokeWidth={1.25}
+                                strokeDasharray="2 2"
+                            />
+                            <circle
+                                cx={model.sx(currentPayloadCount)}
+                                cy={model.sy(currentMaxGapMs)}
+                                r={3.5}
+                                fill={REVISIT_COLORS.accent}
+                            />
+                            <title>
+                                Current manual split · {currentPayloadCount} payloads ·{' '}
+                                {formatGap(currentMaxGapMs)}
+                            </title>
+                        </g>
+                    )}
+
                     {/* Where the curve first meets the requirement. */}
                     {answer && answer.maxGapMs !== null && (
-                        <line
-                            x1={model.sx(answer.payloadCount)} x2={model.sx(answer.payloadCount)}
-                            y1={PAD.top} y2={H - PAD.bottom}
-                            stroke={REVISIT_COLORS.pass} strokeWidth={1} opacity={0.35}
-                        />
+                        <>
+                            <line
+                                x1={model.sx(answer.payloadCount)} x2={model.sx(answer.payloadCount)}
+                                y1={PAD.top} y2={H - PAD.bottom}
+                                stroke={REVISIT_COLORS.pass} strokeWidth={1} opacity={0.45}
+                            />
+                            <circle
+                                cx={model.sx(answer.payloadCount)} cy={model.sy(answer.maxGapMs)}
+                                r={6} fill="none" stroke={REVISIT_COLORS.pass} strokeWidth={1.25}
+                            />
+                        </>
                     )}
 
                     {/* Axes */}

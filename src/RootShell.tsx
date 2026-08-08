@@ -32,13 +32,13 @@ import { SimulationClockProvider } from './contexts/SimulationClockContext';
  * be mounted at once — hence the ternary rather than mounting both and hiding one.
  */
 export const RootShell: React.FC = () => {
-  const { appMode, handleAppModeChange } = useAppModeState();
+  const { appMode, handleAppModeChange, returnFromRevisit } = useAppModeState();
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <SimulationClockProvider>
         {appMode === 'revisit'
-          ? <RevisitApp onExit={() => handleAppModeChange('engineering')} />
+          ? <RevisitApp onExit={returnFromRevisit} />
           : (
             <SimulationProvider>
               <App appMode={appMode} onAppModeChange={handleAppModeChange} />

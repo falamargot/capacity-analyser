@@ -197,4 +197,85 @@ describe('footprint — projection onto the ground', () => {
         const b = computeFootprint(sat, prepareFov(cone(20)), EPOCH, 1234);
         expect(a).toEqual(b);
     });
+
+    // ── Over and near a pole ────────────────────────────────────────────────
+    // `east` is ẑ × up, whose magnitude is cos(latitude), so it vanishes exactly
+    // over a pole and takes the bearing with it. A near-polar constellation
+    // crosses the polar region every orbit, so the NEAR-pole case is the one
+    // that actually matters; the exact pole is measure-zero and is covered here
+    // only to prove it degrades safely rather than producing NaN.
+    describe('near and over a pole', () => {
+        /** Satellite exactly above a pole, moving along the +X meridian. */
+        const overPole = (sign: 1 | -1): EciState => ({
+            x: 0, y: 0, z: sign * A_KM,
+            vx: A_KM * argLatRateRadPerSec(A_KM, 90), vy: 0, vz: 0,
+        });
+
+        /** Satellite `offsetDeg` of arc from the pole — the reachable case. */
+        const nearPole = (offsetDeg: number): EciState => {
+            const colat = toRad(offsetDeg);
+            return {
+                x: A_KM * Math.sin(colat), y: 0, z: A_KM * Math.cos(colat),
+                vx: 0, vy: A_KM * argLatRateRadPerSec(A_KM, 90), vz: 0,
+            };
+        };
+
+        it.each([1, 0.1, 0.001])(
+            'spreads a full ring %s° from the pole — the reachable case',
+            (offsetDeg) => {
+                const fp = computeFootprint(nearPole(offsetDeg), prepareFov(cone(20)), EPOCH, 0)!;
+                const longitudes = new Set(fp.boundary.map((p) => p.lng.toFixed(3)));
+                expect(longitudes.size).toBeGreaterThan(20);
+                for (const p of fp.boundary) {
+                    expect(Number.isFinite(p.lat)).toBe(true);
+                    expect(Number.isFinite(p.lng)).toBe(true);
+                }
+            }
+        );
+
+        it.each([[1 as const, 'north'], [-1 as const, 'south']])(
+            'degrades safely exactly over the %s pole',
+            (sign: 1 | -1, _hemisphere: string) => {
+                const fp = computeFootprint(overPole(sign), prepareFov(cone(20)), EPOCH, 0)!;
+                expect(fp).not.toBeNull();
+                for (const p of fp.boundary) {
+                    expect(Number.isFinite(p.lat)).toBe(true);
+                    expect(Number.isFinite(p.lng)).toBe(true);
+                    expect(Math.abs(p.lat)).toBeLessThanOrEqual(90);
+                }
+                expect(fp.boundary[0]).toEqual(fp.boundary[fp.boundary.length - 1]);
+                expect(Math.abs(fp.center.lat)).toBeCloseTo(90, 6);
+            }
+        );
+
+        it('holds the ring at the right radius even at the exact pole', () => {
+            const fp = computeFootprint(overPole(1), prepareFov(cone(25)), EPOCH, 0)!;
+            const expectedKm = halfSwathKm(ALT_KM, 25);
+            for (const p of fp.boundary) {
+                expect(haversineDistanceKm(fp.center, { lat: p.lat, lng: p.lng }))
+                    .toBeCloseTo(expectedKm, 6);
+            }
+        });
+
+        // KNOWN LIMITATION, deliberately pinned rather than worked around.
+        //
+        // `destinationGeodesic` loses the bearing when walking from an exact
+        // pole: cos(φ₁) is 0, which zeroes the numerator of its longitude term,
+        // so every bearing returns the same meridian and the ring collapses onto
+        // it. Fixing that means changing a shared utility that OneWeb comb
+        // geometry also uses, to serve a case real propagation cannot reach —
+        // `satEcef.x` and `.y` must both be exactly 0. One ten-millionth of a
+        // degree away (≈1 cm) the formula resolves all bearings correctly, as
+        // the test above shows at 0.001°.
+        it('collapses the ring onto one meridian at the exact pole, and only there', () => {
+            const atPole = computeFootprint(overPole(1), prepareFov(cone(20)), EPOCH, 0)!;
+            const poleLongitudes = new Set(atPole.boundary.map((p) => p.lng.toFixed(3)));
+            expect(poleLongitudes.size).toBeLessThan(5);
+
+            // A hair off the pole and it is a full ring again.
+            const offPole = computeFootprint(nearPole(1e-6), prepareFov(cone(20)), EPOCH, 0)!;
+            expect(new Set(offPole.boundary.map((p) => p.lng.toFixed(3))).size)
+                .toBeGreaterThan(20);
+        });
+    });
 });

@@ -111,7 +111,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
 
     const { analysis, isComputing, error, isMainThreadFallback } = useRevisitAnalysis(scenario);
     // Its own worker, and keyed so the payload slider never re-triggers it.
-    const { sweep, isComputing: isSweeping } = useRevisitSweep(scenario);
+    const { sweep, isComputing: isSweeping, error: sweepError } = useRevisitSweep(scenario);
 
     const fleet = useMemo(
         () => constellationFor(scenario.reference),
@@ -405,15 +405,15 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
                     </div>
                   </div>
 
-                    {(error || isMainThreadFallback) && (
+                    {(error || sweepError || isMainThreadFallback) && (
                         <div className={`pointer-events-auto ${REVISIT_PANEL} self-start border-red-400/40 px-3 py-1.5 text-[11px] text-red-200`}>
-                            {error ?? 'Running on the main thread — Worker unavailable'}
+                            {error ?? sweepError ?? 'Running on the main thread — Worker unavailable'}
                         </div>
                     )}
 
                     {/* The analysis column: headline, then the business case.
                         Scrolls independently so it can never push the ribbon out. */}
-                    <div className="pointer-events-auto flex w-[400px] shrink-0 flex-col gap-2 overflow-y-auto">
+                    <div className="pointer-events-auto flex w-[400px] shrink-0 flex-col gap-2 overflow-y-auto [&>*]:shrink-0">
                         <RevisitKpiPanel
                             statistics={analysis?.statistics ?? null}
                             windowHours={scenario.window.durationHours}
@@ -427,6 +427,8 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
                             isComputing={isSweeping}
                             requirementMs={requirementMs}
                             currentPayloadCount={currentPayloadCount}
+                            currentMaxGapMs={analysis?.statistics.maxGapMs ?? null}
+                            currentIsMeasuredBest={status.isBest}
                             targetName={scenario.target.name}
                             onSelectPayloadCount={handlePayloadCountChange}
                         />

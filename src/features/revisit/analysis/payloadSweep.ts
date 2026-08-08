@@ -29,6 +29,7 @@ import { enumerateLadder, selectSubConstellation, type LadderEntry } from '../do
 import { generateWalkerConstellation } from '../domain/walker';
 import { computeAccessIntervals } from './accessIntervals';
 import { computeGapStatistics } from './gapStatistics';
+import { validateSweepInputs } from './scenarioValidation';
 
 /** One configuration evaluated. */
 export interface SweepConfiguration {
@@ -128,6 +129,13 @@ export function runPayloadSweep(
     options: PayloadSweepOptions = {}
 ): PayloadSweepResult {
     const planeShift = options.planeShift ?? 0;
+    const validation = validateSweepInputs(
+        reference, target, fov, window, planeShift
+    );
+    if (!validation.ok) {
+        throw new Error(`Invalid payload sweep: ${validation.errors.join('; ')}`);
+    }
+
     const constellation = generateWalkerConstellation(reference);
 
     let ladder = enumerateLadder(reference.planes, reference.satsPerPlane);
@@ -169,7 +177,10 @@ export function runPayloadSweep(
     points.sort((a, b) => a.payloadCount - b.payloadCount);
 
     // The window caveats are identical across configurations — carry one copy.
-    const warnings = [...new Set(points.flatMap((p) => p.best.statistics.warnings))];
+    const warnings = [...new Set([
+        ...validation.warnings,
+        ...points.flatMap((p) => p.best.statistics.warnings),
+    ])];
 
     return { points, warnings };
 }
