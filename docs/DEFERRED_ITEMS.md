@@ -557,3 +557,57 @@ value to at most twice a second, and only when the tenth-of-an-hour changes.
   ~21 km from where the analysis places them. Presentation-only — no reported
   number moves — but it needs a decision: spherical visual ellipsoid, or document
   and accept.
+
+---
+
+# REVISIT — independent propagation cross-check
+
+## R25. SGP4 cross-check done; R4 (GMAT/STK) still open
+
+**Where:** `src/utils/__tests__/revisitSgp4CrossCheck.test.ts`
+
+The engine was compared against SGP4 via the already-vendored `satellite.js` —
+a third-party implementation of a different theory (Brouwer-Lyddane), validated
+for decades against real tracking data. Each Walker satellite is written out as
+a synthetic TLE with `BSTAR = 0`, so drag is off and only the gravity models are
+compared. Full numbers in `REVIEW_REPORT.md`.
+
+**Headline:** maximum revisit gap agrees to **0.06 %** (9.664 h vs 9.669 h),
+same access count, and the position difference **does not grow** — 11.6 km at
+0 h, 11.7 km at 72 h.
+
+That flatness is the load-bearing result. A constant offset is a difference of
+constants; a growing one is a wrong secular rate. An error in `u̇` large enough
+to matter would place satellites degrees of along-track away after 72 h —
+hundreds to thousands of kilometres, not tens.
+
+The 5.09 km constant radial offset is explained rather than tolerated: SGP4
+treats a TLE's mean motion as **Kozai** and converts it to Brouwer before
+deriving `a`, an O(J₂·(Rₑ/a)²) shift predicting 5.82 km. The WGS72-vs-WGS84
+gravitational parameter accounts for 2 m and cannot explain it.
+
+**Why ADR-001 §1 is not violated.** That rule forbids `satellite.js` and
+`satrec` inside `src/features/revisit/`, and it forbids synthesising TLEs for
+PRODUCTION because drag makes multi-day statistics irreproducible. This test
+lives in `src/utils/__tests__/`, and `BSTAR = 0` removes the drag that was the
+objection. The module's own directory remains free of `satellite.js`, verified.
+
+**R4 IS NOT CLOSED BY THIS.** SGP4 is independent but it is not the authority
+R4 names, and it shares with this engine the convention that ECI is ECEF rotated
+by GMST — a shared error there would pass unnoticed. The UI and CSV must keep
+saying the model is not trajectory-validated.
+
+## R26. GMAT is installable here; it needs an operator decision
+
+Earlier notes assumed GMAT could not run on this machine. **That was wrong.**
+GMAT R2026a ships `gmat-mac-x64-R2026a-signed.dmg` (455.5 MB) — a signed
+universal build for macOS 14.5+ on Intel or Apple Silicon — from the NASA
+project on SourceForge. This machine qualifies.
+
+STK remains unavailable: commercial and licensed.
+
+So R4 is blocked only on approval for a 455 MB third-party download and install,
+not on feasibility. Once approved, the comparison to run is: position,
+sub-satellite track, access-boundary times and maximum revisit gap for the
+reference scenario (12 × 8 · 87.9° · 1200 km, London, 72 h), with tolerances
+recorded in `REVIEW_REPORT.md`.
