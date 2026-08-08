@@ -472,3 +472,88 @@ about) gets built.
 - **R12** — 60 fps at 256 satellites, still unmeasured.
 - **R13** — FOV presets still not from an instrument datasheet.
 - **R14** — calibration fits one epoch, not a trajectory.
+
+---
+
+# REVISIT — P1 remediation
+
+Recorded 2026-08-07, after the external review's P1 set.
+
+## R21. Exact-pole footprint: fixed frame, known geodesic limit
+
+`east = ẑ × up` has magnitude cos(latitude) and vanishes exactly over a pole,
+degenerating the local ENU frame. Now guarded — but on the CROSS PRODUCT's
+length, not a latitude threshold. A threshold wide enough to feel safe (|up.z| >
+0.999, ~2.5° of pole) would swap the azimuth reference across a whole polar cap
+and visibly rotate any asymmetric footprint — a rectangle or clocked ellipse — as
+a satellite crossed it.
+
+**A separate, deliberately unfixed limit.** `destinationGeodesic` loses the
+bearing when walking from an EXACT pole: cos(φ₁) = 0 zeroes its longitude term,
+so every bearing returns the same meridian and the ring collapses onto it.
+Measured: the degeneracy exists only at exactly 90°. At 89.9999999° — about a
+centimetre off — all 48 sampled bearings resolve normally.
+
+Fixing it means changing a shared utility that OneWeb comb geometry also uses, to
+serve a state real propagation cannot reach (`satEcef.x` and `.y` both exactly
+zero). Pinned by a test instead, so the behaviour is documented rather than
+discovered.
+
+## R22. Cesium hot path: structure separated from geometry
+
+Orbit and swath polylines were torn down and rebuilt at the 20 Hz satellite
+cadence, and every satellite position allocated a `Cartesian3` clone. Counted
+from the code, steady state was ~38,000 `Cartesian3` allocations per second
+(96 points + 1,548 ring vertices + 264 swath vertices per tick) plus ~400
+Polyline/Material objects churned per second.
+
+Now:
+- **Structure** (how many polylines, their colour and width) rebuilds only when
+  the fleet, the selection or a display toggle changes.
+- **Geometry** mutates retained vectors in place.
+- **Rings run on their own 2 Hz clock.** A ring is fixed in inertial space; in
+  ECEF it only precesses with Earth rotation, 15°/hour — 0.2° between refreshes,
+  well under a pixel. Refreshing them at the satellite rate bought nothing.
+
+Steady-state `Cartesian3` allocation is now zero. `computeFootprint` still
+allocates its own boundary array per swath per tick; that is untouched and is the
+next candidate if it ever matters.
+
+**⚠ Still unmeasured.** This is an allocation reduction derived from the code,
+NOT a frame-rate measurement. R12 stands: nobody has yet run the mode at
+`P·S = 256` in a foreground browser. Verified only that positions still track —
+satellites, swaths and rings all advance correctly after the refactor.
+
+## R23. Keyboard access added to the two custom controls
+
+The value curve's rungs were `<g onClick>` and the coverage ribbon carried
+`role="presentation"` alongside a click handler — the one combination that
+guarantees assistive technology cannot reach an interactive element.
+
+- Curve rungs are `role="button"`, focusable, Enter/Space to select, arrows to
+  walk the ladder, with a visible focus ring.
+- The ribbon is a `role="slider"` over the analysis window: arrows step an hour,
+  Page keys six, Home/End jump to the ends.
+- An `aria-live` region announces the resulting configuration, because selecting
+  a rung changes the headline number elsewhere on the page.
+- Labels are written to be spoken — pluralised, and "3 planes by 2 payloads
+  each" rather than "3 × 2".
+
+`aria-valuenow` needs a React-visible playhead position, which conflicts with the
+rule that clock progression emits no render. Resolved by throttling that one
+value to at most twice a second, and only when the tenth-of-an-hour changes.
+
+## R24. Still open after P1
+
+- **R4** — external GMAT/STK cross-check. Unchanged, and still the highest-value
+  item before any senior demo.
+- **R12** — 60 fps at 256 satellites, still unmeasured (see R22).
+- **URL / browser-history semantics.** `Back` now returns to the originating
+  ENG/COMM mode, but mode changes still do not touch the URL or history. This
+  app has no router; adding history semantics is a product decision, not a bug
+  fix, and was deliberately left for one.
+- **E8, visual WGS84 vs analytical sphere.** The engine computes on a 6371 km
+  sphere; Cesium renders on WGS84, so drawn targets and footprints can sit up to
+  ~21 km from where the analysis places them. Presentation-only — no reported
+  number moves — but it needs a decision: spherical visual ellipsoid, or document
+  and accept.

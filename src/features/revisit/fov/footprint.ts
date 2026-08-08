@@ -24,7 +24,7 @@
 
 import { EARTH_RADIUS_KM } from '../../../utils/earthGeometry';
 import {
-    type Vec3, v3, dot, cross, normalize, destinationGeodesic, toDeg, clamp,
+    type Vec3, v3, dot, cross, length, normalize, destinationGeodesic, toDeg, clamp,
 } from '../../../utils/sphericalGeometry';
 import type { EciState } from '../domain/types';
 import { earthRotationRad, ecefToEci, eciToEcef } from '../propagation/keplerJ2';
@@ -89,8 +89,23 @@ function groundPointOfRay(
     const dirEcef = eciToEcef(dirEci, thetaRad);
 
     // Local ENU at the sub-satellite point, in ECEF.
+    //
+    // "East" is ẑ × up, whose magnitude is cos(latitude) — so it collapses to
+    // the zero vector when the satellite is exactly over a pole, taking the
+    // bearing and the whole footprint ring with it. East is genuinely undefined
+    // there (every direction is south), so any perpendicular serves, provided
+    // the frame stays orthonormal.
+    //
+    // The test is on the cross product itself, not on a latitude threshold. A
+    // threshold wide enough to feel safe (say |up.z| > 0.999, about 2.5° of
+    // pole) would swap the azimuth reference across a broad polar cap and
+    // visibly rotate any asymmetric footprint — a rectangle or a clocked ellipse
+    // — as a satellite crossed it. Double precision resolves this formula to
+    // within nanodegrees of the pole; only exact degeneracy needs the fallback.
     const up = normalize(satEcef);
-    const east = normalize(cross(v3(0, 0, 1), up));
+    let east = cross(v3(0, 0, 1), up);
+    if (length(east) < 1e-12) east = cross(v3(1, 0, 0), up);
+    east = normalize(east);
     const north = cross(up, east);
 
     const offNadirRad = Math.acos(clamp(-dot(dirEcef, up), -1, 1));

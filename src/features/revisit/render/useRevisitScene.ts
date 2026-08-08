@@ -31,7 +31,7 @@
 
 import { useEffect, useRef } from 'react';
 import {
-    Cartesian3, Color, Math as CesiumMath, PointPrimitiveCollection,
+    Cartesian3, Color, Math as CesiumMath, NearFarScalar, PointPrimitiveCollection,
     PolylineCollection, Material, type Viewer,
 } from 'cesium';
 import { EARTH_RADIUS_KM } from '../../../utils/earthGeometry';
@@ -46,6 +46,16 @@ import { REVISIT_COLORS } from '../ui/revisitTheme';
 
 /** Satellite positions refresh at this rate; the camera still renders on demand. */
 const POSITION_UPDATE_HZ = 20;
+
+/**
+ * Orbit rings refresh far more slowly than the satellites on them.
+ *
+ * A ring is fixed in inertial space; drawn in ECEF it only precesses with Earth
+ * rotation, 15° per hour — 0.2° between refreshes at 2 Hz, which is well under a
+ * pixel at any sensible zoom. Rebuilding 12 rings of 129 points at the satellite
+ * cadence was the single largest allocator in the scene and bought nothing.
+ */
+const ORBIT_UPDATE_HZ = 2;
 /** Vertices per orbit ring. 128 is smooth at any zoom and costs nothing. */
 const ORBIT_SAMPLES = 128;
 /** Boundary vertices per swath. */
@@ -119,21 +129,25 @@ export function useRevisitScene(
         const handles = handlesRef.current;
         if (!viewer || viewer.isDestroyed?.() || !handles) return;
 
-        const hostColor = Color.fromCssColorString(REVISIT_COLORS.hostFleet).withAlpha(0.55);
+        const hostColor = Color.fromCssColorString(REVISIT_COLORS.hostFleet).withAlpha(0.72);
         const payloadColor = Color.fromCssColorString(REVISIT_COLORS.bright);
+        const spaceOutline = Color.fromCssColorString('#05070D').withAlpha(0.9);
 
         handles.points.removeAll();
         for (const el of fleet) {
             const isPayload = selectedIds.has(el.id);
             if (!isPayload && !options.showHostFleet) continue;
-            handles.points.add({
+            const point = handles.points.add({
                 position: Cartesian3.ZERO,
                 color: isPayload ? payloadColor : hostColor,
-                pixelSize: isPayload ? 9 : 4,
-                outlineColor: isPayload ? Color.BLACK.withAlpha(0.6) : Color.TRANSPARENT,
-                outlineWidth: isPayload ? 1 : 0,
+                pixelSize: isPayload ? 9 : 4.5,
+                outlineColor: spaceOutline,
+                outlineWidth: isPayload ? 2 : 1,
                 id: el.id,
             });
+            // Screen-space scaling keeps the fleet legible in the full-globe
+            // framing without moving a point away from its propagated position.
+            point.scaleByDistance = new NearFarScalar(1.0e6, 1.18, 3.0e7, 1.0);
         }
         viewer.scene.requestRender();
     }, [viewer, fleet, selectedIds, options.showHostFleet]);
@@ -144,6 +158,7 @@ export function useRevisitScene(
 
         let frame = 0;
         let lastUpdateMs = 0;
+        let lastOrbitMs = 0;
         const scratch = new Cartesian3();
         let propagators: PropagatorState[] = [];
         /**
@@ -185,18 +200,27 @@ export function useRevisitScene(
             const epochMs = sc.window.startMs;
             const tSeconds = (readTime() - epochMs) / 1000;
 
-            // Satellites — positions written in place, no allocation per point.
+            // Satellites. `PointPrimitive.position` copies what it is given, so
+            // the scratch vector can be handed straight over — cloning first
+            // allocated one Cartesian3 per satellite per tick for nothing.
             let index = 0;
             for (let i = 0; i < fl.length; i++) {
                 const isPayload = sel.has(fl[i].id);
                 if (!isPayload && !opt.showHostFleet) continue;
                 const point = handles.points.get(index++);
                 if (!point) break;
-                point.position = ecefPosition(propagators[i], epochMs, tSeconds, scratch).clone();
+                point.position = ecefPosition(propagators[i], epochMs, tSeconds, scratch);
             }
 
-            rebuildOrbits(handles, fl, propagators, epochMs, tSeconds, opt.showOrbits);
-            rebuildSwaths(handles, sc, fl, propagators, sel, epochMs, tSeconds, opt.showSwaths);
+            // Rings move slowly; refresh them on their own, much slower clock.
+            if (now - lastOrbitMs >= 1000 / ORBIT_UPDATE_HZ) {
+                lastOrbitMs = now;
+                updateOrbits(
+                    handles, fl, propagators, sel, epochMs, tSeconds, opt.showOrbits
+                );
+            }
+
+            updateSwaths(handles, sc, fl, propagators, sel, epochMs, tSeconds, opt.showSwaths);
 
             viewer.scene.requestRender();
         };
@@ -213,37 +237,93 @@ export function useRevisitScene(
  * plane traces the same ring, so drawing it once per plane is visually identical
  * and eight times cheaper at S = 8.
  */
-function rebuildOrbits(
+/**
+ * ── STRUCTURE VS GEOMETRY ───────────────────────────────────────────────────
+ * These two caches are what let the scene update without reallocating. A ring's
+ * STRUCTURE — how many polylines, what colour, how wide — changes only when the
+ * fleet, the selection or a display toggle changes. Its GEOMETRY changes with
+ * the clock. Tearing the whole collection down every tick conflated the two and
+ * paid the structural cost at the geometric rate.
+ *
+ * `positions` arrays are retained and their `Cartesian3` elements mutated in
+ * place; only the array reference is handed back to Cesium to mark it dirty.
+ */
+const orbitPositionCache = new WeakMap<SceneHandles, Cartesian3[][]>();
+const swathPositionCache = new WeakMap<SceneHandles, Cartesian3[][]>();
+/** Structural signature of the last build, per collection. */
+const orbitSignature = new WeakMap<SceneHandles, string>();
+const swathSignature = new WeakMap<SceneHandles, string>();
+
+function updateOrbits(
     handles: SceneHandles,
     fleet: OrbitalElements[],
     propagators: PropagatorState[],
+    selectedIds: Set<string>,
     epochMs: number,
     tSeconds: number,
     show: boolean
 ): void {
-    handles.orbits.removeAll();
-    if (!show || fleet.length === 0) return;
+    if (!show || fleet.length === 0) {
+        if (handles.orbits.length > 0) {
+            handles.orbits.removeAll();
+            orbitSignature.delete(handles);
+            orbitPositionCache.delete(handles);
+        }
+        return;
+    }
 
-    const color = Color.fromCssColorString(REVISIT_COLORS.accent).withAlpha(0.22);
+    const selectedPlanes = new Set<number>();
+    for (const satellite of fleet) {
+        if (selectedIds.has(satellite.id)) selectedPlanes.add(satellite.planeIndex);
+    }
+
+    // One representative satellite per plane — P rings, not P·S.
+    const planeLeads: number[] = [];
     const seen = new Set<number>();
-    const scratch = new Cartesian3();
-
     for (let i = 0; i < fleet.length; i++) {
-        const plane = fleet[i].planeIndex;
-        if (seen.has(plane)) continue;
-        seen.add(plane);
+        if (seen.has(fleet[i].planeIndex)) continue;
+        seen.add(fleet[i].planeIndex);
+        planeLeads.push(i);
+    }
 
-        const period = orbitalPeriodSec(fleet[i].semiMajorAxisKm);
-        const positions: Cartesian3[] = new Array(ORBIT_SAMPLES + 1);
+    const signature = `${planeLeads.length}|${[...selectedPlanes].sort((a, b) => a - b).join(',')}`;
+    if (orbitSignature.get(handles) !== signature) {
+        // Structure changed: rebuild once, then never again until it changes.
+        handles.orbits.removeAll();
+        const hostColor = Color.fromCssColorString(REVISIT_COLORS.hostFleet).withAlpha(0.16);
+        const payloadColor = Color.fromCssColorString(REVISIT_COLORS.accent).withAlpha(0.42);
+        const cache: Cartesian3[][] = [];
+
+        for (const lead of planeLeads) {
+            const positions: Cartesian3[] = new Array(ORBIT_SAMPLES + 1);
+            for (let k = 0; k <= ORBIT_SAMPLES; k++) positions[k] = new Cartesian3();
+            cache.push(positions);
+            const isPayloadPlane = selectedPlanes.has(fleet[lead].planeIndex);
+            handles.orbits.add({
+                positions,
+                width: isPayloadPlane ? 1.55 : 1,
+                material: Material.fromType('Color', {
+                    color: isPayloadPlane ? payloadColor : hostColor,
+                }),
+            });
+        }
+        orbitPositionCache.set(handles, cache);
+        orbitSignature.set(handles, signature);
+    }
+
+    // Geometry: mutate the retained vectors, then re-assign to mark dirty.
+    const cache = orbitPositionCache.get(handles);
+    if (!cache) return;
+    for (let p = 0; p < planeLeads.length; p++) {
+        const lead = planeLeads[p];
+        const positions = cache[p];
+        const period = orbitalPeriodSec(fleet[lead].semiMajorAxisKm);
         for (let k = 0; k <= ORBIT_SAMPLES; k++) {
             const t = tSeconds + (k / ORBIT_SAMPLES) * period;
-            positions[k] = ecefPosition(propagators[i], epochMs, t, scratch).clone();
+            ecefPosition(propagators[lead], epochMs, t, positions[k]);
         }
-        handles.orbits.add({
-            positions,
-            width: 1.2,
-            material: Material.fromType('Color', { color }),
-        });
+        const polyline = handles.orbits.get(p);
+        if (polyline) polyline.positions = positions;
     }
 }
 
@@ -254,7 +334,7 @@ function rebuildOrbits(
  * one thing guaranteed to drop the frame rate, and the host fleet's swaths are
  * not part of the story.
  */
-function rebuildSwaths(
+function updateSwaths(
     handles: SceneHandles,
     scenario: RevisitScenario,
     fleet: OrbitalElements[],
@@ -264,28 +344,67 @@ function rebuildSwaths(
     tSeconds: number,
     show: boolean
 ): void {
-    handles.swaths.removeAll();
-    if (!show) return;
+    if (!show) {
+        if (handles.swaths.length > 0) {
+            handles.swaths.removeAll();
+            swathSignature.delete(handles);
+            swathPositionCache.delete(handles);
+        }
+        return;
+    }
+
+    const payloadIndices: number[] = [];
+    for (let i = 0; i < fleet.length; i++) {
+        if (selectedIds.has(fleet[i].id)) payloadIndices.push(i);
+    }
+
+    // Boundary vertex count is fixed by SWATH_SAMPLES, so the structure depends
+    // only on how many payloads there are and on the instrument's shape.
+    const signature = `${payloadIndices.length}|${scenario.payload.shape}`;
+    if (swathSignature.get(handles) !== signature) {
+        handles.swaths.removeAll();
+        const color = Color.fromCssColorString(REVISIT_COLORS.accent).withAlpha(0.75);
+        const cache: Cartesian3[][] = [];
+        for (let n = 0; n < payloadIndices.length; n++) {
+            // computeFootprint closes the ring, so it returns samples + 1 points.
+            const positions: Cartesian3[] = new Array(SWATH_SAMPLES + 1);
+            for (let k = 0; k <= SWATH_SAMPLES; k++) positions[k] = new Cartesian3();
+            cache.push(positions);
+            handles.swaths.add({
+                positions,
+                width: 1.6,
+                material: Material.fromType('Color', { color }),
+            });
+        }
+        swathPositionCache.set(handles, cache);
+        swathSignature.set(handles, signature);
+    }
+
+    const cache = swathPositionCache.get(handles);
+    if (!cache) return;
 
     const fov = prepareFov(scenario.payload);
-    const color = Color.fromCssColorString(REVISIT_COLORS.accent).withAlpha(0.75);
+    for (let n = 0; n < payloadIndices.length; n++) {
+        const i = payloadIndices[n];
+        const polyline = handles.swaths.get(n);
+        if (!polyline) break;
 
-    for (let i = 0; i < fleet.length; i++) {
-        if (!selectedIds.has(fleet[i].id)) continue;
         const eci = propagateState(propagators[i], tSeconds);
         const footprint = computeFootprint(eci, fov, epochMs, tSeconds, SWATH_SAMPLES);
-        if (!footprint) continue;
+        // A satellite whose footprint cannot be computed (inside the Earth, or a
+        // degenerate frame) is hidden rather than left showing its last position.
+        if (!footprint || footprint.boundary.length < 3) {
+            polyline.show = false;
+            continue;
+        }
+        polyline.show = true;
 
-        const positions = footprint.boundary.map((p) =>
-            Cartesian3.fromDegrees(p.lng, p.lat, 0)
-        );
-        if (positions.length < 3) continue;
-
-        handles.swaths.add({
-            positions,
-            width: 1.6,
-            material: Material.fromType('Color', { color }),
-        });
+        const positions = cache[n];
+        for (let k = 0; k < positions.length; k++) {
+            const point = footprint.boundary[Math.min(k, footprint.boundary.length - 1)];
+            Cartesian3.fromDegrees(point.lng, point.lat, 0, undefined, positions[k]);
+        }
+        polyline.positions = positions;
     }
 }
 

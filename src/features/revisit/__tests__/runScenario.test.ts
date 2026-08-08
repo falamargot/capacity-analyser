@@ -197,7 +197,7 @@ describe('presets — the entry moment', () => {
     it('keeps the FOV presets ordered and inside the horizon at 1200 km', () => {
         expect(FOV_PRESETS.NARROW.halfAngle1Deg).toBeLessThan(FOV_PRESETS.STANDARD.halfAngle1Deg);
         expect(FOV_PRESETS.STANDARD.halfAngle1Deg).toBeLessThan(FOV_PRESETS.WIDE.halfAngle1Deg);
-        // Horizon off-nadir at 1200 km is ~57.9°; every preset must stay inside it.
+        // Horizon off-nadir at 1200 km is 57.30°; every preset must stay inside it.
         expect(FOV_PRESETS.WIDE.halfAngle1Deg).toBeLessThan(57);
     });
 });

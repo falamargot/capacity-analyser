@@ -40,19 +40,30 @@ export function useRevisitSweep(
 ): UseRevisitSweepResult {
     const clock = useSimulationClock();
 
-    const [sweep, setSweep] = useState<PayloadSweepResult | null>(null);
+    const [completed, setCompleted] = useState<{
+        key: string;
+        sweep: PayloadSweepResult;
+    } | null>(null);
     const [isComputing, setIsComputing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [computeMs, setComputeMs] = useState<number | null>(null);
 
     const workerRef = useRef<Worker | null>(null);
     const requestIdRef = useRef(0);
-    const pendingRef = useRef<{ requestId: number; timelineRevision: number } | null>(null);
+    const pendingRef = useRef<{
+        requestId: number;
+        timelineRevision: number;
+        key: string;
+    } | null>(null);
     const mountedRef = useRef(true);
 
     // The key that matters: strides are deliberately absent.
     const key = sweepInvalidationKey(scenario);
     const stableScenario = useMemo(() => scenario, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+    // A completed result is publishable only for the inputs that produced it.
+    // This is derived during render, so an old curve disappears immediately on
+    // an input change rather than one effect later.
+    const sweep = completed?.key === key ? completed.sweep : null;
 
     useEffect(() => {
         mountedRef.current = true;
@@ -73,16 +84,18 @@ export function useRevisitSweep(
         worker.addEventListener('message', (event: MessageEvent<RevisitWorkerOutput>) => {
             const response = event.data;
             if (!mountedRef.current || response.kind !== 'sweep') return;
-            if (!isCurrentResponse(response, pendingRef.current ?? { requestId: null, timelineRevision: -1 })) {
+            const pending = pendingRef.current;
+            if (!pending || !isCurrentResponse(response, pending)) {
                 return;
             }
             pendingRef.current = null;
             setComputeMs(response.computeMs);
             setIsComputing(false);
             if (response.ok) {
-                setSweep(response.sweep);
+                setCompleted({ key: pending.key, sweep: response.sweep });
                 setError(null);
             } else {
+                setCompleted(null);
                 setError(response.error);
             }
         });
@@ -106,11 +119,15 @@ export function useRevisitSweep(
         if (!enabled) return;
         setIsComputing(true);
         setError(null);
+        // Invalidate an in-flight response before the debounce for its
+        // replacement starts. Otherwise an obsolete sweep can land during that
+        // window and be reconciled into the new scenario.
+        pendingRef.current = null;
 
         const timer = setTimeout(() => {
             const requestId = ++requestIdRef.current;
             const timelineRevision = clock.getSnapshot().revision;
-            pendingRef.current = { requestId, timelineRevision };
+            pendingRef.current = { requestId, timelineRevision, key };
 
             const worker = workerRef.current;
             if (!worker) {
@@ -124,7 +141,7 @@ export function useRevisitSweep(
                         { planeShift: stableScenario.selection.planeShift }
                     );
                     if (!mountedRef.current) return;
-                    setSweep(result);
+                    setCompleted({ key, sweep: result });
                     setError(null);
                 } catch (e) {
                     if (!mountedRef.current) return;
@@ -146,7 +163,7 @@ export function useRevisitSweep(
         }, SWEEP_DEBOUNCE_MS);
 
         return () => clearTimeout(timer);
-    }, [stableScenario, enabled, clock]);
+    }, [stableScenario, enabled, clock, key]);
 
     return { sweep, isComputing, error, computeMs };
 }

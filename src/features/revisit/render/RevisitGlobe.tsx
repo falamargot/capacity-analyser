@@ -46,6 +46,41 @@ interface RevisitGlobeProps {
     onPickTarget: (latDeg: number, lonDeg: number) => void;
 }
 
+/** Static screen-space reticle: crisp at any zoom and free of per-frame work. */
+function createTargetReticle(): HTMLCanvasElement {
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    const context = canvas.getContext('2d');
+    if (!context) return canvas;
+
+    const centre = 32;
+    context.strokeStyle = REVISIT_COLORS.accent;
+    context.fillStyle = REVISIT_COLORS.bright;
+    context.lineWidth = 1.5;
+    context.shadowColor = 'rgba(239, 159, 39, 0.45)';
+    context.shadowBlur = 4;
+
+    for (const radius of [12, 23]) {
+        context.beginPath();
+        context.arc(centre, centre, radius, 0, Math.PI * 2);
+        context.stroke();
+    }
+    for (const [x1, y1, x2, y2] of [
+        [centre, 2, centre, 19], [centre, 45, centre, 62],
+        [2, centre, 19, centre], [45, centre, 62, centre],
+    ]) {
+        context.beginPath();
+        context.moveTo(x1, y1);
+        context.lineTo(x2, y2);
+        context.stroke();
+    }
+    context.beginPath();
+    context.arc(centre, centre, 2.5, 0, Math.PI * 2);
+    context.fill();
+    return canvas;
+}
+
 export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
     scenario, fleet, selectedIds, options, getTimeMs, areaAnalysis, requirementMs,
     autoRotate, onPickTarget,
@@ -211,11 +246,13 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
         const { target } = scenario;
         const entity = viewer.entities.add({
             position: Cartesian3.fromDegrees(target.lonDeg, target.latDeg, 0),
-            point: {
-                pixelSize: 10,
-                color: Color.fromCssColorString(REVISIT_COLORS.accent),
-                outlineColor: Color.WHITE.withAlpha(0.9),
-                outlineWidth: 2,
+            billboard: {
+                image: createTargetReticle(),
+                width: 64,
+                height: 64,
+                // Draw the reticle in front of coincident ground overlays while
+                // retaining normal globe occlusion on the far side of Earth.
+                eyeOffset: new Cartesian3(0, 0, -1_000),
             },
             label: {
                 text: target.name.toUpperCase(),
@@ -225,18 +262,14 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
                 // almost none of it, which showed up as a picked coordinate
                 // label rendering as a single stray character.
                 font: '600 13px Helvetica, Arial, sans-serif',
-                fillColor: Color.WHITE,
+                fillColor: Color.fromCssColorString(REVISIT_COLORS.bright),
+                outlineColor: Color.fromCssColorString('#05070D'),
+                outlineWidth: 3,
                 showBackground: true,
-                backgroundColor: Color.fromCssColorString('#0B1220').withAlpha(0.75),
-                pixelOffset: new Cartesian3(0, -22, 0),
-            },
-            ellipse: {
-                semiMajorAxis: 220_000,
-                semiMinorAxis: 220_000,
-                material: Color.TRANSPARENT,
-                outline: true,
-                outlineColor: Color.fromCssColorString(REVISIT_COLORS.accent).withAlpha(0.6),
-                height: 0,
+                backgroundColor: Color.fromCssColorString('#05070D').withAlpha(0.86),
+                backgroundPadding: new Cartesian2(7, 4),
+                pixelOffset: new Cartesian2(0, -48),
+                eyeOffset: new Cartesian3(0, 0, -1_000),
             },
         });
         viewer.scene.requestRender();

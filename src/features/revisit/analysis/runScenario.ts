@@ -14,13 +14,14 @@
 import type {
     AccessInterval, GapStatistics, OrbitalElements, RevisitScenario, WalkerSpec,
 } from '../domain/types';
-import {
-    payloadCount as countPayloads, selectSubConstellation, validateSelection,
-} from '../domain/subConstellation';
-import { generateWalkerConstellation, validateWalkerSpec } from '../domain/walker';
-import { computeAccessIntervals, validateWindow } from './accessIntervals';
+import { payloadCount as countPayloads, selectSubConstellation } from '../domain/subConstellation';
+import { generateWalkerConstellation } from '../domain/walker';
+import { computeAccessIntervals } from './accessIntervals';
 import { computeGapStatistics } from './gapStatistics';
 import { runPayloadSweep, type PayloadSweepResult } from './payloadSweep';
+import { validateScenario } from './scenarioValidation';
+
+export { validateScenario } from './scenarioValidation';
 
 export interface RevisitAnalysis {
     /** Echoed back so a consumer can confirm which inputs produced this result. */
@@ -48,20 +49,6 @@ export interface RunScenarioOptions {
  * Separated so a UI can grey out a control before the user triggers a compute,
  * rather than discovering the problem as a thrown error afterwards.
  */
-export function validateScenario(scenario: RevisitScenario): {
-    ok: boolean; errors: string[]; warnings: string[];
-} {
-    const walker = validateWalkerSpec(scenario.reference);
-    const selection = validateSelection(scenario.reference, scenario.selection);
-    const window = validateWindow(scenario.window);
-
-    return {
-        ok: walker.ok && selection.ok && window.ok,
-        errors: [...walker.errors, ...selection.errors, ...window.errors],
-        warnings: [...walker.warnings, ...selection.warnings, ...window.warnings],
-    };
-}
-
 /**
  * A generated fleet, kept so that changing only the FOV or the target does not
  * regenerate it.

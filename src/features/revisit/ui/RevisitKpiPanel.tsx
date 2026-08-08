@@ -56,7 +56,17 @@ export const RevisitKpiPanel: React.FC<RevisitKpiPanelProps> = ({
     // The verdict, in the grammar ENG already uses for
     // `Service blocked — uplink link budget failed`.
     let verdict: { text: string; className: string };
-    if (statistics?.coverage === 'NEVER_IN_VIEW') {
+    if (!statistics) {
+        verdict = isComputing
+            ? {
+                text: 'ANALYSING SCENARIO',
+                className: 'border-slate-500/40 bg-slate-500/15 text-slate-300',
+            }
+            : {
+                text: 'NO VALID RESULT',
+                className: 'border-red-400/40 bg-red-500/15 text-red-200',
+            };
+    } else if (statistics.coverage === 'NEVER_IN_VIEW') {
         verdict = {
             text: 'TARGET NEVER IN VIEW',
             className: 'border-red-400/40 bg-red-500/15 text-red-200',
