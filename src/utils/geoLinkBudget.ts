@@ -568,27 +568,17 @@ export function computeUplinkBudget(
   );
 }
 
-/**
- * Analytical slant range (km) from elevation angle and orbital altitude.
+/*
+ * `computeSlantRange` was removed here (SPA-03, docs/SPATIAL_PHYSICS_AUDIT.md).
  *
- * Uses a spherical Earth model (R = 6371 km). Accurate to within ~30 km at GEO
- * for elevation angles above 5°.
+ * It computed slant range from elevation and altitude on a spherical Earth
+ * (R = 6371 km), carrying a documented 5–35 km error at GEO. It had been
+ * `@deprecated` in favour of `distanceKm` from `geoConnectivityModel`, which
+ * uses WGS84 ECEF, and it had no production call sites — only a test
+ * characterising its own divergence.
  *
- * @deprecated Prefer `distanceKm` from `geoConnectivityModel` when both the
- * observer and satellite LLA positions are available — it uses WGS84 ECEF and
- * eliminates the spherical-Earth approximation error (~5–35 km at GEO).
- * This function remains available for scenarios where only the elevation angle
- * and altitude are known (e.g. GEO latency-bound estimates).
+ * Removed rather than left exported because an exported function is an
+ * invitation: any future caller with only (elevation, altitude) to hand would
+ * have silently inherited the error into FSPL and latency. If that case ever
+ * genuinely arises, derive the geometry on the ellipsoid instead.
  */
-export function computeSlantRange(elevationDeg: number, altitudeKm: number): number {
-  const earthRadiusKm = 6371;
-  const elevRad = elevationDeg * Math.PI / 180;
-
-  return (
-    Math.sqrt(
-      ((earthRadiusKm + altitudeKm) ** 2) -
-      ((earthRadiusKm * Math.cos(elevRad)) ** 2)
-    ) -
-    (earthRadiusKm * Math.sin(elevRad))
-  );
-}

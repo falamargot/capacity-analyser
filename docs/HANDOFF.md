@@ -137,9 +137,13 @@ script:
 - **Oracles that share the engine's constants prove less than they appear to.**
   This is the concrete lesson of R4 and it generalises: when adding a test,
   check whether it could fail if the constant under test were wrong.
-- A `claude.md` exists alongside the tracked `CLAUDE.md`. Same inode on this
-  case-insensitive filesystem, but git tracks only `CLAUDE.md` — on a
-  case-sensitive machine they would diverge. Worth deleting the lowercase alias.
+- **`CLAUDE.md` is not tracked by git.** An earlier version of this note claimed
+  git tracked `CLAUDE.md` and reported `claude.md` as a separate untracked file.
+  That was wrong: `git ls-files` has no entry for either, and `git check-ignore`
+  reports it is not ignored — the two names are one inode on this
+  case-insensitive filesystem, and that single file is simply untracked. The risk
+  is not divergence but absence: a fresh clone or CI checkout gets no project
+  instructions at all. See SPA-08 in `docs/SPATIAL_PHYSICS_AUDIT.md`.
 
 ---
 

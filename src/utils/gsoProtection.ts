@@ -128,7 +128,20 @@ const BELT_REFINE_STEP_DEG = 0.25;
 
 interface Vec3 { x: number; y: number; z: number }
 
-function ecefFromGeodetic(latDeg: number, lngDeg: number, radiusKm: number): Vec3 {
+/**
+ * ECEF from latitude/longitude on a SPHERE of the given radius.
+ *
+ * Named for what it does. The previous name, `ecefFromGeodetic`, asserted a
+ * geodetic (WGS84) conversion that this function does not perform — there is no
+ * flattening term — while its callers pass geodetic latitudes derived from
+ * `eciToGeodetic`. Conflating the two costs up to 0.144° in the separation
+ * angle below, which is material against an 11.5° threshold. The Earth model is
+ * deliberate and unchanged here; only the name is corrected, so that the
+ * remaining question is visible rather than hidden behind a misleading label.
+ *
+ * See SPA-02 / SPA-07 in docs/SPATIAL_PHYSICS_AUDIT.md.
+ */
+function ecefFromSphericalLatLng(latDeg: number, lngDeg: number, radiusKm: number): Vec3 {
   const lat = toRad(latDeg);
   const lng = toRad(lngDeg);
   const cosLat = Math.cos(lat);
@@ -161,8 +174,8 @@ export function gsoBeltSeparationAngleDeg(
   satLngDeg: number,
   satAltKm: number,
 ): number {
-  const g = ecefFromGeodetic(groundLatDeg, groundLngDeg, EARTH_RADIUS_KM);
-  const p = ecefFromGeodetic(satLatDeg, satLngDeg, EARTH_RADIUS_KM + satAltKm);
+  const g = ecefFromSphericalLatLng(groundLatDeg, groundLngDeg, EARTH_RADIUS_KM);
+  const p = ecefFromSphericalLatLng(satLatDeg, satLngDeg, EARTH_RADIUS_KM + satAltKm);
   const toSat: Vec3 = { x: p.x - g.x, y: p.y - g.y, z: p.z - g.z };
 
   const separationAtBeltDeg = (thetaDeg: number): number => {
