@@ -1,0 +1,449 @@
+# Cross-Mode Spatial Physics Audit
+
+_2026-08-09. Audit only — no production code was modified._
+
+Follows the REVISIT R4 validation against NASA GMAT R2026a, which exposed two
+real orbital-model defects despite ~1850 passing tests. The question here is
+whether ENG and COMM carry the same defects, the same blind spots, or different
+ones.
+
+---
+
+## 0. Instruction discovery
+
+| File | Status |
+|---|---|
+| `CLAUDE.md` / `claude.md` | **Same file** — one inode (69722632), not two. Case-insensitive filesystem. |
+| `.claude/settings.json`, `settings.local.json`, `launch.json` | Present, tool config only |
+| `docs/AI_EXECUTION_POLICY.md` | Present, applicable |
+
+**Was the root `CLAUDE.md` applicable? Yes** — it is the project instruction file
+loaded for this working directory, and this audit followed it (targeted reads,
+durable notes in `docs/`, minimal conversation).
+
+**No conflicts.** But one correction to the record: a previous `HANDOFF.md`
+"Known risks" entry claimed git tracks `CLAUDE.md` and reports `claude.md` as
+untracked. That was wrong. `git ls-files` shows **neither is tracked** — the file
+is untracked (not ignored), so a fresh clone gets no `CLAUDE.md` at all. The
+divergence risk described was illusory; the real risk is the opposite, that the
+instructions do not travel with the repository. Flagged as SPA-08.
+
+---
+
+## 1. Executive conclusion
+
+**1. Are ENG calculations affected or at risk?**
+**Not affected by the R4 defects. At risk from a different, independent class.**
+ENG does not implement secular orbital rates or J₂ at all — it propagates real
+TLEs through `satellite.js` (SGP4), which carries its own validated Brouwer-
+Lyddane theory. Neither Bug A (`u̇`) nor Bug B (J₂ reference radius) has an
+analogue in ENG, because ENG has no such code. The real ENG risk is **mixed
+Earth models**: three separate elevation implementations and two ECEF
+conventions, with spherical-6371 geometry fed by *geodetic* latitude and
+ellipsoid-height from `eciToGeodetic`. One instance sits on a live engineering
+gate (SPA-02).
+
+**2. Are COMM calculations affected or at risk?**
+**COMM performs no spatial calculation of any kind.** Every commercial file was
+searched for trigonometry, Earth constants, propagation and frame conversion:
+zero hits. `commercialRouteModel.ts` imports the spatial types as `import type`
+only. COMM is category **C** — it consumes already-computed engineering outputs,
+principally `rttMs` (122 references). It is therefore **indirectly exposed**: it
+cannot introduce a spatial error, and it cannot detect one either.
+
+**3. Do the R4 fixes need to propagate outside REVISIT?**
+**No.** `J2_REFERENCE_RADIUS_KM` and the corrected `u̇` are correctly scoped
+inside `src/features/revisit/propagation/keplerJ2.ts`. Nothing outside REVISIT
+computes a J₂ rate. Verified by search, not assumed.
+
+**4. Is duplicated spatial/orbital logic present?**
+**Yes, but less than the file count suggests.** Three elevation implementations
+and two ECEF conventions (SPA-01). The duplication is real; its present numerical
+impact is mostly negligible because of where each copy is used — which is a fact
+about current call sites, not a property that will survive refactoring.
+
+**5. Should a shared Spatial/Orbital Core be introduced?**
+**A small one — yes. A framework — no.** The evidence supports consolidating
+elevation/ECEF/range onto one WGS84 implementation and giving the 6371 km sphere
+an explicit, named role. It does not support a `SpatialOrbitalCore` abstraction
+over propagation, because ENG and REVISIT legitimately use different propagators
+for different reasons (real TLEs vs a parametric Walker shell).
+
+**6. Is additional GMAT validation justified?**
+**Yes, narrowly.** ENG's ground track, range and elevation are exactly what GMAT
+can adjudicate, and they are currently backed only by self-referential tests. Two
+to three new scenarios would close the largest blind spot. GMAT must not be used
+for RF or commercial logic.
+
+---
+
+## 2. Spatial calculation inventory
+
+| Calculation | ENG | COMM | REVISIT | Implementation | Model / constants | Independent validation | Risk |
+|---|---|---|---|---|---|---|---|
+| Orbital propagation | ✅ | ❌ | ✅ | ENG: `satellite.js` SGP4 on real TLEs · REVISIT: `keplerJ2.ts` analytic | SGP4/WGS72 · Kepler+J₂ secular, μ=398600.4418, J₂=1.08262668e-3, R_eq=6378.1363 | REVISIT: **GMAT R4** · ENG: none of its own | ENG integration unverified |
+| GMST / ECI→ECEF | ✅ | ❌ | ✅ | ENG: `satellite.js` `gstime`/`eciToGeodetic` · REVISIT: `gmstRad`/`eciToEcef` | Both GMST-based | REVISIT: GMAT, 0.0065° · ENG: none | Low |
+| Elevation angle (primary) | ✅ | ❌ | ❌ | `capacityCalculator.calculateElevationAngle` | **WGS84** ellipsoid + ENU | none | Low — formula standard |
+| Elevation angle (GEO) | ✅ | ❌ | ❌ | `geoConnectivityModel.elevationDeg` | **WGS84** ECEF | none | Low |
+| Elevation angle (LEO forecast) | ✅ | ❌ | ❌ | `satelliteResolution.computeElevationFromCoords` | **sphere 6371** | none | SPA-01 |
+| 3-D range / distance | ✅ | ❌ | ❌ | `compute3DDistanceKm`, `geoConnectivityModel.distanceKm` | **WGS84** ECEF | none | Low |
+| Slant range from elevation | ~~dead~~ removed | ❌ | ❌ | ~~`geoLinkBudget.computeSlantRange`~~ | sphere 6371 | none | SPA-03 — **removed in Phase 0** |
+| Surface distance | ✅ | ❌ | ✅ | `earthGeometry.haversineDistanceKm` | sphere 6371 | none | Low — correct use of a sphere |
+| GSO belt separation | ✅ | ❌ | ❌ | `gsoProtection.gsoBeltSeparationAngleDeg` | **sphere 6371 + geodetic lat** | none | **SPA-02** |
+| LEO footprint radius | ✅ | ❌ | ❌ | `leoFootprint.footprintRadiusKm` | sphere 6371 + geodetic alt | none | SPA-06 |
+| Beam comb ground centre | ✅ | ❌ | ❌ | `oneWebComb` ray/sphere | sphere 6 371 000 **m** — units verified consistent | none | Low |
+| FOV containment / access | ❌ | ❌ | ✅ | `fov/containment.ts` | inverted LVLH test | GMAT + brute force | Low |
+| Propagation delay | ✅ | consumes | ❌ | `computeOneWayLatencyMs` and inline `d/c` | c = 299792.458 km/s | none | Low formula / see SPA-05 |
+| FSPL | ✅ | consumes | ❌ | `geoLinkBudget.computeFsplDb` | `20log₁₀(d_m)+20log₁₀(f_Hz)−147.55` | none | Low — standard SI form |
+
+Shared primitives are only `utils/earthGeometry.ts` (`EARTH_RADIUS_KM`,
+haversine) and `utils/sphericalGeometry.ts`. Everything else is per-mode.
+
+---
+
+## 3. Architecture map — as it actually is
+
+```
+                         Spatial "truth"
+                                |
+        +-----------------------+-----------------------+
+        |                       |                       |
+       ENG                    COMM                   REVISIT
+        |                       |                       |
+  satellite.js SGP4       (no spatial code)      keplerJ2.ts analytic
+  real TLEs               consumes rttMs,        parametric Walker
+        |                 latencyMs, elevationDeg        |
+  WGS84 ECEF (3x)                |                 sphere 6371 geometry
+  sphere 6371 (4x)               |                 R_eq 6378.1363 for J2
+        |                        |                       |
+  self-referential tests    no spatial tests        GMAT R2026a
+     UNVERIFIED               UNVERIFIED              VERIFIED
+        |                       |                       |
+        +--------- shared: earthGeometry.ts ------------+
+                             sphericalGeometry.ts
+```
+
+**Capacity Analyzer currently has two independent spatial truths (ENG, REVISIT)
+plus a thin shared constants layer.** That is defensible — they answer different
+questions — but only one of the two has ever been checked against an outside
+authority.
+
+---
+
+## 4. Findings
+
+### SPA-01 — Three elevation implementations, two Earth models
+**Architectural risk.** Severity: **Medium** (low numeric impact today).
+
+*Evidence.* `calculateElevationAngle` (WGS84 + ENU) and `geoConnectivityModel.elevationDeg`
+(WGS84 ECEF) are correct and mutually consistent. `satelliteResolution.computeElevationFromCoords`
+(`satelliteResolution.ts:95–121`) uses a spherical 6371 km model but is fed
+geodetic latitude and ellipsoid height from `eciToGeodetic` — a convention mix.
+
+Measured divergence against the WGS84 implementation over a lat/geometry sweep:
+**worst 0.133°** for elevations in 0–40°; **0.026–0.046°** near the operating
+gates.
+
+*Consequence.* Currently negligible. The spherical copy is used **only** in
+`computeRemainingVisibleTime`, which samples on `RVT_STEP_S = 15 s`. At LEO
+elevation rates a 0.05° error is well under one second — roughly **30× below the
+sampling quantisation**. It does not reach satellite selection, which uses the
+WGS84 implementation.
+
+*Affected:* ENG (handover forecast only).
+
+*Recommendation.* Do not treat as a correctness defect. Consolidate during
+Phase 2 so the harmless-by-scoping property does not silently become
+harmful-by-reuse.
+
+---
+
+### SPA-02 — GSO belt separation mixes a sphere with geodetic latitude, on a hard threshold
+**Likely defect (modelling).** Severity: **Medium-High**. **Quantified.**
+
+*Evidence.* `gsoProtection.gsoBeltSeparationAngleDeg` (`gsoProtection.ts:156–197`)
+calls `ecefFromGeodetic(lat, lng, EARTH_RADIUS_KM)` — a function *named* geodetic
+that implements a **purely spherical** conversion, with no flattening — and is
+fed geodetic latitudes. Its own comment says "Spherical-Earth ECEF model —
+consistent with the rest of the simulation", so the sphere is deliberate; the
+conflation of geodetic latitude with geocentric is what is not.
+
+Measured against a true WGS84 ECEF construction over 24 ground/satellite
+geometries: **worst error 0.144°**, typically +0.03° to +0.12°, with the
+spherical model usually reporting a **larger** separation (i.e. non-conservative
+for interference protection).
+
+*Consequence.* The result is compared against `GSO_KEEPOUT_ANGLE_DEG = 11.5` to
+decide whether a beam is **muted**. A sampled case at ground 35°N, satellite
+30°N/4°E, 1200 km gives **spherical 10.971° (mute) vs WGS84 11.001° (no mute)** —
+a verdict flip straddling the threshold. Beams within ~0.15° of the boundary can
+be muted or unmuted incorrectly, changing beam availability and any throughput
+or availability figure downstream, including COMM's.
+
+*Affected:* ENG directly (`beamActivation`, `oneWebComb`, `SatelliteDetails`);
+COMM indirectly.
+
+*Recommendation.* Do **not** silently change it. Establish an independent
+reference first (GMAT can supply the satellite Earth-fixed state; the belt
+geometry is then closed-form), quantify how often real geometry lands within
+0.15° of 11.5°, then correct. Note the ITU keep-out is defined on a topocentric
+angle to the geostationary arc — the ellipsoid is the correct Earth model for a
+regulatory quantity.
+
+---
+
+### SPA-03 — `computeSlantRange` is dead code carrying a documented 5–35 km error
+**Harmless difference.** Severity: **Low**.
+
+*Evidence.* `geoLinkBudget.ts:583`. Already `@deprecated` with the error and the
+preferred alternative documented.
+
+**Correction to this audit's first revision.** It stated "zero call sites". That
+search excluded `__tests__`, and was wrong: `propagationConstants.test.ts`
+imported it for a characterisation test measuring its own divergence from WGS84
+(agreement within ~40 km for a mid-latitude GEO link). There were zero
+*production* call sites, which is what made removal safe — but the original
+claim as written was inaccurate, and the same exclusion could have hidden a real
+consumer.
+
+*Consequence.* None today. It was a loaded footgun: any future caller inherits a
+5–35 km GEO range error, which propagates into FSPL and latency.
+
+*Status:* **Resolved in Phase 0.** Function and its characterisation test
+removed; the measured divergence figure is preserved here.
+
+---
+
+### SPA-04 — ENG spatial tests are self-referential; this is the exact R4 blind spot
+**Architectural risk.** Severity: **High**.
+
+*Evidence.* `gsoKeepOut.test.ts` states its group 1 as "Geometry-rule
+correctness — muted ⇔ separation below `GSO_KEEPOUT_ANGLE_DEG`". That is a
+tautology with respect to the implementation: it validates the *wiring*, not the
+*geometry*. `leoGeometryConsistency.test.ts` is explicitly a consistency
+regression ("rendering, connectivity and throughput must all use the same
+canonical semi-major"). Neither compares against an external authority.
+
+*Consequence.* **ENG's spatial layer today has the same evidential status
+REVISIT had before R4** — many passing tests, no external oracle. R4 demonstrated
+empirically that this configuration can hide a defect large enough to change a
+headline result (1080 km, a lost access pass) indefinitely.
+
+*Affected:* ENG, and COMM by inheritance.
+
+*Recommendation.* Phase 1. See §6.
+
+---
+
+### SPA-05 — COMM inherits spatial error through `rttMs` with no independent check
+**Architectural risk.** Severity: **Medium**.
+
+*Evidence.* No spatial math exists anywhere under `src/components/commercial/` or
+in `commercialRouteModel.ts` (searched for trigonometry, Earth constants,
+`satrec`, `gstime`, `eciToGeodetic`, elevation, range — zero hits). It reads
+`rttMs` **122 times**, plus `latencyMs` and `elevationDeg`.
+
+*Consequence.* Every commercial verdict is a pure function of engineering
+outputs. A geometry error changes commercial conclusions with no independent
+signal that anything moved. This compounds the separately-tracked RTT convention
+work (items #3–#7 of the 2026-07-24 RTT/throughput audit remain open), which
+concerns what `rttMs` *means* rather than whether the geometry behind it is
+right — the two are independent and both bear on the same field.
+
+*Recommendation.* No COMM change. Correctness must be established upstream. A
+COMM-level sensitivity check (how much does the verdict move for ±X% RTT) would
+bound the exposure cheaply.
+
+---
+
+### SPA-06 — R28 altitude convention: partial analogue in ENG's spherical helpers
+**Modelling limitation.** Severity: **Low**.
+
+*Evidence.* R28 (REVISIT) is `a = 6371 + h`. **ENG's primary path is not
+affected**: `satellite.js` returns geodetic height above the WGS84 ellipsoid, and
+the WGS84 elevation/range implementations consume it correctly. However
+`leoFootprint.footprintRadiusKm` and `coverageService` (`coverageService.ts:223`)
+add that ellipsoid height to the 6371 km sphere — the same conflation, in
+coverage geometry rather than dynamics.
+
+*Consequence.* Sub-percent on footprint radius; the geocentric radius at
+mid-latitude is ~6365–6378 km against the 6371 km assumed. Affects coverage-ring
+size and beam-extent rendering, not link geometry.
+
+*Recommendation.* Record; resolve together with R28 so both modes adopt one
+stated convention. Do not change unilaterally.
+
+---
+
+### SPA-07 — `ecefFromGeodetic` is misnamed
+**Confirmed defect (naming), no numeric effect beyond SPA-02.** Severity: **Low**.
+
+`gsoProtection.ts:131` implements a spherical conversion under a name asserting
+geodetic. A future caller will reasonably assume WGS84. Rename to
+`ecefFromSphericalLatLng` when SPA-02 is addressed.
+
+---
+
+### SPA-08 — `CLAUDE.md` is untracked
+**Architectural risk.** Severity: **Low** (process, not physics).
+
+`git ls-files` shows no `CLAUDE.md` entry and `git check-ignore` reports it is
+not ignored — it is simply untracked. A fresh clone or CI checkout receives no
+project instructions. Corrects an earlier `HANDOFF.md` claim that git tracked it.
+
+---
+
+## 5. R4 cross-impact
+
+| R4 issue | ENG | COMM | Evidence |
+|---|---|---|---|
+| **Bug A** — `u̇` missing J₂ term in `Ṁ` | **Not applicable** | **Not applicable** | ENG computes no secular rates. SGP4 performs its own Brouwer-Lyddane propagation internally, including the correct `Ṁ`. Searched `nodalRegression`, `argLat`, `meanMotion`, `RAAN rate` outside REVISIT — only hits are `observedOrbitalElements.ts`, the read-only TLE→elements adapter for REVISIT's calibration |
+| **Bug B** — J₂ used mean radius | **Not applicable** | **Not applicable** | No J₂ constant or term exists outside REVISIT. `6371` appears in ENG only as *geometry*, never as a dynamical reference radius |
+| **Kozai/Brouwer** harness defect | Not applicable | Not applicable | ENG consumes real TLEs, where the Kozai convention is the *correct* interpretation. The defect was in synthesising TLEs from Brouwer elements, which ENG never does |
+| **R28** altitude convention | **Partial** | Indirect | SPA-06 |
+| **R29** Ω̇ residual ≤0.3% | Not applicable | Not applicable | No Ω̇ computed outside REVISIT |
+| **Structural lesson** — oracles sharing the code's assumptions | **Applies fully** | Applies | SPA-04. This, not the specific formulas, is what R4 says about ENG |
+
+**The single most important line in this table is the last one.** The specific
+R4 defects cannot exist in ENG. The *condition that let them survive* is present
+in ENG in full.
+
+---
+
+## 6. Validation recommendation — smallest useful set
+
+GMAT R2026a is installed and the workflow is proven (`docs/revisit/gmat/`,
+`GmatConsole --run`). Three scenarios, in priority order.
+
+### GMAT should validate
+
+**V-A — ENG LEO ground track and access, against real TLE geometry.**
+Take one OneWeb TLE already in the app. Import the same orbit into GMAT and
+compare Earth-fixed position, sub-satellite lat/lon, and rise/set boundaries
+against a ground site for 24 h. Bounds ENG's whole SGP4 → `eciToGeodetic` →
+elevation chain end-to-end.
+*Correlation warning:* GMAT cannot ingest a TLE with SGP4 semantics natively;
+converting TLE→osculating state to seed GMAT would import `satellite.js`'s own
+interpretation and make the oracle correlated. Seed GMAT from an **independently
+stated element set** and compare *trajectory shape and event timing*, or accept
+this as a bounded rather than absolute check. Document whichever is chosen.
+
+**V-B — Elevation, azimuth and slant range at a fixed ground site.**
+GMAT computes these natively for a `GroundStation`. Direct comparison against
+`calculateElevationAngle` and `compute3DDistanceKm`. Definitions align
+(topocentric, WGS84), so this is a clean, fully independent check — the highest
+value per unit of effort, and it validates the implementations SPA-01 says
+should become canonical.
+
+### GMAT can provide geometry input only
+
+**V-C — GSO belt separation (SPA-02).** GMAT supplies the validated satellite
+Earth-fixed state; the belt-separation angle is then closed-form and can be
+computed independently in the test from that state. GMAT does not model the ITU
+keep-out rule itself.
+
+### GMAT is not the oracle
+
+FSPL, C/N, MODCOD, throughput, capacity, commercial verdicts. For these the
+requirement is `implementation → equation → authoritative source → independent
+test`, using independently computed reference vectors:
+
+| Quantity | Equation | Authoritative source | Status |
+|---|---|---|---|
+| FSPL | `20log₁₀(d)+20log₁₀(f)−147.55` (SI) | ITU-R P.525 | Constant is the standard `20log₁₀(4π/c)`; **no independent reference vector test** |
+| Propagation delay | `d/c`, c = 299792.458 km/s | SI definition | Formula trivially correct; the open question is RTT *convention*, not physics |
+
+---
+
+## 7. Architecture recommendation
+
+**Introduce a small shared spatial primitives module. Do not build a
+`SpatialOrbitalCore` framework.**
+
+Justified by evidence:
+
+- one WGS84 ECEF conversion (currently three implementations);
+- one elevation function (currently three);
+- one range function (currently two plus one dead);
+- explicit, named Earth constants distinguishing **geometry sphere**
+  (`EARTH_RADIUS_KM`, 6371) from **dynamical reference radius**
+  (`J2_REFERENCE_RADIUS_KM`, 6378.1363) from **ellipsoid**
+  (WGS84 `A`/`F`, currently re-declared inline in `capacityCalculator.ts` twice);
+- shared validation fixtures, so one GMAT run serves both modes.
+
+**Not** justified: a unified propagation interface. ENG needs real TLEs with
+drag; REVISIT deliberately forbids them (ADR-001 §1) because drag makes multi-day
+statistics irreproducible. Forcing one abstraction over both would recreate the
+shared-assumption coupling that R4 just exposed. **Keeping the two propagators
+independent is a feature — it is what makes them mutual cross-checks.**
+
+---
+
+## 8. Physics Confidence Ledger
+
+| Domain | Current model | Validation source | Independence | Status | Residual uncertainty |
+|---|---|---|---|---|---|
+| LEO propagation (REVISIT) | Kepler + J₂ secular, Brouwer rates | GMAT R2026a, RK8(9) JGM2 | **High** — numerical integrator, different theory, different implementation, external constants | **VERIFIED** | 9 km bounded over 72 h (J₂ short-period, unmodelled by design); Ω̇ ≤0.3% (R29) |
+| LEO propagation (ENG) | SGP4 on real TLEs via `satellite.js` | Third-party established implementation (level 3) | Medium — library independently validated for decades, but *this app's integration* never checked | **SUPPORTED** | TLE ingestion, epoch handling and frame conversion unverified end-to-end |
+| ECI/ECEF + Earth rotation (REVISIT) | Single GMST rotation | GMAT full IAU chain | High | **VERIFIED** | 0.0065° longitude; bounds rate/epoch, not the ~0.36° J2000-vs-date frame offset |
+| ECI/ECEF + Earth rotation (ENG) | `satellite.js` `gstime`/`eciToGeodetic` | Established implementation | Medium | **SUPPORTED** | No app-level check |
+| Earth geometry — WGS84 paths | WGS84 ellipsoid ECEF | Standard formulation | Low — internal only | **SUPPORTED** | Formula standard; no independent reference vectors |
+| Earth geometry — spherical paths | Sphere 6371 km fed geodetic lat/alt | none | None | **UNVERIFIED** | Convention mix; 0.13–0.14° measured (SPA-01, SPA-02, SPA-06) |
+| Access / visibility (REVISIT) | Inverted LVLH FOV containment | GMAT + brute-force sampling | High | **VERIFIED** | Max gap exact at 4 targets |
+| Access / visibility (ENG) | Elevation threshold on SGP4 track | Internal consistency tests only | **None** | **UNVERIFIED** | SPA-04 — the R4 blind-spot pattern |
+| Slant range | WGS84 ECEF difference | none | None | **SUPPORTED** | Standard; deprecated spherical variant is dead code (SPA-03) |
+| Propagation delay | `d/c`, c = 299792.458 km/s | SI definition | n/a | **SUPPORTED** | Physics trivial; RTT *convention* separately open (2026-07-24 audit #3–#7) |
+| RF path loss | `20log₁₀(d)+20log₁₀(f)−147.55` | ITU-R P.525 form | Low | **SUPPORTED** | Correct SI constant; no independent reference vector |
+| GEO geometry | WGS84 ECEF (live path) | none | None | **SUPPORTED** | Live path sound; dead spherical helper documented at 5–35 km |
+| GSO keep-out | Spherical ECEF + geodetic lat, 11.5° gate | Internal tautological test | **None** | **UNVERIFIED** | 0.144° measured; demonstrated verdict flip at threshold (SPA-02) |
+| LEO handover | Elevation forecast, 15 s sampling | none | **None** | **UNVERIFIED** | Spherical/WGS84 divergence ~30× below sampling step; handover *policy* unvalidated |
+
+**Nothing in ENG or COMM currently qualifies as VERIFIED.** REVISIT's propagation,
+frames and access are the only VERIFIED domains in the application. No
+engineering-grade or high-fidelity claim should be made for ENG spatial output
+until at least V-B is executed.
+
+---
+
+## 9. Proposed implementation plan — phases only, not implemented
+
+Correctness fixes are deliberately kept apart from refactoring.
+
+**Phase 0 — no-risk cleanup. ✅ DONE 2026-08-09.** Removed `computeSlantRange`
+and its characterisation test (SPA-03); renamed `ecefFromGeodetic` →
+`ecefFromSphericalLatLng` (SPA-07); normalised `claude.md` → `CLAUDE.md` and
+tracked it (SPA-08). No production numerical output changed. Gate: 0 TS errors,
+ESLint clean, 1857 tests passing (1858 − 1 removed).
+
+**Phase 1 — independent validation, before any physics change.** Execute V-B,
+then V-A. Establishes an external baseline so any later correction is *measured*
+rather than argued. **This must precede Phase 2** — otherwise a refactor silently
+changes numbers with no oracle to say which version was right.
+
+**Phase 2 — SPA-02, with evidence in hand.** Build the V-C reference, reproduce
+the discrepancy independently, quantify how often geometry lands within 0.15° of
+11.5°, then correct the Earth model. Requires explicit approval.
+
+**Phase 3 — deduplicate spatial primitives.** One ECEF, one elevation, one range,
+named constants, shared fixtures. Pure refactor, verified no-change against the
+Phase 1 baseline.
+
+**Phase 4 — optional.** R28/SPA-06 altitude convention (product decision, both
+modes together); COMM RTT sensitivity bound; R29.
+
+---
+
+## 10. Method and limitations
+
+Targeted search and traced call paths only; no recursive repository read. Every
+numeric claim was computed during this audit — elevation and GSO divergences from
+independent reimplementations of both formulas, call-site counts from `rg`.
+
+Not covered: Cesium rendering geometry (visual only), maritime/air traffic,
+GEO capacity and MODCOD chains (not spatial), and the ~350 files with no spatial
+content. `oneWebComb`'s beam-comb geometry was checked for unit consistency
+(verified: metres throughout) but its beam model was not re-derived — that is
+tracked separately under the OneWeb official-slide deltas.
+
+**This audit did not execute GMAT.** All ENG statuses are therefore SUPPORTED or
+UNVERIFIED by construction — promoting any of them requires §6.

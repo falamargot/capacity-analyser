@@ -4,13 +4,12 @@
  * These tests guard against:
  *  1. Re-introduction of the cable-medium velocity factor (0.97) in free-space latency.
  *  2. Divergence between GEO and LEO latency engines caused by different speed-of-light values.
- *  3. Link-budget slant ranges computed from the spherical-Earth formula instead of WGS84 ECEF.
+ *  3. Link-budget slant ranges computed on anything other than WGS84 ECEF.
  */
 
 import { describe, expect, it } from 'vitest';
 import { SPEED_OF_LIGHT_RADIO_KM_S, computeOneWayLatencyMs } from '../capacityCalculator';
-import { SPEED_OF_LIGHT_M_S, distanceKm, elevationDeg } from '../geoConnectivityModel';
-import { computeSlantRange } from '../geoLinkBudget';
+import { SPEED_OF_LIGHT_M_S, distanceKm } from '../geoConnectivityModel';
 
 // ─── 1. Physical constant consistency ────────────────────────────────────────
 
@@ -72,26 +71,17 @@ describe('slant-range computation', () => {
     expect(range).toBeLessThan(39_000);
   });
 
-  it('computeSlantRange (spherical) and distanceKm (WGS84) agree within 50 km when using the WGS84-derived elevation', () => {
-    // To compare the two methods fairly, derive the actual elevation angle from
-    // the WGS84 ECEF geometry — only then does computeSlantRange operate on the
-    // same geometry as distanceKm.  Using an approximate elevation (e.g. "29°")
-    // would introduce a large artificial discrepancy unrelated to the Earth-model
-    // difference and is NOT a valid comparison.
-    const actualElevDeg = elevationDeg(userParis, satAt9E);
-
-    const spherical = computeSlantRange(actualElevDeg, satAt9E.altKm);
-    const wgs84 = distanceKm(userParis, satAt9E);
-
-    // Residual difference is only due to the spherical (R = 6371 km) vs WGS84
-    // Earth model.  For a typical mid-latitude GEO link this is ≤ 40 km.
-    expect(Math.abs(spherical - wgs84)).toBeLessThan(50);
-  });
+  // The spherical-vs-WGS84 comparison that lived here was removed with
+  // `computeSlantRange` itself (SPA-03). It characterised the divergence of a
+  // function with no production callers; with the function gone there is
+  // nothing left to characterise. The measured figure it recorded — the two
+  // Earth models agreeing within ~40 km for a mid-latitude GEO link — is
+  // preserved in docs/SPATIAL_PHYSICS_AUDIT.md.
 
   it('distanceKm (WGS84) is the authoritative value used for link-budget slant range', () => {
     // This test documents the contract: link-budget candidates produced by
-    // geoCoverageSelection use distanceKm, not computeSlantRange.
-    // We verify the WGS84 function is exported and callable from this test.
+    // geoCoverageSelection derive slant range from WGS84 ECEF positions, and
+    // that is now the only slant-range path in the codebase.
     const range = distanceKm(userParis, satAt9E);
     expect(typeof range).toBe('number');
     expect(Number.isFinite(range)).toBe(true);
