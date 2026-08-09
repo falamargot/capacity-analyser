@@ -1,0 +1,130 @@
+% R4 grid: Brouwer mean secular rates across inclination and altitude.
+
+Create Spacecraft s1
+s1.DateFormat = UTCGregorian
+s1.Epoch = '06 Aug 2026 00:00:00.000'
+s1.CoordinateSystem = EarthMJ2000Eq
+s1.DisplayStateType = Keplerian
+s1.SMA = 6971
+s1.ECC = 0.0000001
+s1.INC = 30
+s1.RAAN = 0
+s1.AOP = 0
+s1.TA = 0
+
+Create Spacecraft s2
+s2.DateFormat = UTCGregorian
+s2.Epoch = '06 Aug 2026 00:00:00.000'
+s2.CoordinateSystem = EarthMJ2000Eq
+s2.DisplayStateType = Keplerian
+s2.SMA = 6971
+s2.ECC = 0.0000001
+s2.INC = 60
+s2.RAAN = 0
+s2.AOP = 0
+s2.TA = 0
+
+Create Spacecraft s3
+s3.DateFormat = UTCGregorian
+s3.Epoch = '06 Aug 2026 00:00:00.000'
+s3.CoordinateSystem = EarthMJ2000Eq
+s3.DisplayStateType = Keplerian
+s3.SMA = 6971
+s3.ECC = 0.0000001
+s3.INC = 87.9
+s3.RAAN = 0
+s3.AOP = 0
+s3.TA = 0
+
+Create Spacecraft s4
+s4.DateFormat = UTCGregorian
+s4.Epoch = '06 Aug 2026 00:00:00.000'
+s4.CoordinateSystem = EarthMJ2000Eq
+s4.DisplayStateType = Keplerian
+s4.SMA = 6971
+s4.ECC = 0.0000001
+s4.INC = 98
+s4.RAAN = 0
+s4.AOP = 0
+s4.TA = 0
+
+Create Spacecraft s5
+s5.DateFormat = UTCGregorian
+s5.Epoch = '06 Aug 2026 00:00:00.000'
+s5.CoordinateSystem = EarthMJ2000Eq
+s5.DisplayStateType = Keplerian
+s5.SMA = 7571
+s5.ECC = 0.0000001
+s5.INC = 30
+s5.RAAN = 0
+s5.AOP = 0
+s5.TA = 0
+
+Create Spacecraft s6
+s6.DateFormat = UTCGregorian
+s6.Epoch = '06 Aug 2026 00:00:00.000'
+s6.CoordinateSystem = EarthMJ2000Eq
+s6.DisplayStateType = Keplerian
+s6.SMA = 7571
+s6.ECC = 0.0000001
+s6.INC = 60
+s6.RAAN = 0
+s6.AOP = 0
+s6.TA = 0
+
+Create Spacecraft s7
+s7.DateFormat = UTCGregorian
+s7.Epoch = '06 Aug 2026 00:00:00.000'
+s7.CoordinateSystem = EarthMJ2000Eq
+s7.DisplayStateType = Keplerian
+s7.SMA = 7571
+s7.ECC = 0.0000001
+s7.INC = 87.9
+s7.RAAN = 0
+s7.AOP = 0
+s7.TA = 0
+
+Create Spacecraft s8
+s8.DateFormat = UTCGregorian
+s8.Epoch = '06 Aug 2026 00:00:00.000'
+s8.CoordinateSystem = EarthMJ2000Eq
+s8.DisplayStateType = Keplerian
+s8.SMA = 7571
+s8.ECC = 0.0000001
+s8.INC = 98
+s8.RAAN = 0
+s8.AOP = 0
+s8.TA = 0
+
+Create ForceModel fm
+fm.PrimaryBodies = {Earth}
+fm.GravityField.Earth.PotentialFile = 'JGM2.cof'
+fm.GravityField.Earth.Degree = 2
+fm.GravityField.Earth.Order = 0
+fm.GravityField.Earth.TideModel = 'None'
+fm.Drag.AtmosphereModel = None
+fm.PointMasses = {}
+fm.SRP = Off
+
+Create Propagator prop
+prop.FM = fm
+prop.Type = RungeKutta89
+prop.InitialStepSize = 30
+prop.Accuracy = 1e-12
+prop.MinStep = 0
+prop.MaxStep = 60
+
+Create ReportFile rf
+rf.Filename = '/tmp/r4_grid.txt'
+rf.WriteHeaders = true
+rf.Precision = 14
+rf.Add = {s1.ElapsedSecs, s1.BrouwerLongSMA, s1.BrouwerLongRAAN, s1.BrouwerLongINC, s1.BrouwerLongAOP, s1.BrouwerLongMA, s2.BrouwerLongSMA, s2.BrouwerLongRAAN, s2.BrouwerLongINC, s2.BrouwerLongAOP, s2.BrouwerLongMA, s3.BrouwerLongSMA, s3.BrouwerLongRAAN, s3.BrouwerLongINC, s3.BrouwerLongAOP, s3.BrouwerLongMA, s4.BrouwerLongSMA, s4.BrouwerLongRAAN, s4.BrouwerLongINC, s4.BrouwerLongAOP, s4.BrouwerLongMA, s5.BrouwerLongSMA, s5.BrouwerLongRAAN, s5.BrouwerLongINC, s5.BrouwerLongAOP, s5.BrouwerLongMA, s6.BrouwerLongSMA, s6.BrouwerLongRAAN, s6.BrouwerLongINC, s6.BrouwerLongAOP, s6.BrouwerLongMA, s7.BrouwerLongSMA, s7.BrouwerLongRAAN, s7.BrouwerLongINC, s7.BrouwerLongAOP, s7.BrouwerLongMA, s8.BrouwerLongSMA, s8.BrouwerLongRAAN, s8.BrouwerLongINC, s8.BrouwerLongAOP, s8.BrouwerLongMA}
+
+Create Variable i
+BeginMissionSequence;
+
+Report rf s1.ElapsedSecs s1.BrouwerLongSMA s1.BrouwerLongRAAN s1.BrouwerLongINC s1.BrouwerLongAOP s1.BrouwerLongMA s2.BrouwerLongSMA s2.BrouwerLongRAAN s2.BrouwerLongINC s2.BrouwerLongAOP s2.BrouwerLongMA s3.BrouwerLongSMA s3.BrouwerLongRAAN s3.BrouwerLongINC s3.BrouwerLongAOP s3.BrouwerLongMA s4.BrouwerLongSMA s4.BrouwerLongRAAN s4.BrouwerLongINC s4.BrouwerLongAOP s4.BrouwerLongMA s5.BrouwerLongSMA s5.BrouwerLongRAAN s5.BrouwerLongINC s5.BrouwerLongAOP s5.BrouwerLongMA s6.BrouwerLongSMA s6.BrouwerLongRAAN s6.BrouwerLongINC s6.BrouwerLongAOP s6.BrouwerLongMA s7.BrouwerLongSMA s7.BrouwerLongRAAN s7.BrouwerLongINC s7.BrouwerLongAOP s7.BrouwerLongMA s8.BrouwerLongSMA s8.BrouwerLongRAAN s8.BrouwerLongINC s8.BrouwerLongAOP s8.BrouwerLongMA
+For i = 1:1:432
+   Propagate prop(s1, s2, s3, s4, s5, s6, s7, s8) {s1.ElapsedSecs = 600}
+   Report rf s1.ElapsedSecs s1.BrouwerLongSMA s1.BrouwerLongRAAN s1.BrouwerLongINC s1.BrouwerLongAOP s1.BrouwerLongMA s2.BrouwerLongSMA s2.BrouwerLongRAAN s2.BrouwerLongINC s2.BrouwerLongAOP s2.BrouwerLongMA s3.BrouwerLongSMA s3.BrouwerLongRAAN s3.BrouwerLongINC s3.BrouwerLongAOP s3.BrouwerLongMA s4.BrouwerLongSMA s4.BrouwerLongRAAN s4.BrouwerLongINC s4.BrouwerLongAOP s4.BrouwerLongMA s5.BrouwerLongSMA s5.BrouwerLongRAAN s5.BrouwerLongINC s5.BrouwerLongAOP s5.BrouwerLongMA s6.BrouwerLongSMA s6.BrouwerLongRAAN s6.BrouwerLongINC s6.BrouwerLongAOP s6.BrouwerLongMA s7.BrouwerLongSMA s7.BrouwerLongRAAN s7.BrouwerLongINC s7.BrouwerLongAOP s7.BrouwerLongMA s8.BrouwerLongSMA s8.BrouwerLongRAAN s8.BrouwerLongINC s8.BrouwerLongAOP s8.BrouwerLongMA
+EndFor

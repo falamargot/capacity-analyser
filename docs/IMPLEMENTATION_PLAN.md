@@ -24,7 +24,10 @@ Closed decisions that must not be relitigated:
 
 - Analytic Kepler + J2 secular. No `satellite.js`, no `satrec`, no SGP4 inside
   `src/features/revisit/`.
-- Spherical Earth, R = 6371 km (`EARTH_RADIUS_KM`). Not WGS84.
+- Spherical Earth **geometry**, R = 6371 km (`EARTH_RADIUS_KM`). Not WGS84.
+  This does not extend to the J₂ term, which must use the equatorial radius
+  `J2_REFERENCE_RADIUS_KM` = 6378.1363 km — that radius is part of J₂'s
+  definition, and substituting 6371 km was a units error R4 found and fixed.
 - Headline metric is **maximum gap**, boundary-truncated gaps discarded,
   default window 72 h.
 - Isolated slice under `src/features/revisit/`, mounted from a root shell.
@@ -69,19 +72,23 @@ calibration/  fitWalker   (plain numbers only — no satrec crosses the boundary
 | 5 | Review remediation P0 (4 findings) | Done |
 | 6 | Review remediation P1 (validation, Back, pole, hot path, a11y) | Done |
 | 7 | SGP4 independent propagation cross-check | Done |
-| 8 | **R4 — GMAT/STK cross-check** | **Blocked — see status** |
+| 8 | **R4 — GMAT cross-check** | **Done — found and fixed 2 propagator defects** |
 | 9 | R12 — 60 fps at 256 satellites, measured in a real browser | Open |
 | 10 | URL/history semantics for mode switching | Open — product decision |
 | 11 | Visual WGS84 vs analytical sphere | Open — product decision |
+| 12 | Altitude convention: `a = 6371 + h` vs `a = R_eq + h` (R28) | Open — product decision |
+| 13 | Ω̇ residual up to 0.3 % vs GMAT (R29) | Open — accepted, bounded |
 
 ---
 
 ## Risks
 
-- **Unvalidated physics reaching a slide.** Mitigated by refusing to display
-  confidence the model has not earned: the calibration line reads
-  "single-epoch shell fit … not trajectory-validated", and every export carries
-  its assumptions. R4 remains the residual risk.
+- **Unvalidated physics reaching a slide.** Was the top risk; R4 closed it, and
+  in doing so proved it had been real — GMAT found two genuine defects in the
+  propagator. Mitigation retained: the calibration line still reads
+  "single-epoch shell fit … not trajectory-validated" because GMAT validated the
+  *propagator*, not the claim that any real fleet is this Walker, and every
+  export carries its assumptions plus the cross-check bound.
 - **Scope leak into `App.tsx`.** One documented change only — lifting `uiMode`
   to the root shell, which removes responsibility from that file.
 - **Two Cesium viewers alive at once.** Prevented structurally: the root shell
@@ -95,10 +102,10 @@ calibration/  fitWalker   (plain numbers only — no satrec crosses the boundary
 
 | Layer | How |
 |---|---|
-| Unit | 1851 tests; engine is pure and deterministic |
+| Unit | 1858 tests; engine is pure and deterministic |
 | Closed form | SSO drift, swath table, single-satellite analytic access |
 | Independent oracle | RK4 J2 integration, published SSO table, ray/sphere, brute-force sampling |
 | Independent implementation | SGP4 via `satellite.js`, in `src/utils/__tests__` |
-| External authority | **GMAT/STK — not done, R4** |
+| External authority | **NASA GMAT R2026a — done. 9 km / 72 h, non-divergent; max gap exact at 4 targets** |
 | Browser | Mode switch, one viewer, click-to-target, keyboard, heat map |
 | Review | External review, two rounds; P0 and P1 closed |

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { EARTH_RADIUS_KM } from '../../../utils/earthGeometry';
 import {
-    EARTH_ROTATION_RATE_RAD_S, J2, MU_EARTH_KM3_S2,
+    EARTH_ROTATION_RATE_RAD_S, J2, J2_REFERENCE_RADIUS_KM, MU_EARTH_KM3_S2,
     argLatRateRadPerSec, earthRotationRad, ecefToGeodetic, ecefToEci, eciToEcef,
     geodeticToEcef, gmstRad, meanMotionRadPerSec, nodalRegressionRadPerSec,
     orbitalPeriodSec, preparePropagator, propagate, propagateState,
@@ -27,17 +27,33 @@ describe('keplerJ2 — constants', () => {
 
 // ─── EXIT GATE 1 — sun-synchronous drift ────────────────────────────────────
 describe('keplerJ2 — sun-synchronous nodal drift', () => {
-    it('gives Ω̇ ≈ +0.9856 °/day at h = 600 km, i = 97.8° (within 0.5 %)', () => {
+    it('gives Ω̇ ≈ +0.9856 °/day at h = 600 km, i = 97.8°', () => {
         const a = EARTH_RADIUS_KM + 600;
         const driftDegPerDay = toDeg(nodalRegressionRadPerSec(a, 97.8)) * 86400;
 
         const textbook = 0.9856;
         expect(driftDegPerDay).toBeGreaterThan(0);
-        expect(Math.abs(driftDegPerDay - textbook) / textbook).toBeLessThan(0.005);
+        expect(Math.abs(driftDegPerDay - textbook) / textbook).toBeLessThan(0.01);
 
-        // The value this spherical-Earth model actually produces, pinned so a
-        // change to the formula or to EARTH_RADIUS_KM shows up as a diff.
-        expect(driftDegPerDay).toBeCloseTo(0.98852, 4);
+        // The value this model actually produces, pinned so a change to the
+        // formula or to either radius constant shows up as a diff.
+        expect(driftDegPerDay).toBeCloseTo(0.99074, 4);
+    });
+
+    it('closes on the textbook value once the altitude convention matches it', () => {
+        // The 0.52 % residual above is NOT the J₂ formula — since R4 that is
+        // cross-checked against GMAT. It is the altitude convention: this module
+        // takes a = EARTH_RADIUS_KM + h with the *mean* radius 6371 km
+        // (ADR-001 §2), while the published i = 97.8° at 600 km was derived with
+        // the equatorial radius, i.e. a 7.1 km larger semi-major axis. Ω̇ scales
+        // as a^-3.5, so that convention alone is worth 0.36 %.
+        //
+        // Feeding the aerospace convention in cuts the disagreement by a factor
+        // of three, which localises the residual. What is left is 97.8° being a
+        // rounded figure. See "altitude convention" in docs/DEFERRED_ITEMS.md.
+        const aEquatorial = J2_REFERENCE_RADIUS_KM + 600;
+        const drift = toDeg(nodalRegressionRadPerSec(aEquatorial, 97.8)) * 86400;
+        expect(Math.abs(drift - 0.9856) / 0.9856).toBeLessThan(0.002);
     });
 
     it('regresses westward for prograde orbits and eastward for retrograde', () => {
@@ -73,7 +89,11 @@ describe('keplerJ2 — mean motion and period', () => {
         const a = EARTH_RADIUS_KM + 600;
         const n = meanMotionRadPerSec(a);
         const uDot = argLatRateRadPerSec(a, 97.8);
-        expect(Math.abs(uDot - n) / n).toBeLessThan(1e-3);
+        // u̇ = ω̇ + Ṁ carries both Brouwer secular terms, so it sits ~1.3e-3 from
+        // the unperturbed n at this altitude — roughly twice the ω̇-only figure
+        // this bound was originally written against. Still a small perturbation;
+        // the point of the assertion is that it has not become a large one.
+        expect(Math.abs(uDot - n) / n).toBeLessThan(2e-3);
     });
 });
 

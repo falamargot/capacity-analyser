@@ -38,6 +38,22 @@ export const MU_EARTH_KM3_S2 = 398600.4418;
 /** Second zonal harmonic — Earth's oblateness. Dimensionless. */
 export const J2 = 1.08262668e-3;
 
+/**
+ * Reference radius of the J₂ term, km — the *equatorial* radius, not the mean.
+ *
+ * ADR-001 §2 fixes the coverage **geometry** sphere at `EARTH_RADIUS_KM` =
+ * 6371 km, and that decision stands. It does not extend to here: J₂ is defined
+ * by the geopotential expansion Σ Jₙ(R_eq/r)ⁿ Pₙ, so R_eq is part of the
+ * constant's definition. Substituting 6371 scales every J₂-driven rate by
+ * (6371/6378.1363)² = 0.99776 — 0.22 % low — which is a units error, not a
+ * modelling choice.
+ *
+ * Cross-checked against NASA GMAT R2026a (JGM2), which uses this same value.
+ * See `src/utils/__tests__/revisitGmatCrossCheck.test.ts` and R4 in
+ * `docs/REVIEW_REPORT.md`.
+ */
+export const J2_REFERENCE_RADIUS_KM = 6378.1363;
+
 /** Earth's sidereal rotation rate, rad/s. */
 export const EARTH_ROTATION_RATE_RAD_S = 7.2921159e-5;
 
@@ -60,24 +76,50 @@ export function orbitalPeriodSec(semiMajorAxisKm: number): number {
     return (2 * Math.PI) / meanMotionRadPerSec(semiMajorAxisKm);
 }
 
+/** The J₂ small parameter γ = J₂·(R_eq/a)², shared by both secular rates. */
+function j2Gamma(semiMajorAxisKm: number): number {
+    const ratio = J2_REFERENCE_RADIUS_KM / semiMajorAxisKm;
+    return J2 * ratio * ratio;
+}
+
 /**
  * Nodal regression Ω̇, rad/s.
  *
  * Negative for prograde orbits (i < 90°), positive for retrograde — which is
  * what makes a sun-synchronous orbit possible at i ≈ 97.8°.
+ *
+ * First order in J₂. The J₂² correction is deliberately omitted: measured
+ * against GMAT it is worth under 0.1 % and its inclination dependence is not
+ * reproduced by the textbook second-order term, so adding it would trade a
+ * known small bias for an unverified one.
  */
 export function nodalRegressionRadPerSec(semiMajorAxisKm: number, inclinationDeg: number): number {
     const n = meanMotionRadPerSec(semiMajorAxisKm);
-    const ratio = EARTH_RADIUS_KM / semiMajorAxisKm;
-    return -1.5 * n * J2 * ratio * ratio * Math.cos(toRad(inclinationDeg));
+    return -1.5 * n * j2Gamma(semiMajorAxisKm) * Math.cos(toRad(inclinationDeg));
 }
 
-/** Secular rate of the argument of latitude u̇, rad/s. */
+/**
+ * Secular rate of the argument of latitude u̇ = ω̇ + Ṁ, rad/s.
+ *
+ * Both Brouwer secular terms are present, and *both* are needed:
+ *
+ *     ω̇ = ¾·n·γ·(5cos²i − 1)              perigee precession
+ *     Ṁ = n·[1 + (3/2)·γ·(1 − (3/2)sin²i)]  J₂-perturbed mean anomaly rate
+ *
+ * which sum to n·[1 + (3/2)·γ·(4cos²i − 1)].
+ *
+ * This module previously used ω̇ + n, i.e. it took the unperturbed mean motion
+ * for Ṁ and dropped its J₂ term. That is a 0.05–0.09 % error in u̇, and u̇ is
+ * what sets *when* a satellite is overhead: at the reference shell it put the
+ * spacecraft 1080 km along-track — about 150 s of pass timing — off after 72 h,
+ * enough to gain or lose a marginal pass. Corrected here against GMAT R2026a,
+ * which the summed form now matches to 7e-6 relative across inclinations 30°
+ * to 98° and altitudes 600 to 1200 km.
+ */
 export function argLatRateRadPerSec(semiMajorAxisKm: number, inclinationDeg: number): number {
     const n = meanMotionRadPerSec(semiMajorAxisKm);
-    const ratio = EARTH_RADIUS_KM / semiMajorAxisKm;
     const cosI = Math.cos(toRad(inclinationDeg));
-    return n + 0.75 * n * J2 * ratio * ratio * (5 * cosI * cosI - 1);
+    return n * (1 + 1.5 * j2Gamma(semiMajorAxisKm) * (4 * cosI * cosI - 1));
 }
 
 // ─── Precomputed per-satellite rates ───────────────────────────────────────

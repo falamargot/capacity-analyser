@@ -65,7 +65,13 @@ export function provenanceHeader(
         '#',
         '# MODEL',
         '# propagation,Kepler + J2 secular (no drag)',
-        '# earth model,sphere R = 6371 km',
+        '# earth model,sphere R = 6371 km (J2 term uses R_eq = 6378.1363 km)',
+        // Anyone who exports this file is about to put the numbers in front of
+        // someone. The external cross-check belongs in the header for the same
+        // reason the assumptions do: it is the bound on how far these numbers
+        // can be trusted, and it should travel with them.
+        '# propagation cross-check,NASA GMAT R2026a — 9 km over 72 h, non-divergent',
+        '# altitude convention,a = 6371 km + altitude (mean radius, not equatorial)',
         '# solar illumination,not modelled — the payload is infrared',
         '# gap convention,max gap with boundary-truncated gaps discarded',
         '#',

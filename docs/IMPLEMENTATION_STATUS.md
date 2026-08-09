@@ -1,12 +1,14 @@
 # Implementation Status
 
-_Last updated 2026-08-08._
+_Last updated 2026-08-09._
 
 ## Current phase
 
-**Review — remediation complete, awaiting external model validation.**
+**Review complete — externally validated.**
 
-Lots 1–4 are implemented, reviewed, remediated and pushed.
+Lots 1–4 are implemented, reviewed, remediated and pushed. R4 is closed: the
+propagator has been cross-checked against NASA GMAT R2026a, which found two real
+defects (see below); both are fixed and the model now agrees to 9 km over 72 h.
 PR: https://github.com/falamargot/capacity-analyser/pull/1
 Branch: `feat/revisit-lot1-engine` → `main`.
 
@@ -25,13 +27,22 @@ Branch: `feat/revisit-lot1-engine` → `main`.
 - **P1 remediation** — input validation, origin-preserving Back, exact-pole
   guard, hot-path allocations, keyboard access.
 - **SGP4 cross-check** — `src/utils/__tests__/revisitSgp4CrossCheck.test.ts`.
+- **R4 — GMAT cross-check** — `src/utils/__tests__/revisitGmatCrossCheck.test.ts`.
+  Found and fixed: (1) `u̇` omitted the J₂ secular term in `Ṁ`, worth 1080 km
+  along-track over 72 h; (2) the J₂ term used the 6371 km mean radius where J₂
+  is defined against the 6378.1363 km equatorial radius, worth 0.224 % on every
+  J₂-driven rate. Also fixed a Kozai/Brouwer defect in the SGP4 harness that had
+  been masking both.
 
 ---
 
 ## Remaining work
 
-- **R4 — GMAT/STK cross-check.** The only item blocking full model confidence.
 - **R12 — 60 fps at 256 satellites.** Never measured.
+- **Altitude convention** — `a = 6371 + h` vs the aerospace `a = R_eq + h`.
+  Product decision; now the dominant residual in the SSO comparison.
+- **Ω̇ residual up to ~0.3 %** vs GMAT, inclination-structured. The textbook
+  J₂² term does not reproduce the structure, so it was deliberately not added.
 - URL/history semantics for mode switching — product decision.
 - Visual WGS84 vs analytical sphere — product decision.
 - FOV presets are not from an instrument datasheet.
@@ -40,16 +51,7 @@ Branch: `feat/revisit-lot1-engine` → `main`.
 
 ## Current blockers
 
-**R4 requires software that is not installed.**
-
-- STK is commercial and licensed; it cannot be installed here.
-- GMAT R2026a *does* ship a signed universal macOS DMG
-  (`gmat-mac-x64-R2026a-signed.dmg`, 455.5 MB, macOS 14.5+, Intel or Apple
-  Silicon), so it is installable — but downloading and installing 455 MB of
-  third-party software needs explicit operator approval, which has been
-  requested and not yet given.
-
-Everything achievable without it has been done.
+**None.**
 
 ---
 
@@ -59,9 +61,10 @@ Everything achievable without it has been done.
 |---|---|
 | TypeScript | 0 errors |
 | ESLint | clean |
-| Unit + integration tests | 1851 passing, 4 skipped |
+| Unit + integration tests | 1858 passing, 4 skipped |
 | Browser | mode switch, single viewer, click-to-target, keyboard, heat map — all verified |
-| Review | external, two rounds; P0 and P1 closed |
+| Review | external, three rounds; P0, P1 and R4 closed |
+| External authority | NASA GMAT R2026a — 9 km / 72 h, non-divergent; max gap exact at four targets |
 
 ---
 
@@ -82,10 +85,10 @@ Everything achievable without it has been done.
 
 ## Next Action
 
-Obtain operator approval for the GMAT download, then execute R4:
-compare position, sub-satellite track, access-boundary times and maximum
-revisit gap against GMAT for the reference scenario, and record tolerances in
-`docs/REVIEW_REPORT.md`.
+Decide the altitude convention (see Remaining work). It is the last item with a
+measurable effect on displayed numbers, and it is a product call rather than an
+engineering one.
 
-If approval is withheld, R4 stays open and the "not trajectory-validated"
-language in `ModelProvenance` and the CSV provenance header must remain.
+Note the "not trajectory-validated" qualifier in `ModelProvenance` stays: it
+qualifies the **OneWeb single-epoch fit**, which GMAT says nothing about. GMAT
+validated the propagator, and that is now a separate line.

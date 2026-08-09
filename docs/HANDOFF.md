@@ -1,15 +1,16 @@
 # Handoff
 
-_Last updated 2026-08-08._
+_Last updated 2026-08-09._
 
 ## Current project state
 
 REVISIT — the hosted-payload revisit mode — is implemented across four lots,
-externally reviewed, remediated through P0 and P1, and pushed.
+externally reviewed, remediated through P0 and P1, cross-checked against NASA
+GMAT, and pushed.
 
-- Branch `feat/revisit-lot1-engine`, 16 commits, +13,328 / −128 across 73 files
-- PR https://github.com/falamargot/capacity-analyser/pull/1 — OPEN, base `main`
-- Gate: 0 TypeScript errors, 1851 tests passing, ESLint clean
+- Branch `feat/revisit-lot1-engine`, base `main`
+- PR https://github.com/falamargot/capacity-analyzer/pull/1 — OPEN
+- Gate: 0 TypeScript errors, 1858 tests passing, ESLint clean
 
 Reachable in the app via the **Revisit** button in the mode switcher, or
 `?mode=revisit`.
@@ -18,26 +19,47 @@ Reachable in the app via the **Revisit** button in the mode switcher, or
 
 ## Last completed phase
 
-**Independent propagation cross-check.** The engine was compared against SGP4
-(`satellite.js`, third-party Brouwer-Lyddane) using synthetic drag-free TLEs.
-Maximum revisit gap agrees to 0.06 % and the position difference does not grow
-over 72 h. Full numbers in `REVIEW_REPORT.md`.
+**R4 — the GMAT cross-check. It found two real defects in the propagator.**
+
+This is the important thing for a new session to know, because it changes how
+much weight the older documents deserve.
+
+1. **`u̇` omitted the J₂ secular term in `Ṁ`.** The engine used `ω̇ + n` where
+   the correct Brouwer rate is `ω̇ + Ṁ = n[1 + (3/2)γ(4cos²i − 1)]`. Worth
+   1080 km along-track over 72 h, and it cost a real access pass at Cape Town.
+
+2. **The J₂ term used the 6371 km mean radius.** J₂ is defined against the
+   equatorial radius; the radius is part of the constant. Now
+   `J2_REFERENCE_RADIUS_KM`. The ADR-001 §2 geometry sphere is unchanged.
+
+After the fixes: worst position offset over 72 h fell from 1084 km to **9.0 km**
+and stopped growing; sub-satellite longitude offset from 4.0998° to **0.0065°**;
+maximum revisit gap now **exact** against GMAT at all four preset targets.
+
+An earlier section of `REVIEW_REPORT.md` argued the external review was *wrong*
+about `u̇`. It has been retracted — the review was right. **Do not restore the
+`ω̇`-only form.** Both oracles that failed to catch it have been de-confounded
+and now assert against it directly.
 
 ---
 
 ## Current objective
 
-**Close R4: cross-check against GMAT or STK.**
-
-This is the last item standing between the module and quotable numbers. It is
-called out in the PR body, in `ModelProvenance` on screen, and in every CSV
-export's provenance header.
+None outstanding on correctness. The remaining items are product decisions and
+one unmeasured performance claim.
 
 ---
 
 ## Remaining work
 
-- **R4 — GMAT/STK cross-check.** Blocked on an operator decision, see below.
+- **R28 — the altitude convention.** `a = 6371 + h` (mean radius) vs the
+  aerospace `a = R_eq + h`. Worth 0.36 % on Ω̇ and now the dominant residual in
+  the sun-synchronous comparison. Deliberately not changed unilaterally: it
+  moves every displayed number. **This is the next decision to make.**
+- **R29 — Ω̇ residual up to 0.3 %** vs GMAT, inclination-structured. Accepted
+  and bounded (under 0.4 km cross-track over 72 h at the reference shell). The
+  textbook J₂² term does not reproduce the structure, so it was not added.
+  Re-measure before quoting numbers for a low-inclination shell.
 - **R12 — 60 fps at 256 satellites.** Requires a real foreground browser; the
   automation pane keeps its tab hidden, which suspends `requestAnimationFrame`
   and with it both Cesium's render loop and ours.
@@ -52,24 +74,46 @@ export's provenance header.
 
 | Path | Why it matters |
 |---|---|
-| `src/features/revisit/propagation/keplerJ2.ts` | The physics. Introduces μ and J₂ to this codebase |
+| `src/features/revisit/propagation/keplerJ2.ts` | The physics. Two radii live here on purpose — read the comment on `J2_REFERENCE_RADIUS_KM` before touching either |
 | `src/features/revisit/fov/containment.ts` | The piece that must be exactly right — inverted access test |
 | `src/features/revisit/analysis/gapStatistics.ts` | Where the headline number is defined, incl. boundary-gap discarding |
 | `src/features/revisit/domain/selectionReconcile.ts` | Keeps the KPI and the value curve describing the same constellation |
-| `src/features/revisit/__tests__/validation.test.ts` | Independent-oracle suite (V1–V5) |
-| `src/utils/__tests__/revisitSgp4CrossCheck.test.ts` | Independent-implementation cross-check |
-| `src/utils/observedOrbitalElements.ts` | The only place a `satrec` is read on the way to the module |
-| `docs/DEFERRED_ITEMS.md` | R1–R24 — every conscious deferral, with reasoning |
+| `src/utils/__tests__/revisitGmatCrossCheck.test.ts` | R4. The external authority |
+| `src/utils/__tests__/fixtures/gmat_r4_reference_ephemeris.csv` | GMAT's 72 h Earth-fixed reference track. Committed because regenerating it needs a 455 MB install |
+| `docs/revisit/gmat/*.script` | The GMAT scripts, to regenerate or extend the comparison |
+| `src/features/revisit/__tests__/validation.test.ts` | Independent-oracle suite (V1–V5). V1b was confounded and is now absolute |
+| `src/utils/__tests__/revisitSgp4CrossCheck.test.ts` | Independent-implementation cross-check. Note the Kozai/Brouwer conversion in `tleFromElements` |
+| `docs/DEFERRED_ITEMS.md` | R1–R29 — every conscious deferral, with reasoning |
+
+---
+
+## Regenerating the GMAT comparison
+
+GMAT is **not** installed in the repo and is not a dependency — the committed
+fixture is what the test suite runs against. To extend the comparison, install
+GMAT R2026a (signed universal macOS DMG, 455.5 MB, from the NASA project on
+SourceForge; needs operator approval), then:
+
+```
+"<GMAT>/bin/GmatConsole" --run docs/revisit/gmat/r4_eph.script
+```
+
+Two traps, both hit during R4 and both worth knowing before writing a new
+script:
+
+- `sat.ElapsedSecs` is measured from the start of the current `Propagate`, so
+  it looks like it resets. Report it once per loop iteration as the scripts do,
+  or use an absolute epoch field.
+- GMAT reads `sat.SMA` as an **osculating** element. The engine's `a` is a
+  Brouwer mean element. Feeding 7571 to both compares different orbits — the
+  mean SMA comes out ~8.7 km lower. `r4_eph.script` passes 7579.71 so the
+  Brouwer mean lands on 7571.013. Verify with `sat.BrouwerLongSMA`.
 
 ---
 
 ## Open questions
 
-- **May GMAT be installed on this machine?** R2026a ships a signed universal
-  macOS DMG, `gmat-mac-x64-R2026a-signed.dmg`, 455.5 MB, from the NASA project
-  on SourceForge, compatible with macOS 14.5+ on Intel or Apple Silicon. A
-  455 MB download and a software install need explicit approval. STK is
-  commercial and is not an option here.
+- Should altitude be measured from the equatorial radius? (R28 — the live one.)
 - Should mode switching participate in browser history? The app has no router.
 - Should the visual globe use the analytical sphere instead of WGS84?
 - Are the FOV presets meant to represent named sensor products, or stay
@@ -79,18 +123,23 @@ export's provenance header.
 
 ## Known risks
 
-- **The model is unvalidated by any external authority.** Every check applied so
-  far was either closed-form, an oracle written by the same author, or SGP4 —
-  which is independent but shares the ECI-is-ECEF-rotated-by-GMST convention.
-  Until R4 closes, the "single-epoch shell fit … not trajectory-validated"
-  language in `ModelProvenance` and the CSV provenance header **must stay**.
+- **Secular-only.** No drag, no short-period terms, no SRP. Fine for a 72 h
+  planning window; not for operational tasking. The 9 km residual against GMAT
+  *is* the short-period term.
+- **The OneWeb calibration line is still a single-epoch shell fit.** GMAT
+  validated the propagator, not the claim that a real fleet is this Walker. The
+  "not trajectory-validated" qualifier in `ModelProvenance` must stay, and it is
+  deliberately on a separate line from the GMAT line so the stronger claim does
+  not launder the weaker one.
 - **Frame rate at 256 satellites is unmeasured.** The hot path was reduced from
   ~38,000 `Cartesian3` allocations per second to zero in steady state, but that
   is counted from the code, not measured.
-- A `claude.md` exists alongside the tracked `CLAUDE.md`. They are the same
-  inode on this case-insensitive filesystem, but git tracks only `CLAUDE.md` and
-  reports `claude.md` as untracked — on a case-sensitive machine (Linux CI) they
-  would become two divergent files. Worth deleting the lowercase alias.
+- **Oracles that share the engine's constants prove less than they appear to.**
+  This is the concrete lesson of R4 and it generalises: when adding a test,
+  check whether it could fail if the constant under test were wrong.
+- A `claude.md` exists alongside the tracked `CLAUDE.md`. Same inode on this
+  case-insensitive filesystem, but git tracks only `CLAUDE.md` — on a
+  case-sensitive machine they would diverge. Worth deleting the lowercase alias.
 
 ---
 
@@ -107,7 +156,8 @@ A new Claude Code session should begin by reading:
 Then, for REVISIT specifically:
 
 6. `docs/REVISIT_ADR_001_Model_Decisions.md` — the four closed decisions
-7. `docs/DEFERRED_ITEMS.md`, REVISIT sections — R1–R24
-8. `docs/REVIEW_REPORT.md` — what has and has not been validated
+7. `docs/DEFERRED_ITEMS.md`, REVISIT sections — R1–R29
+8. `docs/REVIEW_REPORT.md` — what has and has not been validated, including the
+   retraction and the R4 results
 
 Then continue autonomously. No previous conversation is required.
