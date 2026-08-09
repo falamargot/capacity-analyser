@@ -1,6 +1,6 @@
 # Cross-Mode Spatial Physics Audit
 
-_2026-08-09. Audit only — no production code was modified._
+_2026-08-09. Audit complete; Phase 0 and Phase 1 executed. See §11 for results._
 
 Follows the REVISIT R4 validation against NASA GMAT R2026a, which exposed two
 real orbital-model defects despite ~1850 passing tests. The question here is
@@ -82,11 +82,11 @@ for RF or commercial logic.
 | Calculation | ENG | COMM | REVISIT | Implementation | Model / constants | Independent validation | Risk |
 |---|---|---|---|---|---|---|---|
 | Orbital propagation | ✅ | ❌ | ✅ | ENG: `satellite.js` SGP4 on real TLEs · REVISIT: `keplerJ2.ts` analytic | SGP4/WGS72 · Kepler+J₂ secular, μ=398600.4418, J₂=1.08262668e-3, R_eq=6378.1363 | REVISIT: **GMAT R4** · ENG: none of its own | ENG integration unverified |
-| GMST / ECI→ECEF | ✅ | ❌ | ✅ | ENG: `satellite.js` `gstime`/`eciToGeodetic` · REVISIT: `gmstRad`/`eciToEcef` | Both GMST-based | REVISIT: GMAT, 0.0065° · ENG: none | Low |
-| Elevation angle (primary) | ✅ | ❌ | ❌ | `capacityCalculator.calculateElevationAngle` | **WGS84** ellipsoid + ENU | none | Low — formula standard |
-| Elevation angle (GEO) | ✅ | ❌ | ❌ | `geoConnectivityModel.elevationDeg` | **WGS84** ECEF | none | Low |
+| GMST / ECI→ECEF | ✅ | ❌ | ✅ | ENG: `satellite.js` `gstime`/`eciToGeodetic` · REVISIT: `gmstRad`/`eciToEcef` | Both GMST-based | REVISIT: GMAT 0.0065° · **ENG: GMAT V-A, 37 m** | **VERIFIED** |
+| Elevation angle (primary) | ✅ | ❌ | ❌ | `capacityCalculator.calculateElevationAngle` | **WGS84** ellipsoid + ENU | **GMAT V-B, 7e-6°** | **VERIFIED** |
+| Elevation angle (GEO) | ✅ | ❌ | ❌ | `geoConnectivityModel.elevationDeg` | **WGS84** ECEF | **GMAT V-B, 7e-6°** | **VERIFIED** |
 | Elevation angle (LEO forecast) | ✅ | ❌ | ❌ | `satelliteResolution.computeElevationFromCoords` | **sphere 6371** | none | SPA-01 |
-| 3-D range / distance | ✅ | ❌ | ❌ | `compute3DDistanceKm`, `geoConnectivityModel.distanceKm` | **WGS84** ECEF | none | Low |
+| 3-D range / distance | ✅ | ❌ | ❌ | `compute3DDistanceKm`, `geoConnectivityModel.distanceKm` | **WGS84** ECEF | **GMAT V-B, 0.6 m** | **VERIFIED** |
 | Slant range from elevation | ~~dead~~ removed | ❌ | ❌ | ~~`geoLinkBudget.computeSlantRange`~~ | sphere 6371 | none | SPA-03 — **removed in Phase 0** |
 | Surface distance | ✅ | ❌ | ✅ | `earthGeometry.haversineDistanceKm` | sphere 6371 | none | Low — correct use of a sphere |
 | GSO belt separation | ✅ | ❌ | ❌ | `gsoProtection.gsoBeltSeparationAngleDeg` | **sphere 6371 + geodetic lat** | none | **SPA-02** |
@@ -384,24 +384,29 @@ independent is a feature — it is what makes them mutual cross-checks.**
 | Domain | Current model | Validation source | Independence | Status | Residual uncertainty |
 |---|---|---|---|---|---|
 | LEO propagation (REVISIT) | Kepler + J₂ secular, Brouwer rates | GMAT R2026a, RK8(9) JGM2 | **High** — numerical integrator, different theory, different implementation, external constants | **VERIFIED** | 9 km bounded over 72 h (J₂ short-period, unmodelled by design); Ω̇ ≤0.3% (R29) |
-| LEO propagation (ENG) | SGP4 on real TLEs via `satellite.js` | Third-party established implementation (level 3) | Medium — library independently validated for decades, but *this app's integration* never checked | **SUPPORTED** | TLE ingestion, epoch handling and frame conversion unverified end-to-end |
+| LEO propagation (ENG) | SGP4 on real TLEs via `satellite.js` | Third-party established implementation (level 3) | Medium | **SUPPORTED** | Frame conversion now VERIFIED separately (V-A); SGP4's own dynamics remain unvalidated by this project, by design |
 | ECI/ECEF + Earth rotation (REVISIT) | Single GMST rotation | GMAT full IAU chain | High | **VERIFIED** | 0.0065° longitude; bounds rate/epoch, not the ~0.36° J2000-vs-date frame offset |
-| ECI/ECEF + Earth rotation (ENG) | `satellite.js` `gstime`/`eciToGeodetic` | Established implementation | Medium | **SUPPORTED** | No app-level check |
-| Earth geometry — WGS84 paths | WGS84 ellipsoid ECEF | Standard formulation | Low — internal only | **SUPPORTED** | Formula standard; no independent reference vectors |
+| ECI/ECEF + Earth rotation (ENG) | `satellite.js` `gstime`/`eciToGeodetic` | **GMAT R2026a (V-A)** | **High** — GMAT's own IAU/EOP chain, no shared code | **VERIFIED** | 37 m ground, 0.7 m altitude; residual is the UT1-UTC + polar-motion bias GMST omits |
+| Earth geometry — WGS84 paths | WGS84 ellipsoid ECEF | **GMAT R2026a (V-B)** | **High** — GMAT topocentric state, `satellite.js` not involved | **VERIFIED** | Elevation 7.2e-6°, range 0.6 m across three latitudes |
 | Earth geometry — spherical paths | Sphere 6371 km fed geodetic lat/alt | none | None | **UNVERIFIED** | Convention mix; 0.13–0.14° measured (SPA-01, SPA-02, SPA-06) |
 | Access / visibility (REVISIT) | Inverted LVLH FOV containment | GMAT + brute-force sampling | High | **VERIFIED** | Max gap exact at 4 targets |
-| Access / visibility (ENG) | Elevation threshold on SGP4 track | Internal consistency tests only | **None** | **UNVERIFIED** | SPA-04 — the R4 blind-spot pattern |
-| Slant range | WGS84 ECEF difference | none | None | **SUPPORTED** | Standard; deprecated spherical variant is dead code (SPA-03) |
+| Access / visibility (ENG) | Elevation threshold on SGP4 track | **GMAT (V-B)** for the geometry; none for the rule | High for geometry | Geometry **VERIFIED**; rule **UNVERIFIED** | Thresholds and selection are product policy, not physics GMAT can adjudicate |
+| Slant range | WGS84 ECEF difference | **GMAT R2026a (V-B)** | **High** | **VERIFIED** | 0.6 m worst over 1197-3146 km; spherical variant removed in Phase 0 |
 | Propagation delay | `d/c`, c = 299792.458 km/s | SI definition | n/a | **SUPPORTED** | Physics trivial; RTT *convention* separately open (2026-07-24 audit #3–#7) |
 | RF path loss | `20log₁₀(d)+20log₁₀(f)−147.55` | ITU-R P.525 form | Low | **SUPPORTED** | Correct SI constant; no independent reference vector |
 | GEO geometry | WGS84 ECEF (live path) | none | None | **SUPPORTED** | Live path sound; dead spherical helper documented at 5–35 km |
 | GSO keep-out | Spherical ECEF + geodetic lat, 11.5° gate | Internal tautological test | **None** | **UNVERIFIED** | 0.144° measured; demonstrated verdict flip at threshold (SPA-02) |
 | LEO handover | Elevation forecast, 15 s sampling | none | **None** | **UNVERIFIED** | Spherical/WGS84 divergence ~30× below sampling step; handover *policy* unvalidated |
 
-**Nothing in ENG or COMM currently qualifies as VERIFIED.** REVISIT's propagation,
-frames and access are the only VERIFIED domains in the application. No
-engineering-grade or high-fidelity claim should be made for ENG spatial output
-until at least V-B is executed.
+**Updated after Phase 1 (2026-08-09).** ENG now holds four VERIFIED spatial
+domains — elevation, slant range, WGS84 Earth geometry and frame conversion —
+where before it held none. What remains UNVERIFIED is narrower and specific: the
+GSO keep-out Earth model (SPA-02, Phase 2), SGP4's own dynamics, and the
+access/selection *rules*, which are product policy rather than physics.
+
+An "engineering-grade geometry" claim is now defensible for ENG's site geometry
+and frame handling, and specifically **not** for the GSO keep-out until SPA-02 is
+resolved.
 
 ---
 
@@ -415,10 +420,10 @@ and its characterisation test (SPA-03); renamed `ecefFromGeodetic` →
 tracked it (SPA-08). No production numerical output changed. Gate: 0 TS errors,
 ESLint clean, 1857 tests passing (1858 − 1 removed).
 
-**Phase 1 — independent validation, before any physics change.** Execute V-B,
-then V-A. Establishes an external baseline so any later correction is *measured*
-rather than argued. **This must precede Phase 2** — otherwise a refactor silently
-changes numbers with no oracle to say which version was right.
+**Phase 1 — independent validation, before any physics change. ✅ DONE
+2026-08-09.** V-B and V-A both executed against GMAT R2026a. Results in §11.
+Headline: ENG's WGS84 geometry and its frame conversion are now **VERIFIED**;
+no defect was found in either. Baseline established for Phase 2 and Phase 3.
 
 **Phase 2 — SPA-02, with evidence in hand.** Build the V-C reference, reproduce
 the discrepancy independently, quantify how often geometry lands within 0.15° of
@@ -447,3 +452,115 @@ tracked separately under the OneWeb official-slide deltas.
 
 **This audit did not execute GMAT.** All ENG statuses are therefore SUPPORTED or
 UNVERIFIED by construction — promoting any of them requires §6.
+
+
+---
+
+## 11. Phase 1 results — ENG's first external validation
+
+Executed 2026-08-09 against NASA GMAT R2026a. Two tests added; **no production
+code changed**. Scripts in `docs/revisit/gmat/`, fixtures in
+`src/utils/__tests__/fixtures/`.
+
+Together V-B and V-A cover ENG's spatial chain end to end:
+
+```
+  satrec --SGP4--> TEME state --eciToGeodetic--> lat/lon/alt --> elevation, range
+                   \_______________________________/  \____________________/
+                              V-A: 37 m                    V-B: 7 microdeg
+```
+
+### V-B — site geometry (`engGmatSiteGeometry.test.ts`)
+
+GMAT's own topocentric state of a LEO satellite relative to three ground
+stations, 24 h at 60 s. Compared against ENG fed only GMAT's published geodetic
+lat/lon/alt. **`satellite.js` is not involved on either side.**
+
+| Site | Latitude | Passes ≥10° | Peak elev | Slant range | Elevation error | Range error |
+|---|---|---|---|---|---|---|
+| Singapore | 1.35°N | 29 | 82.2° | 1197–3044 km | **4.7e-6 °** | **0.3 m** |
+| Paris | 48.85°N | 58 | 58.4° | 1368–3074 km | **5.4e-6 °** | **0.4 m** |
+| Longyearbyen | 78.22°N | 183 | 85.2° | 1211–3146 km | **7.2e-6 °** | **0.6 m** |
+
+Microdegrees and sub-metre — at the fixture's print precision, not at any
+modelling limit. `capacityCalculator.calculateElevationAngle` and
+`geoConnectivityModel.elevationDeg` agree with GMAT **and with each other to
+1e-6°**, so SPA-01's duplication is confirmed harmless numerically: the two
+WGS84 copies are the same function written twice.
+
+GMAT's Topocentric axes were determined **experimentally**, not from
+documentation: SEZ (X South, Y East, Z Zenith), confirmed two ways — a station
+beneath the satellite gives (0, 0, altitude), and a south-east satellite gives
+(+, +, −).
+
+### V-A — frame conversion (`engGmatFrameConversion.test.ts`)
+
+The step nothing had ever checked: SGP4's TEME output → `eciToGeodetic` →
+lat/lon/alt. 20 states across the fleet spanning 22 h. GMAT was handed the same
+TEME states and converted them with its own IAU precession/nutation/polar-motion
+chain, loaded EOP and its own ellipsoid. No propagation, so SGP4's dynamics are
+excluded and only the conversion is compared.
+
+| Quantity | Result |
+|---|---|
+| Worst horizontal ground displacement | **37 m** |
+| Worst altitude difference | **0.7 m** |
+| Longitude bias, \|lat\| < 60° (n=13) | **+0.000337°**, spread **0.00026°** |
+| Longitude residual, \|lat\| > 80° | ±0.003°, sign-changing |
+
+**The residual is explained, not tolerated.** +0.000337° is ~1.2 arcseconds —
+the expected magnitude of what a single GMST rotation omits and GMAT models:
+UT1−UTC and polar motion. Two pieces of evidence confirm the interpretation
+rather than merely permitting it:
+
+1. At mid latitudes the offset is a **bias, not scatter** — the spread is an
+   order of magnitude below the mean. A wrong frame, epoch or rotation rate
+   would scatter or grow with time; a missing rotation about the pole cannot.
+2. The scatter appears **only above 80°**, where it changes sign. That is the
+   polar-motion signature: polar motion *tilts* the axis rather than spinning
+   about it, so it cannot be absorbed into a longitude offset. Its absence would
+   have been more suspicious, not less — it would suggest the two sides shared
+   an Earth-orientation model.
+
+At 37 m this sits four orders of magnitude below the ~700 km beam scale ENG
+reasons about.
+
+### What Phase 1 did NOT establish
+
+Stated explicitly, because the value of this exercise depends on not
+overclaiming:
+
+- **SGP4's dynamics remain unvalidated by this project.** V-A deliberately took
+  `satellite.js` TEME states as *input* — they are the output of the code under
+  test — so it validates the conversion, not the propagation. ENG's propagation
+  stays **SUPPORTED** on the strength of `satellite.js` being an independently
+  validated third-party implementation, not VERIFIED.
+- **SPA-02 (GSO keep-out) is untouched.** It needs V-C and a correction, which
+  is Phase 2 and requires explicit approval.
+- **Access/visibility policy** — minimum-elevation thresholds, selection and
+  handover rules — is a product decision, not physics. Its *geometry* input is
+  now verified; the rules themselves are not the kind of thing GMAT adjudicates.
+- Both sides share the standards-level definition of "geodetic latitude and
+  height above the WGS84 ellipsoid". Confirmed empirically (topocentric Z equals
+  reported altitude at the sub-satellite point) but it is a shared definition,
+  and is recorded as such.
+
+### Ledger movement
+
+| Domain | Before Phase 1 | After |
+|---|---|---|
+| Elevation angle (both WGS84 implementations) | SUPPORTED | **VERIFIED** — GMAT, 7.2e-6° worst |
+| Slant range / 3-D distance | SUPPORTED | **VERIFIED** — GMAT, 0.6 m worst |
+| ECI/ECEF + Earth rotation (ENG) | SUPPORTED | **VERIFIED** — GMAT, 37 m ground, residual explained |
+| LEO propagation (ENG) | SUPPORTED | SUPPORTED — unchanged by design |
+| GSO keep-out | UNVERIFIED | UNVERIFIED — Phase 2 |
+| Access/visibility (ENG) | UNVERIFIED | Geometry **VERIFIED**; thresholds remain policy |
+
+**ENG now has three VERIFIED spatial domains where it had none.** SPA-04 — the
+finding that ENG held the same evidential position REVISIT held before R4 — is
+substantially closed for geometry. It remains open for propagation and for the
+GSO keep-out.
+
+**No defect was found in ENG's WGS84 geometry.** That is a real result rather
+than an absence of one: the same procedure applied to REVISIT found two defects
+within hours, so it had demonstrated power to detect exactly this class of error.

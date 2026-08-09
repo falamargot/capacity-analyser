@@ -1,0 +1,83 @@
+% V-B - ENG site geometry vs GMAT: elevation, azimuth, slant range.
+% LEO 1200 km / 87.9 deg over three sites spanning equator to high Arctic.
+% Topocentric axes are SEZ: X=South, Y=East, Z=Zenith (verified empirically).
+
+Create Spacecraft sat
+sat.DateFormat = UTCGregorian
+sat.Epoch = '06 Aug 2026 00:00:00.000'
+sat.CoordinateSystem = EarthMJ2000Eq
+sat.DisplayStateType = Keplerian
+sat.SMA = 7571
+sat.ECC = 0.0001
+sat.INC = 87.9
+sat.RAAN = 0
+sat.AOP = 0
+sat.TA = 0
+
+Create GroundStation SIN
+SIN.CentralBody = Earth
+SIN.StateType = Spherical
+SIN.HorizonReference = Ellipsoid
+SIN.Location1 = 1.3521
+SIN.Location2 = 103.8198
+SIN.Location3 = 0.0
+
+Create CoordinateSystem topoSIN
+topoSIN.Origin = SIN
+topoSIN.Axes = Topocentric
+
+Create GroundStation PAR
+PAR.CentralBody = Earth
+PAR.StateType = Spherical
+PAR.HorizonReference = Ellipsoid
+PAR.Location1 = 48.85
+PAR.Location2 = 2.35
+PAR.Location3 = 0.0
+
+Create CoordinateSystem topoPAR
+topoPAR.Origin = PAR
+topoPAR.Axes = Topocentric
+
+Create GroundStation LYR
+LYR.CentralBody = Earth
+LYR.StateType = Spherical
+LYR.HorizonReference = Ellipsoid
+LYR.Location1 = 78.2232
+LYR.Location2 = 15.6267
+LYR.Location3 = 0.0
+
+Create CoordinateSystem topoLYR
+topoLYR.Origin = LYR
+topoLYR.Axes = Topocentric
+
+Create ForceModel fm
+fm.PrimaryBodies = {Earth}
+fm.GravityField.Earth.PotentialFile = 'JGM2.cof'
+fm.GravityField.Earth.Degree = 4
+fm.GravityField.Earth.Order = 4
+fm.Drag.AtmosphereModel = None
+fm.PointMasses = {}
+fm.SRP = Off
+
+Create Propagator prop
+prop.FM = fm
+prop.Type = RungeKutta89
+prop.InitialStepSize = 30
+prop.Accuracy = 1e-12
+prop.MinStep = 0
+prop.MaxStep = 60
+
+Create ReportFile rf
+rf.Filename = '/tmp/vb.txt'
+rf.WriteHeaders = true
+rf.Precision = 12
+rf.Add = {sat.ElapsedSecs, sat.Earth.Latitude, sat.Earth.Longitude, sat.Earth.Altitude, sat.topoSIN.X, sat.topoSIN.Y, sat.topoSIN.Z, sat.topoPAR.X, sat.topoPAR.Y, sat.topoPAR.Z, sat.topoLYR.X, sat.topoLYR.Y, sat.topoLYR.Z}
+
+Create Variable i
+BeginMissionSequence;
+
+Report rf sat.ElapsedSecs sat.Earth.Latitude sat.Earth.Longitude sat.Earth.Altitude sat.topoSIN.X sat.topoSIN.Y sat.topoSIN.Z sat.topoPAR.X sat.topoPAR.Y sat.topoPAR.Z sat.topoLYR.X sat.topoLYR.Y sat.topoLYR.Z
+For i = 1:1:1440
+   Propagate prop(sat) {sat.ElapsedSecs = 60}
+   Report rf sat.ElapsedSecs sat.Earth.Latitude sat.Earth.Longitude sat.Earth.Altitude sat.topoSIN.X sat.topoSIN.Y sat.topoSIN.Z sat.topoPAR.X sat.topoPAR.Y sat.topoPAR.Z sat.topoLYR.X sat.topoLYR.Y sat.topoLYR.Z
+EndFor

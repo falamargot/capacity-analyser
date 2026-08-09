@@ -1,0 +1,258 @@
+% V-A - ENG frame conversion check: TEME state -> geodetic lat/lon/alt.
+% States are SGP4 (satellite.js) TEME outputs; GMAT performs the frame
+% conversion independently with its own IAU/EOP chain and ellipsoid.
+% No propagation: each spacecraft is reported at its own epoch.
+
+Create CoordinateSystem temecs
+temecs.Origin = Earth
+temecs.Axes = TEME
+
+Create Spacecraft s1
+s1.DateFormat = UTCGregorian
+s1.Epoch = '06 Aug 2026 00:00:00.000'
+s1.CoordinateSystem = temecs
+s1.DisplayStateType = Cartesian
+s1.X = 7576.788249790
+s1.Y = -0.548557620
+s1.Z = -14.951368979
+s1.VX = 0.007173535
+s1.VY = 0.265680005
+s1.VZ = 7.249666241
+
+Create Spacecraft s2
+s2.DateFormat = UTCGregorian
+s2.Epoch = '06 Aug 2026 03:42:00.000'
+s2.CoordinateSystem = temecs
+s2.DisplayStateType = Cartesian
+s2.X = 7449.196697363
+s2.Y = 46.474768460
+s2.Z = 1375.860732285
+s2.VX = -1.326450112
+s2.VY = 0.261955603
+s2.VZ = 7.128579252
+
+Create Spacecraft s3
+s3.DateFormat = UTCGregorian
+s3.Epoch = '06 Aug 2026 09:06:00.000'
+s3.CoordinateSystem = temecs
+s3.DisplayStateType = Cartesian
+s3.X = 7564.766792262
+s3.Y = -25.897658676
+s3.Z = -433.234163507
+s3.VX = 0.408568813
+s3.VY = 0.264704005
+s3.VZ = 7.237768534
+
+Create Spacecraft s4
+s4.DateFormat = UTCGregorian
+s4.Epoch = '06 Aug 2026 15:18:00.000'
+s4.CoordinateSystem = temecs
+s4.DisplayStateType = Cartesian
+s4.X = -5894.364614657
+s4.Y = 187.296092134
+s4.Z = 4747.732322687
+s4.VX = -4.560714284
+s4.VY = -0.196594914
+s4.VZ = -5.641185697
+
+Create Spacecraft s5
+s5.DateFormat = UTCGregorian
+s5.Epoch = '06 Aug 2026 21:54:00.000'
+s5.CoordinateSystem = temecs
+s5.DisplayStateType = Cartesian
+s5.X = 7556.528890580
+s5.Y = -4.011247951
+s5.Z = 546.055989850
+s5.VX = -0.529935337
+s5.VY = 0.266674140
+s5.VZ = 7.230742415
+
+Create Spacecraft s6
+s6.DateFormat = UTCGregorian
+s6.Epoch = '06 Aug 2026 00:00:00.000'
+s6.CoordinateSystem = temecs
+s6.DisplayStateType = Cartesian
+s6.X = -5609.287023272
+s6.Y = -3399.473781486
+s6.Z = -3799.105887624
+s6.VX = 3.260925137
+s6.VY = 1.617393545
+s6.VZ = -6.269471386
+
+Create Spacecraft s7
+s7.DateFormat = UTCGregorian
+s7.Epoch = '06 Aug 2026 03:42:00.000'
+s7.CoordinateSystem = temecs
+s7.DisplayStateType = Cartesian
+s7.X = -4890.202275008
+s7.Y = -3028.950430522
+s7.Z = -4937.055319087
+s7.VX = 4.190680213
+s7.VY = 2.184031936
+s7.VZ = -5.494952552
+
+Create Spacecraft s8
+s8.DateFormat = UTCGregorian
+s8.Epoch = '06 Aug 2026 09:06:00.000'
+s8.CoordinateSystem = temecs
+s8.DisplayStateType = Cartesian
+s8.X = -5793.505941400
+s8.Y = -3479.944104078
+s8.Z = -3431.551125771
+s8.VX = 2.961644820
+s8.VY = 1.431491329
+s8.VZ = -6.460970108
+
+Create Spacecraft s9
+s9.DateFormat = UTCGregorian
+s9.Epoch = '06 Aug 2026 15:18:00.000'
+s9.CoordinateSystem = temecs
+s9.DisplayStateType = Cartesian
+s9.X = 6510.812022487
+s9.Y = 3689.270253352
+s9.Z = -1192.934428866
+s9.VX = 0.854801849
+s9.VY = 0.793541576
+s9.VZ = 7.158891370
+
+Create Spacecraft s10
+s10.DateFormat = UTCGregorian
+s10.Epoch = '06 Aug 2026 21:54:00.000'
+s10.CoordinateSystem = temecs
+s10.DisplayStateType = Cartesian
+s10.X = -5351.929890351
+s10.Y = -3248.001587930
+s10.Z = -4273.783187236
+s10.VX = 3.654915062
+s10.VY = 1.841983229
+s10.VZ = -5.982697534
+
+Create Spacecraft s11
+s11.DateFormat = UTCGregorian
+s11.Epoch = '06 Aug 2026 00:00:00.000'
+s11.CoordinateSystem = temecs
+s11.DisplayStateType = Cartesian
+s11.X = -277.421276268
+s11.Y = -0.015160118
+s11.Z = 7561.333207448
+s11.VX = 0.000000265
+s11.VY = -7.256134737
+s11.VZ = -0.000007252
+
+Create Spacecraft s12
+s12.DateFormat = UTCGregorian
+s12.Epoch = '06 Aug 2026 03:42:00.000'
+s12.CoordinateSystem = temecs
+s12.DisplayStateType = Cartesian
+s12.X = -273.443937451
+s12.Y = -1391.700017685
+s12.Z = 7432.533856446
+s12.VX = 0.044962950
+s12.VY = -7.132837799
+s12.VZ = -1.331555650
+
+Create Spacecraft s13
+s13.DateFormat = UTCGregorian
+s13.Epoch = '06 Aug 2026 09:06:00.000'
+s13.CoordinateSystem = temecs
+s13.DisplayStateType = Cartesian
+s13.X = -276.443183664
+s13.Y = 419.031228806
+s13.Z = 7549.769391727
+s13.VX = -0.024258088
+s13.VY = -7.245037622
+s13.VZ = 0.400531281
+
+Create Spacecraft s14
+s14.DateFormat = UTCGregorian
+s14.Epoch = '06 Aug 2026 15:18:00.000'
+s14.CoordinateSystem = temecs
+s14.DisplayStateType = Cartesian
+s14.X = 205.815680122
+s14.Y = -4758.267389559
+s14.Z = -5897.970791240
+s14.VX = 0.179124798
+s14.VY = 5.639418090
+s14.VZ = -4.545700192
+
+Create Spacecraft s15
+s15.DateFormat = UTCGregorian
+s15.Epoch = '06 Aug 2026 21:54:00.000'
+s15.CoordinateSystem = temecs
+s15.DisplayStateType = Cartesian
+s15.X = -278.443061620
+s15.Y = -560.600569226
+s15.Z = 7540.522923884
+s15.VX = -0.003341622
+s15.VY = -7.236235187
+s15.VZ = -0.537147498
+
+Create Spacecraft s16
+s16.DateFormat = UTCGregorian
+s16.Epoch = '06 Aug 2026 00:00:00.000'
+s16.CoordinateSystem = temecs
+s16.DisplayStateType = Cartesian
+s16.X = -1683.159688913
+s16.Y = 3397.055151841
+s16.Z = -6565.059876431
+s16.VX = -3.253153802
+s16.VY = 5.369745343
+s16.VZ = 3.613949336
+
+Create Spacecraft s17
+s17.DateFormat = UTCGregorian
+s17.Epoch = '06 Aug 2026 03:42:00.000'
+s17.CoordinateSystem = temecs
+s17.DisplayStateType = Cartesian
+s17.X = -2276.370176079
+s17.Y = 4370.779531140
+s17.Z = -5760.466786996
+s17.VX = -2.900999517
+s17.VY = 4.685804183
+s17.VZ = 4.704277066
+
+Create Spacecraft s18
+s18.DateFormat = UTCGregorian
+s18.Epoch = '06 Aug 2026 09:06:00.000'
+s18.CoordinateSystem = temecs
+s18.DisplayStateType = Cartesian
+s18.X = -1488.811087768
+s18.Y = 3084.033519774
+s18.Z = -6763.590017513
+s18.VX = -3.329424012
+s18.VY = 5.544727253
+s18.VZ = 3.262253577
+
+Create Spacecraft s19
+s19.DateFormat = UTCGregorian
+s19.Epoch = '06 Aug 2026 15:18:00.000'
+s19.CoordinateSystem = temecs
+s19.DisplayStateType = Cartesian
+s19.X = -824.966203402
+s19.Y = 886.053053874
+s19.Z = 7469.102843022
+s19.VX = 3.534255419
+s19.VY = -6.236066361
+s19.VZ = 1.128147173
+
+Create Spacecraft s20
+s20.DateFormat = UTCGregorian
+s20.Epoch = '06 Aug 2026 21:54:00.000'
+s20.CoordinateSystem = temecs
+s20.DisplayStateType = Cartesian
+s20.X = -1918.182365314
+s20.Y = 3809.388322343
+s20.Z = -6267.424996310
+s20.VX = -3.109184669
+s20.VY = 5.125210087
+s20.VZ = 4.068470478
+
+Create ReportFile rf
+rf.Filename = '/tmp/va_gmat.txt'
+rf.WriteHeaders = true
+rf.Precision = 12
+rf.Add = {s1.Earth.Latitude, s1.Earth.Longitude, s1.Earth.Altitude, s2.Earth.Latitude, s2.Earth.Longitude, s2.Earth.Altitude, s3.Earth.Latitude, s3.Earth.Longitude, s3.Earth.Altitude, s4.Earth.Latitude, s4.Earth.Longitude, s4.Earth.Altitude, s5.Earth.Latitude, s5.Earth.Longitude, s5.Earth.Altitude, s6.Earth.Latitude, s6.Earth.Longitude, s6.Earth.Altitude, s7.Earth.Latitude, s7.Earth.Longitude, s7.Earth.Altitude, s8.Earth.Latitude, s8.Earth.Longitude, s8.Earth.Altitude, s9.Earth.Latitude, s9.Earth.Longitude, s9.Earth.Altitude, s10.Earth.Latitude, s10.Earth.Longitude, s10.Earth.Altitude, s11.Earth.Latitude, s11.Earth.Longitude, s11.Earth.Altitude, s12.Earth.Latitude, s12.Earth.Longitude, s12.Earth.Altitude, s13.Earth.Latitude, s13.Earth.Longitude, s13.Earth.Altitude, s14.Earth.Latitude, s14.Earth.Longitude, s14.Earth.Altitude, s15.Earth.Latitude, s15.Earth.Longitude, s15.Earth.Altitude, s16.Earth.Latitude, s16.Earth.Longitude, s16.Earth.Altitude, s17.Earth.Latitude, s17.Earth.Longitude, s17.Earth.Altitude, s18.Earth.Latitude, s18.Earth.Longitude, s18.Earth.Altitude, s19.Earth.Latitude, s19.Earth.Longitude, s19.Earth.Altitude, s20.Earth.Latitude, s20.Earth.Longitude, s20.Earth.Altitude}
+
+BeginMissionSequence;
+
+Report rf s1.Earth.Latitude s1.Earth.Longitude s1.Earth.Altitude s2.Earth.Latitude s2.Earth.Longitude s2.Earth.Altitude s3.Earth.Latitude s3.Earth.Longitude s3.Earth.Altitude s4.Earth.Latitude s4.Earth.Longitude s4.Earth.Altitude s5.Earth.Latitude s5.Earth.Longitude s5.Earth.Altitude s6.Earth.Latitude s6.Earth.Longitude s6.Earth.Altitude s7.Earth.Latitude s7.Earth.Longitude s7.Earth.Altitude s8.Earth.Latitude s8.Earth.Longitude s8.Earth.Altitude s9.Earth.Latitude s9.Earth.Longitude s9.Earth.Altitude s10.Earth.Latitude s10.Earth.Longitude s10.Earth.Altitude s11.Earth.Latitude s11.Earth.Longitude s11.Earth.Altitude s12.Earth.Latitude s12.Earth.Longitude s12.Earth.Altitude s13.Earth.Latitude s13.Earth.Longitude s13.Earth.Altitude s14.Earth.Latitude s14.Earth.Longitude s14.Earth.Altitude s15.Earth.Latitude s15.Earth.Longitude s15.Earth.Altitude s16.Earth.Latitude s16.Earth.Longitude s16.Earth.Altitude s17.Earth.Latitude s17.Earth.Longitude s17.Earth.Altitude s18.Earth.Latitude s18.Earth.Longitude s18.Earth.Altitude s19.Earth.Latitude s19.Earth.Longitude s19.Earth.Altitude s20.Earth.Latitude s20.Earth.Longitude s20.Earth.Altitude
