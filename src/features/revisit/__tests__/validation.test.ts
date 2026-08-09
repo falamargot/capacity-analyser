@@ -25,7 +25,7 @@ import { describe, expect, it } from 'vitest';
 import { EARTH_RADIUS_KM } from '../../../utils/earthGeometry';
 import { toRad, toDeg } from '../../../utils/sphericalGeometry';
 import {
-    J2, MU_EARTH_KM3_S2, argLatRateRadPerSec, eciToEcef, gmstRad,
+    J2, J2_REFERENCE_RADIUS_KM, MU_EARTH_KM3_S2, argLatRateRadPerSec, eciToEcef, gmstRad,
     meanMotionRadPerSec, nodalRegressionRadPerSec, preparePropagator, propagateState,
 } from '../propagation/keplerJ2';
 import { isTargetInFov, prepareFov, targetEciAt } from '../fov/containment';
@@ -41,13 +41,19 @@ const EPOCH = Date.UTC(2026, 7, 6, 0, 0, 0);
 type State6 = [number, number, number, number, number, number];
 
 /** Two-body plus J2 acceleration, in ECI. Written from the force model, not from
- *  the secular rates the engine uses — that is the whole point. */
+ *  the secular rates the engine uses — that is the whole point.
+ *
+ *  The J₂ term carries the EQUATORIAL radius, matching the geopotential's own
+ *  definition and `J2_REFERENCE_RADIUS_KM`. Using the 6371 km geometry sphere
+ *  here instead would build the engine's convention into the oracle and make
+ *  the comparison circular on exactly the constant R4 found wrong. */
 function accelerationJ2(s: State6, j2: number): [number, number, number] {
     const [x, y, z] = s;
     const r2 = x * x + y * y + z * z;
     const r = Math.sqrt(r2);
     const r5 = r2 * r2 * r;
-    const k = (-1.5 * j2 * MU_EARTH_KM3_S2 * EARTH_RADIUS_KM * EARTH_RADIUS_KM) / r5;
+    const k =
+        (-1.5 * j2 * MU_EARTH_KM3_S2 * J2_REFERENCE_RADIUS_KM * J2_REFERENCE_RADIUS_KM) / r5;
     const zr2 = (5 * z * z) / r2;
     return [
         (-MU_EARTH_KM3_S2 * x) / (r2 * r) + k * x * (1 - zr2),
@@ -159,7 +165,8 @@ describe('V1 — analytic J2 secular rates vs numerical integration', () => {
             const numerical = integratedRaanRate(alt, inc, j2, 10);
             const a = EARTH_RADIUS_KM + alt;
             const analytic =
-                -1.5 * meanMotionRadPerSec(a) * j2 * (EARTH_RADIUS_KM / a) ** 2 * Math.cos(toRad(inc));
+                -1.5 * meanMotionRadPerSec(a) * j2 * (J2_REFERENCE_RADIUS_KM / a) ** 2
+                * Math.cos(toRad(inc));
             return Math.abs(numerical - analytic) / Math.abs(analytic);
         };
 
@@ -199,10 +206,35 @@ describe('V1 — analytic J2 secular rates vs numerical integration', () => {
 
 // ── V1b — the argument-of-latitude rate ────────────────────────────────────
 
-/** Least-squares secular rate of a state-derived angle, rad/s. */
+/** Osculating semi-major axis from a state vector, via vis-viva. */
+function osculatingSmaKm(s: State6): number {
+    const r = Math.hypot(s[0], s[1], s[2]);
+    const v2 = s[3] * s[3] + s[4] * s[4] + s[5] * s[5];
+    return 1 / (2 / r - v2 / MU_EARTH_KM3_S2);
+}
+
+/**
+ * Least-squares secular rate of a state-derived angle, plus the run's MEAN
+ * semi-major axis.
+ *
+ * Returning the mean `a` is what makes this oracle usable for an absolute rate
+ * comparison. The integration is seeded with an *osculating* circular state at
+ * radius `EARTH_RADIUS_KM + altKm`, but J₂'s short-period term means the
+ * corresponding *mean* semi-major axis is several kilometres away — and by an
+ * amount that varies with inclination, since the short-period coefficient
+ * carries (1 − (3/2)sin²i). Comparing a rate computed at mean `a` against a
+ * formula evaluated at the osculating seed therefore injects an
+ * inclination-dependent bias, which is precisely the shape a cos²i fit is
+ * trying to measure. That confound is why an earlier version of this suite
+ * concluded the engine's ω̇-only u̇ was correct; GMAT later showed it was not.
+ *
+ * The time-average of the osculating `a` recovers the Brouwer mean `a` to first
+ * order in J₂ — checked against GMAT's own Brouwer converter, where the two
+ * agree to 15 m at the reference shell.
+ */
 function integratedAngleRate(
     altKm: number, incDeg: number, angleOf: (s: State6) => number, orbits = 30
-): number {
+): { rate: number; meanSmaKm: number } {
     const a = EARTH_RADIUS_KM + altKm;
     const i = toRad(incDeg);
     const speed = Math.sqrt(MU_EARTH_KM3_S2 / a);
@@ -215,6 +247,8 @@ function integratedAngleRate(
     const base = prev;
     const ts: number[] = [];
     const ys: number[] = [];
+    let smaSum = osculatingSmaKm(s);
+    let smaCount = 1;
 
     for (let k = 1; k <= steps; k++) {
         s = rk4Step(s, dt, J2);
@@ -224,6 +258,8 @@ function integratedAngleRate(
         while (delta < -Math.PI) delta += 2 * Math.PI;
         unwrapped += delta;
         prev = cur;
+        smaSum += osculatingSmaKm(s);
+        smaCount++;
         if (k % 50 === 0) { ts.push(k * dt); ys.push(unwrapped - base); }
     }
 
@@ -232,7 +268,10 @@ function integratedAngleRate(
     const sy = ys.reduce((p, c) => p + c, 0);
     const stt = ts.reduce((p, c) => p + c * c, 0);
     const sty = ts.reduce((p, c, k) => p + c * ys[k], 0);
-    return (n * sty - st * sy) / (n * stt - st * st);
+    return {
+        rate: (n * sty - st * sy) / (n * stt - st * st),
+        meanSmaKm: smaSum / smaCount,
+    };
 }
 
 describe('V1b — argument-of-latitude rate vs numerical integration', () => {
@@ -241,52 +280,48 @@ describe('V1b — argument-of-latitude rate vs numerical integration', () => {
     // sets access times — so leaving it unchecked left the more consequential
     // rate unvalidated. This closes that gap.
     //
-    // A direct rate comparison cannot settle the formula on its own: the
-    // mean-vs-osculating contamination documented in V1 is ~0.1–0.2 % here,
-    // which is the same size as the differences between candidate formulations.
-    // The cos²i SLOPE is immune to it — a constant bias lands entirely in the
-    // intercept — so that is what is asserted.
+    // Once the oracle reports the mean semi-major axis it actually integrated
+    // (see `integratedAngleRate`), the comparison can be made ABSOLUTE rather
+    // than through a cos²i slope fit. That is a far stronger assertion: a slope
+    // fit is blind to any constant bias, and it was the slope fit's tolerance
+    // that once made an ω̇-only u̇ look correct.
     const ALT_KM = 1200;
 
-    it('has a cos²i coefficient of 5, matching the engine and excluding ω̇ + Ṁ', () => {
-        const a = EARTH_RADIUS_KM + ALT_KM;
-        const n = meanMotionRadPerSec(a);
-        const unit = 0.75 * n * J2 * (EARTH_RADIUS_KM / a) ** 2;
-
+    it('matches the engine to 1e-4 relative across inclination', () => {
         // i = 0 is excluded: the node vector, and hence the argument of latitude,
         // is undefined for an equatorial orbit.
-        const inclinations = [15, 30, 45, 60, 75, 90];
-        const xs = inclinations.map((deg) => Math.cos(toRad(deg)) ** 2);
-        const ys = inclinations.map(
-            (deg) => (integratedAngleRate(ALT_KM, deg, argLatFromState) - n) / unit
-        );
-
-        const m = xs.length;
-        const sx = xs.reduce((p, c) => p + c, 0);
-        const sy = ys.reduce((p, c) => p + c, 0);
-        const sxx = xs.reduce((p, c) => p + c * c, 0);
-        const sxy = xs.reduce((p, c, k) => p + c * ys[k], 0);
-        const slope = (m * sxy - sx * sy) / (m * sxx - sx * sx);
-
-        // The engine's `u̇ = n + (3/4)nJ₂(Rₑ/a)²(5cos²i − 1)` predicts 5.
-        // The `ω̇ + Ṁ` form sometimes proposed instead predicts 8.
-        expect(slope).toBeGreaterThan(4.7);
-        expect(slope).toBeLessThan(5.3);
-        expect(Math.abs(slope - 8)).toBeGreaterThan(2.5);
+        for (const incDeg of [15, 30, 45, 60, 75, 90]) {
+            const { rate, meanSmaKm } = integratedAngleRate(ALT_KM, incDeg, argLatFromState);
+            const analytic = argLatRateRadPerSec(meanSmaKm, incDeg);
+            expect(Math.abs(rate - analytic) / rate).toBeLessThan(1e-4);
+        }
     }, 60_000);
 
-    it('tracks the engine to better than 0.25 % at representative orbits', () => {
-        for (const [altKm, incDeg] of [[1200, 87.9], [600, 97.8], [600, 51.6]] as const) {
-            const numerical = integratedAngleRate(altKm, incDeg, argLatFromState, 20);
-            const analytic = argLatRateRadPerSec(EARTH_RADIUS_KM + altKm, incDeg);
-            expect(Math.abs(numerical - analytic) / numerical).toBeLessThan(0.0025);
+    it('excludes the ω̇-only form this module used before R4', () => {
+        // The discarded formulation, u̇ = n + ω̇, kept the unperturbed mean motion
+        // for Ṁ. It differs from the correct sum by n·γ·(0.75 − 2.25cos²i),
+        // which at 87.9° is +0.057 % — small, but 500× the residual above, and
+        // the direction of the error reverses below i ≈ 54.7°. Asserting that
+        // the numerical oracle can TELL THE TWO APART is what stops the old form
+        // from being reintroduced as a simplification.
+        for (const incDeg of [30, 87.9]) {
+            const { rate, meanSmaKm } = integratedAngleRate(ALT_KM, incDeg, argLatFromState);
+            const n = meanMotionRadPerSec(meanSmaKm);
+            const cosI = Math.cos(toRad(incDeg));
+            const omegaDotOnly =
+                n + 0.75 * n * J2 * (J2_REFERENCE_RADIUS_KM / meanSmaKm) ** 2
+                * (5 * cosI * cosI - 1);
+            const correct = argLatRateRadPerSec(meanSmaKm, incDeg);
+            expect(Math.abs(rate - omegaDotOnly)).toBeGreaterThan(
+                10 * Math.abs(rate - correct)
+            );
         }
     }, 60_000);
 
     it('stays close to the Keplerian mean motion — J2 perturbs, it does not dominate', () => {
         const a = EARTH_RADIUS_KM + ALT_KM;
-        const numerical = integratedAngleRate(ALT_KM, 87.9, argLatFromState, 20);
-        expect(Math.abs(numerical - meanMotionRadPerSec(a)) / meanMotionRadPerSec(a))
+        const { rate } = integratedAngleRate(ALT_KM, 87.9, argLatFromState, 20);
+        expect(Math.abs(rate - meanMotionRadPerSec(a)) / meanMotionRadPerSec(a))
             .toBeLessThan(0.01);
     }, 60_000);
 });
@@ -297,10 +332,29 @@ describe('V2 — sun-synchronous inclination table', () => {
     // altitudes — a different question, and a much wider net.
     const SSO_RATE_RAD_S = (2 * Math.PI) / (365.2422 * 86400);
 
-    /** The inclination that makes the node track the mean Sun, at this altitude. */
-    function ssoInclinationDeg(altKm: number): number {
-        const a = EARTH_RADIUS_KM + altKm;
-        const coefficient = -1.5 * meanMotionRadPerSec(a) * J2 * (EARTH_RADIUS_KM / a) ** 2;
+    /**
+     * The inclination that makes the node track the mean Sun, at this altitude.
+     *
+     * `altitudeRadiusKm` is the radius the ALTITUDE is measured from, and it is
+     * an explicit parameter because the two callers below genuinely need
+     * different ones:
+     *
+     *   - the published-table comparison passes the equatorial radius, because
+     *     that is the convention the published table was computed with;
+     *   - the round-trip passes `EARTH_RADIUS_KM`, because that is the
+     *     convention the engine uses, and the round-trip's job is to confirm
+     *     the engine is self-consistent.
+     *
+     * The J₂ term always uses the equatorial radius, matching
+     * `nodalRegressionRadPerSec`. That correspondence is required, not
+     * incidental: the round-trip inverts this against that function, so a
+     * mismatched J₂ radius would cancel out and turn the round-trip into a
+     * tautology that passes on a wrong constant.
+     */
+    function ssoInclinationDeg(altKm: number, altitudeRadiusKm: number): number {
+        const a = altitudeRadiusKm + altKm;
+        const coefficient =
+            -1.5 * meanMotionRadPerSec(a) * J2 * (J2_REFERENCE_RADIUS_KM / a) ** 2;
         return toDeg(Math.acos(SSO_RATE_RAD_S / coefficient));
     }
 
@@ -312,13 +366,27 @@ describe('V2 — sun-synchronous inclination table', () => {
         [800, 98.6],
         [1000, 99.5],
     ])('gives i ≈ %s° at h = %i km', (altKm, published) => {
-        expect(ssoInclinationDeg(altKm)).toBeCloseTo(published, 1);
+        expect(ssoInclinationDeg(altKm, J2_REFERENCE_RADIUS_KM)).toBeCloseTo(published, 1);
+    });
+
+    it('shifts the table by ~0.03° under the engine altitude convention', () => {
+        // Not a defect, but it must be visible rather than absorbed into a
+        // tolerance: measuring altitude from the 6371 km mean sphere makes `a`
+        // 7.1 km smaller than the published table assumes, which moves the
+        // sun-synchronous inclination by up to ~0.03° and, at 1000 km, past the
+        // rounding of the published figure. See docs/DEFERRED_ITEMS.md.
+        for (const altKm of [400, 600, 1000]) {
+            const engine = ssoInclinationDeg(altKm, EARTH_RADIUS_KM);
+            const standard = ssoInclinationDeg(altKm, J2_REFERENCE_RADIUS_KM);
+            expect(engine).toBeLessThan(standard);
+            expect(standard - engine).toBeLessThan(0.04);
+        }
     });
 
     it('round-trips: the derived inclination reproduces the sun-synchronous rate', () => {
         for (const altKm of [400, 600, 800, 1000]) {
             const a = EARTH_RADIUS_KM + altKm;
-            const rate = nodalRegressionRadPerSec(a, ssoInclinationDeg(altKm));
+            const rate = nodalRegressionRadPerSec(a, ssoInclinationDeg(altKm, EARTH_RADIUS_KM));
             expect(rate).toBeCloseTo(SSO_RATE_RAD_S, 12);
             // One full turn per tropical year.
             expect(toDeg(rate) * 365.2422 * 86400).toBeCloseTo(360, 6);

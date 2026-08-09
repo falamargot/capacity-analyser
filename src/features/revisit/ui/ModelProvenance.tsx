@@ -44,6 +44,16 @@ export const ModelProvenance: React.FC<ModelProvenanceProps> = ({
             <ul className="mt-1 space-y-0.5 text-[10px] leading-4 text-slate-400">
                 <li>Kepler + J2 secular · no drag</li>
                 <li>Spherical earth R = 6371 km</li>
+                {/*
+                  * The propagator's own credibility line, and distinct from the
+                  * OneWeb fit below it. This one is an external authority —
+                  * NASA GMAT, numerically integrated — and it covers the
+                  * TRAJECTORY across the full window, which is exactly what the
+                  * single-epoch fit cannot speak to. Keeping the two on
+                  * separate lines is deliberate: collapsing them would let the
+                  * stronger claim launder the weaker one.
+                  */}
+                <li>Propagation cross-checked vs NASA GMAT · 9 km over 72 h</li>
                 {fit ? (
                     // "Fit vs OneWeb TLE · N km RMS" reads as trajectory
                     // validation. It is not: this is a mean-element fit at ONE

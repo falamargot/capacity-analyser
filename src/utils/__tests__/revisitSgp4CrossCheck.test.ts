@@ -41,6 +41,7 @@ import { EARTH_RADIUS_KM } from '../earthGeometry';
 import { generateWalkerConstellation } from '../../features/revisit/domain/walker';
 import { selectSubConstellation } from '../../features/revisit/domain/subConstellation';
 import {
+    J2, J2_REFERENCE_RADIUS_KM,
     meanMotionRadPerSec, preparePropagators, propagateState,
 } from '../../features/revisit/propagation/keplerJ2';
 import {
@@ -79,11 +80,29 @@ function tleChecksum(line: string): number {
  *
  * Circular orbits are given eccentricity 1e-7 rather than 0: SGP4 divides by
  * eccentricity terms and a hard zero is numerically awkward.
+ *
+ * **The mean motion field is Kozai, not Brouwer.** This is the subtle part. The
+ * engine's semi-major axis is a Brouwer mean element, so √(μ/a³) is a Brouwer
+ * mean motion — but SGP4 reads the TLE's mean motion as *Kozai* and runs its
+ * `initl` un-Kozai step to recover Brouwer. Writing √(μ/a³) into the field
+ * unconverted therefore hands SGP4 a different orbit from the one intended,
+ * larger by δ in mean motion, and the two propagators are then compared at
+ * mismatched semi-major axes. Converting forward here — the exact inverse of
+ * SGP4's `no_unkozai = no/(1 + δ₀)` — is what makes the comparison fair.
+ *
+ * Getting this wrong is not academic: uncorrected, it shows up as a constant
+ * 5 km radial offset and ~1000 km of spurious along-track drift over 72 h,
+ * which is the same order as a real error in the secular rates and would mask
+ * one. See R4 in `docs/REVIEW_REPORT.md`.
  */
 export function tleFromElements(
     el: OrbitalElements, epochMs: number, catalogNumber: number
 ): [string, string] {
-    const revsPerDay = meanMotionRadPerSec(el.semiMajorAxisKm) * 86400 / (2 * Math.PI);
+    const brouwerMeanMotion = meanMotionRadPerSec(el.semiMajorAxisKm);
+    const cosI = Math.cos((el.inclinationDeg * Math.PI) / 180);
+    const gamma = J2 * (J2_REFERENCE_RADIUS_KM / el.semiMajorAxisKm) ** 2;
+    const kozaiMeanMotion = brouwerMeanMotion * (1 + 0.75 * gamma * (3 * cosI * cosI - 1));
+    const revsPerDay = (kozaiMeanMotion * 86400) / (2 * Math.PI);
     const date = new Date(epochMs);
     const year = date.getUTCFullYear() % 100;
     const dayOfYear =

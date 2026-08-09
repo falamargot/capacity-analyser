@@ -572,19 +572,20 @@ for decades against real tracking data. Each Walker satellite is written out as
 a synthetic TLE with `BSTAR = 0`, so drag is off and only the gravity models are
 compared. Full numbers in `REVIEW_REPORT.md`.
 
-**Headline:** maximum revisit gap agrees to **0.06 %** (9.664 h vs 9.669 h),
-same access count, and the position difference **does not grow** — 11.6 km at
-0 h, 11.7 km at 72 h.
+**Headline:** maximum revisit gap agrees to better than 2 %, same access count,
+and the position difference **does not grow** — 12.08 km at 0 h, 12.16 km at
+72 h. (Numbers revised 2026-08-09; see the R27 note on this harness's own
+Kozai/Brouwer defect, which the original figures were computed under.)
 
 That flatness is the load-bearing result. A constant offset is a difference of
 constants; a growing one is a wrong secular rate. An error in `u̇` large enough
 to matter would place satellites degrees of along-track away after 72 h —
 hundreds to thousands of kilometres, not tens.
 
-The 5.09 km constant radial offset is explained rather than tolerated: SGP4
-treats a TLE's mean motion as **Kozai** and converts it to Brouwer before
-deriving `a`, an O(J₂·(Rₑ/a)²) shift predicting 5.82 km. The WGS72-vs-WGS84
-gravitational parameter accounts for 2 m and cannot explain it.
+The 6.04 km constant radial offset is explained rather than tolerated: it is the
+J₂ **short-period** radial excursion, which a secular-only model does not carry.
+GMAT confirms the magnitude independently — its osculating radius runs 7572.9 to
+7579.7 km about the 7571 km mean, averaging ≈ 6 km above it.
 
 **Why ADR-001 §1 is not violated.** That rule forbids `satellite.js` and
 `satrec` inside `src/features/revisit/`, and it forbids synthesising TLEs for
@@ -594,8 +595,8 @@ objection. The module's own directory remains free of `satellite.js`, verified.
 
 **R4 IS NOT CLOSED BY THIS.** SGP4 is independent but it is not the authority
 R4 names, and it shares with this engine the convention that ECI is ECEF rotated
-by GMST — a shared error there would pass unnoticed. The UI and CSV must keep
-saying the model is not trajectory-validated.
+by GMST — a shared error there would pass unnoticed. *(R4 was subsequently
+closed against GMAT on 2026-08-09; see R27.)*
 
 ## R26. GMAT is installable here; it needs an operator decision
 
@@ -611,3 +612,89 @@ not on feasibility. Once approved, the comparison to run is: position,
 sub-satellite track, access-boundary times and maximum revisit gap for the
 reference scenario (12 × 8 · 87.9° · 1200 km, London, 72 h), with tolerances
 recorded in `REVIEW_REPORT.md`.
+
+
+---
+
+# REVISIT — R4 closed
+
+## R27. R4 is CLOSED against NASA GMAT R2026a — and it found two real bugs
+
+**Date:** 2026-08-09. **Where:** `src/utils/__tests__/revisitGmatCrossCheck.test.ts`,
+scripts in `docs/revisit/gmat/`, committed fixture under
+`src/utils/__tests__/fixtures/`.
+
+GMAT was installed with explicit operator approval and run headless
+(`GmatConsole --run`). Force model Earth JGM2 degree 2 order 0 — J₂ only, no
+drag, no SRP, no third bodies — RK8(9) at 1e-12, which is the closest numerical
+analogue of what this engine claims to model.
+
+**Two defects were found, both invisible to every previous check.**
+
+1. **`u̇` omitted the J₂ secular term in `Ṁ`.** The engine used `ω̇ + n`; the
+   correct Brouwer rate is `ω̇ + Ṁ = n[1 + (3/2)γ(4cos²i − 1)]`. Worth 0.05–0.09 %
+   in u̇ — which sounds negligible and is not: it put the spacecraft **1080 km
+   along-track** (≈150 s of pass timing) off after 72 h, and at Cape Town it lost
+   a marginal pass entirely, reporting a 12.16 h worst gap against GMAT's 23.68 h.
+
+2. **The J₂ term used the mean radius 6371 km.** J₂ is defined against the
+   *equatorial* radius, 6378.1363 km — the radius is part of the constant's
+   definition, so this was a units error, not a modelling choice. Worth 0.224 %
+   on every J₂-driven rate. Now `J2_REFERENCE_RADIUS_KM`, deliberately separate
+   from the ADR-001 §2 geometry sphere, which is unchanged at 6371 km.
+
+**Why nothing caught these earlier — the reusable lesson.** Every prior oracle
+shared a constant or a convention with the engine. The RK4 force model used
+6371 km on both sides, so it was structurally incapable of seeing a radius
+error. V1b's cos²i slope fit seeded from osculating elements and compared
+against a formula evaluated at the same radius, injecting an
+inclination-dependent bias into exactly the quantity being fitted — and a slope
+fit is blind to constant bias by construction. **A test written by the author of
+the code tends to inherit the author's assumptions; that is the entire argument
+for an external authority, and it is why R4 was worth insisting on.** Both
+oracles have been de-confounded.
+
+**Result after the fixes:** worst position offset over 72 h fell from 1084 km
+(growing linearly) to **9.0 km** (bounded and oscillating — the J₂ short-period
+term, which a secular model does not represent); sub-satellite longitude offset
+from 4.0998° to **0.0065°**; maximum revisit gap now **exact** at all four preset
+targets. Full tables in `REVIEW_REPORT.md`.
+
+## R28. Altitude convention — `a = 6371 + h` is not the aerospace convention
+
+**Open. Product decision, not a defect.**
+
+The engine computes the semi-major axis as `EARTH_RADIUS_KM + altitudeKm`, using
+the 6371 km mean radius, consistent with ADR-001 §2's geometry sphere. Published
+sun-synchronous and ground-track tables — and, in ordinary usage, anyone who says
+"1200 km orbit" — measure altitude from the **equatorial** radius, giving an `a`
+7.1 km larger.
+
+Since Ω̇ ∝ a^-3.5 this is worth 0.36 % on the nodal rate, and after R4 it is the
+**dominant** residual in the sun-synchronous comparison: 0.52 % from the textbook
+value under the engine convention against 0.16 % under the aerospace one. It also
+shifts the derived SSO inclination by up to ~0.03°, which at 1000 km is enough to
+fall outside the rounding of the published figure.
+
+Deliberately **not** changed unilaterally: it would move every displayed number
+in the mode, and the choice is defensible either way — internal consistency with
+the coverage geometry against agreement with outside references. Both tests
+(`keplerJ2.test.ts`, V2 in `validation.test.ts`) now assert the size of the
+difference explicitly rather than absorbing it into a tolerance, and the CSV
+export discloses the convention in its header.
+
+## R29. Ω̇ still carries up to ~0.3 % against GMAT
+
+**Open, accepted, bounded.**
+
+The equatorial-radius fix removed most of the nodal-rate error, but a residual
+of 0.03–0.30 % remains and is inclination-structured — near-zero at 60°, largest
+at 30°. The textbook J₂² second-order term does **not** reproduce that structure,
+so it was deliberately not added: substituting a known small bias for an
+unverified correction is not an improvement.
+
+The consequence is bounded and, at the shell that matters, negligible. At the
+reference inclination of 87.9°, cos i ≈ 0.037 makes Ω̇ small in absolute terms —
+72 h of the residual is under 0.4 km cross-track, measured. It would matter more
+for a low-inclination shell, where it should be re-measured before quoting
+numbers.

@@ -1,0 +1,46 @@
+% R4 end-to-end: reference orbit, Earth-fixed ephemeris, 72 h at 30 s.
+% Osculating SMA chosen so the Brouwer MEAN SMA lands on 7571 km, which is
+% what the engine means by "altitude 1200 km" (a = 6371 + 1200).
+Create Spacecraft sat
+sat.DateFormat       = UTCGregorian
+sat.Epoch            = '06 Aug 2026 00:00:00.000'
+sat.CoordinateSystem = EarthMJ2000Eq
+sat.DisplayStateType = Keplerian
+sat.SMA              = 7579.71
+sat.ECC              = 0.0000001
+sat.INC              = 87.9
+sat.RAAN             = 0
+sat.AOP              = 0
+sat.TA               = 0
+
+Create ForceModel fm
+fm.PrimaryBodies                    = {Earth}
+fm.GravityField.Earth.PotentialFile = 'JGM2.cof'
+fm.GravityField.Earth.Degree        = 2
+fm.GravityField.Earth.Order         = 0
+fm.GravityField.Earth.TideModel     = 'None'
+fm.Drag.AtmosphereModel             = None
+fm.PointMasses                      = {}
+fm.SRP                              = Off
+
+Create Propagator prop
+prop.FM = fm
+prop.Type = RungeKutta89
+prop.InitialStepSize = 30
+prop.Accuracy = 1e-12
+prop.MinStep = 0
+prop.MaxStep = 30
+
+Create ReportFile rf
+rf.Filename = '/tmp/r4_eph.txt'
+rf.WriteHeaders = true
+rf.Precision = 12
+rf.Add = {sat.ElapsedSecs, sat.EarthFixed.X, sat.EarthFixed.Y, sat.EarthFixed.Z, sat.EarthMJ2000Eq.X, sat.EarthMJ2000Eq.Y, sat.EarthMJ2000Eq.Z, sat.BrouwerLongSMA}
+
+Create Variable i
+BeginMissionSequence;
+Report rf sat.ElapsedSecs sat.EarthFixed.X sat.EarthFixed.Y sat.EarthFixed.Z sat.EarthMJ2000Eq.X sat.EarthMJ2000Eq.Y sat.EarthMJ2000Eq.Z sat.BrouwerLongSMA
+For i = 1:1:8640
+   Propagate prop(sat) {sat.ElapsedSecs = 30}
+   Report rf sat.ElapsedSecs sat.EarthFixed.X sat.EarthFixed.Y sat.EarthFixed.Z sat.EarthMJ2000Eq.X sat.EarthMJ2000Eq.Y sat.EarthMJ2000Eq.Z sat.BrouwerLongSMA
+EndFor

@@ -168,9 +168,11 @@ describe('accessIntervals — analytic single-satellite revisit', () => {
     it('sums access plus gap to the relative revisit period', () => {
         expect(expectedAccessMs + expectedGapMs)
             .toBeCloseTo(((2 * Math.PI) / omegaRel) * 1000, 6);
-        // ~103.4 min against the Earth, longer than the 96.5 min orbital period,
+        // ~103.2 min against the Earth, longer than the 96.5 min orbital period,
         // because the ground track has to catch up with the rotating Earth.
-        expect((expectedAccessMs + expectedGapMs) / 60000).toBeCloseTo(103.35, 1);
+        // (Was 103.35 min before R4 corrected u̇ to carry both Brouwer secular
+        // terms; the faster u̇ shortens the relative period slightly.)
+        expect((expectedAccessMs + expectedGapMs) / 60000).toBeCloseTo(103.2, 1);
     });
 
     it('agrees with the closed form on fraction in view', () => {
@@ -187,7 +189,10 @@ describe('accessIntervals — analytic single-satellite revisit', () => {
             const w = { ...window, stepSeconds };
             const a = computeAccessIntervals([element], target, fov, w);
             const s = computeGapStatistics(a.intervals, w, a.warnings);
-            expect(s.maxGapMs!).toBeCloseTo(expectedGapMs, 3);
+            // Sub-millisecond on a ~6083 s gap, i.e. 1e-10 relative — the
+            // bisection's own convergence floor, not a step-size sensitivity.
+            expect(s.maxGapMs!).toBeCloseTo(expectedGapMs, 2);
+            expect(Math.abs(s.maxGapMs! - expectedGapMs) / expectedGapMs).toBeLessThan(1e-9);
         }
     });
 });
