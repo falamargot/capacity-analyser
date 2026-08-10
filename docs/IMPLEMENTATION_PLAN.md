@@ -76,8 +76,9 @@ calibration/  fitWalker   (plain numbers only — no satrec crosses the boundary
 | 9 | R12 — 60 fps at 256 satellites, measured in a real browser | Open |
 | 10 | URL/history semantics for mode switching | Open — product decision |
 | 11 | Visual WGS84 vs analytical sphere | Open — product decision |
-| 12 | Altitude convention: `a = 6371 + h` vs `a = R_eq + h` (R28) | Open — product decision |
+| 12 | R28: WGS84 equatorial altitude datum + authoritative ellipsoid geometry | Done — branch `feat/r28-wgs84-altitude-datum` |
 | 13 | Ω̇ residual up to 0.3 % vs GMAT (R29) | Open — accepted, bounded |
+| 14 | OneWeb HLD reference profile: 576 active + 58 spares, plane altitude ladder | Open — next separate change |
 
 ---
 

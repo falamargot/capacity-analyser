@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { EARTH_RADIUS_KM } from '../../../utils/earthGeometry';
 import {
     generateWalkerConstellation, normalizeDeg, raanSpanDeg, satelliteId, validateWalkerSpec,
 } from '../domain/walker';
@@ -111,9 +110,13 @@ describe('walker — constellation generation', () => {
         expect(fleet.find((f) => f.id === 'P01_S01')!.argLatDeg).toBeCloseTo(48.75, 10);
     });
 
-    it('sets a = R_e + h and carries the inclination through', () => {
+    it('measures altitude from the EQUATORIAL radius (R28), not the mean radius', () => {
+        // The datum is the whole content of R28. Written as an explicit number
+        // rather than as `orbitalRadiusKm(600)`, so that a change to the datum
+        // has to be made here too and cannot pass silently.
         const fleet = generateWalkerConstellation(spec({ altitudeKm: 600, inclinationDeg: 97.8 }));
-        expect(fleet[0].semiMajorAxisKm).toBe(EARTH_RADIUS_KM + 600);
+        expect(fleet[0].semiMajorAxisKm).toBeCloseTo(6978.137, 9);
+        expect(fleet[0].semiMajorAxisKm).not.toBeCloseTo(6971, 3);
         expect(fleet[0].inclinationDeg).toBe(97.8);
     });
 

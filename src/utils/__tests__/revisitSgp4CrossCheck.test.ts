@@ -37,7 +37,7 @@
 
 import { describe, expect, it } from 'vitest';
 import * as satellite from 'satellite.js';
-import { EARTH_RADIUS_KM } from '../earthGeometry';
+import { orbitalRadiusKm } from '../wgs84Geometry';
 import { generateWalkerConstellation } from '../../features/revisit/domain/walker';
 import { selectSubConstellation } from '../../features/revisit/domain/subConstellation';
 import {
@@ -212,7 +212,7 @@ describe('SGP4 cross-check — position divergence does not grow', () => {
      */
     it('has a radial offset matching the Kozai-to-Brouwer conversion', () => {
         const { radial } = meanSeparationKm(0);
-        const a = EARTH_RADIUS_KM + REFERENCE.altitudeKm;
+        const a = orbitalRadiusKm(REFERENCE.altitudeKm);
         const kozaiScale = a * 1.08262668e-3 * (6378.135 / a) ** 2;
 
         expect(radial).toBeGreaterThan(0.4 * kozaiScale);

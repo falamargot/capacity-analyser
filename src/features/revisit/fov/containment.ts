@@ -40,9 +40,38 @@
  * inspectable from an engineering panel.
  */
 
+/**
+ * ── TWO NORMALS, BOTH DELIBERATE (R28) ──────────────────────────────────────
+ *
+ * Since the ground became an ellipsoid there are two distinct "up" directions in
+ * this module, and they are not interchangeable. Stating them once, here,
+ * because silently picking the wrong one is a class of bug that passes every
+ * internal test.
+ *
+ *   1. SATELLITE LOOK ANGLE / LVLH NADIR — **geocentric, −r̂.**
+ *      The FOV is defined about the boresight, and the boresight is built from
+ *      the LVLH frame whose nadir is the direction to the Earth's CENTRE. This
+ *      is a property of the spacecraft's attitude convention, not of the ground,
+ *      so it does not become ellipsoidal when the ground does. `footprint.ts`
+ *      uses the same −r̂ for its sub-satellite point, so a zero-bias footprint
+ *      centre and the sub-satellite point are the same point by construction.
+ *
+ *   2. TARGET VISIBILITY HORIZON — **the WGS84 ellipsoid surface normal.**
+ *      Whether a target can see the satellite at all is a question about the
+ *      local horizon at that target, and the local horizon is perpendicular to
+ *      the ELLIPSOID NORMAL there. Using the radius vector instead — which is
+ *      what a spherical model does, and what this code did before R28 — is
+ *      wrong by the deflection of the vertical, up to 0.19°, and mislabels
+ *      grazing geometry.
+ *
+ * They coincide on a sphere. That is why the distinction did not exist before,
+ * and why it is easy to reintroduce by accident.
+ */
+
 import {
     type Vec3, v3, dot, cross, normalize, rotateAround, toRad, toDeg,
 } from '../../../utils/sphericalGeometry';
+import { WGS84_A_KM, WGS84_F } from '../../../utils/wgs84Geometry';
 import type { EciState, FovSpec, Target } from '../domain/types';
 import { earthRotationRad, ecefToEci, geodeticToEcef } from '../propagation/keplerJ2';
 
@@ -72,6 +101,20 @@ export interface PreparedFov {
 const BODY_X = v3(1, 0, 0);
 const BODY_Y = v3(0, 1, 0);
 const BODY_Z = v3(0, 0, 1);
+const WGS84_B_KM = WGS84_A_KM * (1 - WGS84_F);
+const INV_WGS84_A_SQ = 1 / (WGS84_A_KM * WGS84_A_KM);
+const INV_WGS84_B_SQ = 1 / (WGS84_B_KM * WGS84_B_KM);
+
+/** Unnormalised WGS84 surface normal at an ECI target position. */
+function targetEllipsoidNormal(targetEci: Vec3): Vec3 {
+    // WGS84 is axisymmetric about z, so this diagonal transform commutes with
+    // the ECEF↔ECI rotation and is valid directly in ECI.
+    return v3(
+        targetEci.x * INV_WGS84_A_SQ,
+        targetEci.y * INV_WGS84_A_SQ,
+        targetEci.z * INV_WGS84_B_SQ,
+    );
+}
 
 /**
  * Resolve a FovSpec into body-frame axes.
@@ -140,10 +183,14 @@ export function isTargetInFov(sat: EciState, targetEci: Vec3, fov: PreparedFov):
     const dy = targetEci.y - sat.y;
     const dz = targetEci.z - sat.z;
 
-    // (3) Horizon. The satellite is below the target's local horizon exactly when
-    // d points outward at the target, i.e. d · target ≥ 0. Scaling by the
-    // target's radius does not change the sign, so no normalise is needed.
-    if (dx * targetEci.x + dy * targetEci.y + dz * targetEci.z >= 0) return false;
+    // (3) Horizon. On WGS84 the local horizon is perpendicular to the
+    // ellipsoid normal, not the geocentric radius vector. Normalisation is not
+    // needed for the sign test.
+    // Kept as scalars: this function is the allocation-free analysis hot path.
+    const nx = targetEci.x * INV_WGS84_A_SQ;
+    const ny = targetEci.y * INV_WGS84_A_SQ;
+    const nz = targetEci.z * INV_WGS84_B_SQ;
+    if (dx * nx + dy * ny + dz * nz >= 0) return false;
 
     // (4) LVLH basis in ECI. Circular orbit → v ⊥ r, but orthogonalise anyway so
     // the frame stays exact if a non-circular propagator is ever swapped in.
@@ -187,14 +234,12 @@ export function isTargetInFov(sat: EciState, targetEci: Vec3, fov: PreparedFov):
         if (e1 * e1 + e2 * e2 > 1) return false;
     }
 
-    // (8) Optional elevation mask. sin(el) = (sat − target)·t̂ / |sat − target|.
+    // (8) Optional elevation mask against the WGS84 surface normal.
     if (fov.minElevationRad !== null) {
-        const tLen = Math.sqrt(
-            targetEci.x * targetEci.x + targetEci.y * targetEci.y + targetEci.z * targetEci.z
-        );
+        const nLen = Math.sqrt(nx * nx + ny * ny + nz * nz);
         const dLen = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        if (tLen === 0 || dLen === 0) return false;
-        const sinEl = -(dx * targetEci.x + dy * targetEci.y + dz * targetEci.z) / (tLen * dLen);
+        if (nLen === 0 || dLen === 0) return false;
+        const sinEl = -(dx * nx + dy * ny + dz * nz) / (nLen * dLen);
         if (Math.asin(Math.max(-1, Math.min(1, sinEl))) < fov.minElevationRad) return false;
     }
 
@@ -225,10 +270,13 @@ export function evaluateContainment(
 ): ContainmentDetail {
     const d = v3(targetEci.x - sat.x, targetEci.y - sat.y, targetEci.z - sat.z);
     const slantRangeKm = Math.sqrt(dot(d, d));
-    const tHat = normalize(targetEci);
-    const sinEl = slantRangeKm > 0 ? -dot(d, tHat) / slantRangeKm : 0;
+    const normal = targetEllipsoidNormal(targetEci);
+    const nLen = Math.sqrt(dot(normal, normal));
+    const sinEl = slantRangeKm > 0 && nLen > 0
+        ? -dot(d, normal) / (slantRangeKm * nLen)
+        : 0;
     const elevationDeg = toDeg(Math.asin(Math.max(-1, Math.min(1, sinEl))));
-    const aboveHorizon = dot(d, targetEci) < 0;
+    const aboveHorizon = dot(d, normal) < 0;
 
     const rHat = normalize(v3(sat.x, sat.y, sat.z));
     const zHat = v3(-rHat.x, -rHat.y, -rHat.z);

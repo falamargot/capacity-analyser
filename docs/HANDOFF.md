@@ -45,17 +45,18 @@ and now assert against it directly.
 
 ## Current objective
 
-None outstanding on correctness. The remaining items are product decisions and
-one unmeasured performance claim.
+R28 is implemented on `feat/r28-wgs84-altitude-datum`. The next product change
+is the versioned OneWeb HLD reference profile; the new-datum GMAT fixture and a
+foreground performance measurement remain independent validation follow-ups.
 
 ---
 
 ## Remaining work
 
-- **R28 — the altitude convention.** `a = 6371 + h` (mean radius) vs the
-  aerospace `a = R_eq + h`. Worth 0.36 % on Ω̇ and now the dominant residual in
-  the sun-synchronous comparison. Deliberately not changed unilaterally: it
-  moves every displayed number. **This is the next decision to make.**
+- **OneWeb HLD reference profile.** Add 12 × 48 active satellites, 58 spares,
+  per-plane altitudes 1175–1219 km and `fudge ≈ 1.015` as a separate change.
+- **R28 external datum check.** The fixed-SMA propagator remains GMAT-validated;
+  the new `a = WGS84_A + h` mapping still needs its own GMAT fixture.
 - **R29 — Ω̇ residual up to 0.3 %** vs GMAT, inclination-structured. Accepted
   and bounded (under 0.4 km cross-track over 72 h at the reference shell). The
   textbook J₂² term does not reproduce the structure, so it was not added.

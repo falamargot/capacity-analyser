@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { EARTH_RADIUS_KM } from '../../../utils/earthGeometry';
+import { orbitalRadiusKm } from '../../../utils/wgs84Geometry';
 import {
-    EARTH_ROTATION_RATE_RAD_S, J2, J2_REFERENCE_RADIUS_KM, MU_EARTH_KM3_S2,
+    EARTH_ROTATION_RATE_RAD_S, J2, MU_EARTH_KM3_S2,
     argLatRateRadPerSec, earthRotationRad, ecefToGeodetic, ecefToEci, eciToEcef,
     geodeticToEcef, gmstRad, meanMotionRadPerSec, nodalRegressionRadPerSec,
     orbitalPeriodSec, preparePropagator, propagate, propagateState,
@@ -28,7 +28,7 @@ describe('keplerJ2 — constants', () => {
 // ─── EXIT GATE 1 — sun-synchronous drift ────────────────────────────────────
 describe('keplerJ2 — sun-synchronous nodal drift', () => {
     it('gives Ω̇ ≈ +0.9856 °/day at h = 600 km, i = 97.8°', () => {
-        const a = EARTH_RADIUS_KM + 600;
+        const a = orbitalRadiusKm(600);
         const driftDegPerDay = toDeg(nodalRegressionRadPerSec(a, 97.8)) * 86400;
 
         const textbook = 0.9856;
@@ -37,56 +37,65 @@ describe('keplerJ2 — sun-synchronous nodal drift', () => {
 
         // The value this model actually produces, pinned so a change to the
         // formula or to either radius constant shows up as a diff.
-        expect(driftDegPerDay).toBeCloseTo(0.99074, 4);
+        expect(driftDegPerDay).toBeCloseTo(0.98720, 4);
     });
 
-    it('closes on the textbook value once the altitude convention matches it', () => {
-        // The 0.52 % residual above is NOT the J₂ formula — since R4 that is
-        // cross-checked against GMAT. It is the altitude convention: this module
-        // takes a = EARTH_RADIUS_KM + h with the *mean* radius 6371 km
-        // (ADR-001 §2), while the published i = 97.8° at 600 km was derived with
-        // the equatorial radius, i.e. a 7.1 km larger semi-major axis. Ω̇ scales
-        // as a^-3.5, so that convention alone is worth 0.36 %.
+    it('agrees with the published figure to 0.16 % — R28 closed the gap', () => {
+        // History, because the number moved and the reason matters.
         //
-        // Feeding the aerospace convention in cuts the disagreement by a factor
-        // of three, which localises the residual. What is left is 97.8° being a
-        // rounded figure. See "altitude convention" in docs/DEFERRED_ITEMS.md.
-        const aEquatorial = J2_REFERENCE_RADIUS_KM + 600;
-        const drift = toDeg(nodalRegressionRadPerSec(aEquatorial, 97.8)) * 86400;
+        // Before R28 this read 0.99074 °/day, 0.52 % from the textbook value,
+        // and a companion test existed here solely to demonstrate that feeding
+        // the aerospace altitude convention cut the error to 0.16 %. R28 adopted
+        // that convention, so the demonstration and the engine are now the same
+        // computation and the companion test has been folded into this one.
+        //
+        // What is left — 0.16 % — is 97.8° being a figure rounded to a tenth of
+        // a degree, not a modelling residual. dΩ̇/Ω̇ = −tan(i)·di, and at i ≈ 98°
+        // that is ≈ 7 per radian, so ±0.05° of rounding is ±0.6 % on its own.
+        // The agreement is therefore as close as the published input allows.
+        const drift = toDeg(nodalRegressionRadPerSec(orbitalRadiusKm(600), 97.8)) * 86400;
         expect(Math.abs(drift - 0.9856) / 0.9856).toBeLessThan(0.002);
     });
 
     it('regresses westward for prograde orbits and eastward for retrograde', () => {
-        const a = EARTH_RADIUS_KM + 600;
+        const a = orbitalRadiusKm(600);
         expect(nodalRegressionRadPerSec(a, 51.6)).toBeLessThan(0);
         expect(nodalRegressionRadPerSec(a, 97.8)).toBeGreaterThan(0);
     });
 
     it('vanishes at 90° inclination, where the node does not regress', () => {
-        expect(nodalRegressionRadPerSec(EARTH_RADIUS_KM + 600, 90)).toBeCloseTo(0, 15);
+        expect(nodalRegressionRadPerSec(orbitalRadiusKm(600), 90)).toBeCloseTo(0, 15);
     });
 });
 
 describe('keplerJ2 — mean motion and period', () => {
     it('reproduces the orbital period at 500 / 600 / 700 km', () => {
-        // NOTE: these are the periods of a SPHERICAL Earth at R = 6371 km
-        // (ADR-001 §2). The design note's table quotes 94.6 / 96.7 / 98.8 min,
-        // which are the WGS84-equatorial-radius (6378.137 km) values — a 0.15 %
-        // difference from the Earth model this codebase has chosen. The swath
-        // widths in that same table are R = 6371 values and DO match; see
-        // footprint.test.ts. The discrepancy is in the source table, not here.
-        expect(orbitalPeriodSec(EARTH_RADIUS_KM + 500) / 60).toBeCloseTo(94.469, 2);
-        expect(orbitalPeriodSec(EARTH_RADIUS_KM + 600) / 60).toBeCloseTo(96.539, 2);
-        expect(orbitalPeriodSec(EARTH_RADIUS_KM + 700) / 60).toBeCloseTo(98.624, 2);
+        // R28 RESOLVES THE THIRD AND LAST OF THESE DISCREPANCIES.
+        //
+        // This note used to say the design note's 94.6 / 96.7 / 98.8 min were
+        // "WGS84-equatorial values" differing from the Earth model this codebase
+        // had chosen, and that the discrepancy lay in the source table. It did
+        // not. On the equatorial altitude datum the periods come out
+        // 94.62 / 96.69 / 98.77 — the published figures.
+        //
+        // Together with the horizon angles (footprint.test.ts) and the swath
+        // widths, that is three independent quantities from one source table,
+        // all agreeing once the datum is equatorial. The table was consistent
+        // throughout; the 6371 km model was the outlier. Audit finding R1,
+        // which recorded the opposite, is corrected in
+        // docs/SPATIAL_PHYSICS_AUDIT.md.
+        expect(orbitalPeriodSec(orbitalRadiusKm(500)) / 60).toBeCloseTo(94.616, 2);
+        expect(orbitalPeriodSec(orbitalRadiusKm(600)) / 60).toBeCloseTo(96.687, 2);
+        expect(orbitalPeriodSec(orbitalRadiusKm(700)) / 60).toBeCloseTo(98.773, 2);
     });
 
     it('satisfies n = 2π/T', () => {
-        const a = EARTH_RADIUS_KM + 1200;
+        const a = orbitalRadiusKm(1200);
         expect(meanMotionRadPerSec(a) * orbitalPeriodSec(a)).toBeCloseTo(2 * Math.PI, 10);
     });
 
     it('perturbs the argument of latitude rate only slightly away from n', () => {
-        const a = EARTH_RADIUS_KM + 600;
+        const a = orbitalRadiusKm(600);
         const n = meanMotionRadPerSec(a);
         const uDot = argLatRateRadPerSec(a, 97.8);
         // u̇ = ω̇ + Ṁ carries both Brouwer secular terms, so it sits ~1.3e-3 from
@@ -102,7 +111,7 @@ describe('keplerJ2 — propagation geometry', () => {
         id: 'P00_S00',
         planeIndex: 0,
         satIndexInPlane: 0,
-        semiMajorAxisKm: EARTH_RADIUS_KM + 600,
+        semiMajorAxisKm: orbitalRadiusKm(600),
         inclinationDeg: 60,
         raanDeg: 0,
         argLatDeg: 0,
@@ -113,12 +122,12 @@ describe('keplerJ2 — propagation geometry', () => {
         const sat = preparePropagator(element());
         for (const t of [0, 137, 2000, 54321]) {
             const s = propagateState(sat, t);
-            expect(Math.hypot(s.x, s.y, s.z)).toBeCloseTo(EARTH_RADIUS_KM + 600, 8);
+            expect(Math.hypot(s.x, s.y, s.z)).toBeCloseTo(orbitalRadiusKm(600), 8);
         }
     });
 
     it('places u = 0 at the ascending node and u = 90° at maximum latitude', () => {
-        const a = EARTH_RADIUS_KM + 600;
+        const a = orbitalRadiusKm(600);
         const atNode = propagateState(preparePropagator(element({ argLatDeg: 0 })), 0);
         expect(atNode.z).toBeCloseTo(0, 9);
         expect(atNode.x).toBeCloseTo(a, 6);
@@ -128,14 +137,14 @@ describe('keplerJ2 — propagation geometry', () => {
     });
 
     it('rotates the orbit plane by the RAAN', () => {
-        const a = EARTH_RADIUS_KM + 600;
+        const a = orbitalRadiusKm(600);
         const s = propagateState(preparePropagator(element({ raanDeg: 90, argLatDeg: 0 })), 0);
         expect(s.x).toBeCloseTo(0, 6);
         expect(s.y).toBeCloseTo(a, 6);
     });
 
     it('produces a velocity perpendicular to the radius, at circular speed', () => {
-        const a = EARTH_RADIUS_KM + 600;
+        const a = orbitalRadiusKm(600);
         const s = propagateState(preparePropagator(element()), 1234);
         const rDotV = s.x * s.vx + s.y * s.vy + s.z * s.vz;
         expect(rDotV / (a * Math.hypot(s.vx, s.vy, s.vz))).toBeCloseTo(0, 9);
@@ -145,7 +154,7 @@ describe('keplerJ2 — propagation geometry', () => {
     });
 
     it('returns to the same point after one nodal period', () => {
-        const a = EARTH_RADIUS_KM + 600;
+        const a = orbitalRadiusKm(600);
         const el = element({ inclinationDeg: 0, raanDeg: 0 });
         const sat = preparePropagator(el);
         // At i = 0 the in-plane angle advances at u̇ + Ω̇, since RAAN and argument

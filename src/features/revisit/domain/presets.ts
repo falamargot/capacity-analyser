@@ -39,7 +39,7 @@
  * which is where that lever belongs.
  */
 
-import { EARTH_RADIUS_KM } from '../../../utils/earthGeometry';
+import { WGS84_A_KM, orbitalRadiusKm } from '../../../utils/wgs84Geometry';
 import { toDeg, toRad } from '../../../utils/sphericalGeometry';
 import type {
     AnalysisWindow, FovSpec, RevisitScenario, SubConstellationSpec, Target, WalkerSpec,
@@ -68,11 +68,11 @@ export const DEFAULT_REFERENCE: WalkerSpec = {
  * that cannot physically exist should fail loudly, not silently clamp.
  */
 export function offNadirDegForSwath(altitudeKm: number, swathKm: number): number | null {
-    const r = EARTH_RADIUS_KM + altitudeKm;
-    const lambda = swathKm / (2 * EARTH_RADIUS_KM);
-    const horizonLambda = Math.PI / 2 - Math.asin(EARTH_RADIUS_KM / r);
+    const r = orbitalRadiusKm(altitudeKm);
+    const lambda = swathKm / (2 * WGS84_A_KM);
+    const horizonLambda = Math.PI / 2 - Math.asin(WGS84_A_KM / r);
     if (lambda >= horizonLambda) return null;
-    return toDeg(Math.atan2(Math.sin(lambda), r / EARTH_RADIUS_KM - Math.cos(lambda)));
+    return toDeg(Math.atan2(Math.sin(lambda), r / WGS84_A_KM - Math.cos(lambda)));
 }
 
 export type FovPresetName = 'NARROW' | 'STANDARD' | 'WIDE';
@@ -115,13 +115,13 @@ export const FOV_PRESETS = fovPresets(DEFAULT_REFERENCE.altitudeKm);
 
 /** The ground swath a FOV actually produces, km — for labelling a preset. */
 export function swathKmForFov(altitudeKm: number, fov: FovSpec): number {
-    const r = EARTH_RADIUS_KM + altitudeKm;
+    const r = orbitalRadiusKm(altitudeKm);
     const eta = toRad(Math.max(fov.halfAngle1Deg, fov.halfAngle2Deg));
-    const s = (r / EARTH_RADIUS_KM) * Math.sin(eta);
+    const s = (r / WGS84_A_KM) * Math.sin(eta);
     const lambda = s >= 1
-        ? Math.PI / 2 - Math.asin(EARTH_RADIUS_KM / r)
+        ? Math.PI / 2 - Math.asin(WGS84_A_KM / r)
         : Math.asin(s) - eta;
-    return 2 * EARTH_RADIUS_KM * lambda;
+    return 2 * WGS84_A_KM * lambda;
 }
 
 /**

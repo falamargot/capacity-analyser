@@ -14,7 +14,7 @@
  * same order, with no reliance on wall-clock time.
  */
 
-import { EARTH_RADIUS_KM } from '../../../utils/earthGeometry';
+import { orbitalRadiusKm } from '../../../utils/wgs84Geometry';
 import type { OrbitalElements, WalkerSpec } from './types';
 
 /** Wrap an angle into [0, 360). */
@@ -86,7 +86,7 @@ export function generateWalkerConstellation(spec: WalkerSpec): OrbitalElements[]
     const { planes: P, satsPerPlane: S } = spec;
     const span = raanSpanDeg(spec);
     const raan0 = spec.raan0Deg ?? 0;
-    const semiMajorAxisKm = EARTH_RADIUS_KM + spec.altitudeKm;
+    const semiMajorAxisKm = orbitalRadiusKm(spec.altitudeKm);
 
     const out: OrbitalElements[] = new Array(P * S);
     let k = 0;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EARTH_RADIUS_KM } from '../../../utils/earthGeometry';
+import { orbitalRadiusKm } from '../../../utils/wgs84Geometry';
 import type { ObservedElements } from '../../../utils/observedOrbitalElements';
 import {
     angleDeltaDeg, circularMeanDeg, clusterPlanesByRaan, fitWalker, unwrapPlaneOrder,
@@ -87,8 +87,8 @@ describe('unwrapPlaneOrder', () => {
 describe('clusterPlanesByRaan', () => {
     const at = (raanDeg: number, id: string): ObservedElements => ({
         id, name: id, inclinationDeg: 87.9, raanDeg, argLatDeg: 0,
-        semiMajorAxisKm: EARTH_RADIUS_KM + 1200, eccentricity: 0,
-        epochMs: EPOCH_MS, meanMotionRadPerSec: meanMotionRadPerSec(EARTH_RADIUS_KM + 1200),
+        semiMajorAxisKm: orbitalRadiusKm(1200), eccentricity: 0,
+        epochMs: EPOCH_MS, meanMotionRadPerSec: meanMotionRadPerSec(orbitalRadiusKm(1200)),
     });
 
     it('groups satellites sharing a RAAN', () => {
@@ -163,7 +163,9 @@ describe('fitWalker — recovers the parameters it was generated from', () => {
 
     it('expresses the along-track residual in kilometres at the fitted altitude', () => {
         const fit = fitWalker(observeWalker(oneWebLike, 0.4));
-        const expected = (fit.argLatRmsDeg * Math.PI / 180) * (EARTH_RADIUS_KM + fit.spec.altitudeKm);
+        // Arc length at the ORBITAL radius, on the R28 datum — the same datum
+        // the fit inverts, so a round trip through fit -> generate is stable.
+        const expected = (fit.argLatRmsDeg * Math.PI / 180) * orbitalRadiusKm(fit.spec.altitudeKm);
         expect(fit.alongTrackRmsKm).toBeCloseTo(expected, 3);
     });
 });
@@ -197,8 +199,8 @@ describe('fitWalker — real-fleet imperfections', () => {
         observed.push({
             id: 'RAISING', name: 'RAISING', inclinationDeg: 87.9,
             raanDeg: 95, argLatDeg: 40,
-            semiMajorAxisKm: EARTH_RADIUS_KM + 1050, eccentricity: 0,
-            epochMs: EPOCH_MS, meanMotionRadPerSec: meanMotionRadPerSec(EARTH_RADIUS_KM + 1050),
+            semiMajorAxisKm: orbitalRadiusKm(1050), eccentricity: 0,
+            epochMs: EPOCH_MS, meanMotionRadPerSec: meanMotionRadPerSec(orbitalRadiusKm(1050)),
         });
 
         const fit = fitWalker(observed);
@@ -215,8 +217,8 @@ describe('fitWalker — real-fleet imperfections', () => {
         observed.push({
             id: 'STRAY', name: 'STRAY', inclinationDeg: 87.9,
             raanDeg: 105, argLatDeg: 10,
-            semiMajorAxisKm: EARTH_RADIUS_KM + 1200, eccentricity: 0,
-            epochMs: EPOCH_MS, meanMotionRadPerSec: meanMotionRadPerSec(EARTH_RADIUS_KM + 1200),
+            semiMajorAxisKm: orbitalRadiusKm(1200), eccentricity: 0,
+            epochMs: EPOCH_MS, meanMotionRadPerSec: meanMotionRadPerSec(orbitalRadiusKm(1200)),
         });
         const fit = fitWalker(observed);
         expect(fit.planesDetected).toBe(6);

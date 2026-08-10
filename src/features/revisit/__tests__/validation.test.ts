@@ -6,26 +6,33 @@
  *
  *   V1  analytic J2 secular rates      vs  RK4 integration of the J2 force model
  *   V2  the sun-synchronous condition  vs  the published SSO inclination table
- *   V3  geodesic-walk footprints       vs  ray/sphere intersection
+ *   V3  ray/ellipsoid footprints       vs  Cesium's WGS84 ray intersection
  *   V4  interval + gap arithmetic      vs  brute-force time sampling
  *   V5  LVLH tangent containment       vs  a direct off-nadir angle test
  *
  * ── WHAT THIS IS NOT ────────────────────────────────────────────────────────
- * This is NOT the external validation the design note §7.4 asks for. Every
- * oracle below was written by the same author against the same understanding of
- * the problem, so a shared modelling misconception would pass all of it. The
- * cross-check against GMAT or STK remains outstanding and is still the thing to
- * do before these numbers are shown to anyone senior. See DEFERRED_ITEMS R4.
+ * Most oracles below were written by the same author against the same
+ * understanding of the problem, so a shared modelling misconception could pass
+ * them. R4 proved that concretely — GMAT found two defects this suite did not.
+ * V3 is the exception since R28: its oracle is Cesium's WGS84 ellipsoid, a
+ * third-party implementation, chosen because a hand-rolled ray/ellipsoid oracle
+ * would now be the same algorithm as the code under test.
+ *
+ * GMAT (R4) validated the PROPAGATOR. The R28 altitude datum is NOT yet
+ * externally validated: the committed GMAT fixture is pinned to a fixed
+ * semi-major axis and deliberately says nothing about how altitude maps to it.
  *
  * What it does establish: the implementation matches independent derivations of
  * the same physics, and the residuals are explained rather than tolerated.
  */
 
 import { describe, expect, it } from 'vitest';
-import { EARTH_RADIUS_KM } from '../../../utils/earthGeometry';
+import { Cartesian3, Ellipsoid, IntersectionTests, Ray } from 'cesium';
+import { WGS84_A_KM, orbitalRadiusKm } from '../../../utils/wgs84Geometry';
 import { toRad, toDeg } from '../../../utils/sphericalGeometry';
 import {
-    J2, J2_REFERENCE_RADIUS_KM, MU_EARTH_KM3_S2, argLatRateRadPerSec, eciToEcef, gmstRad,
+    J2, J2_REFERENCE_RADIUS_KM, MU_EARTH_KM3_S2, argLatRateRadPerSec, eciToEcef,
+    geodeticToEcef, gmstRad,
     meanMotionRadPerSec, nodalRegressionRadPerSec, preparePropagator, propagateState,
 } from '../propagation/keplerJ2';
 import { isTargetInFov, prepareFov, targetEciAt } from '../fov/containment';
@@ -107,7 +114,7 @@ function raanFromState(s: State6): number {
 
 /** Least-squares secular RAAN rate over `orbits` revolutions, rad/s. */
 function integratedRaanRate(altKm: number, incDeg: number, j2: number, orbits = 20): number {
-    const a = EARTH_RADIUS_KM + altKm;
+    const a = orbitalRadiusKm(altKm);
     const i = toRad(incDeg);
     const speed = Math.sqrt(MU_EARTH_KM3_S2 / a);
     let s: State6 = [a, 0, 0, 0, speed * Math.cos(i), speed * Math.sin(i)];
@@ -151,7 +158,7 @@ describe('V1 — analytic J2 secular rates vs numerical integration', () => {
         [1200, 87.9],
     ])('agrees within 1 %% at h = %i km, i = %s°', (altKm, incDeg) => {
         const numerical = integratedRaanRate(altKm, incDeg, J2);
-        const analytic = nodalRegressionRadPerSec(EARTH_RADIUS_KM + altKm, incDeg);
+        const analytic = nodalRegressionRadPerSec(orbitalRadiusKm(altKm), incDeg);
 
         expect(Math.sign(numerical)).toBe(Math.sign(analytic));
         expect(Math.abs(numerical - analytic) / Math.abs(analytic)).toBeLessThan(0.01);
@@ -163,7 +170,7 @@ describe('V1 — analytic J2 secular rates vs numerical integration', () => {
         const discrepancy = (factor: number) => {
             const j2 = J2 * factor;
             const numerical = integratedRaanRate(alt, inc, j2, 10);
-            const a = EARTH_RADIUS_KM + alt;
+            const a = orbitalRadiusKm(alt);
             const analytic =
                 -1.5 * meanMotionRadPerSec(a) * j2 * (J2_REFERENCE_RADIUS_KM / a) ** 2
                 * Math.cos(toRad(inc));
@@ -180,7 +187,7 @@ describe('V1 — analytic J2 secular rates vs numerical integration', () => {
     it('reproduces the orbital period from the integrated trajectory', () => {
         // Independent of meanMotionRadPerSec: integrate with J₂ = 0 and time the
         // return through the initial plane crossing.
-        const a = EARTH_RADIUS_KM + 600;
+        const a = orbitalRadiusKm(600);
         const speed = Math.sqrt(MU_EARTH_KM3_S2 / a);
         let s: State6 = [a, 0, 0, 0, speed, 0];
         const dt = 0.5;
@@ -219,7 +226,7 @@ function osculatingSmaKm(s: State6): number {
  *
  * Returning the mean `a` is what makes this oracle usable for an absolute rate
  * comparison. The integration is seeded with an *osculating* circular state at
- * radius `EARTH_RADIUS_KM + altKm`, but J₂'s short-period term means the
+ * radius `orbitalRadiusKm(altKm)`, but J₂'s short-period term means the
  * corresponding *mean* semi-major axis is several kilometres away — and by an
  * amount that varies with inclination, since the short-period coefficient
  * carries (1 − (3/2)sin²i). Comparing a rate computed at mean `a` against a
@@ -235,7 +242,7 @@ function osculatingSmaKm(s: State6): number {
 function integratedAngleRate(
     altKm: number, incDeg: number, angleOf: (s: State6) => number, orbits = 30
 ): { rate: number; meanSmaKm: number } {
-    const a = EARTH_RADIUS_KM + altKm;
+    const a = orbitalRadiusKm(altKm);
     const i = toRad(incDeg);
     const speed = Math.sqrt(MU_EARTH_KM3_S2 / a);
     let s: State6 = [a, 0, 0, 0, speed * Math.cos(i), speed * Math.sin(i)];
@@ -319,7 +326,7 @@ describe('V1b — argument-of-latitude rate vs numerical integration', () => {
     }, 60_000);
 
     it('stays close to the Keplerian mean motion — J2 perturbs, it does not dominate', () => {
-        const a = EARTH_RADIUS_KM + ALT_KM;
+        const a = orbitalRadiusKm(ALT_KM);
         const { rate } = integratedAngleRate(ALT_KM, 87.9, argLatFromState, 20);
         expect(Math.abs(rate - meanMotionRadPerSec(a)) / meanMotionRadPerSec(a))
             .toBeLessThan(0.01);
@@ -369,24 +376,31 @@ describe('V2 — sun-synchronous inclination table', () => {
         expect(ssoInclinationDeg(altKm, J2_REFERENCE_RADIUS_KM)).toBeCloseTo(published, 1);
     });
 
-    it('shifts the table by ~0.03° under the engine altitude convention', () => {
-        // Not a defect, but it must be visible rather than absorbed into a
-        // tolerance: measuring altitude from the 6371 km mean sphere makes `a`
-        // 7.1 km smaller than the published table assumes, which moves the
-        // sun-synchronous inclination by up to ~0.03° and, at 1000 km, past the
-        // rounding of the published figure. See docs/DEFERRED_ITEMS.md.
+    it('no longer shifts the table — R28 unified the two conventions', () => {
+        // This test previously asserted the OPPOSITE: that measuring altitude
+        // from the 6371 km mean sphere moved the sun-synchronous inclination by
+        // up to ~0.03° away from the published table, and that the shift had to
+        // stay visible rather than be absorbed into a tolerance.
+        //
+        // R28 adopted the equatorial datum, so "the engine convention" and "the
+        // convention the published table was computed with" are now the same
+        // computation. The assertion is inverted rather than deleted, so that
+        // reintroducing a separate engine datum fails here rather than passing
+        // silently.
         for (const altKm of [400, 600, 1000]) {
-            const engine = ssoInclinationDeg(altKm, EARTH_RADIUS_KM);
+            const engine = ssoInclinationDeg(altKm, orbitalRadiusKm(0));
             const standard = ssoInclinationDeg(altKm, J2_REFERENCE_RADIUS_KM);
-            expect(engine).toBeLessThan(standard);
-            expect(standard - engine).toBeLessThan(0.04);
+            // WGS84_A_KM and J2_REFERENCE_RADIUS_KM differ by 0.7 m by design —
+            // one is the altitude datum, the other J₂'s defining radius — so
+            // this is "identical to within that", not bit-identical.
+            expect(Math.abs(engine - standard)).toBeLessThan(1e-5);
         }
     });
 
     it('round-trips: the derived inclination reproduces the sun-synchronous rate', () => {
         for (const altKm of [400, 600, 800, 1000]) {
-            const a = EARTH_RADIUS_KM + altKm;
-            const rate = nodalRegressionRadPerSec(a, ssoInclinationDeg(altKm, EARTH_RADIUS_KM));
+            const a = orbitalRadiusKm(altKm);
+            const rate = nodalRegressionRadPerSec(a, ssoInclinationDeg(altKm, orbitalRadiusKm(0)));
             expect(rate).toBeCloseTo(SSO_RATE_RAD_S, 12);
             // One full turn per tropical year.
             expect(toDeg(rate) * 365.2422 * 86400).toBeCloseTo(360, 6);
@@ -394,46 +408,57 @@ describe('V2 — sun-synchronous inclination table', () => {
     });
 });
 
-// ─── V3 — geodesic-walk footprint vs ray/sphere intersection ────────────────
+// ─── V3 — footprint projection vs CESIUM's WGS84 ray intersection ───────────
 
-describe('V3 — footprint projection vs ray/sphere intersection', () => {
-    // The audit (§3.2) replaced the design note's ray-casting with a ground-centre
-    // plus geodesic walk. Both should land on the same point. Ray/sphere is the
-    // independent oracle here; the FOV body axes are shared between the two, so
-    // this validates the PROJECTION, not the FOV definition.
+describe('V3 — footprint projection vs Cesium ray/ellipsoid intersection', () => {
+    // R28 re-derivation, and a deliberate change of oracle.
+    //
+    // This used to ray-cast against a 6371 km SPHERE, written out here by hand.
+    // That was independent while the implementation walked a geodesic. It no
+    // longer is: `computeFootprint` is itself a ray/ellipsoid intersection, so a
+    // hand-rolled ray/ellipsoid oracle would be the same algorithm twice and
+    // would agree with a wrong flattening as happily as a right one — exactly
+    // the correlated-oracle trap R4 was.
+    //
+    // Cesium's `IntersectionTests.rayEllipsoid` is a third-party implementation
+    // with its own constants, already in this project's dependency tree. The
+    // FOV body axes are still shared between the two sides, so this validates
+    // the PROJECTION, not the FOV definition.
     const ALT_KM = 600;
-    const A_KM = EARTH_RADIUS_KM + ALT_KM;
+    const A_KM = orbitalRadiusKm(ALT_KM);
     const sat: EciState = {
         x: A_KM, y: 0, z: 0,
         vx: 0, vy: A_KM * argLatRateRadPerSec(A_KM, 0), vz: 0,
     };
 
     /**
-     * Solve |P + tD|² = R² for the near intersection, then convert to lat/lng.
+     * Cesium's ray/WGS84 intersection, in ECEF, returned as geodetic lat/lng.
      *
-     * D MUST be a unit vector — the reduced quadratic below assumes |D| = 1.
-     * The boundary rays are built as `b̂ + t₁û₁ + t₂û₂`, whose length is
-     * √(1 + t₁² + t₂²), so normalising is not optional: skipping it scales the
-     * root by that factor and the ground point drifts as tan²θ.
+     * Cesium works in metres; everything here is kilometres.
      */
+    const KM = 1000;
     function rayCastToGround(
         dir: { x: number; y: number; z: number },
         thetaRad: number
     ): { lat: number; lng: number } | null {
-        const len = Math.hypot(dir.x, dir.y, dir.z);
-        const dirEci = { x: dir.x / len, y: dir.y / len, z: dir.z / len };
-        const b = 2 * (sat.x * dirEci.x + sat.y * dirEci.y + sat.z * dirEci.z);
-        const c = A_KM * A_KM - EARTH_RADIUS_KM * EARTH_RADIUS_KM;
-        const disc = b * b - 4 * c;
-        if (disc < 0) return null;
-        const t = (-b - Math.sqrt(disc)) / 2;
-        if (t < 0) return null;
-        const hit = eciToEcef(
-            { x: sat.x + dirEci.x * t, y: sat.y + dirEci.y * t, z: sat.z + dirEci.z * t },
-            thetaRad
+        const satEcef = eciToEcef({ x: sat.x, y: sat.y, z: sat.z }, thetaRad);
+        const dirEcef = eciToEcef(dir, thetaRad);
+
+        const origin = new Cartesian3(satEcef.x * KM, satEcef.y * KM, satEcef.z * KM);
+        const direction = Cartesian3.normalize(
+            new Cartesian3(dirEcef.x * KM, dirEcef.y * KM, dirEcef.z * KM),
+            new Cartesian3()
         );
-        const r = Math.hypot(hit.x, hit.y, hit.z);
-        return { lat: toDeg(Math.asin(hit.z / r)), lng: toDeg(Math.atan2(hit.y, hit.x)) };
+        const ray = new Ray(origin, direction);
+        const interval = IntersectionTests.rayEllipsoid(ray, Ellipsoid.WGS84);
+        if (!interval) return null;
+
+        const hit = Ray.getPoint(ray, interval.start);
+        const carto = Ellipsoid.WGS84.cartesianToCartographic(hit);
+        return {
+            lat: (carto.latitude * 180) / Math.PI,
+            lng: (carto.longitude * 180) / Math.PI,
+        };
     }
 
     /** LVLH basis rebuilt from the spec, not imported from the module under test. */
@@ -523,8 +548,12 @@ describe('V3 — footprint projection vs ray/sphere intersection', () => {
             z: body.x * xHat.z + body.y * yHat.z + body.z * zHat.z,
         };
         const oracle = rayCastToGround(dirEci, gmstRad(EPOCH))!;
+        // The satellite is equatorial and this is the along-track edge, so the
+        // arc runs along the EQUATOR — exactly a circle of radius `a`, which is
+        // also the reference `halfSwathKm` is defined at. Both sides are exact
+        // here; off the equator they would not be comparable at all.
         const arcRad = toRad(Math.abs(oracle.lng - fp.center.lng));
-        expect(EARTH_RADIUS_KM * arcRad).toBeCloseTo(halfSwathKm(ALT_KM, 30), 3);
+        expect(WGS84_A_KM * arcRad).toBeCloseTo(halfSwathKm(ALT_KM, 30), 3);
     });
 });
 
@@ -534,7 +563,7 @@ describe('V4 — gap statistics vs brute-force sampling', () => {
     // The statistics come from bisected AOS/LOS, interval union and complement.
     // Brute force just asks "in view?" on a fine uniform grid and counts. The two
     // share only the containment predicate.
-    const A_KM = EARTH_RADIUS_KM + 600;
+    const A_KM = orbitalRadiusKm(600);
     const element: OrbitalElements = {
         id: 'P00_S00', planeIndex: 0, satIndexInPlane: 0,
         semiMajorAxisKm: A_KM, inclinationDeg: 0, raanDeg: 0, argLatDeg: 0,
@@ -629,7 +658,22 @@ describe('V5 — LVLH tangent containment vs a direct angle test', () => {
         const cosAngle = (d.x * nadir.x + d.y * nadir.y + d.z * nadir.z) / dLen;
         const angleDeg = toDeg(Math.acos(Math.max(-1, Math.min(1, cosAngle))));
         // Above the target's horizon, and inside the cone.
-        const aboveHorizon = d.x * target.x + d.y * target.y + d.z * target.z < 0;
+        // R28: the horizon is the plane perpendicular to the ELLIPSOID NORMAL
+        // at the target, not to its radius vector. On a sphere those coincide,
+        // which is why `d · target < 0` used to serve; on the ellipsoid they
+        // differ by the deflection of the vertical, up to 0.19°, and the old
+        // form silently mislabels grazing geometry.
+        //
+        // The normal at a surface point is (x/a², y/a², z/b²). It is computed
+        // from the ECI components directly: Earth rotation is about z, and a
+        // rotation about z commutes with diag(1/a², 1/a², 1/b²), so the form is
+        // the same in either frame.
+        const bSq = (WGS84_A_KM * (1 - 1 / 298.257223563)) ** 2;
+        const aSq = WGS84_A_KM * WGS84_A_KM;
+        const nx = target.x / aSq;
+        const ny = target.y / aSq;
+        const nz = target.z / bSq;
+        const aboveHorizon = d.x * nx + d.y * ny + d.z * nz < 0;
         return aboveHorizon && angleDeg <= thetaDeg;
     }
 
@@ -654,7 +698,7 @@ describe('V5 — LVLH tangent containment vs a direct angle test', () => {
             const thetaDeg = 2 + rand() * 55;
             const element: OrbitalElements = {
                 id: 'X', planeIndex: 0, satIndexInPlane: 0,
-                semiMajorAxisKm: EARTH_RADIUS_KM + altKm,
+                semiMajorAxisKm: orbitalRadiusKm(altKm),
                 inclinationDeg: incDeg,
                 raanDeg: rand() * 360,
                 argLatDeg: rand() * 360,
@@ -713,7 +757,7 @@ describe('V5 — LVLH tangent containment vs a direct angle test', () => {
 
         for (let trial = 0; trial < 5000; trial++) {
             const altKm = 400 + rand() * 1000;
-            const a = EARTH_RADIUS_KM + altKm;
+            const a = orbitalRadiusKm(altKm);
             const thetaDeg = 2 + rand() * 55;
             const element: OrbitalElements = {
                 id: 'X', planeIndex: 0, satIndexInPlane: 0,
@@ -748,16 +792,52 @@ describe('V5 — LVLH tangent containment vs a direct angle test', () => {
                 z: e1.z * Math.cos(az) + e2.z * Math.sin(az),
             };
 
-            const limitRad = groundArcRad(a, toRad(thetaDeg)).arcRad;
-            const wantInside = rand() < 0.5;
-            const arc = limitRad * (wantInside ? 0.999 : 1.001);
-            const c = Math.cos(arc);
-            const s = Math.sin(arc);
-            const targetEci = {
-                x: EARTH_RADIUS_KM * (sub.x * c + axis.x * s),
-                y: EARTH_RADIUS_KM * (sub.y * c + axis.y * s),
-                z: EARTH_RADIUS_KM * (sub.z * c + axis.z * s),
+            // R28 re-derivation. The target must sit ON THE ELLIPSOID, and the
+            // central angle at which the FOV edge falls is no longer the
+            // closed-form spherical arc — it depends on azimuth, because the
+            // ground curvature does.
+            //
+            // So the boundary is FOUND rather than assumed: bisect the central
+            // angle for the point whose true look angle is exactly thetaDeg,
+            // then place the trial at ±0.1 % of it. `surfacePoint` scales a unit
+            // direction out to the ellipsoid, from the ellipsoid equation.
+            const surfacePoint = (arcRad: number) => {
+                const c = Math.cos(arcRad);
+                const sn = Math.sin(arcRad);
+                const ux = sub.x * c + axis.x * sn;
+                const uy = sub.y * c + axis.y * sn;
+                const uz = sub.z * c + axis.z * sn;
+                const bSq = (WGS84_A_KM * (1 - 1 / 298.257223563)) ** 2;
+                const aSq = WGS84_A_KM * WGS84_A_KM;
+                const r = 1 / Math.sqrt((ux * ux) / aSq + (uy * uy) / aSq + (uz * uz) / bSq);
+                return { x: r * ux, y: r * uy, z: r * uz };
             };
+            const lookDeg = (arcRad: number) => {
+                const q = surfacePoint(arcRad);
+                const dx = q.x - scratch.x;
+                const dy = q.y - scratch.y;
+                const dz = q.z - scratch.z;
+                const dl = Math.hypot(dx, dy, dz);
+                const sl = Math.hypot(scratch.x, scratch.y, scratch.z);
+                const cosv = -(dx * scratch.x + dy * scratch.y + dz * scratch.z) / (dl * sl);
+                return toDeg(Math.acos(Math.max(-1, Math.min(1, cosv))));
+            };
+
+            let lo = 0;
+            let hi = groundArcRad(a, toRad(thetaDeg)).arcRad * 1.5;
+            // The bracket must straddle the root. Near the limb the look angle
+            // stops increasing, so `hi` can fail to reach thetaDeg; skip those
+            // trials rather than bisecting toward a root that is not there.
+            if (lookDeg(hi) < thetaDeg) continue;
+            for (let i = 0; i < 60; i++) {
+                const mid = (lo + hi) / 2;
+                if (lookDeg(mid) < thetaDeg) lo = mid; else hi = mid;
+            }
+            const limitRad = (lo + hi) / 2;
+            if (Math.abs(lookDeg(limitRad) - thetaDeg) > 1e-6) continue;
+
+            const wantInside = rand() < 0.5;
+            const targetEci = surfacePoint(limitRad * (wantInside ? 0.999 : 1.001));
 
             const fov = prepareFov({
                 biasDeg: { alongTrack: 0, crossTrack: 0 },
@@ -777,7 +857,7 @@ describe('V5 — LVLH tangent containment vs a direct angle test', () => {
     it('agrees on the rectangle degenerating to a square cone at zero clocking', () => {
         // A rectangle whose half-angles are equal is NOT a cone — its corners
         // reach further. The oracle here is the analytic corner angle.
-        const A_KM = EARTH_RADIUS_KM + 600;
+        const A_KM = orbitalRadiusKm(600);
         const sat: EciState = {
             x: A_KM, y: 0, z: 0, vx: 0, vy: A_KM * argLatRateRadPerSec(A_KM, 0), vz: 0,
         };
@@ -789,13 +869,21 @@ describe('V5 — LVLH tangent containment vs a direct angle test', () => {
         const cornerEta = toDeg(Math.atan(Math.hypot(Math.tan(toRad(10)), Math.tan(toRad(10)))));
         expect(cornerEta).toBeGreaterThan(10);
 
-        const distances = fp.boundary.map((p) => {
-            const dLat = toRad(p.lat - fp.center.lat);
-            const dLng = toRad(p.lng - fp.center.lng);
-            const h = Math.sin(dLat / 2) ** 2
-                + Math.cos(toRad(fp.center.lat)) * Math.cos(toRad(p.lat)) * Math.sin(dLng / 2) ** 2;
-            return EARTH_RADIUS_KM * 2 * Math.asin(Math.min(1, Math.sqrt(h)));
+        // Asserted as a LOOK ANGLE. A haversine distance on a 6371 km sphere
+        // compared against an equatorial reference figure would be measuring two
+        // different surfaces; the corner angle is the property the rectangle
+        // actually defines.
+        const satEcef = eciToEcef({ x: sat.x, y: sat.y, z: sat.z }, gmstRad(EPOCH));
+        const sLen = Math.hypot(satEcef.x, satEcef.y, satEcef.z);
+        const angles = fp.boundary.map((p) => {
+            const g = geodeticToEcef(p.lat, p.lng, 0);
+            const dx = g.x - satEcef.x;
+            const dy = g.y - satEcef.y;
+            const dz = g.z - satEcef.z;
+            const dl = Math.hypot(dx, dy, dz);
+            const cosv = -(dx * satEcef.x + dy * satEcef.y + dz * satEcef.z) / (dl * sLen);
+            return toDeg(Math.acos(Math.max(-1, Math.min(1, cosv))));
         });
-        expect(Math.max(...distances)).toBeCloseTo(halfSwathKm(600, cornerEta), 3);
+        expect(Math.max(...angles)).toBeCloseTo(cornerEta, 6);
     });
 });

@@ -1,6 +1,6 @@
 # Review Report
 
-_Last updated 2026-08-09._
+_Last updated 2026-08-10._
 
 ## Scope
 
@@ -34,10 +34,23 @@ exact-pole guard, hot-path allocations, keyboard access.
 
 ### Minor
 
-- Exact-pole footprint collapse — measure-zero, pinned by test (R21).
+- Exact-pole footprint collapse — fixed by R28's ray/ellipsoid projection (R21).
 - Area cell means not area-weighted — disclosed in code, UI and CSV (R18).
 - Heat map uses one entity per cell rather than canvas imagery — acceptable at
   the 400-cell budget (R19).
+
+### R28 final review
+
+The sampled WGS84 footprint maximum is retained as the displayed reach, but it
+is no longer treated as proof of impossibility. `GEOMETRY / BLOCKING` compares
+against a separate analytic upper bound built from the farthest possible FOV
+ray, WGS84's polar radius and the exact maximum geodetic/geocentric latitude
+deflection. Targets between the sample and the bound are `UNKNOWN`.
+
+The final review also found that production containment still used the radius
+vector for the target horizon despite documenting the ellipsoid normal. Horizon
+and optional elevation masks now use the WGS84 normal; a discriminating 45°
+latitude test pins the 0.05° grazing case the old formula rejected.
 
 ---
 
@@ -80,14 +93,14 @@ V1b as first written was confounded, and only R4 caught it.
 
 | Check | Method | Result |
 |---|---|---|
-| Sun-synchronous drift | closed form | +0.99074 °/day vs textbook 0.9856 — 0.52 %, and the residual is localised: feeding the aerospace altitude convention cuts it to 0.16 % |
+| Sun-synchronous drift | closed form | +0.98720 °/day vs textbook 0.9856 — **0.16 %** since R28 adopted the equatorial altitude datum (was 0.52 %). The remainder is 97.8° being quoted to a tenth of a degree, which is ±0.6 % on its own |
 | SSO inclination table | inverted condition, 400–1000 km | within 0.03° at all six altitudes |
-| Swath table | law of sines | exact at 500 / 600 / 700 km |
+| Swath table | law of sines | reproduces at 500 / 600 / 700 km. A **consistency check, not a discriminator**: swath is nearly insensitive to the datum at the table's quoted precision when each datum is paired consistently (7 m at 600 km / 30°). The discriminating quantities are the horizon angles and orbital periods, which reproduce only on the equatorial datum |
 | Ω̇ | RK4 integration of the J2 force model | within 1 %, residual explained as mean-vs-osculating and confirmed by its linear scaling with J₂ |
 | u̇ | RK4 at the integrated **mean** semi-major axis | within 1e-4 relative at six inclinations; the discarded ω̇-only form is excluded by 10× |
-| Footprint projection | ray/sphere intersection | agrees to 1e-8 degrees |
+| Footprint projection | **Cesium's WGS84 ray/ellipsoid intersection** (third-party) | agrees to 2e-4°, set by fixture print precision |
 | Gap statistics | brute-force sampling | fraction in view within 1 %, pass counts exact |
-| Containment | direct off-nadir angle test | exact on 20,000 random and 5,000 boundary cases |
+| Containment | direct off-nadir angle test, horizon on the **ellipsoid normal** | exact on 20,000 random and 5,000 boundary cases |
 | Propagation vs SGP4 | synthetic TLEs, BSTAR = 0, third-party Brouwer-Lyddane implementation | see below |
 | **Propagation vs GMAT** | **NASA GMAT R2026a, RK8(9), JGM2 J₂-only** | **CLOSED — see below** |
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EARTH_RADIUS_KM } from '../../../utils/earthGeometry';
+import { orbitalRadiusKm } from '../../../utils/wgs84Geometry';
 import { toRad } from '../../../utils/sphericalGeometry';
 import {
     DEFAULT_STEP_SECONDS, DEFAULT_WINDOW_HOURS, MIN_RELIABLE_WINDOW_HOURS,
@@ -107,7 +107,7 @@ describe('accessIntervals — analytic single-satellite revisit', () => {
     //   access duration = 2Δ_max / ω_rel
     //   max gap        = (2π − 2Δ_max) / ω_rel
     const ALT_KM = 600;
-    const A_KM = EARTH_RADIUS_KM + ALT_KM;
+    const A_KM = orbitalRadiusKm(ALT_KM);
     const HALF_ANGLE_DEG = 30;
 
     const element: OrbitalElements = {
@@ -168,11 +168,16 @@ describe('accessIntervals — analytic single-satellite revisit', () => {
     it('sums access plus gap to the relative revisit period', () => {
         expect(expectedAccessMs + expectedGapMs)
             .toBeCloseTo(((2 * Math.PI) / omegaRel) * 1000, 6);
-        // ~103.2 min against the Earth, longer than the 96.5 min orbital period,
-        // because the ground track has to catch up with the rotating Earth.
-        // (Was 103.35 min before R4 corrected u̇ to carry both Brouwer secular
-        // terms; the faster u̇ shortens the relative period slightly.)
-        expect((expectedAccessMs + expectedGapMs) / 60000).toBeCloseTo(103.2, 1);
+        // ~103.37 min against the Earth, longer than the 96.7 min orbital
+        // period, because the ground track has to catch up with the rotating
+        // Earth.
+        //
+        // This figure has moved twice, both times for a recorded reason:
+        // 103.35 → 103.20 when R4 corrected u̇ to carry both Brouwer secular
+        // terms (a faster u̇ shortens the relative period), and 103.20 → 103.37
+        // when R28 moved the altitude datum to the equatorial radius (a larger
+        // `a` slows u̇ again, and by slightly more).
+        expect((expectedAccessMs + expectedGapMs) / 60000).toBeCloseTo(103.37, 1);
     });
 
     it('agrees with the closed form on fraction in view', () => {
