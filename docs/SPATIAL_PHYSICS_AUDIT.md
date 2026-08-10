@@ -1,6 +1,6 @@
 # Cross-Mode Spatial Physics Audit
 
-_2026-08-09. Audit complete; Phase 0 and Phase 1 executed. See §11 for results._
+_2026-08-09. Audit complete; Phases 0-3 executed. See §11-§13 for results._
 
 Follows the REVISIT R4 validation against NASA GMAT R2026a, which exposed two
 real orbital-model defects despite ~1850 passing tests. The question here is
@@ -92,11 +92,11 @@ for RF or commercial logic.
 | GMST / ECI→ECEF | ✅ | ❌ | ✅ | ENG: `satellite.js` `gstime`/`eciToGeodetic` · REVISIT: `gmstRad`/`eciToEcef` | Both GMST-based | REVISIT: GMAT 0.0065° · **ENG: GMAT V-A, 37 m** | **VERIFIED** |
 | Elevation angle (primary) | ✅ | ❌ | ❌ | `capacityCalculator.calculateElevationAngle` | **WGS84** ellipsoid + ENU | **GMAT V-B, 7e-6°** | **VERIFIED** |
 | Elevation angle (GEO) | ✅ | ❌ | ❌ | `geoConnectivityModel.elevationDeg` | **WGS84** ECEF | **GMAT V-B, 7e-6°** | **VERIFIED** |
-| Elevation angle (LEO forecast) | ✅ | ❌ | ❌ | `satelliteResolution.computeElevationFromCoords` | **sphere 6371** | none | SPA-01 |
+| Elevation angle (LEO forecast) | ✅ | ❌ | ❌ | `satelliteResolution.computeElevationFromCoords` | **WGS84** (shared core) | **GMAT V-B** | **VERIFIED** (SPA-01 closed) |
 | 3-D range / distance | ✅ | ❌ | ❌ | `compute3DDistanceKm`, `geoConnectivityModel.distanceKm` | **WGS84** ECEF | **GMAT V-B, 0.6 m** | **VERIFIED** |
 | Slant range from elevation | ~~dead~~ removed | ❌ | ❌ | ~~`geoLinkBudget.computeSlantRange`~~ | sphere 6371 | none | SPA-03 — **removed in Phase 0** |
 | Surface distance | ✅ | ❌ | ✅ | `earthGeometry.haversineDistanceKm` | sphere 6371 | none | Low — correct use of a sphere |
-| GSO belt separation | ✅ | ❌ | ❌ | `gsoProtection.gsoBeltSeparationAngleDeg` | **sphere 6371 + geodetic lat** | none | **SPA-02** |
+| GSO belt separation | ✅ | ❌ | ❌ | `gsoProtection.gsoBeltSeparationAngleDeg` | **WGS84 ellipsoid** | **GMAT V-C, 2e-4°** | **VERIFIED** (was SPA-02) |
 | LEO footprint radius | ✅ | ❌ | ❌ | `leoFootprint.footprintRadiusKm` | sphere 6371 + geodetic alt | none | SPA-06 |
 | Beam comb ground centre | ✅ | ❌ | ❌ | `oneWebComb` ray/sphere | sphere 6 371 000 **m** — units verified consistent | none | Low |
 | FOV containment / access | ❌ | ❌ | ✅ | `fov/containment.ts` | inverted LVLH test | GMAT + brute force | Low |
@@ -410,14 +410,14 @@ independent is a feature — it is what makes them mutual cross-checks.**
 | ECI/ECEF + Earth rotation (REVISIT) | Single GMST rotation | GMAT full IAU chain | High | **VERIFIED** | 0.0065° longitude; bounds rate/epoch, not the ~0.36° J2000-vs-date frame offset |
 | ECI/ECEF + Earth rotation (ENG) | `satellite.js` `gstime`/`eciToGeodetic` | **GMAT R2026a (V-A)** | **High** — GMAT's own IAU/EOP chain, no shared code | **VERIFIED** | 37 m ground, 0.7 m altitude; residual is the UT1-UTC + polar-motion bias GMST omits |
 | Earth geometry — WGS84 paths | WGS84 ellipsoid ECEF | **GMAT R2026a (V-B)** | **High** — GMAT topocentric state, `satellite.js` not involved | **VERIFIED** | Elevation 7.2e-6°, range 0.6 m across three latitudes |
-| Earth geometry — spherical paths | Sphere 6371 km fed geodetic lat/alt | none | None | **UNVERIFIED** | Convention mix; 0.13–0.14° measured (SPA-01, SPA-02, SPA-06) |
+| Earth geometry — spherical paths | Sphere 6371 km, coverage geometry only | none | None | **SUPPORTED** | Phases 2-3 removed every ellipsoid-fed-to-sphere site; SPA-06/R28 altitude convention remains open |
 | Access / visibility (REVISIT) | Inverted LVLH FOV containment | GMAT + brute-force sampling | High | **VERIFIED** | Max gap exact at 4 targets |
 | Access / visibility (ENG) | Elevation threshold on SGP4 track | **GMAT (V-B)** for the geometry; none for the rule | High for geometry | Geometry **VERIFIED**; rule **UNVERIFIED** | Thresholds and selection are product policy, not physics GMAT can adjudicate |
 | Slant range | WGS84 ECEF difference | **GMAT R2026a (V-B)** | **High** | **VERIFIED** | 0.6 m worst over 1197-3146 km; spherical variant removed in Phase 0 |
 | Propagation delay | `d/c`, c = 299792.458 km/s | SI definition | n/a | **SUPPORTED** | Physics trivial; RTT *convention* separately open (2026-07-24 audit #3–#7) |
 | RF path loss | `20log₁₀(d)+20log₁₀(f)−147.55` | ITU-R P.525 form | Low | **SUPPORTED** | Correct SI constant; no independent reference vector |
 | GEO geometry | WGS84 ECEF (live path) | none | None | **SUPPORTED** | Live path sound; dead spherical helper documented at 5–35 km |
-| GSO keep-out | Spherical ECEF + geodetic lat, 11.5° gate | Internal tautological test | **None** | **UNVERIFIED** | 0.144° measured; demonstrated verdict flip at threshold (SPA-02) |
+| GSO keep-out | **WGS84 ellipsoid**, 11.5° gate | **GMAT (V-C via V-B decomposition)** + analytic zenith invariant | High for the two position legs; the belt point is definitional | **VERIFIED** | Belt-point leg rests on a definition, not an executable oracle |
 | LEO handover | Elevation forecast, 15 s sampling | none | **None** | **UNVERIFIED** | Spherical/WGS84 divergence ~30× below sampling step; handover *policy* unvalidated |
 
 **Updated after Phase 1 (2026-08-09).** ENG now holds four VERIFIED spatial
@@ -586,3 +586,119 @@ GSO keep-out.
 **No defect was found in ENG's WGS84 geometry.** That is a real result rather
 than an absence of one: the same procedure applied to REVISIT found two defects
 within hours, so it had demonstrated power to detect exactly this class of error.
+
+
+---
+
+## 12. Phase 2 results — SPA-02 corrected
+
+**Materiality was measured before anything was changed**, as §4 required. Sweep
+of the 16-beam comb across ±45° of satellite latitude, 4800 beam-instants:
+
+| Measure | Value |
+|---|---|
+| Worst separation error, sphere vs ellipsoid | **0.113°** |
+| Beam-instants within 0.15° of the 11.5° threshold | 30 (**0.625 %**) |
+| **Mute decisions flipped by the Earth model alone** | 3 (**0.062 %**) |
+
+So the defect is **real but rare** — roughly one beam-instant in 1600. It was
+corrected on the merits rather than on impact: the keep-out threshold is
+anchored to an ITU Art. 22 EPFD argument, and EPFD is defined on a topocentric
+angle to the geostationary arc **from a point on the ellipsoid**. Using geodetic
+latitude with a 6371 km sphere was a conflation, not a modelling choice.
+
+ADR-001 §2's coverage sphere is untouched everywhere else.
+
+### How V-C was satisfied
+
+The belt separation decomposes into exactly three pieces:
+
+| Piece | Evidence |
+|---|---|
+| ground point ECEF | WGS84 — **GMAT-verified, V-B** |
+| satellite ECEF | WGS84 — **GMAT-verified, V-B** |
+| belt point ECEF | `r = GEO_ORBIT_RADIUS_KM` in the equatorial plane of the Earth-fixed frame — **a definition**, no Earth model |
+
+plus an angle between two difference vectors, which is arithmetic. The committed
+V-B fixture therefore carries the load. What V-B left unpinned was **azimuth** —
+it asserted elevation and range, which do not fix a 3-D direction. That gap is
+closed **frame-invariantly**: the angle between a *pair* of directions is
+identical in any orthonormal frame, so GMAT's topocentric vectors are compared
+against our ECEF vectors with no basis of our own in between. Constructing an
+SEZ basis here would have reintroduced precisely the correlation R4 warned
+about. Measured agreement: **2e-4°**, set by fixture print precision; a
+spherical-Earth regression would show as ~0.1°.
+
+Three further checks: a **zenith invariant** (for an equatorial station the belt
+point at the same longitude is exactly overhead, so separation ≡ 90° − elevation,
+chaining onto the GMAT-verified elevation function — exact to 1e-5°); a check
+that the belt scan's minimum actually dominates a 2° sampling, which a
+point-wise test cannot see; and a pin on the size of the correction so a silent
+revert to the sphere is loud.
+
+`gsoPointSeparationAngleDeg` was extracted and exported so the geometry can be
+validated one belt point at a time. A minimum is a poor thing to validate — a
+discrepancy can hide in *which* belt longitude won rather than in the angle.
+
+**Not a fresh GMAT run.** The install lived in a session scratchpad that had been
+cleaned, and re-downloading 455 MB to re-derive a quantity that decomposes into
+two verified components and one definition was not a good trade. Recorded rather
+than glossed: **the belt-point leg rests on a definition, not on an executable
+oracle.** If that is ever considered insufficient, the V-C scenario (real
+spacecraft parked on the belt, angle taken between two GMAT topocentric vectors)
+is the way to close it.
+
+All 22 pre-existing GSO keep-out tests pass unchanged.
+
+---
+
+## 13. Phase 3 results — one spatial core
+
+`src/utils/wgs84Geometry.ts` is now the only WGS84 ellipsoid model in the
+codebase. Before: the constants were declared in **four** places, geodetic→ECEF
+was written out **three** times, elevation **three** times, slant range **twice**.
+After: one of each.
+
+| Site | Was | Now |
+|---|---|---|
+| `capacityCalculator.calculateElevationAngle` | own constants + ECEF + ENU | delegates |
+| `capacityCalculator.compute3DDistanceKm` | own constants + ECEF | delegates |
+| `geoConnectivityModel.toEcef` / `elevationDeg` / `distanceKm` | own constants + ECEF | delegates |
+| `gsoProtection.ecefFromGeodetic` | own constants + ECEF | delegates |
+| `satelliteResolution.computeElevationFromCoords` | **sphere 6371** | delegates |
+
+**Three Earth radii now exist, each named for its role** — they are numerically
+close and were the source of both R4 defects and SPA-02:
+
+```
+EARTH_RADIUS_KM         6371       mean sphere      coverage geometry (ADR-001 §2)
+WGS84_A_KM              6378.137   ellipsoid        positions and angles
+J2_REFERENCE_RADIUS_KM  6378.1363  J₂'s definition  orbital dynamics
+```
+
+### One deliberate behaviour change
+
+Consolidating `satelliteResolution.computeElevationFromCoords` (SPA-01's third
+implementation, the last spherical one) is **not bit-identical**: it moves the
+answer by up to 0.13°, and 0.026–0.046° near the elevation gates.
+
+That is an improvement, not a regression — the ellipsoid figure is the one
+verified against GMAT to 7.2e-6° — and it cannot change behaviour in any case:
+its only caller, `computeRemainingVisibleTime`, samples on `RVT_STEP_S = 15 s`,
+and at LEO elevation rates 0.05° is well under a second, roughly **30× below the
+sampling quantisation**. Stated rather than buried, because "pure refactor"
+should mean what it says and this one line of it does not.
+
+Everything else is bit-identical, and the Phase 1 GMAT suites are the gate: they
+still reproduce 7.2e-6° and 0.6 m after the migration.
+
+### Ledger movement
+
+| Domain | Before | After |
+|---|---|---|
+| GSO keep-out | UNVERIFIED — spherical, 0.144° bias | **VERIFIED** — WGS84, GMAT-backed via V-B decomposition + analytic invariants |
+| Earth geometry — spherical paths | UNVERIFIED — convention mix | **Resolved**: no ellipsoid-fed-to-sphere sites remain; 6371 km now appears only in genuine coverage geometry |
+
+**Remaining UNVERIFIED after Phases 0–3:** SGP4's own dynamics (by design — see
+§11); access/selection *thresholds*, which are product policy; and SPA-06 / R28,
+the altitude convention, which is an open product decision.

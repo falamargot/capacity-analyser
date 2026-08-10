@@ -13,13 +13,11 @@ import {
   type ResolvedBeamGatewayRoute,
   type TrafficTeleportCapability,
 } from './geoGroundInfrastructure';
+import { WGS84_A_KM, geodeticToEcef } from './wgs84Geometry';
 
 const DEG_TO_RAD = Math.PI / 180;
 
-const WGS84_A_KM = 6378.137;
-const WGS84_F = 1 / 298.257223563;
-const WGS84_E2 = 2 * WGS84_F - WGS84_F * WGS84_F;
-
+/** Re-exported for existing GEO call sites; the ellipsoid lives in wgs84Geometry. */
 export const GEO_EARTH_RADIUS_KM = WGS84_A_KM;
 export const GEO_ALTITUDE_KM = 35786;
 export const SPEED_OF_LIGHT_M_S = 299792458;
@@ -271,18 +269,10 @@ function toRadians(deg: number): number {
   return deg * DEG_TO_RAD;
 }
 
+/** Adapter onto the shared ellipsoid model (Phase 3). `PointLLA` is this
+ *  module's own shape; `wgs84Geometry` owns the mathematics. */
 function toEcef(point: PointLLA): EcefPoint {
-  const lat = toRadians(point.lat);
-  const lng = toRadians(point.lng);
-  const sinLat = Math.sin(lat);
-  const cosLat = Math.cos(lat);
-  const n = WGS84_A_KM / Math.sqrt(1 - WGS84_E2 * sinLat * sinLat);
-
-  return {
-    x: (n + point.altKm) * cosLat * Math.cos(lng),
-    y: (n + point.altKm) * cosLat * Math.sin(lng),
-    z: (n * (1 - WGS84_E2) + point.altKm) * sinLat,
-  };
+  return geodeticToEcef({ latDeg: point.lat, lonDeg: point.lng, altKm: point.altKm });
 }
 
 /** WGS84 ECEF straight-line distance between two LLA points (km). */
