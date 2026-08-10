@@ -137,13 +137,14 @@ script:
 - **Oracles that share the engine's constants prove less than they appear to.**
   This is the concrete lesson of R4 and it generalises: when adding a test,
   check whether it could fail if the constant under test were wrong.
-- **`CLAUDE.md` is not tracked by git.** An earlier version of this note claimed
-  git tracked `CLAUDE.md` and reported `claude.md` as a separate untracked file.
-  That was wrong: `git ls-files` has no entry for either, and `git check-ignore`
-  reports it is not ignored — the two names are one inode on this
-  case-insensitive filesystem, and that single file is simply untracked. The risk
-  is not divergence but absence: a fresh clone or CI checkout gets no project
-  instructions at all. See SPA-08 in `docs/SPATIAL_PHYSICS_AUDIT.md`.
+- **`CLAUDE.md` untracked-by-git risk — resolved.** An earlier version of this
+  note claimed git tracked `CLAUDE.md` and reported `claude.md` as a separate
+  untracked file; that was wrong (the two names are one inode on this
+  case-insensitive filesystem). The corrected finding — that the single file
+  was untracked, so a fresh clone got no project instructions — was itself
+  fixed in Phase 0 of the spatial audit (`bb81448`): the file is now
+  case-normalised to `CLAUDE.md` and committed. `git ls-files -s` shows one
+  tracked blob. See SPA-08 in `docs/SPATIAL_PHYSICS_AUDIT.md`.
 
 ---
 

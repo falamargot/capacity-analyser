@@ -30,7 +30,7 @@ untracked (not ignored), so a fresh clone got no `CLAUDE.md` at all. Flagged as
 SPA-08.
 
 **SPA-08 is resolved.** Phase 0 (§9) case-normalised the on-disk name to
-`CLAUDE.md` and committed it (`97024a8`). `git ls-files -s` now shows one
+`CLAUDE.md` and committed it (`bb81448`). `git ls-files -s` now shows one
 tracked blob at `CLAUDE.md`; content was verified byte-identical by SHA-256
 across the rename. The original risk — instructions absent from a fresh clone
 — is closed. See §4 for the finding's closed status.
@@ -310,7 +310,7 @@ fresh clone or CI checkout would have received no project instructions.
 Corrected an earlier `HANDOFF.md` claim that git tracked it.
 
 *Status:* **Resolved in Phase 0.** Case-normalised `claude.md` → `CLAUDE.md`
-and committed (`97024a8`); content verified byte-identical by SHA-256 across
+and committed (`bb81448`); content verified byte-identical by SHA-256 across
 the rename. `git ls-files -s` now shows one tracked blob at `CLAUDE.md`.
 
 ---
