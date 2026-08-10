@@ -13,7 +13,7 @@ ones.
 
 | File | Status |
 |---|---|
-| `CLAUDE.md` / `claude.md` | **Same file** — one inode (69722632), not two. Case-insensitive filesystem. |
+| `CLAUDE.md` / `claude.md` | **Same file** — one inode (69722632), not two. Case-insensitive filesystem. Tracked in git as `CLAUDE.md` since Phase 0. |
 | `.claude/settings.json`, `settings.local.json`, `launch.json` | Present, tool config only |
 | `docs/AI_EXECUTION_POLICY.md` | Present, applicable |
 
@@ -21,12 +21,19 @@ ones.
 loaded for this working directory, and this audit followed it (targeted reads,
 durable notes in `docs/`, minimal conversation).
 
-**No conflicts.** But one correction to the record: a previous `HANDOFF.md`
-"Known risks" entry claimed git tracks `CLAUDE.md` and reports `claude.md` as
-untracked. That was wrong. `git ls-files` shows **neither is tracked** — the file
-is untracked (not ignored), so a fresh clone gets no `CLAUDE.md` at all. The
-divergence risk described was illusory; the real risk is the opposite, that the
-instructions do not travel with the repository. Flagged as SPA-08.
+**No conflicts.** One correction to the record, since itself superseded: a
+previous `HANDOFF.md` "Known risks" entry claimed git tracked `CLAUDE.md` and
+reported `claude.md` as a separate untracked file. That was wrong *at the time*
+this audit began — `git ls-files` showed **neither name tracked**; the two are
+one inode on this case-insensitive filesystem, and that single file was
+untracked (not ignored), so a fresh clone got no `CLAUDE.md` at all. Flagged as
+SPA-08.
+
+**SPA-08 is resolved.** Phase 0 (§9) case-normalised the on-disk name to
+`CLAUDE.md` and committed it (`97024a8`). `git ls-files -s` now shows one
+tracked blob at `CLAUDE.md`; content was verified byte-identical by SHA-256
+across the rename. The original risk — instructions absent from a fresh clone
+— is closed. See §4 for the finding's closed status.
 
 ---
 
@@ -190,6 +197,16 @@ geometry is then closed-form), quantify how often real geometry lands within
 angle to the geostationary arc — the ellipsoid is the correct Earth model for a
 regulatory quantity.
 
+**Status: RESOLVED in Phase 2 (2026-08-09).** Materiality was measured first, as
+the recommendation required: across a 4800-sample sweep of the 16-beam comb over
+±45° of satellite latitude, **0.625 %** of beam-instants fall within 0.15° of the
+threshold and **0.062 % (3 in 4800) have their mute decision flipped by the Earth
+model alone**. Worst separation error 0.113°. Real, but rare — the correction was
+made on the grounds that it is a convention error on a regulatory-flavoured
+quantity, not because the impact is large. `ecefFromGeodetic` now builds WGS84
+ellipsoid vectors; `gsoPointSeparationAngleDeg` was extracted so the geometry can
+be validated a belt point at a time. See §12.
+
 ---
 
 ### SPA-03 — `computeSlantRange` is dead code carrying a documented 5–35 km error
@@ -284,12 +301,17 @@ geodetic. A future caller will reasonably assume WGS84. Rename to
 
 ---
 
-### SPA-08 — `CLAUDE.md` is untracked
+### SPA-08 — `CLAUDE.md` was untracked
 **Architectural risk.** Severity: **Low** (process, not physics).
 
-`git ls-files` shows no `CLAUDE.md` entry and `git check-ignore` reports it is
-not ignored — it is simply untracked. A fresh clone or CI checkout receives no
-project instructions. Corrects an earlier `HANDOFF.md` claim that git tracked it.
+*Evidence (at audit start).* `git ls-files` showed no `CLAUDE.md` entry and
+`git check-ignore` reported it was not ignored — it was simply untracked. A
+fresh clone or CI checkout would have received no project instructions.
+Corrected an earlier `HANDOFF.md` claim that git tracked it.
+
+*Status:* **Resolved in Phase 0.** Case-normalised `claude.md` → `CLAUDE.md`
+and committed (`97024a8`); content verified byte-identical by SHA-256 across
+the rename. `git ls-files -s` now shows one tracked blob at `CLAUDE.md`.
 
 ---
 
@@ -425,13 +447,13 @@ ESLint clean, 1857 tests passing (1858 − 1 removed).
 Headline: ENG's WGS84 geometry and its frame conversion are now **VERIFIED**;
 no defect was found in either. Baseline established for Phase 2 and Phase 3.
 
-**Phase 2 — SPA-02, with evidence in hand.** Build the V-C reference, reproduce
-the discrepancy independently, quantify how often geometry lands within 0.15° of
-11.5°, then correct the Earth model. Requires explicit approval.
+**Phase 2 — SPA-02, with evidence in hand. ✅ DONE 2026-08-09.** Materiality
+measured (0.062 % of beam-instants flip), V-C validation built, Earth model
+corrected to WGS84. See §12.
 
-**Phase 3 — deduplicate spatial primitives.** One ECEF, one elevation, one range,
-named constants, shared fixtures. Pure refactor, verified no-change against the
-Phase 1 baseline.
+**Phase 3 — deduplicate spatial primitives. ✅ DONE 2026-08-09.** One ECEF, one
+elevation, one range, named constants. Pure refactor, verified no-change against
+the Phase 1 baseline. See §13.
 
 **Phase 4 — optional.** R28/SPA-06 altitude convention (product decision, both
 modes together); COMM RTT sensitivity bound; R29.
