@@ -39,7 +39,6 @@
  */
 
 import { GEO_ORBIT_RADIUS_KM } from '../config/oneweb';
-import { EARTH_RADIUS_KM } from './earthGeometry';
 
 // ── Pitch (unchanged from the pre-Item-4 model) ──────────────────────────────
 
@@ -128,27 +127,40 @@ const BELT_REFINE_STEP_DEG = 0.25;
 
 interface Vec3 { x: number; y: number; z: number }
 
+/** WGS84 ellipsoid, km — the same constants `geoConnectivityModel` uses. */
+const WGS84_A_KM = 6378.137;
+const WGS84_F = 1 / 298.257223563;
+const WGS84_E2 = 2 * WGS84_F - WGS84_F * WGS84_F;
+
 /**
- * ECEF from latitude/longitude on a SPHERE of the given radius.
+ * ECEF from GEODETIC latitude/longitude and height above the WGS84 ellipsoid.
  *
- * Named for what it does. The previous name, `ecefFromGeodetic`, asserted a
- * geodetic (WGS84) conversion that this function does not perform — there is no
- * flattening term — while its callers pass geodetic latitudes derived from
- * `eciToGeodetic`. Conflating the two costs up to 0.144° in the separation
- * angle below, which is material against an 11.5° threshold. The Earth model is
- * deliberate and unchanged here; only the name is corrected, so that the
- * remaining question is visible rather than hidden behind a misleading label.
+ * SPA-02. This was previously a spherical conversion at R = 6371 km, fed
+ * geodetic latitudes and ellipsoid heights from `eciToGeodetic` — a conflation
+ * of geodetic with geocentric latitude, not a modelling choice. It biased the
+ * separation angle below by up to 0.113 °, and because that angle is compared
+ * against a hard 11.5 ° threshold, a measured 0.062 % of beam-instants (3 in
+ * 4800 across a ±45 ° latitude sweep of the 16-beam comb) had their mute
+ * decision flipped by the Earth model alone.
  *
- * See SPA-02 / SPA-07 in docs/SPATIAL_PHYSICS_AUDIT.md.
+ * The ellipsoid is also the right model on the merits: the keep-out threshold
+ * is anchored to an ITU Art. 22 EPFD argument, and EPFD is defined on a
+ * topocentric angle to the geostationary arc from a point on the ellipsoid.
+ *
+ * ADR-001 §2's 6371 km sphere is a COVERAGE-GEOMETRY decision and is untouched
+ * elsewhere; it never extended to topocentric angles measured against a
+ * regulatory limit.
  */
-function ecefFromSphericalLatLng(latDeg: number, lngDeg: number, radiusKm: number): Vec3 {
+function ecefFromGeodetic(latDeg: number, lngDeg: number, altitudeKm: number): Vec3 {
   const lat = toRad(latDeg);
   const lng = toRad(lngDeg);
+  const sinLat = Math.sin(lat);
   const cosLat = Math.cos(lat);
+  const n = WGS84_A_KM / Math.sqrt(1 - WGS84_E2 * sinLat * sinLat);
   return {
-    x: radiusKm * cosLat * Math.cos(lng),
-    y: radiusKm * cosLat * Math.sin(lng),
-    z: radiusKm * Math.sin(lat),
+    x: (n + altitudeKm) * cosLat * Math.cos(lng),
+    y: (n + altitudeKm) * cosLat * Math.sin(lng),
+    z: (n * (1 - WGS84_E2) + altitudeKm) * sinLat,
   };
 }
 
@@ -161,11 +173,47 @@ function angleBetweenDeg(a: Vec3, b: Vec3): number {
 }
 
 /**
+ * Angular separation (degrees) at a ground point between the direction to a
+ * satellite and the direction to ONE nominated point of the GSO belt.
+ *
+ * Exposed so the geometry can be checked against an external reference a point
+ * at a time. `gsoBeltSeparationAngleDeg` only returns the minimum over the
+ * belt, and a minimum is a poor thing to validate: a discrepancy can hide in
+ * which belt longitude won rather than in the angle itself.
+ *
+ * The belt point needs no Earth model — it is r = GEO_ORBIT_RADIUS_KM in the
+ * equatorial plane of the Earth-fixed frame, which is a definition. Only the
+ * two surface/satellite positions depend on the ellipsoid.
+ */
+export function gsoPointSeparationAngleDeg(
+  groundLatDeg: number,
+  groundLngDeg: number,
+  satLatDeg: number,
+  satLngDeg: number,
+  satAltKm: number,
+  beltLongitudeDeg: number,
+): number {
+  const g = ecefFromGeodetic(groundLatDeg, groundLngDeg, 0);
+  const p = ecefFromGeodetic(satLatDeg, satLngDeg, satAltKm);
+  const theta = toRad(beltLongitudeDeg);
+  return angleBetweenDeg(
+    { x: p.x - g.x, y: p.y - g.y, z: p.z - g.z },
+    {
+      x: GEO_ORBIT_RADIUS_KM * Math.cos(theta) - g.x,
+      y: GEO_ORBIT_RADIUS_KM * Math.sin(theta) - g.y,
+      z: -g.z,
+    },
+  );
+}
+
+/**
  * Minimum angular separation (degrees), measured at a ground point, between
  * the direction to the serving LEO satellite and the direction to any point of
  * the GSO belt (radius GEO_ORBIT_RADIUS_KM in the equatorial plane, Earth-fixed).
  *
- * Spherical-Earth ECEF model — consistent with the rest of the simulation.
+ * WGS84 ellipsoid ECEF. See `ecefFromGeodetic` above for why this is not the
+ * ADR-001 §2 coverage sphere, and SPA-02 in docs/SPATIAL_PHYSICS_AUDIT.md for
+ * the measured effect of the model that was here before.
  */
 export function gsoBeltSeparationAngleDeg(
   groundLatDeg: number,
@@ -174,8 +222,8 @@ export function gsoBeltSeparationAngleDeg(
   satLngDeg: number,
   satAltKm: number,
 ): number {
-  const g = ecefFromSphericalLatLng(groundLatDeg, groundLngDeg, EARTH_RADIUS_KM);
-  const p = ecefFromSphericalLatLng(satLatDeg, satLngDeg, EARTH_RADIUS_KM + satAltKm);
+  const g = ecefFromGeodetic(groundLatDeg, groundLngDeg, 0);
+  const p = ecefFromGeodetic(satLatDeg, satLngDeg, satAltKm);
   const toSat: Vec3 = { x: p.x - g.x, y: p.y - g.y, z: p.z - g.z };
 
   const separationAtBeltDeg = (thetaDeg: number): number => {
