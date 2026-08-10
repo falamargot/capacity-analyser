@@ -39,6 +39,7 @@
  */
 
 import { GEO_ORBIT_RADIUS_KM } from '../config/oneweb';
+import { angleBetweenDeg, geodeticToEcef, type EcefVec3 } from './wgs84Geometry';
 
 // ── Pitch (unchanged from the pre-Item-4 model) ──────────────────────────────
 
@@ -52,7 +53,6 @@ export const GSO_MAX_PITCH_DEG = 17.0;
 export const GSO_AVOIDANCE_PITCH_THRESHOLD_RAD = 0.01;
 
 const toRad = (deg: number) => (deg * Math.PI) / 180;
-const toDeg = (rad: number) => (rad * 180) / Math.PI;
 
 /**
  * Progressive-pitch magnitude at a given satellite latitude (degrees).
@@ -125,13 +125,6 @@ export const GSO_KEEPOUT_ANGLE_DEG = 11.5;
 const BELT_COARSE_STEP_DEG = 5;
 const BELT_REFINE_STEP_DEG = 0.25;
 
-interface Vec3 { x: number; y: number; z: number }
-
-/** WGS84 ellipsoid, km — the same constants `geoConnectivityModel` uses. */
-const WGS84_A_KM = 6378.137;
-const WGS84_F = 1 / 298.257223563;
-const WGS84_E2 = 2 * WGS84_F - WGS84_F * WGS84_F;
-
 /**
  * ECEF from GEODETIC latitude/longitude and height above the WGS84 ellipsoid.
  *
@@ -150,27 +143,15 @@ const WGS84_E2 = 2 * WGS84_F - WGS84_F * WGS84_F;
  * ADR-001 §2's 6371 km sphere is a COVERAGE-GEOMETRY decision and is untouched
  * elsewhere; it never extended to topocentric angles measured against a
  * regulatory limit.
+ *
+ * Phase 3: the ellipsoid model itself now lives in `wgs84Geometry.ts`. This
+ * stays as a local shorthand because the belt scan calls it in a hot loop with
+ * positional arguments.
  */
-function ecefFromGeodetic(latDeg: number, lngDeg: number, altitudeKm: number): Vec3 {
-  const lat = toRad(latDeg);
-  const lng = toRad(lngDeg);
-  const sinLat = Math.sin(lat);
-  const cosLat = Math.cos(lat);
-  const n = WGS84_A_KM / Math.sqrt(1 - WGS84_E2 * sinLat * sinLat);
-  return {
-    x: (n + altitudeKm) * cosLat * Math.cos(lng),
-    y: (n + altitudeKm) * cosLat * Math.sin(lng),
-    z: (n * (1 - WGS84_E2) + altitudeKm) * sinLat,
-  };
+function ecefFromGeodetic(latDeg: number, lngDeg: number, altitudeKm: number): EcefVec3 {
+  return geodeticToEcef({ latDeg, lonDeg: lngDeg, altKm: altitudeKm });
 }
 
-function angleBetweenDeg(a: Vec3, b: Vec3): number {
-  const dot = a.x * b.x + a.y * b.y + a.z * b.z;
-  const na = Math.hypot(a.x, a.y, a.z);
-  const nb = Math.hypot(b.x, b.y, b.z);
-  if (na === 0 || nb === 0) return 180;
-  return toDeg(Math.acos(Math.min(1, Math.max(-1, dot / (na * nb)))));
-}
 
 /**
  * Angular separation (degrees) at a ground point between the direction to a
@@ -224,11 +205,11 @@ export function gsoBeltSeparationAngleDeg(
 ): number {
   const g = ecefFromGeodetic(groundLatDeg, groundLngDeg, 0);
   const p = ecefFromGeodetic(satLatDeg, satLngDeg, satAltKm);
-  const toSat: Vec3 = { x: p.x - g.x, y: p.y - g.y, z: p.z - g.z };
+  const toSat: EcefVec3 = { x: p.x - g.x, y: p.y - g.y, z: p.z - g.z };
 
   const separationAtBeltDeg = (thetaDeg: number): number => {
     const theta = toRad(thetaDeg);
-    const b: Vec3 = {
+    const b: EcefVec3 = {
       x: GEO_ORBIT_RADIUS_KM * Math.cos(theta) - g.x,
       y: GEO_ORBIT_RADIUS_KM * Math.sin(theta) - g.y,
       z: -g.z,

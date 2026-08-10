@@ -8,6 +8,7 @@ import type { SNPData } from '../components/globe/GlobeConfig';
 import { buildLeoFeederLink, getBestConnectedGateway } from './connectivityRules';
 import type { LeoServingAssignment } from '../data/leoGroundSegment';
 import { calculateElevationAngle } from './capacityCalculator';
+import { elevationAngleDeg } from './wgs84Geometry';
 import {
     findCandidateCoverages,
     rankCandidateCoverages,
@@ -92,6 +93,23 @@ function assessGatewayLinks(
     };
 }
 
+/**
+ * Elevation from the observer to a satellite's sub-point, degrees.
+ *
+ * Phase 3 (docs/SPATIAL_PHYSICS_AUDIT.md, SPA-01): this was the third and last
+ * elevation implementation in the codebase, and the only one still on a
+ * spherical Earth — R = 6371 km, fed the geodetic latitude and ellipsoid height
+ * that `eciToGeodetic` returns. That is the same conflation SPA-02 found in the
+ * GSO keep-out, in a less consequential place.
+ *
+ * Consolidating it onto the shared ellipsoid model is NOT bit-identical: it
+ * moves the answer by up to 0.13 deg, and 0.026-0.046 deg near the elevation
+ * gates that matter. That is deliberate and is an improvement — the ellipsoid
+ * figure is the one verified against GMAT to 7.2e-6 deg — and it cannot change
+ * behaviour here in any case: the only caller samples on RVT_STEP_S = 15 s, and
+ * at LEO elevation rates 0.05 deg is well under a second, roughly 30x below the
+ * sampling quantisation.
+ */
 function computeElevationFromCoords(
     observerLatDeg: number,
     observerLngDeg: number,
@@ -99,25 +117,10 @@ function computeElevationFromCoords(
     satLngDeg: number,
     satAltKm: number
 ): number {
-    const toRad = Math.PI / 180;
-    const observerLat = observerLatDeg * toRad;
-    const observerLng = observerLngDeg * toRad;
-    const satLat = satLatDeg * toRad;
-    const satLng = satLngDeg * toRad;
-
-    const deltaLng = satLng - observerLng;
-    const cosGamma =
-        Math.sin(observerLat) * Math.sin(satLat) +
-        Math.cos(observerLat) * Math.cos(satLat) * Math.cos(deltaLng);
-    const gamma = Math.acos(Math.max(-1, Math.min(1, cosGamma)));
-
-    if (gamma < 1e-10) return 90;
-
-    const earthRadiusKm = 6371;
-    const satRadiusKm = earthRadiusKm + satAltKm;
-    const tanElevation = (Math.cos(gamma) - earthRadiusKm / satRadiusKm) / Math.sin(gamma);
-
-    return Math.atan(tanElevation) / toRad;
+    return elevationAngleDeg(
+        { latDeg: observerLatDeg, lonDeg: observerLngDeg, altKm: 0 },
+        { latDeg: satLatDeg, lonDeg: satLngDeg, altKm: satAltKm },
+    );
 }
 
 function computeRemainingVisibleTime(

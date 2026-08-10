@@ -5,6 +5,7 @@ import type { GeoCapacityEstimate } from './geoCapacityModel';
 // Canonical constant lives in earthGeometry.ts (zero-dep leaf); re-exported here
 // for the many existing import sites.
 import { EARTH_RADIUS_KM } from './earthGeometry';
+import { elevationAngleDeg, slantRangeKm } from './wgs84Geometry';
 export { EARTH_RADIUS_KM } from './earthGeometry';
 
 // Free-space propagation speed for electromagnetic waves (km/s).
@@ -29,43 +30,23 @@ export const computeDistanceKm = (point1: { lat: number; lng: number }, point2: 
   return R * c;
 };
 
-// 3D distance calculation accounting for Earth's curvature
+/**
+ * 3-D straight-line distance between two points, on the WGS84 ellipsoid.
+ *
+ * `alt` is kilometres above the ELLIPSOID — the convention `eciToGeodetic`
+ * returns. Delegates to the shared model (Phase 3); this used to carry its own
+ * copy of the ellipsoid constants and conversion.
+ *
+ * Verified against NASA GMAT R2026a to 0.6 m over 1197-3146 km slant ranges:
+ * `__tests__/engGmatSiteGeometry.test.ts`.
+ */
 export const compute3DDistanceKm = (
   point1: { lat: number; lng: number; alt?: number },
   point2: { lat: number; lng: number; alt?: number }
-): number => {
-  // WGS‑84 constants (km)
-  const A = 6378.137;
-  const F = 1 / 298.257223563;
-  const E2 = 2 * F - F * F;
-  const DEG_TO_RAD = Math.PI / 180;
-
-  function toECEF(p: { lat: number; lng: number; alt?: number }): [number, number, number] {
-    const lat = p.lat * DEG_TO_RAD;
-    const lon = p.lng * DEG_TO_RAD;
-    const alt = p.alt ?? 0;
-
-    const sinLat = Math.sin(lat);
-    const cosLat = Math.cos(lat);
-
-    const N = A / Math.sqrt(1 - E2 * sinLat * sinLat);
-
-    const x = (N + alt) * cosLat * Math.cos(lon);
-    const y = (N + alt) * cosLat * Math.sin(lon);
-    const z = (N * (1 - E2) + alt) * sinLat;
-
-    return [x, y, z];
-  }
-
-  const [x1, y1, z1] = toECEF(point1);
-  const [x2, y2, z2] = toECEF(point2);
-
-  const dx = x2 - x1;
-  const dy = y2 - y1;
-  const dz = z2 - z1;
-
-  return Math.sqrt(dx * dx + dy * dy + dz * dz);
-};
+): number => slantRangeKm(
+  { latDeg: point1.lat, lonDeg: point1.lng, altKm: point1.alt ?? 0 },
+  { latDeg: point2.lat, lonDeg: point2.lng, altKm: point2.alt ?? 0 },
+);
 
 export interface RealTimeCapacityData {
   /**
@@ -87,64 +68,27 @@ export interface RealTimeCapacityData {
   hasLeoCoverage: boolean;
 }
 
-// Calculate elevation angle between ground point and satellite
+/**
+ * Topocentric elevation angle from a ground point to a satellite, degrees.
+ *
+ * `satellite.position.alt` is kilometres above the WGS84 ellipsoid, which is
+ * what `eciToGeodetic` returns — so the ellipsoid, not the 6371 km coverage
+ * sphere, is the correct model here. Delegates to the shared model (Phase 3);
+ * this used to carry its own copy of the constants, the ECEF conversion and the
+ * ENU rotation.
+ *
+ * Verified against NASA GMAT R2026a to 7.2e-6 deg across three latitudes from
+ * the equator to 78 N: `__tests__/engGmatSiteGeometry.test.ts`.
+ */
 export const calculateElevationAngle = (
   point: { lat: number; lng: number; altitude?: number },
   satellite: SatelliteData
-): number => {
-  // WGS-84 constants (km)
-  const A = 6378.137;
-  const F = 1 / 298.257223563;
-  const E2 = 2 * F - F * F;
-
-  const degToRad = Math.PI / 180;
-  const radToDeg = 180 / Math.PI;
-
-  const userAltKm = point.altitude ?? 0;
-
-  const lat = point.lat * degToRad;
-  const lon = point.lng * degToRad;
-
-  const sinLat = Math.sin(lat);
-  const cosLat = Math.cos(lat);
-  const sinLon = Math.sin(lon);
-  const cosLon = Math.cos(lon);
-
-  const N = A / Math.sqrt(1 - E2 * sinLat * sinLat);
-
-  const xg = (N + userAltKm) * cosLat * cosLon;
-  const yg = (N + userAltKm) * cosLat * sinLon;
-  const zg = (N * (1 - E2) + userAltKm) * sinLat;
-
-  // Satellite position
-  const satLat = satellite.position.lat * degToRad;
-  const satLon = satellite.position.lng * degToRad;
-  const satAlt = satellite.position.alt; // km
-
-  const sinSatLat = Math.sin(satLat);
-  const cosSatLat = Math.cos(satLat);
-  const sinSatLon = Math.sin(satLon);
-  const cosSatLon = Math.cos(satLon);
-
-  const Ns = A / Math.sqrt(1 - E2 * sinSatLat * sinSatLat);
-
-  const xs = (Ns + satAlt) * cosSatLat * cosSatLon;
-  const ys = (Ns + satAlt) * cosSatLat * sinSatLon;
-  const zs = (Ns * (1 - E2) + satAlt) * sinSatLat;
-
-  // Line-of-sight vector (ECEF)
-  const dx = xs - xg;
-  const dy = ys - yg;
-  const dz = zs - zg;
-
-  // ECEF -> ENU
-  const east  = -sinLon * dx + cosLon * dy;
-  const north = -sinLat * cosLon * dx - sinLat * sinLon * dy + cosLat * dz;
-  const up    =  cosLat * cosLon * dx + cosLat * sinLon * dy + sinLat * dz;
-
-  // Elevation angle
-  const elevationRad = Math.atan2(up, Math.sqrt(east * east + north * north));
-
-  return elevationRad * radToDeg;
-};
+): number => elevationAngleDeg(
+  { latDeg: point.lat, lonDeg: point.lng, altKm: point.altitude ?? 0 },
+  {
+    latDeg: satellite.position.lat,
+    lonDeg: satellite.position.lng,
+    altKm: satellite.position.alt,
+  },
+);
 
