@@ -411,6 +411,9 @@ function updateSwaths(
 /** Camera framing: the full globe, per UX §4.3 — ENG's framing, not COMM's limb view. */
 export function frameGlobe(viewer: Viewer): void {
     viewer.camera.setView({
+        // Camera standoff only — a distance to place the eye, not a model of
+        // the Earth. The 6371 km sphere is fine here and nowhere else in this
+        // module (R28): nothing downstream reads it.
         destination: Cartesian3.fromDegrees(10, 25, EARTH_RADIUS_KM * 1000 * 3.2),
         orientation: { heading: 0, pitch: CesiumMath.toRadians(-90), roll: 0 },
     });

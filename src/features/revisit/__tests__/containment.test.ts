@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EARTH_RADIUS_KM } from '../../../utils/earthGeometry';
+import { WGS84_A_KM, WGS84_E2, orbitalRadiusKm } from '../../../utils/wgs84Geometry';
 import { v3, toRad, toDeg } from '../../../utils/sphericalGeometry';
 import {
     evaluateContainment, isTargetInFov, prepareFov, targetEciAt,
@@ -9,7 +9,21 @@ import { argLatRateRadPerSec, geodeticToEcef, gmstRad } from '../propagation/kep
 import type { EciState, FovSpec } from '../domain/types';
 
 const ALT_KM = 600;
-const A_KM = EARTH_RADIUS_KM + ALT_KM;
+const A_KM = orbitalRadiusKm(ALT_KM);
+
+/**
+ * R28 re-derivation note.
+ *
+ * The ground is now the WGS84 ellipsoid. That does NOT weaken these oracles,
+ * because they are built on the equator, and the ellipsoid's equatorial
+ * cross-section is EXACTLY a circle of radius `a`. Every along-track case below
+ * therefore keeps its exact closed form, with `a` in place of the old 6371.
+ *
+ * The cross-track cases are different: they run along a MERIDIAN, which is an
+ * ellipse. Those are re-derived from the ellipse itself (`meridianPoint`) with
+ * the expected look angle taken straight from the vectors, rather than from a
+ * spherical arc relation that is no longer true off the equator.
+ */
 
 /**
  * An equatorial satellite at ECI (a, 0, 0) moving toward +Y.
@@ -23,14 +37,36 @@ function equatorialSat(): EciState {
 
 /** A ground point on the equator, `deltaDeg` ahead of the sub-satellite point. */
 function targetAlongTrack(deltaDeg: number) {
+    // On the equator, exactly: x² + y² = a², z = 0.
     const d = toRad(deltaDeg);
-    return v3(EARTH_RADIUS_KM * Math.cos(d), EARTH_RADIUS_KM * Math.sin(d), 0);
+    return v3(WGS84_A_KM * Math.cos(d), WGS84_A_KM * Math.sin(d), 0);
+}
+
+/**
+ * A surface point on the x–z meridian at GEODETIC latitude `latDeg`.
+ *
+ * Written from the ellipse's own parametrisation — N = a/√(1−e²sin²φ), then
+ * (N cosφ, 0, N(1−e²) sinφ) — not by calling the module under test.
+ */
+function meridianPoint(latDeg: number) {
+    const phi = toRad(latDeg);
+    const n = WGS84_A_KM / Math.sqrt(1 - WGS84_E2 * Math.sin(phi) * Math.sin(phi));
+    return v3(n * Math.cos(phi), 0, n * (1 - WGS84_E2) * Math.sin(phi));
+}
+
+/** Off-nadir angle from an equatorial satellite at (A,0,0) to a target, degrees. */
+function lookAngleDeg(target: { x: number; y: number; z: number }): number {
+    const dx = target.x - A_KM;
+    const dy = target.y;
+    const dz = target.z;
+    const len = Math.hypot(dx, dy, dz);
+    // Nadir from (A,0,0) is (−1,0,0); the look angle is the angle between them.
+    return toDeg(Math.acos(-dx / len));
 }
 
 /** A ground point `deltaDeg` off to the cross-track side of the sub-satellite point. */
 function targetCrossTrack(deltaDeg: number) {
-    const d = toRad(deltaDeg);
-    return v3(EARTH_RADIUS_KM * Math.cos(d), 0, EARTH_RADIUS_KM * Math.sin(d));
+    return meridianPoint(deltaDeg);
 }
 
 const cone = (halfAngleDeg: number): FovSpec => ({
@@ -64,15 +100,41 @@ describe('containment — closed-form conical FOV', () => {
         }
     );
 
-    it('is rotationally symmetric — the cross-track limit equals the along-track one', () => {
+    it('is rotationally symmetric in LOOK ANGLE, which is the cone\'s own property', () => {
+        // R28 changed what this test can assert, and the distinction is real.
+        //
+        // A conical FOV is rotationally symmetric about its boresight, so the
+        // limit is the same 30° of LOOK ANGLE in every azimuth. It is NOT the
+        // same ground arc: along-track runs along the equator (curvature 1/a),
+        // cross-track runs along a meridian (curvature varying with latitude),
+        // so equal look angles subtend unequal ground angles on an ellipsoid.
+        // On a sphere the two coincided, which is why the old form worked.
+        //
+        // Asserting the ground arc here would now be asserting that the Earth
+        // is round. So the symmetry is tested where it actually lives.
         const sat = equatorialSat();
         const fov = prepareFov(cone(30));
-        const limitDeg = toDeg(groundArcRad(A_KM, toRad(30)).arcRad);
 
-        expect(isTargetInFov(sat, targetCrossTrack(limitDeg * 0.999), fov)).toBe(true);
-        expect(isTargetInFov(sat, targetCrossTrack(limitDeg * 1.001), fov)).toBe(false);
-        expect(isTargetInFov(sat, targetCrossTrack(-limitDeg * 0.999), fov)).toBe(true);
-        expect(isTargetInFov(sat, targetCrossTrack(-limitDeg * 1.001), fov)).toBe(false);
+        // Bisect the meridian for the geodetic latitude at which the look angle
+        // reaches 30°, using only the ellipse and vector algebra.
+        let lo = 0;
+        let hi = 40;
+        for (let i = 0; i < 60; i++) {
+            const mid = (lo + hi) / 2;
+            if (lookAngleDeg(meridianPoint(mid)) < 30) lo = mid; else hi = mid;
+        }
+        const crossLimitDeg = (lo + hi) / 2;
+        expect(lookAngleDeg(meridianPoint(crossLimitDeg))).toBeCloseTo(30, 6);
+
+        expect(isTargetInFov(sat, targetCrossTrack(crossLimitDeg * 0.999), fov)).toBe(true);
+        expect(isTargetInFov(sat, targetCrossTrack(crossLimitDeg * 1.001), fov)).toBe(false);
+        expect(isTargetInFov(sat, targetCrossTrack(-crossLimitDeg * 0.999), fov)).toBe(true);
+        expect(isTargetInFov(sat, targetCrossTrack(-crossLimitDeg * 1.001), fov)).toBe(false);
+
+        // And the ground arcs genuinely differ, which is the substance of the
+        // change rather than an artefact of it.
+        const alongLimitDeg = toDeg(groundArcRad(A_KM, toRad(30)).arcRad);
+        expect(Math.abs(crossLimitDeg - alongLimitDeg)).toBeGreaterThan(1e-4);
     });
 
     it('reports the off-boresight angle as exactly the half-angle at the limit', () => {
@@ -103,7 +165,7 @@ describe('containment — horizon', () => {
 
     it('places the geometric horizon at 90° − asin(R_e/r) of central angle', () => {
         const sat = equatorialSat();
-        const horizonDeg = 90 - toDeg(Math.asin(EARTH_RADIUS_KM / A_KM));
+        const horizonDeg = 90 - toDeg(Math.asin(WGS84_A_KM / A_KM));
         const fov = prepareFov(cone(89));
         expect(isTargetInFov(sat, targetAlongTrack(horizonDeg * 0.999), fov)).toBe(true);
         expect(isTargetInFov(sat, targetAlongTrack(horizonDeg * 1.001), fov)).toBe(false);
@@ -111,7 +173,7 @@ describe('containment — horizon', () => {
 
     it('reports elevation crossing zero at the horizon', () => {
         const sat = equatorialSat();
-        const horizonDeg = 90 - toDeg(Math.asin(EARTH_RADIUS_KM / A_KM));
+        const horizonDeg = 90 - toDeg(Math.asin(WGS84_A_KM / A_KM));
         const detail = evaluateContainment(sat, targetAlongTrack(horizonDeg), prepareFov(cone(89)));
         expect(detail.elevationDeg).toBeCloseTo(0, 6);
     });
@@ -165,9 +227,9 @@ describe('containment — rectangle and clocking', () => {
         // the inscribed 10° cone.
         const d1 = toRad(along), d2 = toRad(across);
         const corner = v3(
-            EARTH_RADIUS_KM * Math.cos(d1) * Math.cos(d2),
-            EARTH_RADIUS_KM * Math.sin(d1),
-            EARTH_RADIUS_KM * Math.cos(d1) * Math.sin(d2),
+            WGS84_A_KM * Math.cos(d1) * Math.cos(d2),
+            WGS84_A_KM * Math.sin(d1),
+            WGS84_A_KM * Math.cos(d1) * Math.sin(d2),
         );
         expect(isTargetInFov(sat, corner, prepareFov(rect(10, 10, 0)))).toBe(true);
         expect(isTargetInFov(sat, corner, prepareFov(cone(10)))).toBe(false);
@@ -233,6 +295,41 @@ describe('containment — elevation mask', () => {
         const masked = prepareFov({ ...cone(60), minElevationDeg: 40 });
         expect(isTargetInFov(sat, targetAlongTrack(0), masked)).toBe(true);
     });
+
+    it('uses the ellipsoid normal at a grazing mid-latitude horizon', () => {
+        // At 45° the WGS84 normal is ~0.19° poleward of the radius vector.
+        // A 0.05°-elevation northward LOS is therefore above the true local
+        // horizon while the old radial test classifies it as below.
+        const target = meridianPoint(45);
+        const phi = toRad(45);
+        const up = v3(Math.cos(phi), 0, Math.sin(phi));
+        const north = v3(-Math.sin(phi), 0, Math.cos(phi));
+        const elevation = toRad(0.05);
+        const los = v3(
+            north.x * Math.cos(elevation) + up.x * Math.sin(elevation),
+            0,
+            north.z * Math.cos(elevation) + up.z * Math.sin(elevation),
+        );
+        const rangeKm = 1000;
+        const sat: EciState = {
+            x: target.x + rangeKm * los.x,
+            y: 0,
+            z: target.z + rangeKm * los.z,
+            vx: 0,
+            vy: 7,
+            vz: 0,
+        };
+        const d = v3(target.x - sat.x, target.y - sat.y, target.z - sat.z);
+
+        // Proves this fixture discriminates the implementation we replaced.
+        expect(d.x * target.x + d.y * target.y + d.z * target.z).toBeGreaterThan(0);
+
+        const wide = prepareFov(cone(89));
+        const detail = evaluateContainment(sat, target, wide);
+        expect(detail.aboveHorizon).toBe(true);
+        expect(detail.elevationDeg).toBeCloseTo(0.05, 6);
+        expect(isTargetInFov(sat, target, wide)).toBe(true);
+    });
 });
 
 describe('containment — target in ECI', () => {
@@ -248,19 +345,36 @@ describe('containment — target in ECI', () => {
         expect(eci.z).toBeCloseTo(ecef.z, 12);
     });
 
-    it('keeps the target on the sphere as the Earth turns', () => {
-        const target = { kind: 'POINT' as const, name: 'T', latDeg: 20, lonDeg: 100 };
+    it('keeps the target on the ELLIPSOID as the Earth turns', () => {
+        // Independent expectation: the geocentric radius at geodetic latitude φ
+        // on the WGS84 ellipsoid, from the ellipse parametrisation. Not a
+        // constant any more — that was the spherical model's signature.
+        const latDeg = 20;
+        const phi = toRad(latDeg);
+        const n = WGS84_A_KM / Math.sqrt(1 - WGS84_E2 * Math.sin(phi) * Math.sin(phi));
+        const expectedRadius = Math.hypot(
+            n * Math.cos(phi),
+            n * (1 - WGS84_E2) * Math.sin(phi),
+        );
+        // Sanity: strictly between the polar and equatorial radii.
+        expect(expectedRadius).toBeLessThan(WGS84_A_KM);
+        expect(expectedRadius).toBeGreaterThan(WGS84_A_KM * (1 - 1 / 298.257223563));
+
+        const target = { kind: 'POINT' as const, name: 'T', latDeg, lonDeg: 100 };
         const epochMs = Date.UTC(2026, 7, 6);
         for (const t of [0, 3600, 43200, 86400]) {
             const p = targetEciAt(target, epochMs, t);
-            expect(Math.hypot(p.x, p.y, p.z)).toBeCloseTo(EARTH_RADIUS_KM, 9);
+            // Earth rotation is a rotation: it cannot change the radius.
+            expect(Math.hypot(p.x, p.y, p.z)).toBeCloseTo(expectedRadius, 9);
         }
     });
 
-    it('honours a target altitude', () => {
+    it('honours a target altitude above the ellipsoid', () => {
+        // Chosen on the equator, where the ellipsoid normal is radial, so the
+        // expected radius is exactly a + h with no approximation.
         const p = targetEciAt(
             { kind: 'POINT', name: 'T', latDeg: 0, lonDeg: 0, altitudeKm: 2 }, 0, 0
         );
-        expect(Math.hypot(p.x, p.y, p.z)).toBeCloseTo(EARTH_RADIUS_KM + 2, 9);
+        expect(Math.hypot(p.x, p.y, p.z)).toBeCloseTo(WGS84_A_KM + 2, 9);
     });
 });

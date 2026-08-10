@@ -47,9 +47,25 @@ import type { WalkerSpec } from '../../features/revisit/domain/types';
 
 /** Must match the fixture header exactly, or the samples do not correspond. */
 const EPOCH = Date.UTC(2026, 7, 6, 0, 0, 0);
+
+/**
+ * The fixture pins a SEMI-MAJOR AXIS of 7571 km, not an altitude.
+ *
+ * When it was generated the engine measured altitude from the 6371 km sphere,
+ * so `altitudeKm: 1200` produced a = 7571. R28 moved the datum to the
+ * equatorial radius, and the same 1200 would now give a = 7578.137 — a
+ * different orbit from the one GMAT was asked about, which would invalidate
+ * every sample.
+ *
+ * 1192.863 = 7571 − 6378.137 reproduces the original orbit exactly under the
+ * new convention. That is the right repair rather than regenerating the
+ * fixture: this test is about the TEME→geodetic FRAME CONVERSION, and which
+ * orbit the states came from is immaterial to it — only that the states are the
+ * ones GMAT converted.
+ */
 const SPEC: WalkerSpec = {
     pattern: 'STAR', planes: 6, satsPerPlane: 2,
-    inclinationDeg: 87.9, altitudeKm: 1200, phasingF: 1, fudge: 1,
+    inclinationDeg: 87.9, altitudeKm: 1192.863, phasingF: 1, fudge: 1,
 };
 
 interface Sample {

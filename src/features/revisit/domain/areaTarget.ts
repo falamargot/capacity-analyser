@@ -20,7 +20,7 @@
  * the cost of the grid is bounded before any engine run happens.
  */
 
-import { EARTH_RADIUS_KM } from '../../../utils/earthGeometry';
+import { orbitalRadiusKm } from '../../../utils/wgs84Geometry';
 import { toDeg, toRad } from '../../../utils/sphericalGeometry';
 import { groundArcRad } from '../fov/footprint';
 import type { FovSpec, PointTarget, WalkerSpec } from './types';
@@ -53,7 +53,7 @@ const MIN_SAMPLES_PER_SWATH = 2;
 
 /** Swath width in degrees of ground arc, for the aliasing check. */
 export function swathWidthDeg(reference: WalkerSpec, payload: FovSpec): number {
-    const a = EARTH_RADIUS_KM + reference.altitudeKm;
+    const a = orbitalRadiusKm(reference.altitudeKm);
     const widest = Math.max(payload.halfAngle1Deg, payload.halfAngle2Deg);
     const bias = Math.hypot(payload.biasDeg.alongTrack, payload.biasDeg.crossTrack);
     return 2 * toDeg(groundArcRad(a, toRad(Math.min(widest + bias, 89))).arcRad);
@@ -185,6 +185,13 @@ export function longitudeSpanDeg(ring: LatLonDeg[]): number {
 
 /**
  * Grid the area into point targets at its cell centres.
+ *
+ * R28 note: the lattice is built in GEODETIC latitude and longitude and is
+ * deliberately unchanged. Only the mapping from a cell's lat/lon to an ECEF
+ * position moved to the ellipsoid, inside `targetEciAt`. The grid itself must
+ * not shift merely because the satellite's coordinate conversion changed — a
+ * cell at 52.0°N is the same place on the ground before and after, and shifting
+ * the lattice would silently re-aim the heat map.
  *
  * Cells are laid out on a regular lat/lon lattice. Note this makes cells
  * narrower in ground distance as latitude rises — acceptable because the

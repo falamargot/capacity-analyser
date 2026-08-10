@@ -43,7 +43,13 @@ export const ModelProvenance: React.FC<ModelProvenanceProps> = ({
             <span className={REVISIT_LABEL}>Model provenance</span>
             <ul className="mt-1 space-y-0.5 text-[10px] leading-4 text-slate-400">
                 <li>Kepler + J2 secular · no drag</li>
-                <li>Spherical earth R = 6371 km</li>
+                {/*
+                  * R28. Three radii, three roles — the line names the two that
+                  * shape a reported number. Saying only "WGS84" would hide the
+                  * altitude datum, which is the part that moved and the part a
+                  * reader is most likely to assume wrongly.
+                  */}
+                <li>WGS84 ellipsoid · altitude above R_eq 6378.137 km</li>
                 {/*
                   * The propagator's own credibility line, and distinct from the
                   * OneWeb fit below it. This one is an external authority —
@@ -54,6 +60,15 @@ export const ModelProvenance: React.FC<ModelProvenanceProps> = ({
                   * stronger claim launder the weaker one.
                   */}
                 <li>Propagation cross-checked vs NASA GMAT · 9 km over 72 h</li>
+                {/*
+                  * Deliberately separate from the line above. GMAT validated the
+                  * PROPAGATOR at a fixed semi-major axis; it has not yet been
+                  * run against the R28 altitude datum. Letting the GMAT line sit
+                  * next to the Earth-model line without this qualifier would let
+                  * the stronger claim launder the weaker one — the same mistake
+                  * the OneWeb fit line is guarded against below.
+                  */}
+                <li className="text-slate-500">altitude datum not yet GMAT-checked</li>
                 {fit ? (
                     // "Fit vs OneWeb TLE · N km RMS" reads as trajectory
                     // validation. It is not: this is a mean-element fit at ONE

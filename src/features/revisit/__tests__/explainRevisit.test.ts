@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-    explainRevisit, groundHalfAngleDeg, turningLatitudeDeg,
+    conservativeReachUpperBoundDeg, explainRevisit, groundHalfAngleDeg,
+    maxReachableLatitudeDeg, turningLatitudeDeg,
 } from '../analysis/explainRevisit';
 import { runRevisitScenario } from '../analysis/runScenario';
 import { runPayloadSweep } from '../analysis/payloadSweep';
@@ -80,6 +81,36 @@ describe('explainRevisit — geometry', () => {
         );
         expect(narrow.factors.find((f) => f.id === 'GEOMETRY')!.status).toBe('BLOCKING');
         expect(wide.factors.find((f) => f.id === 'GEOMETRY')!.status).toBe('OK');
+    });
+
+    it('never declares BLOCKING inside the conservative off-grid reach bound', () => {
+        // Bias, clocking and unequal rectangle axes make the latitude maximum
+        // fall away from the symmetric sample locations. The sampled maximum is
+        // useful for display; only the analytic upper bound may prove
+        // impossibility.
+        const base = scenario({
+            reference: { ...scenario().reference, inclinationDeg: 48 },
+            payload: {
+                biasDeg: { alongTrack: 7.3, crossTrack: -4.7 },
+                shape: 'RECTANGLE',
+                halfAngle1Deg: 9,
+                halfAngle2Deg: 3,
+                clockingDeg: 17,
+            },
+        });
+        const sampled = maxReachableLatitudeDeg(base);
+        const upper = conservativeReachUpperBoundDeg(base);
+        expect(upper).toBeGreaterThan(sampled);
+
+        const inUncertaintyBand = {
+            ...base,
+            target: { ...base.target, latDeg: (sampled + upper) / 2 },
+        };
+        const result = explainRevisit(inUncertaintyBand, stats(), null);
+        const geometry = result.factors.find((f) => f.id === 'GEOMETRY')!;
+        expect(geometry.status).toBe('UNKNOWN');
+        expect(result.limiting).toBeNull();
+        expect(result.notDeterminedReason).toMatch(/uncertainty/i);
     });
 });
 

@@ -9,12 +9,16 @@
  * this engine uses a single GMST rotation — so unlike the SGP4 cross-check,
  * this one *can* see an error in the ECI-is-ECEF-rotated-by-GMST convention.
  *
+ * SCOPE: this is a FIXED-SEMI-MAJOR-AXIS regression. It says nothing about the
+ * altitude datum — see `REFERENCE_SMA_KM` below.
+ *
  * The fixture was produced by `docs/revisit/gmat/r4_eph.script`, run headless
  * with `GmatConsole --run`. Force model: Earth JGM2 degree 2, order 0 (J2 only,
  * no tesserals), no drag, no SRP, no third bodies — the closest numerical
  * analogue of what this engine claims to model. Osculating SMA was tuned so the
- * Brouwer mean SMA lands on 7571.013 km, which is what the engine means by
- * "altitude 1200 km" over its 6371 km sphere.
+ * Brouwer mean SMA lands on 7571.013 km. (At the time the fixture was made that
+ * was what the engine meant by "altitude 1200 km"; since R28 it is not, which is
+ * exactly why the test pins the SMA rather than the altitude.)
  *
  * The fixture is committed because regenerating it requires a 455 MB install.
  */
@@ -36,7 +40,19 @@ import type { EciState, OrbitalElements, Target } from '../../features/revisit/d
 /** Epoch of the GMAT run: 06 Aug 2026 00:00:00.000 UTC. */
 const EPOCH_MS = Date.UTC(2026, 7, 6, 0, 0, 0);
 
-/** The engine's own semi-major axis for the reference shell: 6371 + 1200. */
+/**
+ * FIXED SEMI-MAJOR AXIS — deliberately, and not an altitude.
+ *
+ * 7571 km is the value GMAT was asked about. It happens to be what the engine
+ * derived from "1200 km altitude" under the pre-R28 datum, but this fixture is
+ * pinned to the SMA itself and must stay that way.
+ *
+ * **This test therefore validates the PROPAGATOR, not the altitude convention.**
+ * R28 changed how `altitudeKm` maps to a semi-major axis; nothing here exercises
+ * that mapping, and no external-validation claim for the R28 datum may rest on
+ * this fixture. Closing that gap needs a new GMAT run seeded from the equatorial
+ * datum — recorded as outstanding in docs/SPATIAL_PHYSICS_AUDIT.md.
+ */
 const REFERENCE_SMA_KM = 7571;
 const REFERENCE_INCLINATION_DEG = 87.9;
 
@@ -108,8 +124,9 @@ function velocityAt(s: Sample[], i: number): Vec3 {
  * two differ by ~0.36° of precession in 2026) and leaves the test measuring
  * propagation, not initialisation.
  *
- * The semi-major axis is NOT fitted: it is the 7571 km the engine derives from
- * "1200 km altitude". That keeps the altitude convention under test.
+ * The semi-major axis is NOT fitted: it is the fixed `REFERENCE_SMA_KM` the
+ * fixture was generated at. It is supplied directly rather than via an altitude,
+ * so the altitude datum plays no part in this comparison.
  */
 function seedFromGmat(samples: Sample[]): OrbitalElements {
     const r = samples[0].eci;

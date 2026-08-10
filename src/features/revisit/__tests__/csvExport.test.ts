@@ -52,7 +52,15 @@ describe('provenanceHeader', () => {
 
     it('states the model conventions that change the numbers', () => {
         expect(header).toMatch(/Kepler \+ J2 secular/);
-        expect(header).toMatch(/sphere R = 6371 km/);
+        // R28: the export states the ELLIPSOID and, separately, the altitude
+        // datum. Both are asserted because a reader who sees only "WGS84" will
+        // reasonably assume altitude is measured from the mean radius, and that
+        // assumption changes every altitude-derived figure in the file.
+        expect(header).toMatch(/WGS84 ellipsoid/);
+        expect(header).toMatch(/altitude datum,a = 6378\.137 km \+ altitude/);
+        expect(header).toMatch(/j2 reference radius,6378\.1363 km/);
+        // The honesty line: GMAT validated the propagator, not this datum.
+        expect(header).toMatch(/altitude datum cross-check,NOT YET VALIDATED/);
         expect(header).toMatch(/boundary-truncated gaps discarded/);
         expect(header).toMatch(/infrared/);
     });
@@ -97,7 +105,7 @@ describe('accessIntervalsCsv', () => {
 
     it('carries the provenance header', () => {
         expect(csv.startsWith('# Capacity Analyzer')).toBe(true);
-        expect(csv).toMatch(/sphere R = 6371 km/);
+        expect(csv).toMatch(/WGS84 ellipsoid/);
     });
 
     it('writes one row per access interval plus the two header rows', () => {

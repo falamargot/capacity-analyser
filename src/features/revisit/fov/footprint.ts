@@ -5,26 +5,37 @@
  * conflating them is the classic mistake in this problem. `containment.ts`
  * produces the numbers; nothing here feeds the statistics.
  *
- * METHOD (audit §3.2, superseding design note §4.2b). This codebase does not
- * build footprints by ray/ellipsoid intersection. It takes a ground centre and
- * walks outward geodesically by bearing and distance. So for each boundary ray:
+ * METHOD (R28, superseding the geodesic-walk construction and design note
+ * §4.2b). Each boundary ray is intersected directly with the WGS84 ellipsoid:
  *
  *   1. build the ray in the satellite body frame from the FOV boundary
- *   2. rotate it into ECEF and decompose it at the sub-satellite point into an
- *      off-nadir angle η and a compass bearing
- *   3. convert η to a ground arc λ:  sin(η + λ) = (r/R_e)·sin η
- *   4. walk from the sub-satellite point by (R_e·λ, bearing) — destinationGeodesic
+ *   2. rotate it into ECEF
+ *   3. intersect it with the ellipsoid, exactly
+ *   4. convert the hit to geodetic lat/lng
+ *
+ * The previous method took a ground centre and walked outward geodesically on a
+ * 6371 km sphere. That was a deliberate simplification, and R28 retires it: the
+ * drawn footprint now lands on the SAME ellipsoid as the targets and the access
+ * test, so the picture agrees with the number rather than approximating it.
  *
  * Rays that miss the Earth are CLAMPED TO THE LIMB, never dropped: dropping a
  * vertex tears the polygon open on screen.
  *
- * Spherical Earth at R = 6371 km throughout (ADR-001 §2), so these footprints
- * line up with the coverage footprints drawn elsewhere in the application.
+ * The scalar helpers at the foot of this file (`halfSwathKm`,
+ * `horizonOffNadirDeg`) are a separate, one-dimensional question — "how wide is
+ * the swath" has no single answer on an ellipsoid — and are defined at the
+ * EQUATOR, where the ground radius is exactly the altitude datum. See there.
  */
 
-import { EARTH_RADIUS_KM } from '../../../utils/earthGeometry';
 import {
-    type Vec3, v3, dot, cross, length, normalize, destinationGeodesic, toDeg, clamp,
+    WGS84_A_KM,
+    ecefToGeodetic as wgsEcefToGeodetic,
+    geodeticToEcef as wgsGeodeticToEcef,
+    orbitalRadiusKm,
+    rayEllipsoidIntersect,
+} from '../../../utils/wgs84Geometry';
+import {
+    type Vec3, v3, dot, cross, length, normalize, toDeg, clamp,
 } from '../../../utils/sphericalGeometry';
 import type { EciState } from '../domain/types';
 import { earthRotationRad, ecefToEci, eciToEcef } from '../propagation/keplerJ2';
@@ -45,7 +56,7 @@ export const DEFAULT_FOOTPRINT_SAMPLES = 48;
 export function groundArcRad(
     satRadiusKm: number, offNadirRad: number
 ): { arcRad: number; clampedToLimb: boolean } {
-    const ratio = satRadiusKm / EARTH_RADIUS_KM;
+    const ratio = satRadiusKm / WGS84_A_KM;
     const limbRad = Math.asin(clamp(1 / ratio, -1, 1));
     if (offNadirRad >= limbRad) {
         return { arcRad: Math.PI / 2 - limbRad, clampedToLimb: true };
@@ -71,14 +82,32 @@ function lvlhBasisEci(sat: EciState): { xHat: Vec3; yHat: Vec3; zHat: Vec3 } | n
     return { xHat, yHat: cross(zHat, xHat), zHat };
 }
 
-/** Where a body-frame ray meets the ground, as lat/lng. */
+/**
+ * Where a body-frame ray meets the ground, as lat/lng.
+ *
+ * R28: ray / WGS84-ellipsoid intersection, replacing the previous
+ * off-nadir-then-walk-a-geodesic-on-a-6371-sphere construction. The drawn
+ * footprint now lands on the same ellipsoid the access test and the targets use,
+ * so the picture agrees with the number instead of approximating it.
+ *
+ * A consequence worth recording: the exact-pole guard this function used to need
+ * is GONE, not merely relocated. The geodesic walk required a compass bearing,
+ * and "east" is undefined over a pole — that degeneracy (R21) had to be special
+ * cased. A ray/ellipsoid intersection never forms an azimuth, so the pole is no
+ * longer a special point at all.
+ *
+ * Rays that miss the Earth are still CLAMPED TO THE LIMB rather than dropped:
+ * dropping a vertex tears the polygon open on screen. The clamp bisects the
+ * off-nadir angle down to the grazing ray, which is exact on the ellipsoid
+ * rather than the spherical limb formula it replaces. The clamp runs only for
+ * vertices that actually miss, and only in this render-side function — the
+ * access analysis never calls it.
+ */
 function groundPointOfRay(
     dirBody: Vec3,
     basis: { xHat: Vec3; yHat: Vec3; zHat: Vec3 },
     satEcef: Vec3,
-    subSat: LatLng,
-    thetaRad: number,
-    satRadiusKm: number
+    thetaRad: number
 ): { point: LatLng; clampedToLimb: boolean } {
     const dirEci = v3(
         dirBody.x * basis.xHat.x + dirBody.y * basis.yHat.x + dirBody.z * basis.zHat.x,
@@ -86,36 +115,61 @@ function groundPointOfRay(
         dirBody.x * basis.xHat.z + dirBody.y * basis.yHat.z + dirBody.z * basis.zHat.z,
     );
     // A pure rotation, so it maps directions as well as positions.
-    const dirEcef = eciToEcef(dirEci, thetaRad);
+    const dirEcef = normalize(eciToEcef(dirEci, thetaRad));
 
-    // Local ENU at the sub-satellite point, in ECEF.
+    const hit = rayEllipsoidIntersect(satEcef, dirEcef);
+    if (hit) {
+        const g = wgsEcefToGeodetic(hit);
+        return { point: { lat: g.latDeg, lng: g.lonDeg }, clampedToLimb: false };
+    }
+
+    // Missed. Rotate the ray back toward nadir until it grazes.
     //
-    // "East" is ẑ × up, whose magnitude is cos(latitude) — so it collapses to
-    // the zero vector when the satellite is exactly over a pole, taking the
-    // bearing and the whole footprint ring with it. East is genuinely undefined
-    // there (every direction is south), so any perpendicular serves, provided
-    // the frame stays orthonormal.
-    //
-    // The test is on the cross product itself, not on a latitude threshold. A
-    // threshold wide enough to feel safe (say |up.z| > 0.999, about 2.5° of
-    // pole) would swap the azimuth reference across a broad polar cap and
-    // visibly rotate any asymmetric footprint — a rectangle or a clocked ellipse
-    // — as a satellite crossed it. Double precision resolves this formula to
-    // within nanodegrees of the pole; only exact degeneracy needs the fallback.
-    const up = normalize(satEcef);
-    let east = cross(v3(0, 0, 1), up);
-    if (length(east) < 1e-12) east = cross(v3(1, 0, 0), up);
-    east = normalize(east);
-    const north = cross(up, east);
+    // Nadir always intersects, so the bracket is well posed: alpha = 0 hits,
+    // alpha = the ray's own off-nadir angle does not. Bisecting on alpha finds
+    // the limb to within 2^-40 of a radian, well inside a rendered pixel.
+    const nadir = normalize(v3(-satEcef.x, -satEcef.y, -satEcef.z));
+    const cosA = clamp(dot(dirEcef, nadir), -1, 1);
+    const perp = v3(
+        dirEcef.x - cosA * nadir.x,
+        dirEcef.y - cosA * nadir.y,
+        dirEcef.z - cosA * nadir.z,
+    );
+    const perpLen = length(perp);
+    if (perpLen < 1e-15) {
+        // Parallel to nadir yet missing is geometrically impossible; treat the
+        // sub-satellite point as the answer rather than returning nothing.
+        const g = wgsEcefToGeodetic(satEcef);
+        return { point: { lat: g.latDeg, lng: g.lonDeg }, clampedToLimb: true };
+    }
+    const pHat = v3(perp.x / perpLen, perp.y / perpLen, perp.z / perpLen);
 
-    const offNadirRad = Math.acos(clamp(-dot(dirEcef, up), -1, 1));
-    const bearingDeg = toDeg(Math.atan2(dot(dirEcef, east), dot(dirEcef, north)));
-
-    const { arcRad, clampedToLimb } = groundArcRad(satRadiusKm, offNadirRad);
-    return {
-        point: destinationGeodesic(subSat.lat, subSat.lng, bearingDeg, EARTH_RADIUS_KM * arcRad),
-        clampedToLimb,
-    };
+    let lo = 0;
+    let hi = Math.acos(cosA);
+    let best = rayEllipsoidIntersect(satEcef, nadir)!;
+    // 24 halvings of a bracket under 1.6 rad leave ~1e-7 rad, which at 7578 km
+    // is under a millimetre on the ground — orders below a rendered pixel. This
+    // was 40, which cost 5x on an all-limb footprint (measured 23.6 ms against
+    // 4.7 ms for 256 of them) and bought precision nothing can display.
+    for (let i = 0; i < 24; i++) {
+        const mid = (lo + hi) / 2;
+        const c = Math.cos(mid);
+        const sn = Math.sin(mid);
+        const probe = v3(
+            c * nadir.x + sn * pHat.x,
+            c * nadir.y + sn * pHat.y,
+            c * nadir.z + sn * pHat.z,
+        );
+        const p = rayEllipsoidIntersect(satEcef, probe);
+        if (p) {
+            best = p;
+            lo = mid;
+        } else {
+            hi = mid;
+        }
+    }
+    const g = wgsEcefToGeodetic(best);
+    return { point: { lat: g.latDeg, lng: g.lonDeg }, clampedToLimb: true };
 }
 
 export interface FootprintResult {
@@ -127,7 +181,29 @@ export interface FootprintResult {
     boundary: LatLng[];
     /** How many boundary vertices were clamped to the limb. */
     clampedVertices: number;
+    /**
+     * Where the GEOCENTRIC nadir ray (−r̂) meets the ellipsoid.
+     *
+     * Named for the ray it comes from, because on an ellipsoid there are two
+     * defensible "points below the satellite" and they are not the same:
+     *
+     *   - this one: follow −r̂, the LVLH nadir the FOV is actually built around,
+     *     down to the surface;
+     *   - `ellipsoidNormalPoint`: the satellite's own geodetic latitude and
+     *     longitude, i.e. the foot of the ellipsoid NORMAL through it.
+     *
+     * They differ by up to 0.031° — about 3.4 km — peaking near 45° latitude at
+     * 1200 km and vanishing at the equator and the poles. On a sphere they
+     * coincide, which is why the distinction did not exist before R28.
+     *
+     * This is the one that matters for the footprint: for a zero-bias FOV the
+     * boresight IS −r̂, so this point is exactly `center`. Reporting the geodetic
+     * sub-point here instead would put the stated centre a few kilometres off
+     * the drawn one, through nothing but a naming ambiguity.
+     */
     subSatellitePoint: LatLng;
+    /** The foot of the ellipsoid normal — the satellite's own geodetic lat/lng. */
+    ellipsoidNormalPoint: LatLng;
 }
 
 /**
@@ -150,18 +226,27 @@ export function computeFootprint(
     if (!basis) return null;
 
     const satRadiusKm = Math.sqrt(sat.x * sat.x + sat.y * sat.y + sat.z * sat.z);
-    if (satRadiusKm <= EARTH_RADIUS_KM) return null;
+    // Below the ellipsoid's polar radius there is no exterior ray to trace.
+    if (satRadiusKm <= WGS84_A_KM * (1 - 1 / 298.257223563)) return null;
 
     const thetaRad = earthRotationRad(epochMs, tSeconds);
     const satEcef = eciToEcef(v3(sat.x, sat.y, sat.z), thetaRad);
-    const subSat: LatLng = {
-        lat: toDeg(Math.asin(clamp(satEcef.z / satRadiusKm, -1, 1))),
-        lng: toDeg(Math.atan2(satEcef.y, satEcef.x)),
-    };
 
-    const centerHit = groundPointOfRay(
-        fov.bHat, basis, satEcef, subSat, thetaRad, satRadiusKm
+    // The sub-satellite point is the GEOCENTRIC nadir ray's hit, matching the
+    // LVLH nadir the FOV is built on. See `FootprintResult.subSatellitePoint`.
+    const nadirHit = rayEllipsoidIntersect(
+        satEcef,
+        v3(-satEcef.x, -satEcef.y, -satEcef.z),
     );
+    if (!nadirHit) return null;
+    const nadirGeo = wgsEcefToGeodetic(nadirHit);
+    const subSat: LatLng = { lat: nadirGeo.latDeg, lng: nadirGeo.lonDeg };
+
+    // The ellipsoid-normal projection, exposed separately and never conflated.
+    const normalGeo = wgsEcefToGeodetic(satEcef);
+    const ellipsoidNormalPoint: LatLng = { lat: normalGeo.latDeg, lng: normalGeo.lonDeg };
+
+    const centerHit = groundPointOfRay(fov.bHat, basis, satEcef, thetaRad);
 
     // Boundary offsets in tangent space — the same metric containment.ts tests in,
     // so the drawn edge is exactly the set the access test calls the boundary.
@@ -178,7 +263,7 @@ export function computeFootprint(
             fov.bHat.y + t1 * fov.u1Hat.y + t2 * fov.u2Hat.y,
             fov.bHat.z + t1 * fov.u1Hat.z + t2 * fov.u2Hat.z,
         ));
-        const hit = groundPointOfRay(dirBody, basis, satEcef, subSat, thetaRad, satRadiusKm);
+        const hit = groundPointOfRay(dirBody, basis, satEcef, thetaRad);
         if (hit.clampedToLimb) clampedVertices++;
         boundary.push(hit.point);
     }
@@ -191,6 +276,7 @@ export function computeFootprint(
         boundary,
         clampedVertices,
         subSatellitePoint: subSat,
+        ellipsoidNormalPoint,
     };
 }
 
@@ -234,26 +320,29 @@ function rectangleTangentOffsets(tan1: number, tan2: number, samples: number): A
  * an absurd swath is worse than no preset.
  */
 export function halfSwathKm(altitudeKm: number, offNadirDeg: number): number {
-    const r = EARTH_RADIUS_KM + altitudeKm;
+    const r = orbitalRadiusKm(altitudeKm);
     const { arcRad } = groundArcRad(r, (offNadirDeg * Math.PI) / 180);
-    return EARTH_RADIUS_KM * arcRad;
+    return WGS84_A_KM * arcRad;
 }
 
 /** Maximum off-nadir angle before the ray leaves the Earth, degrees. */
 export function horizonOffNadirDeg(altitudeKm: number): number {
-    return toDeg(Math.asin(EARTH_RADIUS_KM / (EARTH_RADIUS_KM + altitudeKm)));
+    return toDeg(Math.asin(WGS84_A_KM / orbitalRadiusKm(altitudeKm)));
 }
 
-/** Convenience: the ECI position of a lat/lng at an instant, for callers drawing targets. */
+/**
+ * The ECI position of a lat/lng at an instant, for callers drawing targets.
+ *
+ * R28: on the WGS84 ellipsoid, matching `targetEciAt` in `containment.ts`
+ * exactly. It previously placed the marker on the 6371 km sphere while the
+ * ACCESS TEST used the ellipsoid, so the drawn target and the analysed target
+ * were up to 21 km apart — the geodetic-vs-geocentric deflection. That is the
+ * "picture disagrees with the number" failure R28 set out to remove, and it is
+ * worse than an approximation because it is invisible.
+ */
 export function targetGroundPointEci(
     latDeg: number, lonDeg: number, epochMs: number, tSeconds: number
 ): Vec3 {
-    const lat = (latDeg * Math.PI) / 180;
-    const lon = (lonDeg * Math.PI) / 180;
-    const ecef = v3(
-        EARTH_RADIUS_KM * Math.cos(lat) * Math.cos(lon),
-        EARTH_RADIUS_KM * Math.cos(lat) * Math.sin(lon),
-        EARTH_RADIUS_KM * Math.sin(lat),
-    );
-    return ecefToEci(ecef, earthRotationRad(epochMs, tSeconds));
+    const e = wgsGeodeticToEcef({ latDeg, lonDeg, altKm: 0 });
+    return ecefToEci(v3(e.x, e.y, e.z), earthRotationRad(epochMs, tSeconds));
 }

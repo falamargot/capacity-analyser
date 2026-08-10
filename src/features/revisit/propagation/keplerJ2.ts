@@ -26,8 +26,11 @@
  * added later behind the same signature without touching callers.
  */
 
-import { EARTH_RADIUS_KM } from '../../../utils/earthGeometry';
 import { toRad, type Vec3, v3 } from '../../../utils/sphericalGeometry';
+import {
+    ecefToGeodetic as wgsEcefToGeodetic,
+    geodeticToEcef as wgsGeodeticToEcef,
+} from '../../../utils/wgs84Geometry';
 import type { EciState, OrbitalElements } from '../domain/types';
 
 // ─── Constants ─────────────────────────────────────────────────────────────
@@ -251,11 +254,13 @@ export function earthRotationRad(epochMs: number, tSeconds: number): number {
 
 /** Geodetic (spherical) lat/lon/alt → ECEF position, km. */
 export function geodeticToEcef(latDeg: number, lonDeg: number, altitudeKm = 0): Vec3 {
-    const r = EARTH_RADIUS_KM + altitudeKm;
-    const lat = toRad(latDeg);
-    const lon = toRad(lonDeg);
-    const cosLat = Math.cos(lat);
-    return v3(r * cosLat * Math.cos(lon), r * cosLat * Math.sin(lon), r * Math.sin(lat));
+    // R28: the WGS84 ellipsoid, not the 6371 km sphere. This is the AUTHORITATIVE
+    // ground position — it is what `targetEciAt` feeds into the access test, so
+    // it sets every reported access interval and revisit KPI. `altitudeKm` is
+    // height above the ellipsoid, matching ENG's validated primitives and the
+    // convention `eciToGeodetic` and GMAT both use.
+    const e = wgsGeodeticToEcef({ latDeg, lonDeg, altKm: altitudeKm });
+    return v3(e.x, e.y, e.z);
 }
 
 /** Rotate an ECEF vector into ECI by the Earth rotation angle θ. */
@@ -274,10 +279,9 @@ export function eciToEcef(p: Vec3, thetaRad: number): Vec3 {
 
 /** ECEF position → spherical lat/lon (deg) and altitude above R_e (km). */
 export function ecefToGeodetic(p: Vec3): { latDeg: number; lonDeg: number; altitudeKm: number } {
-    const r = Math.sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
-    return {
-        latDeg: r > 0 ? (Math.asin(p.z / r) * 180) / Math.PI : 0,
-        lonDeg: (Math.atan2(p.y, p.x) * 180) / Math.PI,
-        altitudeKm: r - EARTH_RADIUS_KM,
-    };
+    // R28: exact inverse of `geodeticToEcef` above, on the ellipsoid. Returns
+    // GEODETIC latitude — which differs from the geocentric latitude the former
+    // spherical version returned by up to 0.19°, about 21 km on the ground.
+    const g = wgsEcefToGeodetic({ x: p.x, y: p.y, z: p.z });
+    return { latDeg: g.latDeg, lonDeg: g.lonDeg, altitudeKm: g.altKm };
 }

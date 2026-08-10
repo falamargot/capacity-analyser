@@ -1,6 +1,6 @@
 # Implementation Status
 
-_Last updated 2026-08-09._
+_Last updated 2026-08-10._
 
 ## Current phase
 
@@ -33,14 +33,19 @@ Branch: `feat/revisit-lot1-engine` → `main`.
   is defined against the 6378.1363 km equatorial radius, worth 0.224 % on every
   J₂-driven rate. Also fixed a Kozai/Brouwer defect in the SGP4 harness that had
   been masking both.
+- **R28 — WGS84 altitude datum and ellipsoid ground model.** Altitude now maps
+  through `a = WGS84_A + h`; authoritative target, access and footprint geometry
+  uses WGS84. The latitude-reach verdict uses a sampled value for display and a
+  separate analytic conservative upper bound for `BLOCKING`.
 
 ---
 
 ## Remaining work
 
 - **R12 — 60 fps at 256 satellites.** Never measured.
-- **Altitude convention** — `a = 6371 + h` vs the aerospace `a = R_eq + h`.
-  Product decision; now the dominant residual in the SSO comparison.
+- **R28 datum GMAT fixture** — the existing fixture validates propagation at a
+  fixed SMA, not the altitude-to-SMA mapping.
+- **OneWeb HLD profile** — 576 active satellites, 58 spares and plane altitudes.
 - **Ω̇ residual up to ~0.3 %** vs GMAT, inclination-structured. The textbook
   J₂² term does not reproduce the structure, so it was deliberately not added.
 - URL/history semantics for mode switching — product decision.
@@ -61,8 +66,8 @@ Branch: `feat/revisit-lot1-engine` → `main`.
 |---|---|
 | TypeScript | 0 errors |
 | ESLint | clean |
-| Unit + integration tests | 1858 passing, 4 skipped |
-| Browser | mode switch, single viewer, click-to-target, keyboard, heat map — all verified |
+| Unit + integration tests | 1905 passing, 5 skipped |
+| Browser | REVISIT rendered; provenance and Why-this-revisit verified; no console errors |
 | Review | external, three rounds; P0, P1 and R4 closed |
 | External authority | NASA GMAT R2026a — 9 km / 72 h, non-divergent; max gap exact at four targets |
 
@@ -70,11 +75,8 @@ Branch: `feat/revisit-lot1-engine` → `main`.
 
 ## Known Issues
 
-- **Exact-pole footprint collapse.** `destinationGeodesic` loses the bearing
-  when walking from exactly ±90°, so a footprint centred on the pole collapses
-  onto one meridian. Measure-zero — at 89.9999999° it is a full ring — and
-  fixing it means changing a utility OneWeb comb geometry shares. Pinned by
-  test. See R21.
+- **Exact-pole footprint collapse — fixed by R28.** Ray/ellipsoid intersection
+  forms no azimuth, so the ring remains complete at ±90°. See R21.
 - **Area cell means are not area-weighted.** A lat/lon lattice over-weights
   high latitudes. Stated in code, panel and CSV. Worst cell is unaffected.
   See R18.

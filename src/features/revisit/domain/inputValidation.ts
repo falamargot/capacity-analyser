@@ -19,7 +19,7 @@
  * engineering drawer exists precisely to explore unusual configurations.
  */
 
-import { EARTH_RADIUS_KM } from '../../../utils/earthGeometry';
+import { WGS84_A_KM, orbitalRadiusKm } from '../../../utils/wgs84Geometry';
 import type { FovSpec, Target } from './types';
 
 export interface InputValidation {
@@ -45,8 +45,8 @@ export const MIN_SUPPORTED_ALTITUDE_KM = 150;
 
 /** Off-nadir angle at which the line of sight grazes the horizon, degrees. */
 export function horizonHalfAngleDeg(altitudeKm: number): number {
-    const r = EARTH_RADIUS_KM + altitudeKm;
-    return (Math.asin(EARTH_RADIUS_KM / r) * 180) / Math.PI;
+    const r = orbitalRadiusKm(altitudeKm);
+    return (Math.asin(WGS84_A_KM / r) * 180) / Math.PI;
 }
 
 export function validateTarget(target: Target): InputValidation {

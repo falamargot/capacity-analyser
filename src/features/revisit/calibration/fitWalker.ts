@@ -24,7 +24,7 @@
  * produced by `utils/observedOrbitalElements` (ADR-001 §1).
  */
 
-import { EARTH_RADIUS_KM } from '../../../utils/earthGeometry';
+import { WGS84_A_KM } from '../../../utils/wgs84Geometry';
 import { argLatAtEpochDeg, type ObservedElements } from '../../../utils/observedOrbitalElements';
 import type { WalkerSpec } from '../domain/types';
 import { normalizeDeg } from '../domain/walker';
@@ -255,7 +255,10 @@ export function fitWalker(
 
     const inclinationDeg = median(observed.map((o) => o.inclinationDeg));
     const semiMajorAxisKm = median(observed.map((o) => o.semiMajorAxisKm));
-    const altitudeKm = semiMajorAxisKm - EARTH_RADIUS_KM;
+    // Inverse of `orbitalRadiusKm` (R28): altitude is measured from the
+    // equatorial radius, so the fit must invert the same convention the
+    // generator uses, or a round-trip through fit -> generate shifts the shell.
+    const altitudeKm = semiMajorAxisKm - WGS84_A_KM;
 
     // ── Cluster into planes, discarding stray clusters ──────────────────────
     const rawPlanes = clusterPlanesByRaan(observed, toleranceDeg);

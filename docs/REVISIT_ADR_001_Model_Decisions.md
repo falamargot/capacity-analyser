@@ -35,9 +35,13 @@ u̇  = n + (3/4) · n · J₂ · (R_e/a)² · (5cos²i − 1)
 
 ---
 
-## 2. Earth model: sphere at R = 6371 km, not WGS84
+## 2. Earth model — SUPERSEDED by R28 (2026-08-10)
 
-**Decision.** The revisit module uses the spherical Earth already defined in `utils/earthGeometry.ts` (`EARTH_RADIUS_KM = 6371`). No ellipsoid.
+> **This decision has been reversed.** The text below is kept because the
+> reasoning was sound at the time and the reversal only makes sense against it.
+> The current model is stated in §2a.
+
+**Original decision.** The revisit module uses the spherical Earth already defined in `utils/earthGeometry.ts` (`EARTH_RADIUS_KM = 6371`). No ellipsoid.
 
 **Rejected: ray/WGS84-ellipsoid intersection**, which the original design specified and which is the geodetically correct choice in isolation.
 
@@ -46,19 +50,82 @@ u̇  = n + (3/4) · n · J₂ · (R_e/a)² · (5cos²i − 1)
 | Domain | Model | Where |
 |---|---|---|
 | **Coverage and footprint geometry** | sphere, R = 6371 km | `earthGeometry.ts`, `leoFootprint.ts`, `oneWebCombCore.ts` |
-| **RF slant range and elevation** | WGS84 ECEF | `geoConnectivityModel.ts` (`WGS84_A_KM`, `WGS84_E2`), `geoLinkBudget.ts` |
+| **RF slant range and elevation** | WGS84 ECEF | `geoConnectivityModel.ts`, `geoLinkBudget.ts` |
 
-The distinction is principled: link budgets are range-sensitive, so a 21 km radius error moves dB; coverage footprints are hundreds of kilometres wide, so it does not. `propagationConstants.test.ts` explicitly guards the RF side against regressing to the spherical formula.
+The distinction is principled: link budgets are range-sensitive, so a 21 km radius error moves dB; coverage footprints are hundreds of kilometres wide, so it does not.
 
-**Revisit is coverage geometry, not RF.** It belongs on the spherical side, and being consistent there is what matters — someone will eventually overlay a revisit footprint on a coverage footprint, and they must line up.
+**Revisit is coverage geometry, not RF.** It belongs on the spherical side, and being consistent there is what matters.
 
-*(An earlier draft of this ADR claimed the whole codebase was spherical. That was wrong; the corrected picture above is stronger, not weaker, for the decision.)*
+**What would have reversed this.** "Migrating the whole codebase to WGS84 — in which case this module follows. Never this module alone."
 
-The error is also far smaller than the modelling uncertainty already accepted elsewhere — most beam constants in `config/oneweb.ts` carry an explicit `ONEWEB_GEN1_OPERATIONAL_APPROXIMATION` tag.
+---
 
-**Consequence.** `MODEL PROVENANCE` in the UI states `Spherical earth R = 6371 km` explicitly. The assumption is surfaced, not buried.
+## 2a. Earth model: WGS84 ellipsoid for everything authoritative (R28, 2026-08-10)
 
-**What would reverse this.** Migrating the whole codebase to WGS84 — in which case this module follows. Never this module alone.
+**Decision.** REVISIT's authoritative chain — target positions, access intervals,
+revisit KPIs, footprints and every exported number — runs on the **WGS84
+ellipsoid**. `altitudeKm` is defined as height above the **equatorial
+semi-major axis**, so `semiMajorAxisKm = WGS84_A_KM + altitudeKm`.
+
+The 6371 km sphere survives only for presentation-grade approximations that feed
+no reported number (currently: a camera standoff distance).
+
+**Three radii now exist, each named for its role.** They are numerically close
+and interchanging them is how both R4 defects and SPA-02 happened:
+
+| Constant | Value | Role |
+|---|---|---|
+| `EARTH_RADIUS_KM` | 6371 | mean sphere — presentation only, inside REVISIT |
+| `WGS84_A_KM` | 6378.137 | ellipsoid semi-major — positions, angles, the altitude datum |
+| `J2_REFERENCE_RADIUS_KM` | 6378.1363 | J₂'s defining radius — orbital dynamics only |
+
+**Why the original reasoning did not survive.**
+
+1. **Its own escape clause was met.** §2 said this would reverse when "the whole
+   codebase migrates to WGS84". Phases 0–3 of the spatial audit did exactly
+   that for every authoritative path in ENG, and validated it against GMAT.
+   REVISIT was then the last spherical holdout, not the consistent case.
+
+2. **The premise "coverage geometry is not range-sensitive" was true; the
+   conclusion did not follow.** REVISIT's output is not a drawn footprint but a
+   *time* — the worst-case revisit gap — and a 0.14 % change in orbital period
+   re-phases the ground track enough to gain or lose a marginal pass. Measured:
+   the default Singapore gap moved 2 h 39 min (11 h 48 m → 9 h 09 m).
+
+   An ablation attributes that shift **entirely to the semi-major axis**, not to
+   the ground model: holding the ground model fixed and changing only `a`
+   reproduces the whole delta in both ground models, while holding `a` fixed and
+   switching sphere↔ellipsoid moves it by under 4 seconds. An earlier draft of
+   this ADR blamed the geodetic-vs-geocentric deflection; that was wrong, and at
+   Singapore's 1.35° latitude the deflection is ~0.009°. See
+   `docs/SPATIAL_PHYSICS_AUDIT.md` §14a.
+
+3. **The mixed model was worse than either pure one.** A satellite radius on the
+   equatorial datum against a 6371 km ground sphere reads 1.0–1.5 % wide on
+   swath; both *consistent* pairings reproduce the true figure to 0.01 %. The
+   real rule was never "which radius" but "do not mix", and R28 makes that
+   explicit rather than incidental.
+
+4. **The design note agreed with the equatorial datum all along.** Its horizon
+   angles and orbital periods both reproduce on it and neither reproduces on
+   6371 km — two independent discriminating quantities. Its swath widths agree
+   under either datum used consistently (they are nearly insensitive at the
+   table's quoted precision, differing by metres) and so are a consistency check
+   rather than a discriminator. Audit finding R1 had recorded the source table
+   as internally inconsistent; it was not, and the correction is in
+   `docs/SPATIAL_PHYSICS_AUDIT.md`.
+
+**Consequence.** `MODEL PROVENANCE` and the CSV header state the ellipsoid and
+the altitude datum explicitly, and distinguish all three radii.
+
+**What is NOT claimed.** The R28 altitude datum is **not externally validated**.
+The committed GMAT fixture is pinned to a fixed semi-major axis and deliberately
+exercises no altitude mapping. A new GMAT run seeded from the equatorial datum
+is required before any such claim.
+
+**What would reverse this.** Evidence that the ellipsoid mapping is wrong, or a
+decision to quote altitudes above the mean radius — which would then have to be
+applied to the ground model too, never to one side alone.
 
 ---
 

@@ -1,6 +1,6 @@
 # Cross-Mode Spatial Physics Audit
 
-_2026-08-09. Audit complete; Phases 0-3 executed. See §11-§13 for results._
+_2026-08-09/10. Audit complete; Phases 0-3 and R28 executed. See §11-§14._
 
 Follows the REVISIT R4 validation against NASA GMAT R2026a, which exposed two
 real orbital-model defects despite ~1850 passing tests. The question here is
@@ -97,9 +97,9 @@ for RF or commercial logic.
 | Slant range from elevation | ~~dead~~ removed | ❌ | ❌ | ~~`geoLinkBudget.computeSlantRange`~~ | sphere 6371 | none | SPA-03 — **removed in Phase 0** |
 | Surface distance | ✅ | ❌ | ✅ | `earthGeometry.haversineDistanceKm` | sphere 6371 | none | Low — correct use of a sphere |
 | GSO belt separation | ✅ | ❌ | ❌ | `gsoProtection.gsoBeltSeparationAngleDeg` | **WGS84 ellipsoid** | **GMAT V-C, 2e-4°** | **VERIFIED** (was SPA-02) |
-| LEO footprint radius | ✅ | ❌ | ❌ | `leoFootprint.footprintRadiusKm` | sphere 6371 + geodetic alt | none | SPA-06 |
+| LEO footprint radius (ENG) | ✅ | ❌ | ❌ | `leoFootprint.footprintRadiusKm` | sphere 6371 + geodetic alt | none | SPA-06 — ENG only; REVISIT moved to the ellipsoid in R28 |
 | Beam comb ground centre | ✅ | ❌ | ❌ | `oneWebComb` ray/sphere | sphere 6 371 000 **m** — units verified consistent | none | Low |
-| FOV containment / access | ❌ | ❌ | ✅ | `fov/containment.ts` | inverted LVLH test | GMAT + brute force | Low |
+| FOV containment / access | ❌ | ❌ | ✅ | `fov/containment.ts` | inverted LVLH test, **WGS84 targets** (R28) | GMAT + brute force + Cesium | Low |
 | Propagation delay | ✅ | consumes | ❌ | `computeOneWayLatencyMs` and inline `d/c` | c = 299792.458 km/s | none | Low formula / see SPA-05 |
 | FSPL | ✅ | consumes | ❌ | `geoLinkBudget.computeFsplDb` | `20log₁₀(d_m)+20log₁₀(f_Hz)−147.55` | none | Low — standard SI form |
 
@@ -702,3 +702,307 @@ still reproduce 7.2e-6° and 0.6 m after the migration.
 **Remaining UNVERIFIED after Phases 0–3:** SGP4's own dynamics (by design — see
 §11); access/selection *thresholds*, which are product policy; and SPA-06 / R28,
 the altitude convention, which is an open product decision.
+
+
+---
+
+## 14. R28 — the altitude datum and the ellipsoid ground model (2026-08-10)
+
+R28 was the last open product decision from this audit. It was resolved as
+**adopt the equatorial altitude datum, and move REVISIT's authoritative chain
+onto the WGS84 ellipsoid**. ADR-001 §2 is superseded by §2a.
+
+### Two corrections to THIS document
+
+**R1 was wrong, and in the opposite direction.** It recorded the design note's
+swath table as "mixing two Earth radii", on the grounds that its swath widths
+reproduced on a 6371 km sphere while its horizon angles looked WGS84-equatorial.
+
+Swath widths are **nearly insensitive to the datum at the table's quoted
+precision, when each datum is paired consistently** — they differ by metres,
+which rounds away in figures quoted to the kilometre. They are a CONSISTENCY
+CHECK, not an independent discriminator, and they never distinguished the two
+conventions. (They are *not* invariant: r/R = 1 + h/R still depends on R, and
+the measured difference at 600 km / 30° off-nadir is 7 m.)
+
+**The discriminating evidence is the horizon angles and the orbital periods.**
+Both reproduce on the equatorial datum and neither does on 6371:
+
+| Quantity | Design note | R28 model | Pre-R28 model |
+|---|---|---|---|
+| Horizon off-nadir, 500/600/700 km | 68.0 / 66.07 / 64.3° | **68.019 / 66.067 / 64.304°** | 68.007 / 66.054 / 64.290° |
+| Orbital period, 500/600/700 km | 94.6 / 96.7 / 98.8 min | **94.62 / 96.69 / 98.77 min** | 94.47 / 96.54 / 98.62 min |
+| Swath widths | 269 / 585 / 1044 km | agree (consistency check only) | agree (consistency check only) |
+
+The source table was consistent throughout. **The 6371 km model was the
+outlier**, and two independent discriminating quantities vote for the datum R28
+adopted.
+
+**R21 is fixed, not pinned.** The exact-pole footprint collapse was a
+measure-zero defect that had been documented and pinned by a test. It existed
+because the geodesic-walk projection needed a compass bearing, and "east" is
+undefined over a pole. Ray/ellipsoid intersection never forms an azimuth, so the
+degeneracy has no cause any more. The test now asserts a full ring.
+
+### What moved — complete user-facing delta
+
+Measured by running one harness on `main` and on the branch, not recomputed from
+the new code. Default scenario: 12 × 8 · 87.9° · 1200 km, STANDARD FOV, 72 h.
+
+**Orbit**
+
+| | Before | After | Δ |
+|---|---|---|---|
+| Semi-major axis at "1200 km" | 7571.0000 km | 7578.1370 km | **+7.137 km** |
+| Orbital period | 109.2671 min | 109.4217 min | +0.155 min (+0.14 %) |
+| Mean motion | 9.58382817e-4 | 9.57029245e-4 | −0.141 % |
+
+**Instrument** — presets are *defined* by swath, so the swath figures are
+unchanged by construction and the half-angles absorb the difference.
+
+| | Before | After | Δ |
+|---|---|---|---|
+| NARROW / STANDARD / WIDE half-angle | 8.279764 / 16.130059 / 29.427398° | 8.279785 / 16.130212 / 29.428358° | ≤ +0.001° |
+| Horizon off-nadir @ 1200 km | 57.29891° | 57.31474° | +0.0158° |
+| Half-swath @ 30° off-nadir, 600 km | 352.209 km | 352.202 km | −7 m |
+
+**Headline KPI — this is the part that matters**
+
+| Target | Max gap before | after | Δ | Mean gap Δ | Passes/day Δ |
+|---|---|---|---|---|---|
+| Singapore | 11 h 48 m | **9 h 09 m** | **−2 h 39 m** | −20 m | −0.33 |
+| Cape Town | 9 h 30 m | 9 h 31 m | +1 m | −47 m | +0.67 |
+| London | 9 h 40 m | 9 h 41 m | +1 m | 0 | 0 |
+| Longyearbyen | 2 h 46 m | 2 h 46 m | 0 | −1 m | +0.34 |
+
+**Singapore's worst-case gap moved by 2 h 39 m — 22 %**, and an ablation
+attributes it precisely. See §14a: it is **entirely the semi-major axis**, not
+the ground model.
+
+**Second selection — the split the UI actually reconciles to (2 planes × 4)**
+
+The table above uses `DEFAULT_SELECTION`. The panel displays the *measured best*
+split at 8 payloads, which is a different constellation, so its numbers move
+differently and are reported separately rather than folded in.
+
+| Target | Max gap before | after | Mean gap | Passes/day |
+|---|---|---|---|---|
+| Singapore | 6 h 15 m | **11 h 51 m** | 5 h 57 m → 7 h 17 m | 4.00 → 3.33 |
+| Cape Town | 6 h 21 m | 6 h 22 m | 5 h 03 m → 5 h 03 m | 4.67 → 4.67 |
+| London | 6 h 05 m | 6 h 05 m | 3 h 51 m → 4 h 04 m | 6.00 → 5.67 |
+| Longyearbyen | 5 h 54 m | 5 h 54 m | 1 h 11 m → 1 h 09 m | 18.67 → 19.00 |
+
+Singapore moves the other way on this split — **6 h 15 m → 11 h 51 m** — for the
+same reason it moved the first way on the default split: a marginal ~1 min pass,
+here lost rather than gained. Both directions are the same mechanism (§14a), and
+neither is a change in accuracy: the pre-R28 figure was not "right".
+
+**WHY THIS REVISIT panel**
+
+| | Before | After |
+|---|---|---|
+| Geometry factor | `lat 51.5° < reach 91.0° ✓` | `lat 51.5° < reach 90.0° ✓` |
+
+The old figure was the equatorial estimate `turning + λ` = 87.9 + 3.1, and
+**91.0° is not a latitude that exists**. The new value comes from
+`maxReachableLatitudeDeg` (§14b) and saturates correctly at the pole. Same
+verdict here, but the displayed number is now meaningful and the BLOCKING path
+is sound.
+
+**Footprint** — the drawn shape now lands on the same surface as the analysis.
+
+| | Before | After |
+|---|---|---|
+| Centre / sub-satellite point | 0.000000, 45.453662 | identical |
+| Boundary vertex [0] | 3.145510, 45.569118 | 3.163326, 45.568996 |
+| Boundary vertex [12] | −0.115283, 48.599178 | −0.115930, 48.595658 |
+
+Vertex shifts are ~2 km, consistent with the ellipsoid's shape rather than with
+any change in the FOV.
+
+### Benchmarks — comparative R28 hot-path timings
+
+**Scope, stated up front.** These are **Node/Vitest microbenchmarks, 3
+repetitions**, measuring engine and geometry functions in isolation. They are a
+*comparative* before/after on the R28 hot paths. They are **not** a
+foreground-browser frame-rate measurement, and nothing here bears on 60 fps.
+**R12 remains open** and can only be closed by actual foreground Cesium frame
+timing.
+
+| | Before | After | Δ |
+|---|---|---|---|
+| Engine: default selection, 1 target, 72 h | 33.4 ms | 25.5 ms | **−24 %** |
+| Engine: full 96-satellite fleet, 72 h | 374 ms | 308 ms | **−18 %** |
+| Render hot path: 256 sats × propagate | 0.1 ms | 0.1 ms | — |
+| Render: 256 sats × footprint | 5.1 ms | 6.0 ms | +18 % |
+| Render: 256 all-limb footprints (worst case) | 4.7 ms | 16.8 ms | +257 % |
+
+The engine got *faster*: fewer marginal access transitions means fewer
+bisections. Ray/ellipsoid footprints cost ~18 % more than the geodesic walk,
+which is immaterial at 6 ms for a full 256-satellite frame.
+
+The all-limb case is the only real regression, and it is bounded: the limb clamp
+bisects, and it only runs for vertices that actually miss the Earth — which
+requires a FOV wider than the horizon (the benchmark forces 80° against a 57.3°
+horizon). It was first measured at 23.6 ms with a 40-iteration bisection;
+reduced to 24 iterations (~1e-7 rad, sub-millimetre on the ground, far below a
+rendered pixel) it is 16.8 ms. **The clamp is render-only — the access analysis
+never calls `computeFootprint`.**
+
+**Performance acceptance target for the HLD profile change: 634 displayed
+satellites, measured as foreground Cesium frame timing.** R28 benchmarked the
+currently supported **256**, in Node, comparatively. It has not validated 634,
+has not measured a frame rate, and no claim is made that it does either.
+
+### The final-review horizon fix changed no reported number
+
+The production horizon test used the geocentric radius vector while this
+module's own comment and the V5 oracle specified the ellipsoid normal. Corrected
+(see §14c). Measured by toggling the production file and re-running the whole
+report: **KPIs are byte-identical at both selections and all four targets.**
+
+That is the expected outcome and is worth stating rather than assuming — the two
+tests differ only within the deflection of the vertical, so they can disagree
+only for geometry grazing the horizon, which a 16.13° half-angle instrument at
+1200 km never produces. It is a correctness fix, not a numbers change, and the
+new 45°-latitude test exists precisely because no reference scenario exercises it.
+
+*(Browser readings taken at different moments differ slightly from the harness
+because the UI's analysis window starts at the live simulation clock, not the
+harness's fixed epoch. The harness is the controlled comparison.)*
+
+### What R28 does NOT establish
+
+- **The altitude datum is not externally validated.** The committed GMAT fixture
+  is pinned to a fixed semi-major axis (7571 km) and deliberately exercises no
+  altitude mapping. A new GMAT run seeded from the equatorial datum is required
+  before any such claim. The UI and CSV both say so.
+- Swath and horizon scalars are **equatorial reference values**, not globally
+  exact WGS84 swaths — a swath has no single value on an ellipsoid. The
+  authoritative instrument input remains the angular FOV; ground-swath presets
+  are derived conveniences.
+- The OneWeb HLD reference profile (12 × 48 active, 58 spares, per-plane
+  altitudes 1175–1219 km, fudge ≈ 1.015) is **deliberately not part of R28** and
+  follows as a separate change. The current 12 × 8 preset remains a labelled
+  demo profile, not an authoritative OneWeb result.
+
+
+---
+
+## 14a. Ablation — what actually moved Singapore's gap
+
+The first write-up of §14 attributed the 2 h 39 min shift to the
+geodetic-vs-geocentric deflection. **That attribution was wrong**, and it was
+implausible on inspection: Singapore is at 1.35° latitude, where the deflection
+is about 0.009°, not the 0.19° maximum quoted.
+
+R28 changed two things at once — the semi-major axis and the ground model — so
+they were separated. Test: `src/features/revisit/__tests__/r28Ablation.test.ts`,
+which reimplements the access scan so all four cells go through identical code.
+
+### The 2×2
+
+Singapore, 72 h, STANDARD FOV, the default 8-payload selection. Maximum interior
+gap:
+
+| | ground = 6371 sphere | ground = WGS84 ellipsoid |
+|---|---|---|
+| **a = 7571.000 km** (pre-R28) | 11 h 48 m | 11 h 48 m |
+| **a = 7578.137 km** (post-R28) | 9 h 09 m | 9 h 09 m |
+
+**The ground model contributes nothing measurable** — 11.80715 h in both columns,
+9.14555 h in both. **The entire shift is the semi-major axis.** The row effect is
+2 h 39 m; the column effect is under 4 seconds. It is not an interaction either:
+the SMA effect is the same size in both ground models.
+
+Why the ground model does so little *here*: at 1.35° latitude the ellipsoid
+radius is 6378.13 km against the sphere's 6371 km, so the target moves ~7.1 km
+**outward** — and the satellite also moves ~7.14 km outward. The two nearly
+cancel in the look-angle geometry. The deflection, the effect originally blamed,
+is ~0.009° at this latitude and does even less.
+
+### Which pass moved
+
+| | Passes | Only in this configuration |
+|---|---|---|
+| pre-R28 | 12 | 38.159 h, 71.046 h |
+| post-R28 | 11 | **52.773 h** |
+
+The mechanism is a single grazing pass. Pre-R28 the longest interior gap runs
+50.046 h → 61.853 h = **11.807 h**. Post-R28 a pass appears at **52.773 h**
+inside that window and splits it into 2.661 h + 9.145 h, so the maximum falls to
+9.145 h.
+
+The cause is dynamics: a 7.137 km larger semi-major axis lengthens the orbital
+period by 0.14 %, which changes the ground-track drift per revolution. Over 72 h
+(~39 revolutions) the track pattern precesses differently and a pass that
+previously missed Singapore now clips it. Every pass here is 30 s to 2 min long
+— Singapore sits at 1.35° under an 87.9° shell, so tracks cross nearly
+north-south and only graze it — which is why the maximum gap is so sensitive to
+whether one marginal pass lands.
+
+### Not a sampling artefact
+
+Transition bisection enabled, both ends of the delta, four step sizes:
+
+| Step | pre-R28 max gap | post-R28 max gap |
+|---|---|---|
+| 20 s | 11.80715 h | 9.14555 h |
+| 10 s (production) | 11.80715 h | 9.14555 h |
+| 5 s | 11.80715 h | 9.14555 h |
+| 2 s | 11.80715 h | 9.14555 h |
+
+Identical to five decimal places across a 10× range, at both ends. The passes
+are 30 s to 2 min, which is exactly the regime where coarse sampling would alias
+— it does not. **The production step stays at 10 s**; nothing here argues for
+changing it.
+
+### Corrected attribution
+
+> Singapore's worst-case revisit gap moved from 11 h 48 m to 9 h 09 m. This is
+> attributable **entirely to the change in semi-major axis** (7571.000 →
+> 7578.137 km), which alters the orbital period by 0.14 % and hence the
+> ground-track drift, causing one marginal ~1 min pass to appear at t = 52.8 h
+> and split the longest gap. The sphere→ellipsoid ground-model change
+> contributes under 4 seconds at this target and is not an interaction term.
+> The result is stable across sampling steps from 20 s to 2 s.
+
+---
+
+## 14b. `explainRevisit` — the reach verdict no longer rests on an equatorial scalar
+
+`groundHalfAngleDeg()` is an equatorial reference value: it solves the spherical
+law of sines against `a`, where the ellipsoid's cross-section is circular. It was
+feeding `unreachable = |lat| > turning + λ`, which produces the product's
+decisive `GEOMETRY / BLOCKING` verdict — "no number of payloads changes this".
+
+That was wrong on two counts: an equatorial scalar is not a latitude reach on an
+ellipsoid, least of all at the high latitudes where the question is asked; and it
+collapses an asymmetric or biased FOV to a single half-angle.
+
+**Replaced by `maxReachableLatitudeDeg`**, which sweeps the argument of latitude
+over a full orbit, projects the FOV boundary by ray/WGS84-ellipsoid intersection,
+and takes the largest |geodetic latitude| any boundary vertex reaches.
+`groundHalfAngleDeg` remains, clearly labelled, on the SWATH line only.
+
+**Its independent test found a defect in the first version of the bound.**
+Validated through `isTargetInFov` — the containment path, which shares no code
+with the footprint projection — the bound reported 88.90° for the reference
+87.9° shell while containment demonstrably saw a target at 89.50°. Two causes:
+24 boundary vertices was too sparse, and a footprint that *contains* a pole
+reaches 90° although no vertex does. Fixed with 180 vertices and pole-winding
+detection.
+
+That direction of error matters: an under-stated reach makes the product declare
+`BLOCKING` for a target it can actually see. Over-stating only withholds a
+verdict. Dense sampling alone still cannot prove an upper bound, so the final
+implementation separates the two: the sampled maximum is displayed, while
+`BLOCKING` uses an analytic conservative upper bound derived from the farthest
+possible FOV ray, the WGS84 polar radius and the exact maximum latitude
+deflection. A target in between is `UNKNOWN`, never falsely impossible.
+
+The same final review caught a production/oracle mismatch: containment's comment
+and V5 oracle used the ellipsoid normal for the target horizon, but the hot path
+still dotted the line of sight with the radius vector. Horizon and optional
+elevation masks now use the WGS84 normal. A 45°-latitude, 0.05°-elevation test
+discriminates the corrected formula from the old one.
