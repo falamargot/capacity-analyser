@@ -1,0 +1,45 @@
+% R29 scenario A - the ALTITUDE DATUM itself, isolated from dynamics.
+% Two-body only: the orbit is then exactly circular at r = SMA, so the geodetic
+% altitude at an equator crossing is exactly SMA - WGS84 equatorial radius.
+% If altitudeKm means "height above R_eq", 7578.137 must read 1200.000 there.
+Create Spacecraft sat
+sat.DateFormat = UTCGregorian
+sat.Epoch = '06 Aug 2026 00:00:00.000'
+sat.CoordinateSystem = EarthMJ2000Eq
+sat.DisplayStateType = Keplerian
+sat.SMA = 7578.137
+sat.ECC = 0.0
+sat.INC = 87.9
+sat.RAAN = 0
+sat.AOP = 0
+sat.TA = 0
+
+Create ForceModel fm
+fm.PrimaryBodies = {Earth}
+fm.GravityField.Earth.Degree = 0
+fm.GravityField.Earth.Order = 0
+fm.Drag.AtmosphereModel = None
+fm.PointMasses = {}
+fm.SRP = Off
+
+Create Propagator prop
+prop.FM = fm
+prop.Type = RungeKutta89
+prop.InitialStepSize = 10
+prop.Accuracy = 1e-13
+prop.MinStep = 0
+prop.MaxStep = 20
+
+Create ReportFile rf
+rf.Filename = '/tmp/datumA.txt'
+rf.WriteHeaders = true
+rf.Precision = 14
+rf.Add = {sat.ElapsedSecs, sat.Earth.Latitude, sat.Earth.Altitude, sat.EarthFixed.X, sat.EarthFixed.Y, sat.EarthFixed.Z}
+
+Create Variable i
+BeginMissionSequence;
+Report rf sat.ElapsedSecs sat.Earth.Latitude sat.Earth.Altitude sat.EarthFixed.X sat.EarthFixed.Y sat.EarthFixed.Z
+For i = 1:1:700
+   Propagate prop(sat) {sat.ElapsedSecs = 20}
+   Report rf sat.ElapsedSecs sat.Earth.Latitude sat.Earth.Altitude sat.EarthFixed.X sat.EarthFixed.Y sat.EarthFixed.Z
+EndFor
