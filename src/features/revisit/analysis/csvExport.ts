@@ -21,6 +21,7 @@ import type { RevisitAnalysis } from './runScenario';
 import type { PayloadSweepResult } from './payloadSweep';
 import type { RevisitScenario } from '../domain/types';
 import type { WalkerFit } from '../calibration/fitWalker';
+import { DEFAULT_PROFILE, type ReferenceProfile } from '../domain/referenceProfiles';
 
 /** RFC 4180: quote when the value contains a comma, quote or newline. */
 export type CsvValue = string | number | boolean | null | undefined;
@@ -56,7 +57,8 @@ const msValue = (value: number | null | undefined): number | null =>
  */
 export function provenanceHeader(
     scenario: RevisitScenario,
-    fit: WalkerFit | null = null
+    fit: WalkerFit | null = null,
+    profile: ReferenceProfile | null = DEFAULT_PROFILE
 ): string[] {
     const { reference, selection, payload, window: analysisWindow } = scenario;
     const lines = [
@@ -79,11 +81,27 @@ export function provenanceHeader(
         '# gap convention,max gap with boundary-truncated gaps discarded',
         '#',
         '# CONSTELLATION',
+        // R29: which named constellation, and which revision of it. Without
+        // this a reader cannot tell an authoritative profile's numbers from an
+        // illustrative shell's — they look identical in the columns.
+        `# profile,${profile?.id ?? 'CUSTOM'}`,
+        `# profile version,${profile?.version ?? 'n/a'}`,
+        `# profile authoritative,${profile ? profile.isAuthoritative : 'unknown'}`,
+        ...(profile ? profile.notes.map((n) => `# profile note,${n.replace(/,/g, ';')}`) : []),
         `# pattern,${reference.pattern}`,
         `# planes,${reference.planes}`,
         `# satellites per plane,${reference.satsPerPlane}`,
         `# inclination deg,${reference.inclinationDeg}`,
         `# altitude km,${reference.altitudeKm}`,
+        ...(reference.planeAltitudesKm
+            ? [`# plane altitudes km,${reference.planeAltitudesKm.join(' ')}`]
+            : []),
+        ...(reference.raanOffsetsDeg
+            ? [`# plane raan offsets deg,${reference.raanOffsetsDeg.join(' ')}`]
+            : []),
+        ...(reference.sparesPerPlane
+            ? [`# non-payload spares per plane,${reference.sparesPerPlane.join(' ')}`]
+            : []),
         `# phasing f,${reference.phasingF}`,
         `# fudge,${reference.fudge}`,
         '#',

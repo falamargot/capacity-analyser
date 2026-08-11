@@ -12,6 +12,7 @@
 import { describe, it } from 'vitest';
 import { writeFileSync } from 'node:fs';
 import { generateWalkerConstellation } from '../domain/walker';
+import { REFERENCE_PROFILES } from '../domain/referenceProfiles';
 import { selectSubConstellation } from '../domain/subConstellation';
 import {
     DEFAULT_REFERENCE, DEFAULT_SELECTION, DEFAULT_TARGET, FOV_PRESETS, TARGET_PRESETS,
@@ -69,12 +70,15 @@ describe.skipIf(!RUN)('R28 reference report', () => {
         }
 
         L.push('');
-        L.push('=== HEADLINE KPI (UI reconciled split: 2 planes x 4) ===');
-        const reconciled = selectSubConstellation(
-            spec, { planeStride: 6, satStride: 2, planeShift: 0 }, fleet,
+        L.push(`=== FLEET === displayed ${fleet.length}  active ${fleet.filter((s) => !s.isSpare).length}  spares ${fleet.filter((s) => s.isSpare).length}`);
+        L.push('');
+        L.push('=== HEADLINE KPI (demo 12x8 shell, for continuity) ===');
+        const demoFleet = generateWalkerConstellation(REFERENCE_PROFILES.DEMO_12X8.spec);
+        const demoSel = selectSubConstellation(
+            REFERENCE_PROFILES.DEMO_12X8.spec, { planeStride: 3, satStride: 4, planeShift: 0 }, demoFleet,
         );
         for (const target of TARGET_PRESETS) {
-            const access = computeAccessIntervals(reconciled, target, FOV_PRESETS.STANDARD, window);
+            const access = computeAccessIntervals(demoSel, target, FOV_PRESETS.STANDARD, window);
             const st = computeGapStatistics(access.intervals, window, access.warnings);
             L.push(
                 `${target.name.padEnd(13)} maxGap ${hhmm(st.maxGapMs).padEnd(9)} meanGap ${hhmm(st.meanGapMs).padEnd(9)}`
@@ -122,10 +126,13 @@ describe.skipIf(!RUN)('R28 reference report', () => {
             computeGapStatistics(a.intervals, window, a.warnings);
         });
 
-        // The supported render case today is 256 satellites. 634 is the HLD
-        // profile's displayed count and is recorded as an ACCEPTANCE TARGET for
-        // that separate change, not as something R28 has validated.
-        const big = generateWalkerConstellation({ ...spec, planes: 16, satsPerPlane: 16 });
+        // 256 remains the historical reference point; 634 is the HLD profile's
+        // displayed fleet and is now the case that matters. Built from the DEMO
+        // spec, which carries no per-plane arrays — spreading a 12-entry ladder
+        // over 16 planes is rejected by validation, correctly.
+        const big = generateWalkerConstellation({
+            ...REFERENCE_PROFILES.DEMO_12X8.spec, planes: 16, satsPerPlane: 16,
+        });
         const bigProps = big.map(preparePropagator);
         const scratch: EciState = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0 };
         bench('render hot path: 256 sats x 1 propagate', () => {
@@ -146,6 +153,12 @@ describe.skipIf(!RUN)('R28 reference report', () => {
         bench('render: 1 sat x footprint ALL-limb (worst case)', () => {
             for (let i = 0; i < 256; i++) computeFootprint(s0, limbFov, EPOCH, 0, 48);
         });
+
+        // The HLD acceptance case: the full 634-satellite displayed fleet.
+        const hldProps = fleet.map(preparePropagator);
+        bench(`render hot path: ${fleet.length} sats x 1 propagate`, () => {
+            for (const p of hldProps) propagateState(p, 1234, scratch);
+        }, 20);
 
         writeFileSync('/tmp/r28_report.txt', L.join('\n') + '\n');
     }, 600_000);
