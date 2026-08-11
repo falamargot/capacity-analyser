@@ -6,18 +6,20 @@ _Last updated 2026-08-11._
 
 REVISIT — the hosted-payload revisit mode — is implemented across four lots,
 externally reviewed, remediated through P0 and P1, cross-checked against NASA
-GMAT, and pushed.
+GMAT, and merged on `main` through R29.
 
-- Branch `feat/revisit-lot1-engine`, base `main`
-- PR https://github.com/falamargot/capacity-analyzer/pull/1 — OPEN
-- Gate: 0 TypeScript errors, 1858 tests passing, ESLint clean
+- Authoritative branch: `main`
+- R28: PR https://github.com/falamargot/capacity-analyser/pull/2 — MERGED
+- R29a–c: PR https://github.com/falamargot/capacity-analyser/pull/3 — MERGED
+- Gate at R29 merge: 0 TypeScript errors, 1928 tests passing, 5 skipped,
+  ESLint clean
 
 Reachable in the app via the **Revisit** button in the mode switcher, or
 `?mode=revisit`.
 
 ---
 
-## Last completed phase
+## Physics validation background
 
 **R4 — the GMAT cross-check. It found two real defects in the propagator.**
 
@@ -45,9 +47,10 @@ and now assert against it directly.
 
 ## Current objective
 
-R28 is implemented on `feat/r28-wgs84-altitude-datum`. The next product change
-is the versioned OneWeb HLD reference profile; the new-datum GMAT fixture and a
-foreground performance measurement remain independent validation follow-ups.
+R28 and R29a–c are merged on `main`. The WGS84 datum is GMAT-validated and the
+versioned OneWeb HLD reference profile is the default. R29c characterised the
+synchronous Cesium render-submission cost at 634 satellites; an actual visible
+foreground frame-rate measurement remains outstanding.
 
 ---
 
@@ -59,11 +62,12 @@ foreground performance measurement remain independent validation follow-ups.
   and bounded (under 0.4 km cross-track over 72 h at the reference shell). The
   textbook J₂² term does not reproduce the structure, so it was not added.
   Re-measure before quoting numbers for a low-inclination shell.
-- ~~R12 — 60 fps at 256 satellites~~ — closed in R29c at **634** satellites.
-  The pane is still hidden (0 rAF callbacks in 2 s), but `Scene.render()` is not
-  rAF-gated and was driven directly: 0.35 ms mean against a 16.67 ms budget.
-  See `docs/REVISIT_FOREGROUND_PERFORMANCE.md`, including what it does not
-  establish (presented frame rate, other hardware).
+- **R12 — 60 fps in a visible foreground browser** — still open. R29c found no
+  apparent CPU-side Cesium submission bottleneck at **634** satellites, but the
+  pane was hidden (0 rAF callbacks in 2 s). Direct `Scene.render()` timings do
+  not establish presented frame rate or GPU/compositor completion. See
+  `docs/REVISIT_FOREGROUND_PERFORMANCE.md` for the bounded result and closure
+  protocol.
 - URL / browser-history semantics for mode switching — product decision.
 - Visual WGS84 vs analytical 6371 km sphere — product decision, up to ~21 km of
   visual offset, no reported number affected.

@@ -73,12 +73,12 @@ calibration/  fitWalker   (plain numbers only — no satrec crosses the boundary
 | 6 | Review remediation P1 (validation, Back, pole, hot path, a11y) | Done |
 | 7 | SGP4 independent propagation cross-check | Done |
 | 8 | **R4 — GMAT cross-check** | **Done — found and fixed 2 propagator defects** |
-| 9 | R12 — 60 fps at 256 satellites, measured in a real browser | Open |
+| 9 | R12 — 60 fps at 634 satellites, measured in a visible foreground browser | Open — R29c found no CPU-side submission bottleneck, but did not measure presented frames |
 | 10 | URL/history semantics for mode switching | Open — product decision |
 | 11 | Visual WGS84 vs analytical sphere | Open — product decision |
-| 12 | R28: WGS84 equatorial altitude datum + authoritative ellipsoid geometry | Done — branch `feat/r28-wgs84-altitude-datum` |
+| 12 | R28: WGS84 equatorial altitude datum + authoritative ellipsoid geometry | Done — merged on `main` |
 | 13 | Ω̇ residual up to 0.3 % vs GMAT (R29) | Open — accepted, bounded |
-| 14 | OneWeb HLD reference profile: 576 active + 58 spares, plane altitude ladder | Open — next separate change |
+| 14 | OneWeb HLD reference profile: 576 active + 58 spares, plane altitude ladder | Done — `ONEWEB_HLD_V1` is the default on `main` |
 
 ---
 

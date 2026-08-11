@@ -6,11 +6,11 @@ _Last updated 2026-08-11._
 
 **Review complete — externally validated.**
 
-Lots 1–4 are implemented, reviewed, remediated and pushed. R4 is closed: the
+Lots 1–4 are implemented, reviewed, remediated and merged on `main`. R4 is closed: the
 propagator has been cross-checked against NASA GMAT R2026a, which found two real
 defects (see below); both are fixed and the model now agrees to 9 km over 72 h.
-PR: https://github.com/falamargot/capacity-analyser/pull/1
-Branch: `feat/revisit-lot1-engine` → `main`.
+R28 and R29a–c were subsequently merged through PRs 2 and 3. The authoritative
+repository state is `main`; retained feature branches are historical only.
 
 ---
 
@@ -40,11 +40,12 @@ Branch: `feat/revisit-lot1-engine` → `main`.
 
 ---
 
-## Remaining work
+## Delivered follow-ups and remaining work
 
-- **R29 — all three follow-ups delivered.** GMAT now validates the altitude
-  datum; the versioned OneWeb HLD profile is the default; foreground rendering
-  is measured at 634 satellites and R12 is closed.
+- **R29 — all three follow-ups delivered on `main`.** GMAT now validates the
+  altitude datum; the versioned OneWeb HLD profile is the default; R29c measured
+  synchronous Cesium render submission at 634 satellites. Because the browser
+  pane was hidden, presented frame rate was not measured and R12 remains open.
 - **Ω̇ residual up to ~0.3 %** vs GMAT, inclination-structured. The textbook
   J₂² term does not reproduce the structure, so it was deliberately not added.
 - URL/history semantics for mode switching — product decision.

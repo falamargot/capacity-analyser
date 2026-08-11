@@ -1010,7 +1010,7 @@ discriminates the corrected formula from the old one.
 
 ---
 
-## 15. R29 — datum validated, HLD profile, performance closed (2026-08-11)
+## 15. R29 — datum validated, HLD profile, submission cost characterised (2026-08-11)
 
 **R29a — the altitude datum is now externally validated.** R4's fixture is
 pinned to a fixed semi-major axis and exercised no altitude mapping, so R28
@@ -1035,11 +1035,12 @@ combinations rather than argued. The per-plane spare split is an assumption
 (the HLD gives only a total) and is recorded as one; it cannot move a revisit
 number because spares carry no payload.
 
-**R29c — R12 is closed.** Full record in
+**R29c — render submission is characterised; R12 remains open.** Full record in
 `docs/REVISIT_FOREGROUND_PERFORMANCE.md`. The automation pane is hidden
-(0 rAF callbacks in 2 s), so presented frames cannot be sampled there —
-`Scene.render()` is not rAF-gated and was driven directly instead. 634
-satellites cost **0.35 ms mean, 0.9 ms p95, 4.2 ms worst** even at 2560 × 1440,
-against a 16.67 ms budget: 48–53× headroom, no optimisation required. What that
-does not establish — presented frame rate, other hardware, ENG's scene — is
-recorded there.
+(0 rAF callbacks in 2 s), so presented frames cannot be sampled there.
+`Scene.render()` was driven directly and its synchronous duration was 0.35 ms
+mean, 0.9 ms p95 and 4.2 ms worst at 2560 × 1440. This is evidence that no
+CPU-side Cesium submission bottleneck is apparent at 634 satellites. It is not
+a frame-rate measurement: it omits browser presentation, GPU completion,
+compositor scheduling and the normal application rAF loop. A visible foreground
+run is still required to close R12.
