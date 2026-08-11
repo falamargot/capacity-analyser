@@ -120,7 +120,8 @@ describe('runScenario — constellation cache', () => {
     });
 
     it('works without a cache at all', () => {
-        expect(constellationFor(DEFAULT_REFERENCE)).toHaveLength(96);
+        // 634 = 576 active + 58 spares, the HLD profile's displayed fleet.
+        expect(constellationFor(DEFAULT_REFERENCE)).toHaveLength(634);
     });
 
     it('never changes the answer, only the speed of getting it', () => {
@@ -170,10 +171,20 @@ describe('presets — the entry moment', () => {
         expect(validateScenario(scenario).warnings).toEqual([]);
     });
 
-    it('defaults to 8 payloads, mid-ladder so the slider has room both ways', () => {
+    it('defaults to 12 payloads, mid-ladder so the slider has room both ways', () => {
         const scenario = defaultScenario(EPOCH);
-        expect(scenario.reference.planes / scenario.selection.planeStride).toBe(4);
-        expect(scenario.reference.satsPerPlane / scenario.selection.satStride).toBe(2);
+        expect(scenario.reference.planes / scenario.selection.planeStride).toBe(2);
+        expect(scenario.reference.satsPerPlane / scenario.selection.satStride).toBe(6);
+    });
+
+    it('keeps the default selection x/y/z compliant with the HLD profile', () => {
+        // The divisor rules are what make a selection expressible at all. A
+        // default that violated them would throw before the mode could render.
+        const { reference, selection } = defaultScenario(EPOCH);
+        expect(reference.planes % selection.planeStride).toBe(0);
+        expect(reference.satsPerPlane % selection.satStride).toBe(0);
+        expect(selection.planeShift).toBeGreaterThanOrEqual(0);
+        expect(selection.planeShift).toBeLessThan(reference.satsPerPlane);
     });
 
     it('takes its epoch from the caller, never from a hidden clock read', () => {

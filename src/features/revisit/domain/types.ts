@@ -35,6 +35,38 @@ export interface WalkerSpec {
     fudge: number;
     /** Ω₀ — right ascension of the ascending node of plane 0. Defaults to 0. */
     raan0Deg?: number;
+
+    /**
+     * Per-plane altitude, km. Length must equal `planes`.
+     *
+     * Overrides `altitudeKm`, which remains the single-shell value and the one
+     * quoted in labels. Real constellations are flown as a ladder rather than
+     * one shell — OneWeb's Gen1 planes sit 4 km apart — and the ladder is not
+     * cosmetic: Ω̇ ∝ a^-3.5, so a 44 km spread across the fleet gives the
+     * planes measurably different nodal drift.
+     */
+    planeAltitudesKm?: number[];
+
+    /**
+     * Absolute RAAN of each plane relative to `raan0Deg`, degrees. Length must
+     * equal `planes`.
+     *
+     * Overrides the uniform `span/P · fudge` step. Needed because a real Walker
+     * Star is not uniform: it has a SEAM, one narrower gap where the ascending
+     * and descending sides of the shell meet. Expressing that as a `fudge`
+     * factor is impossible — fudge scales every gap equally.
+     */
+    raanOffsetsDeg?: number[];
+
+    /**
+     * Non-payload spare satellites per plane. Length must equal `planes`.
+     *
+     * Spares are generated, propagated and drawn, but can never host a payload:
+     * they occupy in-plane indices at or above `satsPerPlane`, which is exactly
+     * the range `selectedSatelliteIds` cannot address. That is the mechanism —
+     * not a filter that a future caller could forget to apply.
+     */
+    sparesPerPlane?: number[];
 }
 
 /**
@@ -73,6 +105,15 @@ export interface OrbitalElements {
     raanDeg: number;
     /** u₀ at epoch — argument of latitude. */
     argLatDeg: number;
+    /**
+     * True for a non-payload spare.
+     *
+     * Informational only — spares are excluded from selection structurally, by
+     * sitting at in-plane indices `selectedSatelliteIds` cannot produce. This
+     * flag exists so the renderer can style them and so a reader of a fleet
+     * dump can tell them apart, NOT as the mechanism that keeps them unselected.
+     */
+    isSpare?: boolean;
 }
 
 /** Earth-centred inertial state. Position km, velocity km/s. */

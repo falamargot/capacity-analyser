@@ -45,17 +45,22 @@ import type {
     AnalysisWindow, FovSpec, RevisitScenario, SubConstellationSpec, Target, WalkerSpec,
 } from './types';
 import { DEFAULT_STEP_SECONDS, DEFAULT_WINDOW_HOURS } from '../analysis/accessIntervals';
+import { DEFAULT_PROFILE } from './referenceProfiles';
 
-/** The host fleet — the real OneWeb shell, scaled down in per-plane population. */
-export const DEFAULT_REFERENCE: WalkerSpec = {
-    pattern: 'STAR',
-    planes: 12,
-    satsPerPlane: 8,
-    inclinationDeg: 87.9,
-    altitudeKm: 1200,
-    phasingF: 1,
-    fudge: 1,
-};
+/**
+ * The host fleet — the OneWeb Gen1 HLD reference profile (R29).
+ *
+ * This used to be a 12 × 8 shell described as "the real OneWeb shell, scaled
+ * down in per-plane population". That description was the problem: a scaled
+ * fleet produces revisit numbers for a constellation that does not exist, and
+ * nothing on screen said so. The demo shell is still available — as
+ * `REFERENCE_PROFILES.DEMO_12X8`, explicitly flagged `isAuthoritative: false` —
+ * but it is no longer what the mode opens on.
+ *
+ * The profile carries the plane altitude ladder, the Walker Star seam and the
+ * non-payload spares; see `referenceProfiles.ts`.
+ */
+export const DEFAULT_REFERENCE: WalkerSpec = DEFAULT_PROFILE.spec;
 
 /**
  * The off-nadir half-angle that produces a given ground swath at a given altitude.
@@ -140,10 +145,17 @@ export const TARGET_PRESETS: Target[] = [
 
 export const DEFAULT_TARGET = TARGET_PRESETS[2];
 
-/** 8 payloads over 4 planes — mid-ladder, so the slider has room both ways. */
+/**
+ * 12 payloads over 2 planes — mid-ladder, so the slider has room both ways.
+ *
+ * Compliant with the x/y/z divisor rules against the HLD profile: x = 6 divides
+ * 12 planes, y = 8 divides 48 satellites per plane, and z = 0 is in range.
+ * Selecting 2 planes × 6 satellites reaches 12 hosted payloads out of 576
+ * payload-capable hosts.
+ */
 export const DEFAULT_SELECTION: SubConstellationSpec = {
-    planeStride: 3,
-    satStride: 4,
+    planeStride: 6,
+    satStride: 8,
     planeShift: 0,
 };
 

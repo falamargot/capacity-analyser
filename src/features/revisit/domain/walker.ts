@@ -66,6 +66,33 @@ export function validateWalkerSpec(spec: WalkerSpec): WalkerValidation {
         warnings.push(`phasingF ${spec.phasingF} is non-integer — this is a non-standard Walker phasing`);
     }
 
+    // Per-plane arrays must match the plane count exactly. A short array would
+    // otherwise read `undefined` and silently produce NaN elements.
+    const perPlane: Array<[string, number[] | undefined]> = [
+        ['planeAltitudesKm', spec.planeAltitudesKm],
+        ['raanOffsetsDeg', spec.raanOffsetsDeg],
+        ['sparesPerPlane', spec.sparesPerPlane],
+    ];
+    for (const [name, array] of perPlane) {
+        if (!array) continue;
+        if (array.length !== spec.planes) {
+            errors.push(`${name} has ${array.length} entries but planes is ${spec.planes}`);
+        } else if (array.some((v) => !Number.isFinite(v))) {
+            errors.push(`${name} contains a non-finite value`);
+        }
+    }
+    if (spec.planeAltitudesKm?.some((v) => v <= 0)) {
+        errors.push('planeAltitudesKm must all be positive');
+    }
+    if (spec.sparesPerPlane?.some((v) => v < 0 || !Number.isInteger(v))) {
+        errors.push('sparesPerPlane must be non-negative integers');
+    }
+    if (spec.raanOffsetsDeg && spec.fudge !== 1) {
+        // Both express inter-plane spacing; applying one on top of the other
+        // would mean the drawn shell is neither.
+        warnings.push('raanOffsetsDeg overrides the uniform step, so fudge is ignored');
+    }
+
     return { ok: errors.length === 0, errors, warnings };
 }
 
@@ -86,20 +113,28 @@ export function generateWalkerConstellation(spec: WalkerSpec): OrbitalElements[]
     const { planes: P, satsPerPlane: S } = spec;
     const span = raanSpanDeg(spec);
     const raan0 = spec.raan0Deg ?? 0;
-    const semiMajorAxisKm = orbitalRadiusKm(spec.altitudeKm);
+    const uniformSma = orbitalRadiusKm(spec.altitudeKm);
 
-    const out: OrbitalElements[] = new Array(P * S);
-    let k = 0;
+    const out: OrbitalElements[] = [];
 
     for (let p = 0; p < P; p++) {
-        const raanDeg = normalizeDeg(raan0 + p * (span / P) * spec.fudge);
+        // Per-plane altitude ladder, when the profile declares one.
+        const semiMajorAxisKm = spec.planeAltitudesKm
+            ? orbitalRadiusKm(spec.planeAltitudesKm[p])
+            : uniformSma;
+
+        // Explicit RAAN offsets, when the profile declares them — a real Walker
+        // Star has a seam and cannot be described by a uniform step.
+        const raanDeg = spec.raanOffsetsDeg
+            ? normalizeDeg(raan0 + spec.raanOffsetsDeg[p])
+            : normalizeDeg(raan0 + p * (span / P) * spec.fudge);
 
         for (let s = 0; s < S; s++) {
             const argLatDeg = normalizeDeg(
                 s * (360 / S) + spec.phasingF * p * (360 / (P * S))
             );
 
-            out[k++] = {
+            out.push({
                 id: satelliteId(p, s),
                 planeIndex: p,
                 satIndexInPlane: s,
@@ -107,7 +142,29 @@ export function generateWalkerConstellation(spec: WalkerSpec): OrbitalElements[]
                 inclinationDeg: spec.inclinationDeg,
                 raanDeg,
                 argLatDeg,
-            };
+            });
+        }
+
+        // Spares occupy in-plane indices S, S+1, … — beyond anything
+        // `selectedSatelliteIds` can address, so they are unselectable by
+        // construction. They are phased into the gaps between active
+        // satellites so a drawn fleet does not show them stacked on one point.
+        const spares = spec.sparesPerPlane?.[p] ?? 0;
+        for (let j = 0; j < spares; j++) {
+            const s = S + j;
+            out.push({
+                id: satelliteId(p, s),
+                planeIndex: p,
+                satIndexInPlane: s,
+                semiMajorAxisKm,
+                inclinationDeg: spec.inclinationDeg,
+                raanDeg,
+                argLatDeg: normalizeDeg(
+                    (j + 0.5) * (360 / Math.max(1, spares))
+                    + spec.phasingF * p * (360 / (P * S))
+                ),
+                isSpare: true,
+            });
         }
     }
 

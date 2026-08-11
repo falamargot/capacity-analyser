@@ -20,7 +20,17 @@
 import { describe, expect, it } from 'vitest';
 import { generateWalkerConstellation } from '../domain/walker';
 import { selectSubConstellation } from '../domain/subConstellation';
-import { DEFAULT_REFERENCE, DEFAULT_SELECTION, FOV_PRESETS } from '../domain/presets';
+import { FOV_PRESETS } from '../domain/presets';
+import { REFERENCE_PROFILES } from '../domain/referenceProfiles';
+
+/**
+ * R28's ablation was measured on the 12 x 8 demo shell, and it is pinned to that
+ * shell deliberately. R29 made the OneWeb HLD profile the default; following it
+ * would silently re-measure the historical record against a different
+ * constellation and invalidate every figure this file exists to preserve.
+ */
+const DEFAULT_REFERENCE = REFERENCE_PROFILES.DEMO_12X8.spec;
+const DEFAULT_SELECTION = { planeStride: 3, satStride: 4, planeShift: 0 };
 import {
     conservativeReachUpperBoundDeg, groundHalfAngleDeg, maxReachableLatitudeDeg,
     turningLatitudeDeg,
