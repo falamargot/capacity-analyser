@@ -61,14 +61,12 @@ export const ModelProvenance: React.FC<ModelProvenanceProps> = ({
                   */}
                 <li>Propagation cross-checked vs NASA GMAT · 9 km over 72 h</li>
                 {/*
-                  * Deliberately separate from the line above. GMAT validated the
-                  * PROPAGATOR at a fixed semi-major axis; it has not yet been
-                  * run against the R28 altitude datum. Letting the GMAT line sit
-                  * next to the Earth-model line without this qualifier would let
-                  * the stronger claim launder the weaker one — the same mistake
-                  * the OneWeb fit line is guarded against below.
+                  * R29 closed this. The qualifier that stood here — "altitude
+                  * datum not yet GMAT-checked" — is replaced by the measurement
+                  * that removed it, not simply deleted. GMAT now validates BOTH
+                  * the propagator (at fixed SMA) and the altitude mapping.
                   */}
-                <li className="text-slate-500">altitude datum not yet GMAT-checked</li>
+                <li>Altitude datum GMAT-checked · 1200.00 km at the equator</li>
                 {fit ? (
                     // "Fit vs OneWeb TLE · N km RMS" reads as trajectory
                     // validation. It is not: this is a mean-element fit at ONE

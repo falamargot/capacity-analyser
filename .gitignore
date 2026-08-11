@@ -90,3 +90,11 @@ temp/
 
 # Generated GEO prebuilt meshes/manifests are rebuilt from public/coverage.
 public/coverage-prebuilt/
+
+# GMAT is a 455 MB third-party install, not a dependency. Fixtures and scripts
+# ARE committed; the installer, the disk image and the extracted tree are not.
+# Patterns are root-anchored on purpose: a bare `gmat/` would also swallow
+# docs/revisit/gmat, which holds the scripts that regenerate the fixtures.
+*.dmg
+/gmat/
+/GMAT-R2026a*/

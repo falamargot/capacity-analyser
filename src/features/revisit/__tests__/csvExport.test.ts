@@ -59,8 +59,10 @@ describe('provenanceHeader', () => {
         expect(header).toMatch(/WGS84 ellipsoid/);
         expect(header).toMatch(/altitude datum,a = 6378\.137 km \+ altitude/);
         expect(header).toMatch(/j2 reference radius,6378\.1363 km/);
-        // The honesty line: GMAT validated the propagator, not this datum.
-        expect(header).toMatch(/altitude datum cross-check,NOT YET VALIDATED/);
+        // R29: the datum is now GMAT-validated, so the header states the
+        // measurement rather than the gap. Asserted so the claim cannot be
+        // upgraded again without a fixture behind it.
+        expect(header).toMatch(/altitude datum cross-check,NASA GMAT/);
         expect(header).toMatch(/boundary-truncated gaps discarded/);
         expect(header).toMatch(/infrared/);
     });

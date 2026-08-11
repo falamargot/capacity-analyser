@@ -71,7 +71,7 @@ export function provenanceHeader(
         // reason the assumptions do: it is the bound on how far these numbers
         // can be trusted, and it should travel with them.
         '# propagation cross-check,NASA GMAT R2026a - 9 km over 72 h at FIXED semi-major axis',
-        '# altitude datum cross-check,NOT YET VALIDATED against GMAT',
+        '# altitude datum cross-check,NASA GMAT R2026a - equator crossing at 1200.00 km (20 m)',
         '# altitude datum,a = 6378.137 km + altitude (WGS84 equatorial semi-major axis)',
         '# j2 reference radius,6378.1363 km (J2 defining radius - not the altitude datum)',
         '# swath figures,equatorial reference values; instrument input is the angular FOV',
