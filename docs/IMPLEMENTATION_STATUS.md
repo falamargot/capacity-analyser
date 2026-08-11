@@ -1,6 +1,6 @@
 # Implementation Status
 
-_Last updated 2026-08-10._
+_Last updated 2026-08-11._
 
 ## Current phase
 
@@ -42,10 +42,9 @@ Branch: `feat/revisit-lot1-engine` → `main`.
 
 ## Remaining work
 
-- **R12 — 60 fps at 256 satellites.** Never measured.
-- **R28 datum GMAT fixture** — the existing fixture validates propagation at a
-  fixed SMA, not the altitude-to-SMA mapping.
-- **OneWeb HLD profile** — 576 active satellites, 58 spares and plane altitudes.
+- **R29 — all three follow-ups delivered.** GMAT now validates the altitude
+  datum; the versioned OneWeb HLD profile is the default; foreground rendering
+  is measured at 634 satellites and R12 is closed.
 - **Ω̇ residual up to ~0.3 %** vs GMAT, inclination-structured. The textbook
   J₂² term does not reproduce the structure, so it was deliberately not added.
 - URL/history semantics for mode switching — product decision.
@@ -66,7 +65,7 @@ Branch: `feat/revisit-lot1-engine` → `main`.
 |---|---|
 | TypeScript | 0 errors |
 | ESLint | clean |
-| Unit + integration tests | 1905 passing, 5 skipped |
+| Unit + integration tests | 1928 passing, 5 skipped |
 | Browser | REVISIT rendered; provenance and Why-this-revisit verified; no console errors |
 | Review | external, three rounds; P0, P1 and R4 closed |
 | External authority | NASA GMAT R2026a — 9 km / 72 h, non-divergent; max gap exact at four targets |

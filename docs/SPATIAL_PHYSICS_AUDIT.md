@@ -1006,3 +1006,40 @@ and V5 oracle used the ellipsoid normal for the target horizon, but the hot path
 still dotted the line of sight with the radius vector. Horizon and optional
 elevation masks now use the WGS84 normal. A 45°-latitude, 0.05°-elevation test
 discriminates the corrected formula from the old one.
+
+
+---
+
+## 15. R29 — datum validated, HLD profile, performance closed (2026-08-11)
+
+**R29a — the altitude datum is now externally validated.** R4's fixture is
+pinned to a fixed semi-major axis and exercised no altitude mapping, so R28
+shipped saying so. Two new GMAT scenarios close it: a two-body run isolating the
+datum (equator crossing at 1200.0007–1200.0026 km for SMA 7578.137, within
+2.6 m), and a J₂ run comparing the production `altitudeKm → a` path over 72 h
+(under 25 km, non-accumulating). The first **discriminates**: the mean-radius
+datum would be 7.1 km out and the polar radius 21.4 km out. A negative control
+rebuilds the same fleet on the pre-R28 datum and diverges by over 200 km.
+
+The UI and CSV qualifiers are replaced by the measurement, not deleted.
+
+**R29b — the OneWeb HLD reference profile.** 576 active over 12 planes, 58
+non-payload spares, 634 displayed; plane altitudes 1175–1219 km in 4 km steps;
+15.225° inter-plane spacing with a 12.525° seam closing the Star at exactly
+180.000°. The 12 × 8 shell survives as `DEMO_12X8`, flagged
+`isAuthoritative: false` and labelled illustrative in the UI.
+
+Spares are unselectable **structurally** — they sit at in-plane indices
+`selectedSatelliteIds` cannot produce — verified across all 300 legal x/y/z
+combinations rather than argued. The per-plane spare split is an assumption
+(the HLD gives only a total) and is recorded as one; it cannot move a revisit
+number because spares carry no payload.
+
+**R29c — R12 is closed.** Full record in
+`docs/REVISIT_FOREGROUND_PERFORMANCE.md`. The automation pane is hidden
+(0 rAF callbacks in 2 s), so presented frames cannot be sampled there —
+`Scene.render()` is not rAF-gated and was driven directly instead. 634
+satellites cost **0.35 ms mean, 0.9 ms p95, 4.2 ms worst** even at 2560 × 1440,
+against a 16.67 ms budget: 48–53× headroom, no optimisation required. What that
+does not establish — presented frame rate, other hardware, ENG's scene — is
+recorded there.

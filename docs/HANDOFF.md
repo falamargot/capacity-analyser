@@ -1,6 +1,6 @@
 # Handoff
 
-_Last updated 2026-08-09._
+_Last updated 2026-08-11._
 
 ## Current project state
 
@@ -53,17 +53,17 @@ foreground performance measurement remain independent validation follow-ups.
 
 ## Remaining work
 
-- **OneWeb HLD reference profile.** Add 12 × 48 active satellites, 58 spares,
-  per-plane altitudes 1175–1219 km and `fudge ≈ 1.015` as a separate change.
-- **R28 external datum check.** The fixed-SMA propagator remains GMAT-validated;
-  the new `a = WGS84_A + h` mapping still needs its own GMAT fixture.
+- ~~OneWeb HLD reference profile~~ — delivered in R29b as `ONEWEB_HLD_V1`.
+- ~~R28 external datum check~~ — delivered in R29a; the datum is GMAT-validated.
 - **R29 — Ω̇ residual up to 0.3 %** vs GMAT, inclination-structured. Accepted
   and bounded (under 0.4 km cross-track over 72 h at the reference shell). The
   textbook J₂² term does not reproduce the structure, so it was not added.
   Re-measure before quoting numbers for a low-inclination shell.
-- **R12 — 60 fps at 256 satellites.** Requires a real foreground browser; the
-  automation pane keeps its tab hidden, which suspends `requestAnimationFrame`
-  and with it both Cesium's render loop and ours.
+- ~~R12 — 60 fps at 256 satellites~~ — closed in R29c at **634** satellites.
+  The pane is still hidden (0 rAF callbacks in 2 s), but `Scene.render()` is not
+  rAF-gated and was driven directly: 0.35 ms mean against a 16.67 ms budget.
+  See `docs/REVISIT_FOREGROUND_PERFORMANCE.md`, including what it does not
+  establish (presented frame rate, other hardware).
 - URL / browser-history semantics for mode switching — product decision.
 - Visual WGS84 vs analytical 6371 km sphere — product decision, up to ~21 km of
   visual offset, no reported number affected.
