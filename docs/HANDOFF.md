@@ -1,6 +1,6 @@
 # Handoff
 
-_Last updated 2026-08-11._
+_Last updated 2026-08-12._
 
 ## Current project state
 
@@ -8,11 +8,32 @@ REVISIT — the hosted-payload revisit mode — is implemented across four lots,
 externally reviewed, remediated through P0 and P1, cross-checked against NASA
 GMAT, and merged on `main` through R29.
 
+The ENG / COMM / REVISIT UIX integration programme U1–U16 is implemented in the
+working tree: the three modes share navigation and themes, state and camera
+survive runtime isolation, COMM no longer presents missing input as a negative
+verdict, REVISIT is responsive from 390 to 1920 px, and automated functional,
+visual, accessibility and lifecycle gates are operational.
+
+**It is not validated.** The 20-transition lifecycle gate is red (see below), so
+Programme 2 is implemented-but-unvalidated, not complete.
+
+The REVISIT header corrective is also complete: there is no standalone global
+rail in REVISIT. The scenario triad is flush to the top, the named origin-aware
+Back control is its sole exit, Cesium starts below the scenario rail, and the
+compact-height contract is covered at 2048×320.
+
 - Authoritative branch: `main`
 - R28: PR https://github.com/falamargot/capacity-analyser/pull/2 — MERGED
 - R29a–c: PR https://github.com/falamargot/capacity-analyser/pull/3 — MERGED
-- Gate at R29 merge: 0 TypeScript errors, 1928 tests passing, 5 skipped,
-  ESLint clean
+- Current gate: 0 TypeScript errors, 1960 tests passing, 5 skipped, ESLint and
+  production build clean; Axe 0 critical/serious across 3 modes × 2 themes;
+  18 visual baselines
+- **20-transition lifecycle gate is RED: listener delta +534, budget 50.** Heap
+  and timers are clean. This blocks validation of Programme 2 and is the next
+  action. See `REVIEW_REPORT.md` for the measurement and
+  `IMPLEMENTATION_STATUS.md` for the issue entry.
+- `npm test` excludes the Playwright specs in `e2e/` and is green: 1960 tests
+  passing, 5 skipped. Browser suites remain under the separate `test:e2e` gate.
 
 Reachable in the app via the **Revisit** button in the mode switcher, or
 `?mode=revisit`.
@@ -47,10 +68,10 @@ and now assert against it directly.
 
 ## Current objective
 
-R28 and R29a–c are merged on `main`. The WGS84 datum is GMAT-validated and the
-versioned OneWeb HLD reference profile is the default. R29c characterised the
-synchronous Cesium render-submission cost at 634 satellites; an actual visible
-foreground frame-rate measurement remains outstanding.
+Programme 2 is implemented but its validation remains blocked by the listener
+lifecycle gate. R29c characterised the synchronous Cesium render-submission
+cost at 634 satellites; the separate R12 visible foreground frame-rate
+measurement remains outstanding.
 
 ---
 
@@ -68,7 +89,7 @@ foreground frame-rate measurement remains outstanding.
   not establish presented frame rate or GPU/compositor completion. See
   `docs/REVISIT_FOREGROUND_PERFORMANCE.md` for the bounded result and closure
   protocol.
-- URL / browser-history semantics for mode switching — product decision.
+- ~~URL / browser-history semantics for mode switching~~ — delivered in U3.
 - Visual WGS84 vs analytical 6371 km sphere — product decision, up to ~21 km of
   visual offset, no reported number affected.
 - FOV presets are not from an instrument datasheet (R10, R13).
@@ -89,6 +110,12 @@ foreground frame-rate measurement remains outstanding.
 | `src/features/revisit/__tests__/validation.test.ts` | Independent-oracle suite (V1–V5). V1b was confounded and is now absolute |
 | `src/utils/__tests__/revisitSgp4CrossCheck.test.ts` | Independent-implementation cross-check. Note the Kozai/Brouwer conversion in `tleFromElements` |
 | `docs/DEFERRED_ITEMS.md` | R1–R29 — every conscious deferral, with reasoning |
+| `playwright.config.ts` and `e2e/` | Functional, visual, accessibility and lifecycle gates for Programme 2 |
+| `src/state/session/telecomSessionSnapshot.ts` | Explicit versioned ENG/COMM state and camera contract |
+| `src/features/revisit/state/revisitSessionSnapshot.ts` | Isolated REVISIT scenario contract; deliberately cannot import telecom session state |
+| `src/components/errors/CrashBoundary.tsx` | Shared crash-containment UI: reset (clears the offending snapshot, remounts) or exit. Both mode error boundaries below are thin wrappers around it |
+| `src/features/revisit/ui/RevisitErrorBoundary.tsx` | Wraps `RevisitApp` in `RootShell`. On crash, both Reset and "Back to telecom analysis" clear `revisitSessionSnapshot` — either exit must discard a scenario that crashed on render, or re-entering REVISIT reads it back and crashes again |
+| `src/components/errors/TelecomErrorBoundary.tsx` | Wraps `App` in `RootShell`, closing the asymmetry where ENG/COMM had no crash containment even though `telecomSessionSnapshot.ts`'s restore validation is shallower than REVISIT's `validateScenario` |
 
 ---
 
@@ -119,7 +146,8 @@ script:
 ## Open questions
 
 - Should altitude be measured from the equatorial radius? (R28 — the live one.)
-- Should mode switching participate in browser history? The app has no router.
+- ~~Should mode switching participate in browser history?~~ Yes; delivered with
+  `?mode=` push/pop semantics and direct-URL recovery in U3.
 - Should the visual globe use the analytical sphere instead of WGS84?
 - Are the FOV presets meant to represent named sensor products, or stay
   illustrative?
@@ -142,6 +170,14 @@ script:
 - **Oracles that share the engine's constants prove less than they appear to.**
   This is the concrete lesson of R4 and it generalises: when adding a test,
   check whether it could fail if the constant under test were wrong.
+- **`e2e/mode-smoke.spec.ts` "20 transitions" lifecycle gate is currently
+  FAILING, not passing at delta 0 as `REVIEW_REPORT.md`, `IMPLEMENTATION_STATUS.md`
+  and `IMPLEMENTATION_PLAN.md` all claimed before 2026-08-12. Discovered while
+  verifying an unrelated fix set: 534 listener delta against a budget of 50.
+  Confirmed not caused by that fix set — reverting it did not clear the
+  failure. Not yet root-caused; likely a Cesium viewer-teardown listener leak
+  on `window`/`document` across repeated mode transitions. See the correction
+  note in `REVIEW_REPORT.md`.
 - **`CLAUDE.md` untracked-by-git risk — resolved.** An earlier version of this
   note claimed git tracked `CLAUDE.md` and reported `claude.md` as a separate
   untracked file; that was wrong (the two names are one inode on this

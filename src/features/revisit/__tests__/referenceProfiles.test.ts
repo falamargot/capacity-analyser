@@ -11,8 +11,9 @@ import { describe, expect, it } from 'vitest';
 import {
     DEFAULT_PROFILE, HLD_ORDINARY_SPACING_DEG, HLD_SEAM_SPACING_DEG,
     REFERENCE_PROFILES, activeSatelliteCount, displayedSatelliteCount,
-    spareSatelliteCount,
+    fitMatchesReference, referenceProfileFor, spareSatelliteCount, walkerSpecsEqual,
 } from '../domain/referenceProfiles';
+import type { WalkerSpec } from '../domain/types';
 import { generateWalkerConstellation, validateWalkerSpec } from '../domain/walker';
 import { selectSubConstellation, selectedSatelliteIds } from '../domain/subConstellation';
 import { DEFAULT_SELECTION } from '../domain/presets';
@@ -175,5 +176,101 @@ describe('reference profiles — provenance', () => {
 
     it('records the spare-distribution assumption rather than hiding it', () => {
         expect(DEFAULT_PROFILE.notes.join(' ')).toMatch(/assumption/i);
+    });
+
+    it('drops named provenance after any specification edit', () => {
+        expect(referenceProfileFor(DEFAULT_PROFILE.spec)).toBe(DEFAULT_PROFILE);
+        const custom = { ...DEFAULT_PROFILE.spec, inclinationDeg: 88 };
+        expect(walkerSpecsEqual(DEFAULT_PROFILE.spec, custom)).toBe(false);
+        expect(referenceProfileFor(custom)).toBeNull();
+    });
+});
+
+/**
+ * `fitMatchesReference` decides whether a stored calibration residual may be
+ * presented as applicable to the constellation currently on screen — in
+ * `ModelProvenance` and in the CSV provenance header.
+ *
+ * It once compared four of the eight parameters `fitWalker` estimates. The four
+ * marked "was accepted before" below are the ones that silently kept
+ * `matchesFit = true` across a structurally different constellation; each is a
+ * regression guard, not a restatement of the implementation.
+ */
+describe('fitMatchesReference — every estimated parameter is compared', () => {
+    /** A uniform fitted shell. Deliberately not the HLD spec: no ladder, no seam. */
+    const FIT: WalkerSpec = {
+        pattern: 'STAR',
+        planes: 12,
+        satsPerPlane: 48,
+        inclinationDeg: 87.9,
+        altitudeKm: 1200,
+        phasingF: 1,
+        fudge: 1,
+        raan0Deg: 7.5,
+    };
+
+    it('accepts a fit against the constellation it was computed for', () => {
+        expect(fitMatchesReference(FIT, { ...FIT })).toBe(true);
+    });
+
+    it('accepts measurement noise on the quantities that are measured', () => {
+        expect(fitMatchesReference(FIT, {
+            ...FIT,
+            inclinationDeg: FIT.inclinationDeg + 0.02,
+            altitudeKm: FIT.altitudeKm + 2,
+            raan0Deg: 7.51,
+        })).toBe(true);
+    });
+
+    it('rejects a Star reported against a Delta — was accepted before', () => {
+        expect(fitMatchesReference(FIT, { ...FIT, pattern: 'DELTA' })).toBe(false);
+    });
+
+    it('rejects a different phasing factor — was accepted before', () => {
+        expect(fitMatchesReference(FIT, { ...FIT, phasingF: 2 })).toBe(false);
+    });
+
+    it('rejects a rotated constellation — was accepted before', () => {
+        expect(fitMatchesReference(FIT, { ...FIT, raan0Deg: 97.5 })).toBe(false);
+    });
+
+    it('rejects a rescaled inter-plane step — was accepted before', () => {
+        // 12 STAR planes: the ideal step is 15°, so the outermost plane sits
+        // 11 steps out. fudge 1 → 1.001 displaces it by 0.165°, well past the
+        // 0.05° budget, while fudge itself moved by only one part in a thousand.
+        expect(fitMatchesReference(FIT, { ...FIT, fudge: 1.001 })).toBe(false);
+        // A displacement inside the budget stays acceptable.
+        expect(fitMatchesReference(FIT, { ...FIT, fudge: 1 + 1e-4 })).toBe(true);
+    });
+
+    it('closes the circle on Ω₀ rather than subtracting linearly', () => {
+        const nearZero = { ...FIT, raan0Deg: 0.01 };
+        const nearWrap = { ...FIT, raan0Deg: 359.99 };
+        expect(fitMatchesReference(nearZero, nearWrap)).toBe(true);
+        expect(fitMatchesReference(nearWrap, nearZero)).toBe(true);
+        expect(fitMatchesReference(nearZero, { ...FIT, raan0Deg: 90 })).toBe(false);
+    });
+
+    it('treats an absent Ω₀ as 0°, not as a wildcard', () => {
+        const { raan0Deg: _omitted, ...withoutRaan } = FIT;
+        void _omitted;
+        expect(fitMatchesReference(withoutRaan as WalkerSpec, { ...FIT, raan0Deg: 0 })).toBe(true);
+        expect(fitMatchesReference(withoutRaan as WalkerSpec, FIT)).toBe(false);
+        expect(fitMatchesReference(FIT, withoutRaan as WalkerSpec)).toBe(false);
+    });
+
+    it('still rejects the four parameters it always compared', () => {
+        expect(fitMatchesReference(FIT, { ...FIT, planes: 11 })).toBe(false);
+        expect(fitMatchesReference(FIT, { ...FIT, satsPerPlane: 47 })).toBe(false);
+        expect(fitMatchesReference(FIT, { ...FIT, inclinationDeg: 88.5 })).toBe(false);
+        expect(fitMatchesReference(FIT, { ...FIT, altitudeKm: 1210 })).toBe(false);
+    });
+
+    it('does not present a uniform fit as applicable to the seamed HLD shell', () => {
+        // The HLD profile carries a plane ladder and a seam, and leaves Ω₀ at
+        // its 0° default; a fit of the real fleet is a uniform shell whose
+        // plane 0 sits at 7.5°. P, S, i and h agree, which is exactly why the
+        // old four-parameter check called these the same constellation.
+        expect(fitMatchesReference(FIT, DEFAULT_PROFILE.spec)).toBe(false);
     });
 });

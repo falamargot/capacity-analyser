@@ -2,6 +2,18 @@ import type { PredictionConfidence } from '../../utils/predictionConfidence';
 
 export type CommercialStatus = 'active' | 'degraded' | 'blocked' | 'unknown';
 
+/**
+ * Lifecycle of the customer-facing COMM evaluation. Missing inputs and a
+ * completed negative result must never share the same presentation state.
+ */
+export type CommercialEvaluationState =
+  | 'NOT_CONFIGURED'
+  | 'COMPUTING'
+  | 'EVALUATED_AVAILABLE'
+  | 'EVALUATED_LIMITED'
+  | 'EVALUATED_UNAVAILABLE'
+  | 'ERROR';
+
 export type CommercialTechnology = 'leo' | 'geo' | 'hybrid';
 
 export type ConnectivityScenarioType = 'site_to_site' | 'network_access';
@@ -170,6 +182,7 @@ export interface CommercialExecutiveSummary {
 
 export interface CommercialScenarioViewModel {
   scenarioName: string;
+  evaluationState: CommercialEvaluationState;
   serviceStatus: CommercialStatus;
   serviceMessage?: string;
   technology: CommercialTechnology;

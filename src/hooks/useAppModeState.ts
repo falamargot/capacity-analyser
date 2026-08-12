@@ -1,4 +1,5 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { markModeTransitionStart } from '../utils/modeTransitionMetrics';
 
 /**
  * The top-level view the user is in.
@@ -12,11 +13,19 @@ export type AppMode = 'engineering' | 'commercial' | 'revisit';
 const MODE_QUERY_PARAM = 'mode';
 
 /** `?mode=revisit` still selects the mode directly, as it did before the lift. */
-function initialModeFromLocation(): AppMode {
+function modeFromLocation(): AppMode {
   if (typeof window === 'undefined') return 'engineering';
-  return new URLSearchParams(window.location.search).get(MODE_QUERY_PARAM) === 'revisit'
-    ? 'revisit'
+  const candidate = new URLSearchParams(window.location.search).get(MODE_QUERY_PARAM);
+  return candidate === 'commercial' || candidate === 'revisit' || candidate === 'engineering'
+    ? candidate
     : 'engineering';
+}
+
+function pushModeToHistory(mode: AppMode) {
+  if (typeof window === 'undefined') return;
+  const nextUrl = new URL(window.location.href);
+  nextUrl.searchParams.set(MODE_QUERY_PARAM, mode);
+  window.history.pushState({ ...window.history.state, capacityAnalyzerMode: mode }, '', nextUrl);
 }
 
 /**
@@ -32,7 +41,9 @@ function initialModeFromLocation(): AppMode {
 const DEFAULT_TELECOM_MODE: AppMode = 'engineering';
 
 export const useAppModeState = () => {
-  const [appMode, setAppMode] = useState<AppMode>(initialModeFromLocation);
+  const [appMode, setAppMode] = useState<AppMode>(modeFromLocation);
+  const appModeRef = useRef(appMode);
+  appModeRef.current = appMode;
 
   /**
    * The ENG/COMM mode the user was in before entering REVISIT.
@@ -46,15 +57,34 @@ export const useAppModeState = () => {
    * its own while a mode switch is already in flight.
    */
   const originRef = useRef<Exclude<AppMode, 'revisit'>>(
-    initialModeFromLocation() === 'revisit' ? DEFAULT_TELECOM_MODE : 'engineering'
+    modeFromLocation() === 'revisit'
+      ? DEFAULT_TELECOM_MODE
+      : modeFromLocation() as Exclude<AppMode, 'revisit'>
   );
 
   const handleAppModeChange = useCallback((mode: AppMode) => {
-    setAppMode((current) => {
-      // Remember where we are leaving from, not where we are going.
-      if (mode === 'revisit' && current !== 'revisit') originRef.current = current;
-      return mode;
-    });
+    const current = appModeRef.current;
+    if (mode === current) return;
+    markModeTransitionStart(current, mode);
+    // Remember where we are leaving from, not where we are going.
+    if (mode === 'revisit' && current !== 'revisit') originRef.current = current;
+    pushModeToHistory(mode);
+    appModeRef.current = mode;
+    setAppMode(mode);
+  }, []);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const next = modeFromLocation();
+      setAppMode((current) => {
+        if (next !== current) markModeTransitionStart(current, next);
+        if (next === 'revisit' && current !== 'revisit') originRef.current = current;
+        appModeRef.current = next;
+        return next;
+      });
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   /**
@@ -64,8 +94,14 @@ export const useAppModeState = () => {
    * and there is no origin to return to.
    */
   const returnFromRevisit = useCallback(() => {
-    setAppMode(originRef.current);
-  }, []);
+    handleAppModeChange(originRef.current);
+  }, [handleAppModeChange]);
 
-  return { appMode, setAppMode, handleAppModeChange, returnFromRevisit };
+  return {
+    appMode,
+    returnMode: originRef.current,
+    setAppMode,
+    handleAppModeChange,
+    returnFromRevisit,
+  };
 };

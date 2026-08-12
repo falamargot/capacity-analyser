@@ -9,6 +9,7 @@ import { analyseArea } from '../analysis/areaAnalysis';
 import { boxArea, swathWidthDeg } from '../domain/areaTarget';
 import { FOV_PRESETS, TARGET_PRESETS } from '../domain/presets';
 import type { FovSpec, RevisitScenario, Target } from '../domain/types';
+import { MAX_STEP_SECONDS, MAX_WINDOW_HOURS } from '../analysis/accessIntervals';
 
 const EPOCH = Date.UTC(2026, 7, 6);
 const london = TARGET_PRESETS.find((t) => t.name === 'London')!;
@@ -58,6 +59,17 @@ describe('the engine no longer accepts physical nonsense', () => {
         expect(v.ok).toBe(false);
         expect(v.errors.join(' ')).toMatch(/fudge must be greater than 0/);
         expect(() => runRevisitScenario(bad)).toThrow(/Invalid RevisitScenario/);
+    });
+
+    it('rejects analysis costs beyond the interactive ceilings', () => {
+        const tooLong = scenario({
+            window: { startMs: EPOCH, durationHours: MAX_WINDOW_HOURS + 1, stepSeconds: 30 },
+        });
+        const tooCoarse = scenario({
+            window: { startMs: EPOCH, durationHours: 24, stepSeconds: MAX_STEP_SECONDS + 1 },
+        });
+        expect(validateScenario(tooLong).errors.join(' ')).toMatch(/interactive ceiling/);
+        expect(validateScenario(tooCoarse).errors.join(' ')).toMatch(/supported ceiling/);
     });
 
     it('still accepts every shipped preset without complaint', () => {

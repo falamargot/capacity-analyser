@@ -146,6 +146,101 @@ export const DEFAULT_PROFILE_ID: ReferenceProfileId = 'ONEWEB_HLD_V1';
 
 export const DEFAULT_PROFILE = REFERENCE_PROFILES[DEFAULT_PROFILE_ID];
 
+/** Exact structural equality for provenance-sensitive Walker specifications. */
+export function walkerSpecsEqual(left: WalkerSpec, right: WalkerSpec): boolean {
+    const scalarKeys: Array<keyof WalkerSpec> = [
+        'pattern', 'planes', 'satsPerPlane', 'inclinationDeg', 'altitudeKm',
+        'phasingF', 'fudge', 'raan0Deg',
+    ];
+    if (scalarKeys.some((key) => left[key] !== right[key])) return false;
+
+    const arrayKeys: Array<keyof WalkerSpec> = [
+        'planeAltitudesKm', 'raanOffsetsDeg', 'sparesPerPlane',
+    ];
+    return arrayKeys.every((key) => {
+        const a = left[key] as number[] | undefined;
+        const b = right[key] as number[] | undefined;
+        if (!a || !b) return a === b;
+        return a.length === b.length && a.every((value, index) => value === b[index]);
+    });
+}
+
+/** Angular budget for the "same constellation" test, degrees. */
+const FIT_ANGLE_TOLERANCE_DEG = 0.05;
+/** Altitude budget for the same test, km. */
+const FIT_ALTITUDE_TOLERANCE_KM = 5;
+
+/**
+ * Shortest angular separation between two headings, degrees, in [0, 180].
+ *
+ * Ω₀ is normalised to [0, 360) by `fitWalker`, so a linear difference reports
+ * 359.99° and 0.01° as 359.98° apart when they are 0.02° apart. Every angular
+ * comparison on a RAAN has to close the circle.
+ */
+function circularSeparationDeg(a: number, b: number): number {
+    return Math.abs((((a - b) % 360) + 540) % 360 - 180);
+}
+
+/**
+ * Whether a calibrated Walker fit still describes `reference`, for the "is the
+ * fit still current" provenance check (ModelProvenance, CSV export).
+ *
+ * Deliberately looser than walkerSpecsEqual, and not that function plus a
+ * tolerance: fitWalker only ever estimates pattern, planes, satsPerPlane,
+ * inclinationDeg, altitudeKm, phasingF, fudge and raan0Deg — it never
+ * populates the per-plane ladder/seam/spares arrays a real reference profile
+ * carries, so an array comparison would always fail regardless of tolerance.
+ *
+ * ── EVERY ESTIMATED PARAMETER IS COMPARED ───────────────────────────────────
+ * This function once checked four of the eight. The consequence was not a
+ * cosmetic one: editing `pattern`, `phasingF`, `fudge` or `raan0Deg` left
+ * `matchesFit = true`, so `ModelProvenance` and the CSV provenance header
+ * presented the residuals of a fit against constellation A as applicable to
+ * constellation B. A Star folded into 180° and a Delta spread over 360° with
+ * the same P, S, i and h are different fleets with different access geometry,
+ * and the fit's residual says nothing about the second.
+ *
+ * Comparison mode follows how `fitWalker` produces each value:
+ *  - `pattern` is a two-valued decision and `phasingF` is `Math.round`ed to an
+ *    integer, so both are exact.
+ *  - `inclinationDeg`, `altitudeKm` and `raan0Deg` are measured, and never
+ *    exactly equal the reference's rounded nominal values — hence tolerances,
+ *    circular for Ω₀.
+ *  - `fudge` is a continuous ratio whose meaning is angular: it scales the
+ *    inter-plane step, so it is judged by the plane displacement it causes
+ *    rather than by its own magnitude, against the same angular budget.
+ */
+export function fitMatchesReference(fit: WalkerSpec, reference: WalkerSpec): boolean {
+    if (fit.pattern !== reference.pattern) return false;
+    if (fit.planes !== reference.planes) return false;
+    if (fit.satsPerPlane !== reference.satsPerPlane) return false;
+    if (fit.phasingF !== reference.phasingF) return false;
+    if (Math.abs(fit.inclinationDeg - reference.inclinationDeg) >= FIT_ANGLE_TOLERANCE_DEG) return false;
+    if (Math.abs(fit.altitudeKm - reference.altitudeKm) >= FIT_ALTITUDE_TOLERANCE_KM) return false;
+
+    // Ω₀ defaults to 0 when absent (WalkerSpec), so an unset reference is a
+    // constellation whose plane 0 sits at 0° — not a wildcard.
+    if (circularSeparationDeg(fit.raan0Deg ?? 0, reference.raan0Deg ?? 0) >= FIT_ANGLE_TOLERANCE_DEG) {
+        return false;
+    }
+
+    // The outermost plane sits at Ω₀ + fudge·(span/P)·(P−1). A fudge difference
+    // displaces it by that much, which is the quantity access geometry actually
+    // feels; comparing raw fudge would apply the same threshold to a 2-plane
+    // shell and a 12-plane one.
+    const span = reference.pattern === 'STAR' ? 180 : 360;
+    const outerPlaneShiftDeg = reference.planes > 1
+        ? Math.abs(fit.fudge - reference.fudge) * (span / reference.planes) * (reference.planes - 1)
+        : 0;
+    return outerPlaneShiftDeg < FIT_ANGLE_TOLERANCE_DEG;
+}
+
+/** Resolve a named profile only while the complete specification still matches it. */
+export function referenceProfileFor(spec: WalkerSpec): ReferenceProfile | null {
+    return Object.values(REFERENCE_PROFILES)
+        .find((profile) => walkerSpecsEqual(profile.spec, spec)) ?? null;
+}
+
 /** Active (payload-capable) satellites in a profile. */
 export const activeSatelliteCount = (profile: ReferenceProfile): number =>
     profile.spec.planes * profile.spec.satsPerPlane;

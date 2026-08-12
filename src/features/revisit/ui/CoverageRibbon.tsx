@@ -133,11 +133,11 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
     }, [windowHours]);
 
     return (
-        <div className={`${REVISIT_PANEL} px-4 py-3`}>
-            <div className="mb-2 flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
+        <div className={`${REVISIT_PANEL} revisit-coverage-ribbon px-2 py-2 sm:px-4 sm:py-3`}>
+            <div className="revisit-coverage-ribbon-heading mb-2 flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
                 <div>
                     <div className={REVISIT_LABEL}>Coverage timeline</div>
-                    <div className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+                    <div className="mt-0.5 hidden text-[9px] font-semibold uppercase tracking-[0.08em] text-slate-500 sm:block">
                         {windowHours} h analysis window · amber access · dark gaps
                     </div>
                 </div>
@@ -205,7 +205,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                     stroke="#ffffff" strokeWidth={1.5} />
             </svg>
 
-            <div className="mt-1 flex justify-between text-[9px] font-semibold tabular-nums text-slate-500">
+            <div className="revisit-coverage-ribbon-ticks mt-1 flex justify-between text-[9px] font-semibold tabular-nums text-slate-500">
                 {hourTicks.map((h) => <span key={h}>{String(h).padStart(2, '0')}:00</span>)}
             </div>
         </div>

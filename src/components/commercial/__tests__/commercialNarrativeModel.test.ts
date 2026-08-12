@@ -13,6 +13,7 @@ function gatewayViewModel({
 }): CommercialScenarioViewModel {
   return {
     scenarioName: 'GEO traffic gateway route',
+    evaluationState: available ? 'EVALUATED_AVAILABLE' : 'EVALUATED_UNAVAILABLE',
     serviceStatus: available ? 'active' : 'blocked',
     technology: 'geo',
     commercialDisplayTechnology: 'GEO',

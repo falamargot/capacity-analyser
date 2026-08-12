@@ -23,6 +23,9 @@ const statusDotClass: Record<CommercialScenarioViewModel['serviceStatus'], strin
 };
 
 function recommendationHeadline(viewModel: CommercialScenarioViewModel): string {
+  if (viewModel.evaluationState === 'NOT_CONFIGURED') return 'Configuration required';
+  if (viewModel.evaluationState === 'COMPUTING') return 'Evaluating service';
+  if (viewModel.evaluationState === 'ERROR') return 'Evaluation unavailable';
   const { technology, label } = viewModel.recommendation;
   if (technology === 'hybrid') return 'Hybrid suitable';
   if (technology === 'not_available') return 'No viable path';
@@ -31,6 +34,9 @@ function recommendationHeadline(viewModel: CommercialScenarioViewModel): string 
 }
 
 function experienceText(viewModel: CommercialScenarioViewModel): string {
+  if (viewModel.evaluationState === 'NOT_CONFIGURED') return 'Select an origin to evaluate service';
+  if (viewModel.evaluationState === 'COMPUTING') return 'Awaiting route evidence';
+  if (viewModel.evaluationState === 'ERROR') return 'Route evaluation could not be completed';
   return viewModel.executiveSummary.expectedExperience
     || viewModel.recommendation.reason
     || 'Route analysis in progress';

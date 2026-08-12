@@ -77,6 +77,12 @@ describe('provenanceHeader', () => {
         expect(header).toMatch(/# duration h,24/);
     });
 
+    it('labels an edited scenario as custom instead of the authoritative HLD profile', () => {
+        expect(header).toMatch(/# profile,CUSTOM/);
+        expect(header).toMatch(/# profile authoritative,unknown/);
+        expect(header).not.toMatch(/# profile,ONEWEB_HLD_V1/);
+    });
+
     it('says explicitly when the model has NOT been calibrated', () => {
         expect(header).toMatch(/CALIBRATION,not calibrated against real TLEs/);
     });
@@ -92,6 +98,19 @@ describe('provenanceHeader', () => {
         expect(withFit).toMatch(/# satellites used,645/);
         expect(withFit).toMatch(/# along-track rms km,248.2/);
         expect(withFit).not.toMatch(/not calibrated/);
+    });
+
+    it('does not attach calibration residuals to a different current shell', () => {
+        const fit = {
+            spec: { ...scenario.reference, altitudeKm: 1300 },
+            satellitesUsed: 645, satellitesExcluded: 6,
+            planesDetected: 12, planePopulations: [50, 61],
+            raanRmsDeg: 0.027, argLatRmsDeg: 1.877, altitudeRmsKm: 13.9,
+            inclinationRmsDeg: 0.014, alongTrackRmsKm: 248.2, notes: [],
+        };
+        const unrelated = provenanceHeader(scenario, fit).join('\n');
+        expect(unrelated).toMatch(/not calibrated against real TLEs/);
+        expect(unrelated).not.toMatch(/# satellites used/);
     });
 
     it('every provenance line is a comment, so it cannot be mistaken for data', () => {

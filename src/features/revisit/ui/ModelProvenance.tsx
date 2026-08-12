@@ -17,13 +17,13 @@
 import React from 'react';
 import type { WalkerFit } from '../calibration/fitWalker';
 import type { WalkerSpec } from '../domain/types';
-import { DEFAULT_PROFILE, type ReferenceProfile } from '../domain/referenceProfiles';
+import { fitMatchesReference, type ReferenceProfile } from '../domain/referenceProfiles';
 import { REVISIT_LABEL, REVISIT_PANEL } from './revisitTheme';
 
 interface ModelProvenanceProps {
     reference: WalkerSpec;
     /** Which named profile the reference came from. */
-    profile?: ReferenceProfile;
+    profile: ReferenceProfile | null;
     fit: WalkerFit | null;
     isRunning: boolean;
     error: string | null;
@@ -33,13 +33,9 @@ interface ModelProvenanceProps {
 }
 
 export const ModelProvenance: React.FC<ModelProvenanceProps> = ({
-    reference, profile = DEFAULT_PROFILE, fit, isRunning, error, onCalibrate, onAdoptFit,
+    reference, profile, fit, isRunning, error, onCalibrate, onAdoptFit,
 }) => {
-    const matchesFit = fit
-        && fit.spec.planes === reference.planes
-        && fit.spec.satsPerPlane === reference.satsPerPlane
-        && Math.abs(fit.spec.inclinationDeg - reference.inclinationDeg) < 0.05
-        && Math.abs(fit.spec.altitudeKm - reference.altitudeKm) < 5;
+    const matchesFit = Boolean(fit && fitMatchesReference(fit.spec, reference));
 
     return (
         <div className={`${REVISIT_PANEL} px-3 py-2`}>
@@ -51,11 +47,11 @@ export const ModelProvenance: React.FC<ModelProvenanceProps> = ({
                   * more dangerous than one that produces obviously fake numbers,
                   * because nothing else on screen distinguishes them.
                   */}
-                <li className={profile.isAuthoritative ? 'text-sky-300' : 'text-amber-300'}>
-                    {profile.label} · v{profile.version}
-                    {!profile.isAuthoritative && (
+                <li className={profile?.isAuthoritative ? 'text-sky-300' : 'text-amber-300'}>
+                    {profile ? `${profile.label} · v${profile.version}` : 'Custom constellation'}
+                    {!profile?.isAuthoritative && (
                         <span className="block text-amber-200/70">
-                            illustrative — not a real constellation
+                            {profile ? 'illustrative — not a real constellation' : 'not a named reference profile'}
                         </span>
                     )}
                 </li>
@@ -94,6 +90,11 @@ export const ModelProvenance: React.FC<ModelProvenanceProps> = ({
                         Single-epoch shell fit vs OneWeb TLE ·{' '}
                         {fit.alongTrackRmsKm.toFixed(0)} km RMS along-track
                         <span className="block text-slate-500">not trajectory-validated</span>
+                        {!matchesFit && (
+                            <span className="block text-amber-200/70">
+                                fitted shell not applied to the current constellation
+                            </span>
+                        )}
                     </li>
                 ) : (
                     <li className="text-slate-600">Fit vs OneWeb TLE — not yet calibrated</li>

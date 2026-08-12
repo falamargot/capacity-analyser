@@ -21,7 +21,9 @@
     "generate:fill-rate-grid": "node scripts/generate-fill-rate-grid.mjs",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --exclude 'e2e/**'",
+    "test:e2e": "playwright test",
+    "test:e2e:update": "playwright test --update-snapshots",
     "test:perf": "node scripts/run-perf-tests.mjs",
     "preview": "vite preview"
   },
@@ -46,6 +48,8 @@
     "vite-plugin-cesium": "^1.2.23"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/vite": "^4.2.2",
     "@types/geojson": "^7946.0.16",
     "@types/node": "^22.20.1",

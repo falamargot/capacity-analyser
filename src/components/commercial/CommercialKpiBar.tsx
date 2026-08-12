@@ -23,6 +23,15 @@ import {
 // ─── Plain-English reason helpers ────────────────────────────────────────────
 
 function plainRecommendationReason(viewModel: CommercialScenarioViewModel): string {
+  if (viewModel.evaluationState === 'NOT_CONFIGURED') {
+    return 'Select an origin to evaluate GEO and LEO service.';
+  }
+  if (viewModel.evaluationState === 'COMPUTING') {
+    return 'Awaiting route evidence before making a recommendation.';
+  }
+  if (viewModel.evaluationState === 'ERROR') {
+    return 'The route evaluation could not be completed.';
+  }
   if (viewModel.recommendation.objective) {
     return viewModel.recommendation.reason;
   }
@@ -43,6 +52,9 @@ function plainRecommendationReason(viewModel: CommercialScenarioViewModel): stri
 }
 
 function recommendationTitle(viewModel: CommercialScenarioViewModel): string {
+  if (viewModel.evaluationState === 'NOT_CONFIGURED') return 'Configuration Required';
+  if (viewModel.evaluationState === 'COMPUTING') return 'Evaluating Service';
+  if (viewModel.evaluationState === 'ERROR') return 'Evaluation Unavailable';
   if (viewModel.recommendation.technology === 'hybrid') return viewModel.recommendation.objective
     ? viewModel.recommendation.label
     : 'Both Viable';

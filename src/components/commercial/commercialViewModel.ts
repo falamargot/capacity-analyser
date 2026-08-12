@@ -2,6 +2,7 @@
 // this module without change.
 export type {
   CommercialCustomerServiceState,
+  CommercialEvaluationState,
   CommercialExecutiveSummary,
   CommercialRecommendation,
   CommercialRecommendationReasonCategory,
@@ -44,6 +45,7 @@ import {
 import { type TerminalType, type WeatherType } from '../capacity';
 import type {
   CommercialPoint,
+  CommercialEvaluationState,
   CommercialRegulatoryConfidence,
   CommercialRouteSegment,
   CommercialRouteSegmentStatus,
@@ -542,6 +544,20 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
     : geoRoutePending
       ? 'unknown'
       : commercialStatusFromRoute(rawGeoCommercialStatus, geoFinalRouteAvailable, activeMetricsComplete);
+  const requiresTwoSites = input.leoTopologyMode === 'SITE_TO_SITE'
+    || input.linkMode === 'MESH'
+    || input.linkMode === 'POINT_TO_POINT';
+  const configured = !!input.activeAnalysisPoint && (!requiresTwoSites || !!input.siteB);
+  const evaluationPending = isDisplayLeo ? leoRoutePending : geoRoutePending;
+  const evaluationState: CommercialEvaluationState = !configured
+    ? 'NOT_CONFIGURED'
+    : evaluationPending
+      ? 'COMPUTING'
+      : activeRouteAvailable
+        ? serviceStatus === 'active'
+          ? 'EVALUATED_AVAILABLE'
+          : 'EVALUATED_LIMITED'
+        : 'EVALUATED_UNAVAILABLE';
   const serviceLabel = serviceStatusLabel(serviceStatus);
   const satellite = isDisplayLeo
     ? (input.leoTopologyMode === 'SITE_TO_SITE'
@@ -786,6 +802,7 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
 
   return {
     scenarioName: scenarioName || `${commercialDisplayTechnology} service scenario`,
+    evaluationState,
     serviceStatus,
     serviceMessage: serviceLabel,
     technology,

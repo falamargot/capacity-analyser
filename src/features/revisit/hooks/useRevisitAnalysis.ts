@@ -127,6 +127,7 @@ export function useRevisitAnalysis(
             // Clear the in-flight gate, or no further request is ever dispatched.
             pendingRef.current = null;
             setIsComputing(false);
+            setAnalysis(null);
             setError(event.message || 'Revisit worker failed');
         });
 

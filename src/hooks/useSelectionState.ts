@@ -69,8 +69,11 @@ const selectionReducer = (state: SelectionState, action: SelectionAction): Selec
   }
 };
 
-export function useSelectionState() {
-  const [state, dispatch] = useReducer(selectionReducer, initialState);
+export function useSelectionState(initialSelection: Selection = initialState.selectedSelection) {
+  const [state, dispatch] = useReducer(selectionReducer, {
+    selectedSelection: initialSelection,
+    history: [],
+  });
 
   const updateSelection = useCallback((selection: Selection) => {
     dispatch({ type: 'SET', selection });

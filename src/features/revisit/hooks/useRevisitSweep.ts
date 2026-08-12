@@ -104,6 +104,7 @@ export function useRevisitSweep(
             if (!mountedRef.current) return;
             pendingRef.current = null;
             setIsComputing(false);
+            setCompleted(null);
             setError(event.message || 'Revisit sweep worker failed');
         });
 
@@ -145,6 +146,7 @@ export function useRevisitSweep(
                     setError(null);
                 } catch (e) {
                     if (!mountedRef.current) return;
+                    setCompleted(null);
                     setError(e instanceof Error ? e.message : String(e));
                 } finally {
                     if (mountedRef.current) {

@@ -29,5 +29,16 @@ export default [
     settings: {
       react: { version: 'detect' }
     }
+  },
+  {
+    files: ['src/features/revisit/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [{
+          group: ['**/state/session/**', '**/telecomSessionSnapshot'],
+          message: 'REVISIT must not read or write the telecom session boundary (ADR-001 §4).'
+        }]
+      }]
+    }
   }
 ];

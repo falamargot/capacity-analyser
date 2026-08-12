@@ -1,16 +1,34 @@
 # Implementation Status
 
-_Last updated 2026-08-11._
+_Last updated 2026-08-12._
 
 ## Current phase
 
-**Review complete — externally validated.**
+**REVISIT engine complete and validated. Programme 2 implemented, NOT validated —
+the 20-transition lifecycle gate is RED.**
+
+> **Blocking, 2026-08-12.** `e2e/mode-smoke.spec.ts` → "keeps one viewer and
+> bounded lifecycle counters across 20 transitions" currently FAILS with a
+> **listener delta of +534** against a budget of 50. The "+0" figure previously
+> reported here, in `IMPLEMENTATION_PLAN.md` and in `HANDOFF.md` was stale: it
+> was not re-measured when those documents were reconciled, and reverting to the
+> committed `memoryMonitor.ts` and pre-pass `App.tsx`/`RootShell.tsx` does not
+> clear it, so the leak predates the correction pass. `REVIEW_REPORT.md` is the
+> authoritative account. Programme 2 cannot be called validated while this gate
+> is red — the exit criterion "no continuous memory growth after 20 transitions"
+> is exactly what it measures.
 
 Lots 1–4 are implemented, reviewed, remediated and merged on `main`. R4 is closed: the
 propagator has been cross-checked against NASA GMAT R2026a, which found two real
 defects (see below); both are fixed and the model now agrees to 9 km over 72 h.
 R28 and R29a–c were subsequently merged through PRs 2 and 3. The authoritative
 repository state is `main`; retained feature branches are historical only.
+
+Programme 2 (ENG / COMM / REVISIT integration) is also implemented in the
+working tree: navigation, semantic COMM lifecycle, responsive/theme/accessibility
+work, E2E and visual tooling, versioned session snapshots, camera restoration,
+boundary linting and performance gates U1–U14 are complete, plus U15 (crash
+containment for both modes, added 2026-08-12).
 
 ---
 
@@ -37,6 +55,15 @@ repository state is `main`; retained feature branches are historical only.
   through `a = WGS84_A + h`; authoritative target, access and footprint geometry
   uses WGS84. The latitude-reach verdict uses a sampled value for display and a
   separate analytic conservative upper bound for `BLOCKING`.
+- **Programme 2 — UIX integration.** Global three-mode navigation, URL/history,
+  origin-aware return, remembered entry notice, truthful COMM evaluation states,
+  shared presentation tokens, responsive REVISIT bottom sheet, light/dark theme,
+  WCAG gate, versioned ENG/COMM and isolated REVISIT session snapshots, camera
+  rehydration, import-boundary lint rule and transition telemetry.
+- **REVISIT header corrective.** No standalone global rail in REVISIT: the
+  constellation / hosted-payload / target rail is flush to the top and the
+  named origin-aware Back control is the sole exit. The flow-based Cesium
+  viewport and compact treatment are validated at 2048×320.
 
 ---
 
@@ -48,7 +75,7 @@ repository state is `main`; retained feature branches are historical only.
   pane was hidden, presented frame rate was not measured and R12 remains open.
 - **Ω̇ residual up to ~0.3 %** vs GMAT, inclination-structured. The textbook
   J₂² term does not reproduce the structure, so it was deliberately not added.
-- URL/history semantics for mode switching — product decision.
+- URL/history semantics for mode switching — delivered in Programme 2.
 - Visual WGS84 vs analytical sphere — product decision.
 - FOV presets are not from an instrument datasheet.
 
@@ -56,7 +83,8 @@ repository state is `main`; retained feature branches are historical only.
 
 ## Current blockers
 
-**None.**
+- **U17 — listener leak across mode transitions:** +534 retained
+  `window`/`document` listeners after 20 transitions, against a budget of 50.
 
 ---
 
@@ -66,8 +94,12 @@ repository state is `main`; retained feature branches are historical only.
 |---|---|
 | TypeScript | 0 errors |
 | ESLint | clean |
-| Unit + integration tests | 1928 passing, 5 skipped |
-| Browser | REVISIT rendered; provenance and Why-this-revisit verified; no console errors |
+| Unit + integration tests | 1960 passing, 5 skipped; `npm test` excludes `e2e/**`, which is exercised separately by Playwright |
+| E2E | Three viewports; URL/history, state/camera restoration, one viewer/clock, responsive overflow |
+| Visual | 18 REVISIT baselines — 9 viewports × dark/light, including 2048×320, `requestRenderMode` active |
+| Accessibility | Axe: 0 critical/serious in ENG, COMM and REVISIT, dark and light |
+| Performance | **RED.** 20 transitions: max 353 ms and heap +0 MB after GC, but **listeners +534** against a budget of 50. The previously reported +0 was stale. |
+| Browser | Desktop and 390×844 light/dark inspected; no horizontal overflow |
 | Review | external, three rounds; P0, P1 and R4 closed |
 | External authority | NASA GMAT R2026a — 9 km / 72 h, non-divergent; max gap exact at four targets |
 
@@ -75,6 +107,11 @@ repository state is `main`; retained feature branches are historical only.
 
 ## Known Issues
 
+- **BLOCKING — listener leak across mode transitions.** `+534` window/document
+  listeners after 20 ENG ↔ REVISIT ↔ COMM transitions, budget 50. Root cause not
+  yet investigated; the leading hypothesis is a Cesium viewer-teardown path that
+  does not remove what it attached. Heap and timer deltas are clean, so this is a
+  listener-registration leak rather than retained data. See `REVIEW_REPORT.md`.
 - **Exact-pole footprint collapse — fixed by R28.** Ray/ellipsoid intersection
   forms no azimuth, so the ring remains complete at ±90°. See R21.
 - **Area cell means are not area-weighted.** A lat/lon lattice over-weights
@@ -87,9 +124,13 @@ repository state is `main`; retained feature branches are historical only.
 
 ## Next Action
 
-Decide the altitude convention (see Remaining work). It is the last item with a
-measurable effect on displayed numbers, and it is a product call rather than an
-engineering one.
+**Investigate the +534 listener delta and close the 20-transition gate.** This is
+the only thing standing between Programme 2 and validation; no further feature
+work should land before it. Start from the Cesium viewer teardown path, since
+heap and timers are clean while listeners are not.
+
+The separate R12 foreground FPS measurement remains open and is documented in
+`REVISIT_FOREGROUND_PERFORMANCE.md`.
 
 Note the "not trajectory-validated" qualifier in `ModelProvenance` stays: it
 qualifies the **OneWeb single-epoch fit**, which GMAT says nothing about. GMAT

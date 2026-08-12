@@ -37,6 +37,7 @@ function baseViewModel(destinationType = 'SNP'): CommercialScenarioViewModel {
 
   return {
     scenarioName: 'GEO commercial route',
+    evaluationState: 'EVALUATED_AVAILABLE',
     serviceStatus: 'active',
     technology: 'geo',
     commercialDisplayTechnology: 'GEO',

@@ -26,11 +26,13 @@ interface AreaPanelProps {
     requirementMs: number;
     onRun: (presetName: string) => void;
     onClear: () => void;
+    onCancel: () => void;
     onExportCsv: () => void;
 }
 
 export const AreaPanel: React.FC<AreaPanelProps> = ({
-    scenario, analysis, isRunning, error, progress, requirementMs, onRun, onClear, onExportCsv,
+    scenario, analysis, isRunning, error, progress, requirementMs,
+    onRun, onClear, onCancel, onExportCsv,
 }) => {
     const unbounded = analysis !== null && analysis.neverInViewCount > 0;
 
@@ -79,7 +81,15 @@ export const AreaPanel: React.FC<AreaPanelProps> = ({
                         </button>
                     );
                 })}
-                {analysis && (
+                {isRunning ? (
+                    <button
+                        type="button"
+                        onClick={onCancel}
+                        className="rounded border border-red-400/50 px-2 py-0.5 text-[10px] font-bold text-red-200 hover:bg-red-500/10"
+                    >
+                        Cancel
+                    </button>
+                ) : analysis && (
                     <button
                         type="button"
                         onClick={onClear}

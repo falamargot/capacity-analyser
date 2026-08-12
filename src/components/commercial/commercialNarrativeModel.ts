@@ -229,6 +229,9 @@ function backbonePathLabel(viewModel: CommercialScenarioViewModel, routeModel: C
 }
 
 function recommendedTechnologyLabel(viewModel: CommercialScenarioViewModel): string {
+  if (viewModel.evaluationState === 'NOT_CONFIGURED') return 'Configuration required';
+  if (viewModel.evaluationState === 'COMPUTING') return 'Evaluating';
+  if (viewModel.evaluationState === 'ERROR') return 'Evaluation unavailable';
   if (viewModel.recommendation.technology === 'leo') return 'LEO';
   if (viewModel.recommendation.technology === 'geo') return 'GEO';
   if (viewModel.recommendation.technology === 'hybrid') return 'Hybrid';
@@ -270,6 +273,15 @@ function businessNote(
 }
 
 function serviceOutcomeStatement(viewModel: CommercialScenarioViewModel): string {
+  if (viewModel.evaluationState === 'NOT_CONFIGURED') {
+    return 'Select an origin before a commercial recommendation is made.';
+  }
+  if (viewModel.evaluationState === 'COMPUTING') {
+    return 'The commercial recommendation is waiting for route evidence.';
+  }
+  if (viewModel.evaluationState === 'ERROR') {
+    return 'The route evaluation could not be completed.';
+  }
   if (viewModel.recommendation.technology === 'leo' || viewModel.recommendation.technology === 'geo') {
     return `${recommendedTechnologyLabel(viewModel)} is currently the preferred connectivity option.`;
   }

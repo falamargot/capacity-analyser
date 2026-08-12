@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import App from './App';
 import { RevisitApp } from './features/revisit/ui/RevisitApp';
 import { useAppModeState } from './hooks/useAppModeState';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { SimulationProvider } from './contexts/SimulationContext';
 import { SimulationClockProvider } from './contexts/SimulationClockContext';
+import { completeModeTransition } from './utils/modeTransitionMetrics';
+import { RevisitErrorBoundary } from './features/revisit/ui/RevisitErrorBoundary';
+import { TelecomErrorBoundary } from './components/errors/TelecomErrorBoundary';
 
 /**
  * The root shell — it owns which top-level view is mounted, and nothing else.
@@ -32,17 +35,31 @@ import { SimulationClockProvider } from './contexts/SimulationClockContext';
  * be mounted at once — hence the ternary rather than mounting both and hiding one.
  */
 export const RootShell: React.FC = () => {
-  const { appMode, handleAppModeChange, returnFromRevisit } = useAppModeState();
+  const { appMode, handleAppModeChange, returnFromRevisit, returnMode } = useAppModeState();
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => completeModeTransition(appMode));
+    return () => window.cancelAnimationFrame(frame);
+  }, [appMode]);
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <SimulationClockProvider>
         {appMode === 'revisit'
-          ? <RevisitApp onExit={returnFromRevisit} />
+          ? (
+            <RevisitErrorBoundary onExit={returnFromRevisit}>
+              <RevisitApp
+                returnMode={returnMode}
+                onExit={returnFromRevisit}
+              />
+            </RevisitErrorBoundary>
+          )
           : (
-            <SimulationProvider>
-              <App appMode={appMode} onAppModeChange={handleAppModeChange} />
-            </SimulationProvider>
+            <TelecomErrorBoundary onSwitchToRevisit={() => handleAppModeChange('revisit')}>
+              <SimulationProvider>
+                <App appMode={appMode} onAppModeChange={handleAppModeChange} />
+              </SimulationProvider>
+            </TelecomErrorBoundary>
           )}
       </SimulationClockProvider>
     </ThemeProvider>

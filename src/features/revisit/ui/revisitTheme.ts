@@ -18,6 +18,8 @@
 export const REVISIT_COLORS = {
     /** Accent, borders, active toolbar. */
     accent: '#EF9F27',
+    /** Ground target — white so it remains distinct from amber orbital evidence. */
+    target: '#FFFFFF',
     /** Bright values, payload satellites. */
     bright: '#FAC775',
     /** Worst-case gap, out of view. */
@@ -39,7 +41,7 @@ export function toCesiumRgb(hex: string): [number, number, number] {
 
 /** Tailwind-ish class fragments reused across the REVISIT panels. */
 export const REVISIT_PANEL =
-    'rounded-xl border border-amber-500/25 bg-slate-950/80 backdrop-blur-sm shadow-lg';
+    'revisit-panel rounded-xl border border-amber-500/25 bg-slate-950/80 backdrop-blur-sm shadow-lg';
 
 export const REVISIT_LABEL =
-    'text-[10px] font-black uppercase tracking-[0.16em] text-slate-400';
+    'revisit-label text-[10px] font-black uppercase tracking-[0.16em] text-slate-400';

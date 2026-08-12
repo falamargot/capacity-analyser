@@ -191,6 +191,7 @@ const GeoTerminalSelect = memo(function GeoTerminalSelect({
   return (
     <select
       value={effectiveId}
+      aria-label="GEO terminal RF class"
       onChange={e => onGeoRFClassChange(e.target.value as TerminalRFClassId)}
       disabled={disabled || options.length === 0}
       className={darkSelectClass}
@@ -225,6 +226,7 @@ const LeoTerminalSelect = memo(function LeoTerminalSelect({
   return (
     <select
       value={selected.id}
+      aria-label="LEO terminal model"
       onChange={e => onLeoTerminalModelIdChange(e.target.value)}
       disabled={disabled || isOnlyOne}
       className={darkSelectClass}

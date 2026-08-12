@@ -16,6 +16,7 @@ let container: HTMLDivElement;
 
 beforeEach(() => {
   (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  window.history.replaceState({}, '', '/');
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
@@ -72,5 +73,23 @@ describe('useAppModeState', () => {
   it('defaults to engineering', async () => {
     await act(async () => root?.render(<ModeSwitchHarness />));
     expect(container.querySelector('[data-testid="mode"]')?.textContent).toBe('engineering');
+  });
+
+  it('reads all three modes from the URL and writes mode changes to history', async () => {
+    window.history.replaceState({}, '', '/?mode=commercial');
+    const initialLength = window.history.length;
+    await act(async () => root?.render(<ModeSwitchHarness />));
+    expect(container.querySelector('[data-testid="mode"]')?.textContent).toBe('commercial');
+
+    await clickButton('Revisit');
+    expect(window.location.search).toBe('?mode=revisit');
+    expect(window.history.length).toBe(initialLength + 1);
+  });
+
+  it('follows browser history changes', async () => {
+    await act(async () => root?.render(<ModeSwitchHarness />));
+    window.history.pushState({}, '', '/?mode=commercial');
+    await act(async () => window.dispatchEvent(new PopStateEvent('popstate')));
+    expect(container.querySelector('[data-testid="mode"]')?.textContent).toBe('commercial');
   });
 });

@@ -93,19 +93,19 @@ export const RevisitKpiPanel: React.FC<RevisitKpiPanelProps> = ({
         : '—';
 
     return (
-        <div className={`${REVISIT_PANEL} px-4 py-3 ${isComputing ? 'opacity-60' : ''}`}>
+        <div className={`${REVISIT_PANEL} revisit-kpi-panel px-4 py-3 ${isComputing ? 'opacity-60' : ''}`}>
             <span
-                className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em] ${verdict.className}`}
+                className={`revisit-kpi-verdict inline-flex rounded-md border px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em] ${verdict.className}`}
             >
                 {verdict.text}
             </span>
 
             {/* WORST CASE is given its own row so it stays roughly twice the size
                 of the rest and never competes for width with them (UX §4.2). */}
-            <div className="mt-3">
+            <div className="revisit-kpi-headline mt-3">
                 <Metric label="Worst case" value={formatGap(maxGapMs)} tone="headline" />
             </div>
-            <div className="mt-3 flex items-end gap-5 border-t border-slate-700/50 pt-2.5">
+            <div className="revisit-kpi-secondary mt-3 flex items-end gap-5 border-t border-slate-700/50 pt-2.5">
                 <Metric label="Mean" value={formatGap(statistics?.meanGapMs ?? null)} />
                 <Metric label="Passes / day" value={statistics ? passesPerDay : '—'} />
                 <Metric
@@ -116,13 +116,13 @@ export const RevisitKpiPanel: React.FC<RevisitKpiPanelProps> = ({
 
             {/* The qualification line. The boundary-gap convention is stated here
                 because it materially changes the headline number. */}
-            <p className="mt-2 text-[10px] leading-4 text-slate-500">
+            <p className="revisit-kpi-qualification mt-2 text-[10px] leading-4 text-slate-500">
                 {windowHours} h window · max-gap definition · boundary gaps discarded
                 {isComputing && ' · recomputing…'}
             </p>
 
             {requirementChoicesHours && onRequirementChange && (
-                <label className="mt-2 flex items-center gap-2 border-t border-slate-700/50 pt-2">
+                <label className="revisit-kpi-requirement mt-2 flex items-center gap-2 border-t border-slate-700/50 pt-2">
                     <span className={REVISIT_LABEL}>Requirement</span>
                     <select
                         className="rounded border border-slate-700 bg-slate-900/80 px-1.5 py-0.5 text-[11px] font-bold text-slate-200 outline-none"

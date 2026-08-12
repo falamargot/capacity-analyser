@@ -1,6 +1,37 @@
 # Review Report
 
-_Last updated 2026-08-10._
+_Last updated 2026-08-12._
+
+## UIX integration closure — 2026-08-12
+
+Programme 2 from `IMPLEMENTATION_PLAN.md` is implemented (U1–U16) but **not
+validated**: the 20-transition lifecycle gate is red. The integration keeps
+ADR-001's dependency and runtime isolation while removing accidental state loss
+through explicit versioned snapshots. `src/features/revisit/` is prevented by
+ESLint from importing the telecom session adapter.
+
+The delivered gates are discriminating rather than documentary: browser history
+caught and fixed a StrictMode double-`pushState` defect; Axe caught unnamed
+selects and composited contrast failures; the 20-transition test distinguished
+discarded-element listeners from retained global listeners before setting its
+budget — which is exactly the check now failing. Evidence: TypeScript and
+ESLint clean, 1,960 tests passing (5 skipped), build successful, 18 visual
+baselines, Axe with no critical/serious finding over three modes and two
+themes, and 20 transitions with max 353 ms, timer delta 0 and heap delta 0 MB
+after GC — **but listener delta +534 against a budget of 50.** That single
+figure is why Programme 2 cannot be called complete or validated yet.
+
+_History, 2026-08-12: this section originally reported 14 visual baselines,
+max 433 ms, timer delta −1 and a clean listener delta of 0, none of which
+matched `IMPLEMENTATION_STATUS.md` or `IMPLEMENTATION_PLAN.md`. Visual
+baseline count, max transition time and timer delta were simple transcription
+errors and are reconciled above. The "listener delta 0" claim was different:
+re-running the actual gate found it failing at +534, not passing at 0 — the
+figure was stale, not merely mistranscribed, and predates this reconciliation
+pass (reverting to the committed `memoryMonitor.ts` and to the pre-pass
+`App.tsx`/`RootShell.tsx` does not clear it). Root cause not yet investigated;
+likely a Cesium viewer-teardown listener leak on `window`/`document` across
+repeated mode transitions, given the file that counts them was untouched._
 
 ## Scope
 

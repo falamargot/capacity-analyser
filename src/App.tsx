@@ -171,6 +171,15 @@ import { EngineeringAnalysisProvider } from './contexts/EngineeringAnalysisConte
 import { useSimulationClock, useSimulationClockSnapshot } from './contexts/SimulationClockContext';
 import { useEngineeringAnalysis } from './hooks/useEngineeringAnalysis';
 import { useScenarioState } from './state/scenario/useScenarioState';
+import { AppModeSwitch } from './components/navigation/AppModeSwitch';
+import { GlobalAppHeader } from './components/navigation/GlobalAppHeader';
+import {
+  readTelecomSessionSnapshot,
+  TELECOM_SESSION_SCHEMA_VERSION,
+  writeTelecomSessionSnapshot,
+  type TelecomCameraSnapshot,
+  type TelecomSessionSnapshotV1,
+} from './state/session/telecomSessionSnapshot';
 
 // Commit-cost attribution boundaries (dev-only; PerfBoundary is a passthrough in
 // production). Wrapping at the definition rather than at each of the four JSX
@@ -275,6 +284,37 @@ const captureEngineeringCameraSnapshot = (
   direction: Cartesian3.clone(viewer.camera.directionWC),
   up: Cartesian3.clone(viewer.camera.upWC),
   viewportHeight,
+});
+
+const captureTelecomCameraSnapshot = (
+  viewer: CesiumViewerType,
+  viewportHeight: number,
+): TelecomCameraSnapshot => ({
+  position: {
+    x: viewer.camera.positionWC.x,
+    y: viewer.camera.positionWC.y,
+    z: viewer.camera.positionWC.z,
+  },
+  direction: {
+    x: viewer.camera.directionWC.x,
+    y: viewer.camera.directionWC.y,
+    z: viewer.camera.directionWC.z,
+  },
+  up: {
+    x: viewer.camera.upWC.x,
+    y: viewer.camera.upWC.y,
+    z: viewer.camera.upWC.z,
+  },
+  viewportHeight,
+});
+
+const telecomCameraToEngineeringSnapshot = (
+  snapshot: TelecomCameraSnapshot,
+): EngineeringCameraSnapshot => ({
+  position: new Cartesian3(snapshot.position.x, snapshot.position.y, snapshot.position.z),
+  direction: new Cartesian3(snapshot.direction.x, snapshot.direction.y, snapshot.direction.z),
+  up: new Cartesian3(snapshot.up.x, snapshot.up.y, snapshot.up.z),
+  viewportHeight: snapshot.viewportHeight,
 });
 
 const flyToEngineeringCameraSnapshot = (
@@ -474,12 +514,19 @@ interface AppProps {
 }
 
 const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
+  // Lazy useState initializer, not useRef(readTelecomSessionSnapshot()): a
+  // useRef's argument expression still runs on every render even though only
+  // the first render's result is kept, so useRef here would re-run the
+  // sessionStorage read + deep clone on this component's every ~2 Hz re-render.
+  const [restoredTelecomSession] = useState(() => readTelecomSessionSnapshot());
+  const restoredTelecomCameraRef = useRef(restoredTelecomSession?.camera ?? null);
+  const restoredWeatherNeedsHydrationRef = useRef(Boolean(restoredTelecomSession?.engineeringScenario.weatherType));
   const simulationClock = useSimulationClock();
   const simulationClockSnapshot = useSimulationClockSnapshot();
   const engineeringFocusController = useEngineeringFocusController();
   const [connectivityScenario, dispatchConnectivityScenario] = useReducer(
     connectivityScenarioReducer,
-    initialConnectivityScenario,
+    restoredTelecomSession?.connectivityScenario ?? initialConnectivityScenario,
   );
   const {
     coveragePolicy,
@@ -503,6 +550,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
   const [searchQuery, setSearchQuery] = useState('');
   // ── M3: single scenario owner — same value/setter names as the former useStates ──
   const {
+    scenario: engineeringScenario,
     patchScenario,
     linkMode, setLinkMode,
     activeMeshTab, setActiveMeshTab,
@@ -523,7 +571,10 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
     weatherTypeB, setWeatherTypeB,
     autoWeatherEnabled, setAutoWeatherEnabled,
     autoWeatherEnabledB, setAutoWeatherEnabledB,
-  } = useScenarioState({ weatherType: weatherTypeFromCondition(weatherCondition) });
+  } = useScenarioState({
+    weatherType: weatherTypeFromCondition(weatherCondition),
+    ...restoredTelecomSession?.engineeringScenario,
+  });
   const handleLeoTerminalTypeChange = useCallback((type: TerminalType) => {
     setLeoTerminalType(type);
     setLeoTerminalModelId(getLeoTerminalProfile(type).id);
@@ -604,7 +655,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
     selectCoverage,
     selectContour,
     selectTarget,
-  } = useSelectionState();
+  } = useSelectionState(restoredTelecomSession?.selection);
   // ── Link mode & dual-point selection ─────────────────────────────────────
   const preserveMeshTabOnNextLinkModeRef = useRef(false);
   useEffect(() => {
@@ -623,7 +674,9 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
   const selectedSNP: SelectedSNP = leoServingAssignmentA?.feeder?.snp ?? null;
 
   // ── Unified Site B state (GEO Mesh/P2P and LEO Site-to-Site share one coordinate) ──
-  const [siteB, setSiteB] = useState<{ lat: number; lng: number; altitude?: number } | null>(null);
+  const [siteB, setSiteB] = useState<{ lat: number; lng: number; altitude?: number } | null>(
+    restoredTelecomSession?.siteB ?? null,
+  );
   const [isSiteBArmed, setIsSiteBArmed] = useState(false);
   const [endpointSelectionMotion, setEndpointSelectionMotion] = useState<EndpointSelectionMotion | null>(null);
   const triggerEndpointSelectionMotion = useCallback((role: EndpointSelectionMotion['role']) => {
@@ -744,8 +797,12 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
   const [selectedAircraft, setSelectedAircraft] = useState<Aircraft | null>(null);
   const [selectedAircraftB, setSelectedAircraftB] = useState<Aircraft | null>(null);
   const [selectedVessel, setSelectedVessel] = useState<Vessel | null>(null);
-  const [nearestLocation, setNearestLocation] = useState<{ city: string; country: string } | null>(null);
-  const [nearestLocationB, setNearestLocationB] = useState<{ city: string; country: string } | null>(null);
+  const [nearestLocation, setNearestLocation] = useState<{ city: string; country: string } | null>(
+    restoredTelecomSession?.labels.siteA ?? null,
+  );
+  const [nearestLocationB, setNearestLocationB] = useState<{ city: string; country: string } | null>(
+    restoredTelecomSession?.labels.siteB ?? null,
+  );
   const [hoveredSatelliteId, setHoveredSatelliteId] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(initialDisplayDefaults.isFullscreen);
   const {
@@ -753,13 +810,15 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
     activeConnectivityTab,
     handleTechnologyChange,
     handleTechnologyScopeChange,
-  } = useUiModeState();
+  } = useUiModeState(restoredTelecomSession?.navigation);
   // App is only mounted for the two skins it implements; `revisit` unmounts it.
   // The narrowing keeps every existing `uiMode` consumer below unchanged.
   const uiMode: UiMode = appMode === 'revisit' ? 'engineering' : appMode;
   const commercialMode = uiMode === 'commercial';
   const handleUiModeChange = onAppModeChange;
-  const [commercialSelectedSegment, setCommercialSelectedSegment] = useState<string>('summary');
+  const [commercialSelectedSegment, setCommercialSelectedSegment] = useState<string>(
+    restoredTelecomSession?.navigation.commercialSelectedSegment ?? 'summary',
+  );
   const [isCustomerDecisionOpen, setIsCustomerDecisionOpen] = useState(false);
   const [customerDecisionPanelTop, setCustomerDecisionPanelTop] = useState(64);
   const decisionSupportEvidenceRequired = commercialMode
@@ -996,6 +1055,19 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
   const handleCameraReady = useCallback((viewer: CesiumViewerType) => {
     viewerRef.current = viewer;
     setMemoryMonitorViewerGetter(() => viewerRef.current);
+    const restoredCamera = restoredTelecomCameraRef.current;
+    if (restoredCamera) {
+      restoredTelecomCameraRef.current = null;
+      requestAnimationFrame(() => {
+        if (viewer.isDestroyed?.()) return;
+        viewer.resize?.();
+        flyToEngineeringCameraSnapshot(
+          viewer,
+          telecomCameraToEngineeringSnapshot(restoredCamera),
+          MODE_SWITCH_CAMERA_ANIMATION_SECONDS,
+        );
+      });
+    }
     // Dev-only frame counter. Detached alongside the camera listeners below so
     // it cannot outlive the viewer it is attached to.
     detachRuntimeProfilerRef.current?.();
@@ -1040,10 +1112,10 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
   selectedPositionRef.current = selectedPosition;
   const pointAIsUserDefined = selectedSelection.type === 'target' && selectedSelection.targetType === 'point';
   const pointBIsUserDefined = siteB !== null;
-  const [selectedUplinkKey, setSelectedUplinkKey] = useState<string | null>(null);
-  const [selectedDownlinkKey, setSelectedDownlinkKey] = useState<string | null>(null);
-  const [selectedUplinkKeyB, setSelectedUplinkKeyB] = useState<string | null>(null);
-  const [selectedDownlinkKeyB, setSelectedDownlinkKeyB] = useState<string | null>(null);
+  const [selectedUplinkKey, setSelectedUplinkKey] = useState<string | null>(restoredTelecomSession?.geoCoverageSelection.selectedUplinkKey ?? null);
+  const [selectedDownlinkKey, setSelectedDownlinkKey] = useState<string | null>(restoredTelecomSession?.geoCoverageSelection.selectedDownlinkKey ?? null);
+  const [selectedUplinkKeyB, setSelectedUplinkKeyB] = useState<string | null>(restoredTelecomSession?.geoCoverageSelection.selectedUplinkKeyB ?? null);
+  const [selectedDownlinkKeyB, setSelectedDownlinkKeyB] = useState<string | null>(restoredTelecomSession?.geoCoverageSelection.selectedDownlinkKeyB ?? null);
   const geoSelectionPolicy = selectedUplinkKey || selectedDownlinkKey || selectedUplinkKeyB || selectedDownlinkKeyB
     ? 'manual' as const
     : 'auto' as const;
@@ -1052,7 +1124,52 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
   const [manualGeoCoverageVisibility, setManualGeoCoverageVisibility] = useState<{
     satelliteId: string | null;
     keys: string[];
-  }>({ satelliteId: null, keys: [] });
+  }>(restoredTelecomSession?.geoCoverageSelection.manualVisibility ?? { satelliteId: null, keys: [] });
+
+  const telecomSessionDataRef = useRef<TelecomSessionSnapshotV1 | null>(null);
+  telecomSessionDataRef.current = {
+    schemaVersion: TELECOM_SESSION_SCHEMA_VERSION,
+    engineeringScenario,
+    connectivityScenario,
+    selection: selectedSelection,
+    siteB,
+    navigation: {
+      satelliteScope,
+      activeConnectivityTab,
+      commercialSelectedSegment,
+    },
+    geoCoverageSelection: {
+      selectedUplinkKey,
+      selectedDownlinkKey,
+      selectedUplinkKeyB,
+      selectedDownlinkKeyB,
+      manualVisibility: manualGeoCoverageVisibility,
+    },
+    labels: {
+      siteA: nearestLocation,
+      siteB: nearestLocationB,
+    },
+    // Not read back from this ref: telecomSessionDataRef is rebuilt every
+    // render, so it cannot carry the last captured camera forward. persistTelecomSession
+    // tracks that separately in lastCapturedCameraRef, since it may be called
+    // a second time (on unmount) after the viewer is already destroyed.
+    camera: null,
+  };
+  const latestViewportHeightRef = useRef(viewportSnapshot.innerHeight);
+  latestViewportHeightRef.current = viewportSnapshot.innerHeight;
+  const lastCapturedCameraRef = useRef<TelecomCameraSnapshot | null>(restoredTelecomSession?.camera ?? null);
+  const persistTelecomSession = useCallback(() => {
+    const current = telecomSessionDataRef.current;
+    if (!current) return;
+    const viewer = viewerRef.current;
+    const camera = viewer && !viewer.isDestroyed?.()
+      ? captureTelecomCameraSnapshot(viewer, latestViewportHeightRef.current)
+      : lastCapturedCameraRef.current;
+    lastCapturedCameraRef.current = camera;
+    writeTelecomSessionSnapshot({ ...current, camera });
+  }, []);
+
+  useEffect(() => () => persistTelecomSession(), [persistTelecomSession]);
 
   const selectedSatelliteId = useMemo(() => {
     if (selectedSelection.type === 'satellite') return selectedSelection.satelliteId;
@@ -1080,9 +1197,15 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
   const activeAnalysisPoint = analyzisPosition || selectedPosition;
 
   useEffect(() => {
+    if (restoredWeatherNeedsHydrationRef.current) {
+      restoredWeatherNeedsHydrationRef.current = false;
+      const restoredCondition = toWeatherCondition(weatherType);
+      if (restoredCondition !== weatherCondition) setWeatherCondition(restoredCondition);
+      return;
+    }
     if (toWeatherCondition(weatherType) === weatherCondition) return;
     setWeatherType(weatherTypeFromCondition(weatherCondition));
-  }, [setWeatherType, weatherCondition, weatherType]);
+  }, [setWeatherCondition, setWeatherType, weatherCondition, weatherType]);
 
   useEffect(() => {
     const transition = resolveTerminalProfileTransition({
@@ -4723,9 +4846,10 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
     && activeAnalysisPoint
   );
 
-  const headerRouteStatus = useMemo<HeaderRouteStatus | undefined>(() => {
-    if (uiMode !== 'commercial' && !showEngineeringRouteStatus) return undefined;
-
+  // Keep the technology cards mounted while the scenario is incomplete. Their
+  // "Incomplete" truth and placeholder metrics guide the user to select Site A,
+  // matching the COMM header behaviour.
+  const headerRouteStatus = useMemo<HeaderRouteStatus>(() => {
     const showGeo = satelliteScope === 'GEO' || satelliteScope === 'ALL';
     const showLeo = satelliteScope === 'LEO' || satelliteScope === 'ALL';
     const recommended = commercialScenarioViewModel.recommendation.technology;
@@ -4777,7 +4901,6 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
     handleTechnologyChange,
     handleCommercialTechnologySelect,
     satelliteScope,
-    showEngineeringRouteStatus,
     uiMode,
   ]);
 
@@ -5150,8 +5273,10 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
     if (mode === appMode) return;
 
     // REVISIT is a peer view, not a skin of this one: it unmounts App entirely,
-    // so there is no engineering state worth snapshotting on the way out.
+    // Persist only the explicit telecom-session contract before the runtime and
+    // its Cesium viewer are destroyed.
     if (mode === 'revisit') {
+      persistTelecomSession();
       handleUiModeChange(mode);
       return;
     }
@@ -5171,7 +5296,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
       restoreEngineeringModeSnapshot(snapshot);
       engineeringModeSnapshotRef.current = null;
     }
-  }, [appMode, captureEngineeringModeSnapshot, handleUiModeChange, restoreEngineeringModeSnapshot]);
+  }, [appMode, captureEngineeringModeSnapshot, handleUiModeChange, persistTelecomSession, restoreEngineeringModeSnapshot]);
 
   if (loading) {
     return (
@@ -5220,42 +5345,12 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
   );
 
   const renderUiModeSwitch = (compact = false, hud = false) => (
-    <div className={`inline-flex shrink-0 border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800 ${hud ? 'rounded-[16px] p-0.5 text-[11px] shadow-sm' : compact ? 'rounded-[22px] p-1 text-[13px] shadow-sm' : 'rounded-xl p-1 text-sm'}`}>
-      {/* Three peer buttons (ADR-001 §4). REVISIT shares no scenario data with
-          the other two — only the clock and the theme — so it is separated by a
-          rule rather than sitting flush against them, to blunt the assumption
-          that an ENG scenario carries over (UX §9, first open question). */}
-      {([
-        ['engineering', compact ? 'Eng' : 'Engineering'],
-        ['commercial', compact ? 'Comm' : 'Commercial'],
-        ['revisit', 'Revisit'],
-      ] as const).map(([mode, label]) => (
-        <React.Fragment key={mode}>
-          {mode === 'revisit' && (
-            <span aria-hidden="true" className="mx-1 my-1.5 w-px bg-slate-300 dark:bg-slate-600" />
-          )}
-          <button
-            type="button"
-            onClick={() => handleModeSwitch(mode)}
-            className={[
-              compact
-                ? hud
-                  ? 'rounded-[12px] px-2.5 py-1.5 font-semibold transition-colors'
-                  : 'rounded-[16px] px-4 py-2.5 font-semibold transition-colors'
-                : 'rounded-lg px-4 py-2.5 font-semibold transition-colors',
-              // Compared against appMode, not uiMode: uiMode is narrowed to the
-              // two skins App implements and can never equal 'revisit'.
-              appMode === mode
-                ? 'bg-slate-950 text-white shadow-sm dark:bg-white dark:text-slate-950'
-                : 'text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-700',
-            ].join(' ')}
-            aria-pressed={appMode === mode}
-          >
-            {label}
-          </button>
-        </React.Fragment>
-      ))}
-    </div>
+    <AppModeSwitch
+      currentMode={appMode}
+      onModeChange={handleModeSwitch}
+      compact={compact}
+      hud={hud}
+    />
   );
 
   const renderCustomerDecisionLauncher = (compact = false) => (
@@ -5357,7 +5452,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
       ].join(' ')}
     >
       {!isPhone && (
-        <header className={`capacity-header relative shrink-0 border-b border-slate-200/70 bg-white shadow-[0_8px_24px_-22px_rgba(15,23,42,0.38)] transition-colors duration-300 dark:border-slate-800 dark:bg-slate-900 ${isFullscreen ? 'z-0' : 'z-[100]'}`}>
+        <GlobalAppHeader zIndexClassName={isFullscreen ? 'z-0' : 'z-[100]'}>
           <div className={`w-full px-2 py-0 sm:px-3 lg:px-4 ${isDesktopHeaderCollapsed ? 'md:py-1' : useCompactDesktopHeader ? 'md:py-1.5' : 'md:py-2'}`}>
             {isMobile ? (
               <div className="flex items-center justify-between">
@@ -5601,6 +5696,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
                               </div>
                               <div className="relative mt-2.5">
                                 <select
+                                  aria-label="GEO gateway"
                                   value={selectedGateway?.name ?? ''}
                                   onChange={(event) => {
                                     const gateway = GEO_GATEWAYS.find((item) => item.name === event.target.value) ?? null;
@@ -5648,6 +5744,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
                               </div>
                               <div className="relative mt-2.5">
                                 <select
+                                  aria-label="Service node point"
                                   value={inspectedSNP?.name ?? ''}
                                   onChange={(event) => handleSnpSelectFromUI(event.target.value || null)}
                                   disabled={satelliteScope === 'GEO'}
@@ -5856,7 +5953,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
               </div>
             )}
           </div>
-        </header>
+        </GlobalAppHeader>
       )}
 
       {isMobile && isSatelliteModalOpen && (

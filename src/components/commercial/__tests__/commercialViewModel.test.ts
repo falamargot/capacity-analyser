@@ -144,6 +144,38 @@ function applyGeoRoute(
   };
 }
 
+describe('commercial evaluation lifecycle', () => {
+  it('distinguishes missing configuration from an evaluated unavailable route', () => {
+    const missingInput = buildInput(evidence(false));
+    missingInput.activeAnalysisPoint = null;
+    missingInput.siteB = null;
+
+    expect(buildCommercialScenarioViewModel(missingInput).evaluationState).toBe('NOT_CONFIGURED');
+    expect(buildCommercialScenarioViewModel(buildInput(evidence(false))).evaluationState)
+      .toBe('EVALUATED_UNAVAILABLE');
+  });
+
+  it('reports computing while route evidence is pending', () => {
+    const pendingEvidence = { ...evidence(false), pending: true } as ActiveLeoRouteEvidence;
+    expect(buildCommercialScenarioViewModel(buildInput(pendingEvidence)).evaluationState).toBe('COMPUTING');
+  });
+
+  it('distinguishes available and limited evaluated routes', () => {
+    const availableInput = buildInput(evidence(true));
+    expect(buildCommercialScenarioViewModel(availableInput).evaluationState).toBe('EVALUATED_AVAILABLE');
+
+    availableInput.canonicalRouteMetrics = {
+      ...availableInput.canonicalRouteMetrics,
+      LEO: {
+        ...availableInput.canonicalRouteMetrics.LEO,
+        state: 'degraded',
+        stateReason: 'RF margin is low',
+      },
+    };
+    expect(buildCommercialScenarioViewModel(availableInput).evaluationState).toBe('EVALUATED_LIMITED');
+  });
+});
+
 describe('commercial final LEO service decision', () => {
   it('consumes the same canonical directions and degraded physical state as ENG', () => {
     const input = buildInput(evidence(true));

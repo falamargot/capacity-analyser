@@ -87,6 +87,116 @@ body {
   z-index: var(--z-ui-topmost) !important;
 }
 
+/* REVISIT keeps its amber mission accent while sharing the application's light
+   and dark surface tokens. Cesium remains dark; only the product shell changes. */
+.revisit-shell {
+  --revisit-panel-bg: rgba(2, 6, 23, 0.82);
+  --revisit-panel-border: rgba(245, 158, 11, 0.28);
+  --revisit-muted: #94a3b8;
+}
+
+.revisit-panel {
+  background: var(--revisit-panel-bg) !important;
+  border-color: var(--revisit-panel-border) !important;
+}
+
+.light .revisit-shell {
+  --revisit-panel-bg: rgba(255, 255, 255, 0.91);
+  --revisit-panel-border: rgba(217, 119, 6, 0.34);
+  --revisit-muted: #475569;
+}
+
+.light .revisit-shell .revisit-panel {
+  box-shadow: 0 18px 42px -32px rgba(15, 23, 42, 0.5);
+}
+
+.light .revisit-shell .revisit-label,
+.light .revisit-shell [class*="text-slate-400"],
+.light .revisit-shell [class*="text-slate-500"],
+.light .revisit-shell [class*="text-slate-600"] {
+  color: #475569 !important;
+}
+
+.light .revisit-shell [class*="text-slate-100"],
+.light .revisit-shell [class*="text-slate-200"],
+.light .revisit-shell [class*="text-slate-300"] {
+  color: #0f172a !important;
+}
+
+.light .revisit-shell [class*="text-amber-200"],
+.light .revisit-shell [class*="text-amber-300"] {
+  color: #92400e !important;
+}
+
+.light .revisit-shell [class*="text-red-200"],
+.light .revisit-shell [class*="text-red-300"] {
+  color: #991b1b !important;
+}
+
+.light .revisit-shell [class*="text-lime-200"] {
+  color: #3f6212 !important;
+}
+
+.light .revisit-shell select,
+.light .revisit-shell input:not([type="range"]) {
+  color: #0f172a;
+  background-color: rgba(248, 250, 252, 0.92);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .revisit-shell *,
+  .revisit-shell *::before,
+  .revisit-shell *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+/* WCAG AA secondary-text floor for the dense dark telecom workspace. These
+   utility classes previously resolved below 4.5:1 on the actual translucent
+   panel backgrounds. Keep hierarchy through size/weight, not unreadable ink. */
+.dark .capacity-app :where(.text-slate-500, .dark\:text-slate-500, .text-gray-500, .dark\:text-gray-500) {
+  color: #94a3b8 !important;
+}
+
+.dark .capacity-app :where(.text-slate-600, .dark\:text-slate-600, .text-gray-600, .dark\:text-gray-600) {
+  color: #cbd5e1 !important;
+}
+
+.dark .capacity-app :where(.text-gray-400, .dark\:text-gray-400) {
+  color: #aeb9c8 !important;
+}
+
+.dark .capacity-app :where(.bg-rose-500.text-white, .dark\:bg-rose-500.text-white) {
+  background-color: #be123c !important;
+}
+
+html:not(.dark) .capacity-app :where(.text-slate-400, .text-gray-400, .text-slate-500, .text-gray-500) {
+  color: #475569 !important;
+}
+
+html:not(.dark) .capacity-app :where(.text-slate-600, .text-gray-600, .text-slate-700, .text-gray-700) {
+  color: #334155 !important;
+}
+
+html:not(.dark) .capacity-app .bg-pink-500\/15.text-pink-700 {
+  color: #9d174d !important;
+}
+
+html:not(.dark) .capacity-app .text-blue-500 {
+  color: #1d4ed8 !important;
+}
+
+html:not(.dark) .capacity-app .text-pink-500 {
+  color: #be185d !important;
+}
+
+html:not(.dark) .capacity-app .bg-rose-500.text-white {
+  background-color: #be123c !important;
+}
+
 /* Smooth transition for theme switching — targeted to avoid perf issues on canvas/SVG */
 body,
 header,
@@ -1360,6 +1470,127 @@ h1, h2, h3, h4 {
   box-shadow: 0 12px 32px -28px rgb(0 0 0 / 0.95) !important;
 }
 
+/* REVISIT starts directly with its scenario rail. The origin-aware Back control
+   in the stage is its sole exit; no empty global rail competes for height. The
+   globe still lives below this element in normal flow. */
+.revisit-global-header {
+  color: rgb(226 232 240);
+}
+
+.revisit-context-rail {
+  background: color-mix(in srgb, var(--surface-0) 62%, transparent);
+}
+
+@media (min-width: 768px) and (max-height: 700px) {
+  .revisit-context-rail {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+  }
+
+  .revisit-context-bar {
+    gap: 0.375rem;
+  }
+
+  .revisit-context-panel {
+    padding-top: 0.375rem;
+    padding-bottom: 0.375rem;
+  }
+
+  .revisit-context-panel > div {
+    margin-top: 0.125rem;
+  }
+
+  .revisit-context-detail,
+  .revisit-spread-note {
+    display: none;
+  }
+
+  .revisit-context-panel input[type='range'] {
+    margin-top: 0.25rem;
+  }
+
+  .revisit-stage [aria-label='REVISIT analysis'] {
+    max-height: calc(100% - 0.5rem);
+  }
+}
+
+@media (min-width: 768px) and (max-height: 480px) {
+  .revisit-context-rail {
+    padding-top: 0.125rem;
+    padding-bottom: 0.125rem;
+  }
+
+  .revisit-context-panel {
+    height: 3.25rem;
+    overflow: hidden;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+  }
+
+  .revisit-context-panel .text-2xl,
+  .revisit-context-panel .md\:text-3xl {
+    font-size: 1.25rem;
+  }
+
+  [data-revisit-context-panel='hosted-payloads'] > div {
+    display: grid;
+    grid-template-columns: auto minmax(8rem, 1fr);
+    align-items: center;
+    column-gap: 0.75rem;
+  }
+
+  [data-revisit-context-panel='hosted-payloads'] input[type='range'] {
+    margin-top: 0;
+  }
+
+  .revisit-model-provenance {
+    display: none !important;
+  }
+
+  .revisit-stage [aria-label='REVISIT analysis'] {
+    max-height: 100%;
+    overflow-y: auto;
+  }
+
+  .revisit-kpi-panel {
+    padding: 0.5rem;
+  }
+
+  .revisit-kpi-headline {
+    margin-top: 0.25rem;
+  }
+
+  .revisit-kpi-headline span:last-child {
+    font-size: 1.375rem;
+  }
+
+  .revisit-kpi-secondary {
+    display: none;
+  }
+
+  .revisit-kpi-qualification,
+  .revisit-kpi-requirement {
+    display: none;
+  }
+
+  .revisit-coverage-ribbon {
+    padding: 0.25rem 0.5rem !important;
+  }
+
+  .revisit-coverage-ribbon-heading {
+    margin-bottom: 0.125rem;
+  }
+
+  .revisit-coverage-ribbon-heading > div > div:last-child,
+  .revisit-coverage-ribbon-ticks {
+    display: none;
+  }
+
+  .revisit-coverage-ribbon svg {
+    height: 1.5rem;
+  }
+}
+
 .capacity-header .header-scenario-surface {
   border-color: transparent !important;
   background: transparent !important;
@@ -1683,7 +1914,7 @@ h1, h2, h3, h4 {
 }
 
 .capacity-header .header-site-section {
-  opacity: 0.78;
+  opacity: 1;
   transition: opacity 160ms ease;
 }
 
@@ -1701,14 +1932,14 @@ h1, h2, h3, h4 {
   background-color: transparent !important;
   background-image: none !important;
   box-shadow: none !important;
-  opacity: 0.58;
+  opacity: 1;
   filter: saturate(0.72);
   transition: opacity 160ms ease, filter 160ms ease, background-color 160ms ease;
 }
 
 .capacity-header .header-route-summary-card.is-selected {
   background: color-mix(in srgb, var(--surface-2) 58%, transparent) !important;
-  opacity: 0.76;
+  opacity: 1;
 }
 
 .capacity-header .header-route-summary-card:hover,
@@ -1719,7 +1950,7 @@ h1, h2, h3, h4 {
 }
 
 .capacity-header .header-route-summary-metric > div:first-child {
-  opacity: 0.68;
+  opacity: 1;
   font-weight: 650;
 }
 
@@ -1728,7 +1959,7 @@ h1, h2, h3, h4 {
 }
 
 .capacity-header .header-secondary-badge {
-  opacity: 0.56;
+  opacity: 1;
   font-weight: 650;
   letter-spacing: 0.055em;
 }
@@ -1749,7 +1980,7 @@ h1, h2, h3, h4 {
 }
 
 .sidebar-hero-wrap {
-  opacity: 0.72;
+  opacity: 1;
   transition: opacity 160ms ease;
 }
 
@@ -1760,7 +1991,7 @@ h1, h2, h3, h4 {
 
 .capacity-details-surface .continuous-section,
 .capacity-details-surface [data-engineering-secondary-investigation] {
-  opacity: 0.76;
+  opacity: 1;
   transition: opacity 160ms ease;
 }
 
@@ -1800,7 +2031,7 @@ h1, h2, h3, h4 {
 }
 
 .engineering-cause-stage {
-  opacity: 0.66;
+  opacity: 1;
   filter: saturate(0.76);
 }
 
@@ -1841,7 +2072,7 @@ h1, h2, h3, h4 {
 }
 
 .engineering-inspector-content [data-engineering-secondary-investigation] {
-  opacity: 0.68;
+  opacity: 1;
 }
 
 @media (min-width: 1100px) {

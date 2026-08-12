@@ -65,6 +65,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({ isMobile }) => {
                     onTouchEnd={handleMobileTouchEnd}
                     onClick={handleMobileClick}
                     title="Toggle Theme (Long press for options)"
+                    aria-label="Toggle color theme"
                 >
                     {theme === 'dark' ? <Moon size={20} /> : theme === 'light' ? <Sun size={20} /> : <Monitor size={20} />}
                 </button>
@@ -74,18 +75,21 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({ isMobile }) => {
                         <div className="p-1 flex flex-col gap-1">
                             <button
                                 onClick={() => { setTheme('light'); setShowMobileMenu(false); }}
+                                aria-label="Light Mode"
                                 className={`flex items-center gap-2 px-3 py-2 text-sm rounded-md ${theme === 'light' ? 'bg-blue-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'}`}
                             >
                                 <Sun size={16} /> Light
                             </button>
                             <button
                                 onClick={() => { setTheme('dark'); setShowMobileMenu(false); }}
+                                aria-label="Dark Mode"
                                 className={`flex items-center gap-2 px-3 py-2 text-sm rounded-md ${theme === 'dark' ? 'bg-blue-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'}`}
                             >
                                 <Moon size={16} /> Dark
                             </button>
                             <button
                                 onClick={() => { setTheme('system'); setShowMobileMenu(false); }}
+                                aria-label="System Preference"
                                 className={`flex items-center gap-2 px-3 py-2 text-sm rounded-md ${theme === 'system' ? 'bg-blue-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'}`}
                             >
                                 <Monitor size={16} /> Auto
@@ -104,6 +108,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({ isMobile }) => {
                 onClick={() => setTheme('system')}
                 className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${theme === 'system' ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-200 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}
                 title="System Preference"
+                aria-label="System Preference"
             >
                 <Monitor size={14} />
             </button>
@@ -111,6 +116,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({ isMobile }) => {
                 onClick={() => setTheme('light')}
                 className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${theme === 'light' ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-200 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}
                 title="Light Mode"
+                aria-label="Light Mode"
             >
                 <Sun size={14} />
             </button>
@@ -118,6 +124,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({ isMobile }) => {
                 onClick={() => setTheme('dark')}
                 className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${theme === 'dark' ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-200 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}
                 title="Dark Mode"
+                aria-label="Dark Mode"
             >
                 <Moon size={14} />
             </button>

@@ -41,9 +41,10 @@ const Panel: React.FC<{
     label: string; children: React.ReactNode; emphasised?: boolean; className?: string;
 }> = ({ label, children, emphasised, className = '' }) => (
     <div
+        data-revisit-context-panel={label.toLowerCase().replace(/\s+/g, '-')}
         className={[
             REVISIT_PANEL,
-            'px-4 py-3',
+            'revisit-context-panel px-3 py-2 md:px-4 md:py-3',
             emphasised ? 'border-amber-400/60 bg-amber-500/10' : '',
             className,
         ].join(' ')}
@@ -54,7 +55,7 @@ const Panel: React.FC<{
 );
 
 const Arrow = () => (
-    <span aria-hidden="true" className="select-none text-lg text-amber-500/50">→</span>
+    <span aria-hidden="true" className="hidden select-none items-center text-lg text-amber-500/50 md:flex">→</span>
 );
 
 export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
@@ -65,25 +66,28 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
     const sliderIndex = Math.max(0, payloadCounts.indexOf(currentPayloadCount));
 
     return (
-        <div className="flex items-stretch gap-2">
-            <Panel label="Constellation" className="min-w-[190px]">
-                <div className="text-base font-bold text-slate-100">
+        <div
+            data-revisit-context-bar
+            className="revisit-context-bar grid grid-cols-2 items-stretch gap-2 md:flex"
+        >
+            <Panel label="Constellation" className="min-w-0 md:min-w-[190px]">
+                <div className="text-sm font-bold text-slate-100 md:text-base">
                     {reference.planes} × {reference.satsPerPlane}
                     <span className="ml-2 text-xs font-semibold text-slate-400">
                         {reference.pattern}
                     </span>
                 </div>
-                <div className="text-[11px] text-slate-400">
+                <div className="revisit-context-detail text-[11px] text-slate-400">
                     {reference.inclinationDeg}° · {reference.altitudeKm} km ·{' '}
                     {reference.planes * reference.satsPerPlane} sats
                 </div>
             </Panel>
 
-            <div className="flex items-center"><Arrow /></div>
+            <Arrow />
 
-            <Panel label="Hosted payloads" emphasised className="flex-1 min-w-[280px]">
+            <Panel label="Hosted payloads" emphasised className="order-3 col-span-2 min-w-0 md:order-none md:flex-1 md:min-w-[280px]">
                 <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-black leading-none text-amber-300 tabular-nums">
+                    <span className="text-2xl font-black leading-none text-amber-300 tabular-nums md:text-3xl">
                         {currentPayloadCount}
                     </span>
                     <span className="text-[11px] font-semibold text-amber-200/70">
@@ -101,16 +105,16 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                     aria-label="Number of hosted payloads"
                     aria-valuetext={`${currentPayloadCount} payloads`}
                 />
-                <div className="min-h-[14px] text-[10px] leading-[14px] text-amber-200/80">
+                <div className="revisit-spread-note min-h-[14px] text-[10px] leading-[14px] text-amber-200/80">
                     {spreadNote}
                 </div>
             </Panel>
 
-            <div className="flex items-center"><Arrow /></div>
+            <Arrow />
 
-            <Panel label="Target" className="min-w-[180px]">
+            <Panel label="Target" className="min-w-0 md:min-w-[180px]">
                 <select
-                    className="w-full bg-transparent text-base font-bold text-slate-100 outline-none"
+                    className="w-full bg-transparent text-sm font-bold text-slate-100 outline-none md:text-base"
                     value={target.name}
                     onChange={(e) => onTargetChange(e.target.value)}
                     aria-label="Target"
@@ -119,7 +123,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                         <option key={name} value={name} className="bg-slate-900">{name}</option>
                     ))}
                 </select>
-                <div className="text-[11px] tabular-nums text-slate-400">
+                <div className="revisit-context-detail text-[11px] tabular-nums text-slate-400">
                     {target.latDeg.toFixed(2)}° · {target.lonDeg.toFixed(2)}°
                 </div>
             </Panel>

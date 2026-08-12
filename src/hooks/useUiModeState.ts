@@ -13,9 +13,14 @@ import type { SatelliteScope } from '../components/SatelliteScopeFilter';
 export type UiMode = 'engineering' | 'commercial';
 export type ActiveTechnology = 'LEO' | 'GEO';
 
-export const useUiModeState = () => {
-  const [satelliteScope, setSatelliteScope] = useState<SatelliteScope>('ALL');
-  const [activeConnectivityTab, setActiveConnectivityTab] = useState<ActiveTechnology>('LEO');
+interface InitialUiModeState {
+  satelliteScope?: SatelliteScope;
+  activeConnectivityTab?: ActiveTechnology;
+}
+
+export const useUiModeState = (initial: InitialUiModeState = {}) => {
+  const [satelliteScope, setSatelliteScope] = useState<SatelliteScope>(initial.satelliteScope ?? 'ALL');
+  const [activeConnectivityTab, setActiveConnectivityTab] = useState<ActiveTechnology>(initial.activeConnectivityTab ?? 'LEO');
 
   // Scope and technology focus are coupled: scope is either ALL or equal to the
   // active technology. Both handlers maintain the invariant synchronously so no

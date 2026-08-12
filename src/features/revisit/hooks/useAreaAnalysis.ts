@@ -123,6 +123,7 @@ export function useAreaAnalysis(scenario: RevisitScenario): UseAreaAnalysisResul
             pendingRef.current = null;
             setIsRunning(false);
             setProgress(null);
+            setAnalysis(null);
             setError(event.message || 'Area worker failed');
         });
 
@@ -201,6 +202,7 @@ export function useAreaAnalysis(scenario: RevisitScenario): UseAreaAnalysisResul
                 setAnalysis(analyseArea(rest, area));
                 setError(null);
             } catch (e) {
+                setAnalysis(null);
                 setError(e instanceof Error ? e.message : String(e));
             } finally {
                 setIsRunning(false);

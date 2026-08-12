@@ -248,8 +248,11 @@ export default defineConfig({
     issTleProxyPlugin(),
     aisStreamProxyPlugin()
   ],
+  optimizeDeps: {
+    ignoreOutdatedRequests: true
+  },
   server: {
     port: 3000,
-    open: true
+    open: process.env.PLAYWRIGHT_TEST !== '1'
   }
 });

@@ -21,7 +21,9 @@ import type { RevisitAnalysis } from './runScenario';
 import type { PayloadSweepResult } from './payloadSweep';
 import type { RevisitScenario } from '../domain/types';
 import type { WalkerFit } from '../calibration/fitWalker';
-import { DEFAULT_PROFILE, type ReferenceProfile } from '../domain/referenceProfiles';
+import {
+    referenceProfileFor, fitMatchesReference, type ReferenceProfile,
+} from '../domain/referenceProfiles';
 
 /** RFC 4180: quote when the value contains a comma, quote or newline. */
 export type CsvValue = string | number | boolean | null | undefined;
@@ -58,9 +60,10 @@ const msValue = (value: number | null | undefined): number | null =>
 export function provenanceHeader(
     scenario: RevisitScenario,
     fit: WalkerFit | null = null,
-    profile: ReferenceProfile | null = DEFAULT_PROFILE
+    profile: ReferenceProfile | null = referenceProfileFor(scenario.reference)
 ): string[] {
     const { reference, selection, payload, window: analysisWindow } = scenario;
+    const applicableFit = fit && fitMatchesReference(fit.spec, reference) ? fit : null;
     const lines = [
         '# Capacity Analyzer — hosted-payload revisit export',
         `# generated,${new Date().toISOString()}`,
@@ -125,17 +128,17 @@ export function provenanceHeader(
         `# sampling step s,${analysisWindow.stepSeconds}`,
     ];
 
-    if (fit) {
+    if (applicableFit) {
         lines.push(
             '#',
             '# CALIBRATION vs REAL ONEWEB TLE',
-            `# satellites used,${fit.satellitesUsed}`,
-            `# satellites excluded,${fit.satellitesExcluded}`,
-            `# planes detected,${fit.planesDetected}`,
-            `# raan rms deg,${fit.raanRmsDeg.toFixed(4)}`,
-            `# in-plane rms deg,${fit.argLatRmsDeg.toFixed(4)}`,
-            `# along-track rms km,${fit.alongTrackRmsKm.toFixed(1)}`,
-            `# altitude rms km,${fit.altitudeRmsKm.toFixed(2)}`,
+            `# satellites used,${applicableFit.satellitesUsed}`,
+            `# satellites excluded,${applicableFit.satellitesExcluded}`,
+            `# planes detected,${applicableFit.planesDetected}`,
+            `# raan rms deg,${applicableFit.raanRmsDeg.toFixed(4)}`,
+            `# in-plane rms deg,${applicableFit.argLatRmsDeg.toFixed(4)}`,
+            `# along-track rms km,${applicableFit.alongTrackRmsKm.toFixed(1)}`,
+            `# altitude rms km,${applicableFit.altitudeRmsKm.toFixed(2)}`,
         );
     } else {
         lines.push('#', '# CALIBRATION,not calibrated against real TLEs');

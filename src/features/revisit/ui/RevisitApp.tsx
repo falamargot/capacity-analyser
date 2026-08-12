@@ -25,7 +25,10 @@ import { AdvancedDrawer } from './AdvancedDrawer';
 import { constellationFor } from '../analysis/runScenario';
 import {
     enumerateLadder, ladderPayloadCounts, reconcileSelection, selectedSatelliteIds,
+    validateSelection,
 } from '../domain/subConstellation';
+import { validateWalkerSpec } from '../domain/walker';
+import { referenceProfileFor } from '../domain/referenceProfiles';
 import {
     reconcileToMeasuredBest, sameSelection, selectionStatus, type SelectionSource,
 } from '../domain/selectionReconcile';
@@ -45,6 +48,14 @@ import { RevisitHeader } from './RevisitHeader';
 import { RevisitKpiPanel } from './RevisitKpiPanel';
 import { CoverageRibbon } from './CoverageRibbon';
 import { REVISIT_PANEL } from './revisitTheme';
+import type { AppMode } from '../../../hooks/useAppModeState';
+import { GlobalAppHeader } from '../../../components/navigation/GlobalAppHeader';
+import {
+    readRevisitSessionSnapshot,
+    REVISIT_SESSION_SCHEMA_VERSION,
+    writeRevisitSessionSnapshot,
+    type RevisitDisplayOptions,
+} from '../state/revisitSessionSnapshot';
 
 /** The customer requirement the verdict badge and the value curve compare against. */
 const DEFAULT_REQUIREMENT_MS = 2 * 3600_000;
@@ -53,9 +64,9 @@ const DEFAULT_REQUIREMENT_MS = 2 * 3600_000;
 const REQUIREMENT_CHOICES_H = [0.5, 1, 2, 3, 6, 12, 24];
 
 /** Scene layers plus the camera behaviour the user can switch. */
-interface DisplayOptions extends RevisitSceneOptions {
-    autoRotate: boolean;
-}
+interface DisplayOptions extends RevisitSceneOptions, RevisitDisplayOptions {}
+
+type MobileAnalysisPanel = 'summary' | 'curve' | 'details' | 'advanced';
 
 const TOGGLES: Array<{ key: keyof DisplayOptions; label: string }> = [
     { key: 'showOrbits', label: 'Orbits' },
@@ -84,42 +95,90 @@ interface RevisitAppProps {
      * view has to carry its own way back or the user is stranded.
      */
     onExit?: () => void;
+    returnMode?: Exclude<AppMode, 'revisit'>;
 }
 
-export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
+const REVISIT_NOTICE_KEY = 'capacity-analyzer:revisit-independent-scenario-notice';
+
+export const RevisitApp: React.FC<RevisitAppProps> = ({
+    onExit,
+    returnMode = 'engineering',
+}) => {
     const clock = useSimulationClock();
+    // Lazy useState initializer, not useRef(readRevisitSessionSnapshot()): a
+    // useRef's argument expression still runs on every render even though only
+    // the first render's result is kept, so useRef here would re-run the
+    // sessionStorage read + deep clone on every re-render of this component.
+    const [restoredSession] = useState(() => readRevisitSessionSnapshot());
+    const [showEntryNotice, setShowEntryNotice] = useState(() => (
+        typeof window !== 'undefined' && window.localStorage.getItem(REVISIT_NOTICE_KEY) !== 'dismissed'
+    ));
+
+    const dismissEntryNotice = useCallback(() => {
+        window.localStorage.setItem(REVISIT_NOTICE_KEY, 'dismissed');
+        setShowEntryNotice(false);
+    }, []);
 
     // The analysis window is anchored ONCE, at mount. The playhead moves within
     // it; scrubbing never moves the window and therefore never changes the
     // statistics. See useRevisitAnalysis for the full argument.
-    const epochRef = useRef<number>(clock.getTimeMs());
+    const epochRef = useRef<number>(restoredSession?.scenario.window.startMs ?? clock.getTimeMs());
     const [scenario, setScenario] = useState<RevisitScenario>(
-        () => defaultScenario(epochRef.current)
+        () => restoredSession?.scenario ?? defaultScenario(epochRef.current)
     );
-    const [options, setOptions] = useState<DisplayOptions>({
-        showOrbits: true, showSwaths: true, showHostFleet: true, autoRotate: true,
-    });
+    const [options, setOptions] = useState<DisplayOptions>(() => restoredSession?.options ?? ({
+        showOrbits: true,
+        showSwaths: true,
+        showHostFleet: true,
+        autoRotate: typeof window === 'undefined'
+            ? true
+            : !window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    }));
+    const [mobileAnalysisPanel, setMobileAnalysisPanel] = useState<MobileAnalysisPanel>('summary');
 
-    const [requirementMs, setRequirementMs] = useState(DEFAULT_REQUIREMENT_MS);
+    const [requirementMs, setRequirementMs] = useState(restoredSession?.requirementMs ?? DEFAULT_REQUIREMENT_MS);
     /**
      * Where the current selection came from. The preset counts as `auto`, so the
      * opening scenario reconciles to the measured best as soon as the sweep
      * lands — which is what stops the KPI and the value curve describing
      * different constellations.
      */
-    const [selectionSource, setSelectionSource] = useState<SelectionSource>('auto');
+    const [selectionSource, setSelectionSource] = useState<SelectionSource>(restoredSession?.selectionSource ?? 'auto');
+
+    const sessionRef = useRef({ scenario, options, requirementMs, selectionSource });
+    sessionRef.current = { scenario, options, requirementMs, selectionSource };
+    useEffect(() => () => {
+        writeRevisitSessionSnapshot({
+            schemaVersion: REVISIT_SESSION_SCHEMA_VERSION,
+            ...sessionRef.current,
+        });
+    }, []);
 
     const { analysis, isComputing, error, isMainThreadFallback } = useRevisitAnalysis(scenario);
     // Its own worker, and keyed so the payload slider never re-triggers it.
     const { sweep, isComputing: isSweeping, error: sweepError } = useRevisitSweep(scenario);
 
+    const renderValidation = useMemo(() => {
+        const walker = validateWalkerSpec(scenario.reference);
+        const selection = validateSelection(scenario.reference, scenario.selection);
+        return {
+            ok: walker.ok && selection.ok,
+            errors: [...walker.errors, ...selection.errors],
+        };
+    }, [scenario.reference, scenario.selection]);
     const fleet = useMemo(
-        () => constellationFor(scenario.reference),
-        [scenario.reference]
+        () => renderValidation.ok ? constellationFor(scenario.reference) : [],
+        [scenario.reference, renderValidation.ok]
     );
     const selectedIds = useMemo(
-        () => selectedSatelliteIds(scenario.reference, scenario.selection),
-        [scenario.reference, scenario.selection]
+        () => renderValidation.ok
+            ? selectedSatelliteIds(scenario.reference, scenario.selection)
+            : new Set<string>(),
+        [scenario.reference, scenario.selection, renderValidation.ok]
+    );
+    const referenceProfile = useMemo(
+        () => referenceProfileFor(scenario.reference),
+        [scenario.reference]
     );
 
     const payloadCounts = useMemo(
@@ -265,6 +324,10 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
 
     const calibration = useOneWebCalibration();
     const areaRun = useAreaAnalysis(scenario);
+    const warnings = useMemo(() => [...new Set([
+        ...(analysis?.warnings ?? []),
+        ...(sweep?.warnings ?? []),
+    ])], [analysis, sweep]);
 
     const handleRunArea = useCallback((presetName: string) => {
         const preset = AREA_PRESETS.find((p) => p.name === presetName);
@@ -324,8 +387,23 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
     }, []);
 
     return (
-        <div className="relative h-screen w-screen overflow-hidden bg-[#05070D] text-slate-100">
-            <div className="absolute inset-0">
+        <div className="revisit-shell flex h-dvh w-screen flex-col overflow-hidden bg-[#05070D] text-slate-100 transition-colors light:bg-slate-100 light:text-slate-950">
+            <GlobalAppHeader className="revisit-global-header">
+                <div className="revisit-context-rail px-2 py-2 sm:px-3 lg:px-4">
+                    <RevisitHeader
+                        scenario={scenario}
+                        payloadCounts={payloadCounts}
+                        currentPayloadCount={currentPayloadCount}
+                        onPayloadCountChange={handlePayloadCountChange}
+                        targetNames={targetOptions}
+                        onTargetChange={handleTargetChange}
+                        spreadNote={spreadNote}
+                    />
+                </div>
+            </GlobalAppHeader>
+
+            <div className="revisit-stage relative min-h-0 flex-1 overflow-hidden">
+              <div className="absolute inset-0">
                 <RevisitGlobe
                     scenario={scenario}
                     fleet={fleet}
@@ -337,22 +415,29 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
                     autoRotate={options.autoRotate}
                     onPickTarget={handlePickTarget}
                 />
-            </div>
+              </div>
 
             {/* One flex column owns the whole overlay. Absolute offsets between
                 panels were fragile: the header grows when a spread note appears
                 and silently overlapped the KPI panel. Flow layout cannot. */}
-            <div className="pointer-events-none absolute inset-0 flex flex-col gap-2 p-3">
-                <div className="pointer-events-auto">
-                    <RevisitHeader
-                        scenario={scenario}
-                        payloadCounts={payloadCounts}
-                        currentPayloadCount={currentPayloadCount}
-                        onPayloadCountChange={handlePayloadCountChange}
-                        targetNames={targetOptions}
-                        onTargetChange={handleTargetChange}
-                        spreadNote={spreadNote}
-                    />
+              <div className="pointer-events-none absolute inset-0 z-10 flex flex-col gap-2 p-2 sm:p-3">
+                <div className="pointer-events-auto flex items-center justify-end gap-3">
+                    {showEntryNotice && (
+                        <aside
+                            className={`${REVISIT_PANEL} z-30 ml-auto flex max-w-[calc(100vw-1rem)] items-center gap-3 px-3 py-2 text-[11px] text-slate-300 sm:max-w-xl`}
+                            aria-label="About the REVISIT scenario"
+                        >
+                            <span>Your telecom workspace is preserved, but its settings are not applied to this independent orbital scenario.</span>
+                            <button
+                                type="button"
+                                onClick={dismissEntryNotice}
+                                className="min-h-8 rounded-md border border-slate-600 px-2 text-[10px] font-bold uppercase tracking-wide text-slate-200 hover:border-amber-400/60 hover:text-amber-200"
+                                aria-label="Dismiss REVISIT scenario notice"
+                            >
+                                Got it
+                            </button>
+                        </aside>
+                    )}
                 </div>
 
                 {/* `flex-1 min-h-0` is load-bearing: it gives this row the leftover
@@ -360,19 +445,19 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
                     min-h-0 a tall column grows the row instead, pushing the ribbon
                     off-screen — and the ribbon is the most valuable thing here
                     after the headline number. */}
-                <div className="flex min-h-0 flex-1 items-stretch justify-between gap-2">
+                <div className="relative flex min-h-0 flex-1 items-stretch justify-between gap-2">
                   {/* `items-start` so each panel sizes to its own content rather
                       than stretching to the width of the widest sibling. */}
-                  <div className="flex flex-col items-start justify-between">
+                  <div className="pointer-events-none absolute left-0 top-0 z-20 flex flex-col items-start justify-between md:static">
                     {/* Display toggles — the slot ENG uses for REG / 5G / CONN / LOAD */}
-                    <div className={`pointer-events-auto ${REVISIT_PANEL} flex flex-col gap-1 p-1.5`}>
+                    <div className={`pointer-events-auto ${REVISIT_PANEL} flex max-w-[calc(100vw-1rem)] flex-row flex-wrap gap-1 p-1.5 md:max-w-none md:flex-col`}>
                         {onExit && (
                             <button
                                 type="button"
                                 onClick={onExit}
-                                className="mb-0.5 rounded-md border-b border-slate-700/60 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-slate-400 transition-colors hover:text-slate-100"
+                                className="revisit-origin-return min-h-11 rounded-md border border-slate-700/60 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-slate-400 transition-colors hover:text-slate-100 md:mb-0.5 md:min-h-0 md:border-x-0 md:border-t-0"
                             >
-                                ‹ Back
+                                ‹ Back to {returnMode === 'commercial' ? 'Commercial' : 'Engineering'}
                             </button>
                         )}
                         {TOGGLES.map(({ key, label }) => (
@@ -382,7 +467,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
                                 onClick={() => toggle(key)}
                                 aria-pressed={options[key]}
                                 className={[
-                                    'rounded-md px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] transition-colors',
+                                    'min-h-11 rounded-md px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] transition-colors md:min-h-0',
                                     options[key]
                                         ? 'bg-amber-500/20 text-amber-200'
                                         : 'text-slate-500 hover:text-slate-300',
@@ -393,9 +478,10 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
                         ))}
                     </div>
 
-                    <div className="pointer-events-auto mt-2 max-w-[300px]">
+                    <div className="revisit-model-provenance pointer-events-auto mt-2 hidden max-w-[300px] lg:block">
                         <ModelProvenance
                             reference={scenario.reference}
+                            profile={referenceProfile}
                             fit={calibration.fit}
                             isRunning={calibration.isRunning}
                             error={calibration.error}
@@ -405,46 +491,94 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
                     </div>
                   </div>
 
-                    {(error || sweepError || isMainThreadFallback) && (
-                        <div className={`pointer-events-auto ${REVISIT_PANEL} self-start border-red-400/40 px-3 py-1.5 text-[11px] text-red-200`}>
-                            {error ?? sweepError ?? 'Running on the main thread — Worker unavailable'}
+                    {(!renderValidation.ok || error || sweepError || isMainThreadFallback) && (
+                        <div className={`pointer-events-auto absolute left-0 top-14 z-30 ${REVISIT_PANEL} self-start border-red-400/40 px-3 py-1.5 text-[11px] text-red-200 md:static`}>
+                            {renderValidation.errors.join('; ') || error || sweepError
+                                || 'Running on the main thread — Worker unavailable'}
+                        </div>
+                    )}
+
+                    {warnings.length > 0 && (
+                        <div className={`pointer-events-auto absolute left-0 top-28 z-30 max-w-sm ${REVISIT_PANEL} self-start border-amber-400/40 px-3 py-1.5 text-[10px] leading-4 text-amber-200 md:static`}>
+                            {warnings.map((warning) => <p key={warning}>{warning}</p>)}
                         </div>
                     )}
 
                     {/* The analysis column: headline, then the business case.
                         Scrolls independently so it can never push the ribbon out. */}
-                    <div className="pointer-events-auto flex w-[400px] shrink-0 flex-col gap-2 overflow-y-auto [&>*]:shrink-0">
-                        <RevisitKpiPanel
-                            statistics={analysis?.statistics ?? null}
-                            windowHours={scenario.window.durationHours}
-                            requirementMs={requirementMs}
-                            isComputing={isComputing}
-                            requirementChoicesHours={REQUIREMENT_CHOICES_H}
-                            onRequirementChange={setRequirementMs}
-                        />
-                        <ValueCurve
-                            sweep={sweep}
-                            isComputing={isSweeping}
-                            requirementMs={requirementMs}
-                            currentPayloadCount={currentPayloadCount}
-                            currentMaxGapMs={analysis?.statistics.maxGapMs ?? null}
-                            currentIsMeasuredBest={status.isBest}
-                            targetName={scenario.target.name}
-                            onSelectPayloadCount={handlePayloadCountChange}
-                        />
-                        <WhyThisRevisit explanation={explanation} />
-                        <AreaPanel
-                            scenario={scenario}
-                            analysis={areaRun.analysis}
-                            isRunning={areaRun.isRunning}
-                            error={areaRun.error}
-                            progress={areaRun.progress}
-                            requirementMs={requirementMs}
-                            onRun={handleRunArea}
-                            onClear={areaRun.clear}
-                            onExportCsv={handleExportAreaCsv}
-                        />
-                        <div className={`${REVISIT_PANEL} flex items-center gap-2 px-3 py-2`}>
+                    <section
+                        className={`pointer-events-auto absolute inset-x-0 bottom-0 z-10 flex max-h-[46vh] w-full shrink-0 flex-col gap-2 overflow-y-auto rounded-t-2xl md:static md:max-h-none md:w-[400px] md:rounded-none [&>*]:shrink-0`}
+                        aria-label="REVISIT analysis"
+                    >
+                        <nav className={`${REVISIT_PANEL} sticky top-0 z-20 grid grid-cols-4 gap-1 p-1 md:hidden`} aria-label="REVISIT analysis sections">
+                            {([
+                                ['summary', 'Summary'],
+                                ['curve', 'Curve'],
+                                ['details', 'Details'],
+                                ['advanced', 'Advanced'],
+                            ] as const).map(([panel, label]) => (
+                                <button
+                                    key={panel}
+                                    type="button"
+                                    onClick={() => setMobileAnalysisPanel(panel)}
+                                    aria-pressed={mobileAnalysisPanel === panel}
+                                    className={`min-h-11 rounded-lg px-1 text-[10px] font-black uppercase tracking-wide ${mobileAnalysisPanel === panel ? 'bg-amber-500/20 text-amber-200' : 'text-slate-400'}`}
+                                >
+                                    {label}
+                                </button>
+                            ))}
+                        </nav>
+
+                        <div className={`${mobileAnalysisPanel === 'summary' ? 'block' : 'hidden'} md:contents`} aria-live="polite">
+                            <RevisitKpiPanel
+                                statistics={analysis?.statistics ?? null}
+                                windowHours={scenario.window.durationHours}
+                                requirementMs={requirementMs}
+                                isComputing={isComputing}
+                                requirementChoicesHours={REQUIREMENT_CHOICES_H}
+                                onRequirementChange={setRequirementMs}
+                            />
+                        </div>
+                        <div className={`${mobileAnalysisPanel === 'curve' ? 'block' : 'hidden'} md:contents`}>
+                            <ValueCurve
+                                sweep={sweep}
+                                isComputing={isSweeping}
+                                requirementMs={requirementMs}
+                                currentPayloadCount={currentPayloadCount}
+                                currentMaxGapMs={analysis?.statistics.maxGapMs ?? null}
+                                currentIsMeasuredBest={status.isBest}
+                                targetName={scenario.target.name}
+                                onSelectPayloadCount={handlePayloadCountChange}
+                            />
+                        </div>
+                        <div className={`${mobileAnalysisPanel === 'details' ? 'space-y-2' : 'hidden'} md:contents`}>
+                            <WhyThisRevisit explanation={explanation} />
+                            <AreaPanel
+                                scenario={scenario}
+                                analysis={areaRun.analysis}
+                                isRunning={areaRun.isRunning}
+                                error={areaRun.error}
+                                progress={areaRun.progress}
+                                requirementMs={requirementMs}
+                                onRun={handleRunArea}
+                                onClear={areaRun.clear}
+                                onCancel={areaRun.clear}
+                                onExportCsv={handleExportAreaCsv}
+                            />
+                            <div className="md:hidden">
+                                <ModelProvenance
+                                    reference={scenario.reference}
+                                    profile={referenceProfile}
+                                    fit={calibration.fit}
+                                    isRunning={calibration.isRunning}
+                                    error={calibration.error}
+                                    onCalibrate={calibration.calibrate}
+                                    onAdoptFit={handleAdoptFit}
+                                />
+                            </div>
+                        </div>
+                        <div className={`${mobileAnalysisPanel === 'advanced' ? 'space-y-2' : 'hidden'} md:contents`}>
+                          <div className={`${REVISIT_PANEL} flex items-center gap-2 px-3 py-2`}>
                             <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">
                                 Export
                             </span>
@@ -464,9 +598,10 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
                             >
                                 Sweep
                             </button>
+                          </div>
+                          <AdvancedDrawer scenario={scenario} onChange={handleAdvancedChange} />
                         </div>
-                        <AdvancedDrawer scenario={scenario} onChange={handleAdvancedChange} />
-                    </div>
+                    </section>
                 </div>
 
                 <div className="pointer-events-auto">
@@ -479,6 +614,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({ onExit }) => {
                         onSeek={handleSeek}
                     />
                 </div>
+              </div>
             </div>
         </div>
     );

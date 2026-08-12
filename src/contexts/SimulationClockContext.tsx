@@ -2,6 +2,7 @@
 import React, {
   createContext,
   useContext,
+  useEffect,
   useRef,
   useSyncExternalStore,
   type ReactNode,
@@ -32,6 +33,15 @@ export const SimulationClockProvider: React.FC<SimulationClockProviderProps> = (
   if (!activeClock) {
     throw new Error('SimulationClockProvider failed to initialize its clock');
   }
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return undefined;
+    const monitoredWindow = window as unknown as { __simulationClockAuthorities?: number };
+    monitoredWindow.__simulationClockAuthorities = (monitoredWindow.__simulationClockAuthorities ?? 0) + 1;
+    return () => {
+      monitoredWindow.__simulationClockAuthorities = Math.max(0, (monitoredWindow.__simulationClockAuthorities ?? 1) - 1);
+    };
+  }, []);
 
   return (
     <SimulationClockContext.Provider value={activeClock}>

@@ -28,6 +28,10 @@ const BISECTION_ITERATIONS = 24;
 export const MIN_RELIABLE_WINDOW_HOURS = 24;
 export const DEFAULT_WINDOW_HOURS = 72;
 export const DEFAULT_STEP_SECONDS = 10;
+/** Hard cost ceiling for an interactive analysis. */
+export const MAX_WINDOW_HOURS = 240;
+/** Coarsest sampling step exposed by the engineering UI. */
+export const MAX_STEP_SECONDS = 120;
 
 export interface WindowValidation {
     ok: boolean;
@@ -44,6 +48,10 @@ export function validateWindow(window: AnalysisWindow): WindowValidation {
     }
     if (!Number.isFinite(window.durationHours) || window.durationHours <= 0) {
         errors.push(`durationHours must be positive, got ${window.durationHours}`);
+    } else if (window.durationHours > MAX_WINDOW_HOURS) {
+        errors.push(
+            `durationHours ${window.durationHours} exceeds the interactive ceiling of ${MAX_WINDOW_HOURS} h`
+        );
     } else if (window.durationHours < MIN_RELIABLE_WINDOW_HOURS) {
         warnings.push(
             `Analysis window is ${window.durationHours} h. A Walker ground-track pattern ` +
@@ -53,6 +61,10 @@ export function validateWindow(window: AnalysisWindow): WindowValidation {
     }
     if (!Number.isFinite(window.stepSeconds) || window.stepSeconds <= 0) {
         errors.push(`stepSeconds must be positive, got ${window.stepSeconds}`);
+    } else if (window.stepSeconds > MAX_STEP_SECONDS) {
+        errors.push(
+            `stepSeconds ${window.stepSeconds} exceeds the supported ceiling of ${MAX_STEP_SECONDS} s`
+        );
     } else if (window.stepSeconds > 60) {
         warnings.push(
             `stepSeconds is ${window.stepSeconds}. A short pass can be tens of seconds; ` +

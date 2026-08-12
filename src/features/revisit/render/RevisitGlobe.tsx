@@ -55,10 +55,10 @@ function createTargetReticle(): HTMLCanvasElement {
     if (!context) return canvas;
 
     const centre = 32;
-    context.strokeStyle = REVISIT_COLORS.accent;
-    context.fillStyle = REVISIT_COLORS.bright;
+    context.strokeStyle = REVISIT_COLORS.target;
+    context.fillStyle = REVISIT_COLORS.target;
     context.lineWidth = 1.5;
-    context.shadowColor = 'rgba(239, 159, 39, 0.45)';
+    context.shadowColor = 'rgba(255, 255, 255, 0.45)';
     context.shadowBlur = 4;
 
     for (const radius of [12, 23]) {
@@ -262,7 +262,7 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
                 // almost none of it, which showed up as a picked coordinate
                 // label rendering as a single stray character.
                 font: '600 13px Helvetica, Arial, sans-serif',
-                fillColor: Color.fromCssColorString(REVISIT_COLORS.bright),
+                fillColor: Color.fromCssColorString(REVISIT_COLORS.target),
                 outlineColor: Color.fromCssColorString('#05070D'),
                 outlineWidth: 3,
                 showBackground: true,
