@@ -244,3 +244,17 @@ Do not relitigate these; each was weighed against ADR-001 and the measured code.
   known issue.
 - Browser inspection: desktop and 390×844 light/dark layouts inspected in the
   foreground; no horizontal overflow and mobile controls meet the 44 px floor.
+# Programme 3 — REVISIT P0 demo perception corrective
+
+_Added and implemented 2026-08-12 from `REVISIT_REQUIREMENT_RECHECK_2026-08-12.md`._
+
+| Item | Result | Status |
+|---|---|---|
+| P0.1 Fleet truth | Header states 576 active + 58 spare = 634 total; payload capacity remains 576 | Done |
+| P0.2 Executive curve | Summary plots the measured Pareto envelope; exact non-monotonic topology points remain one click away | Done |
+| P0.3 Provenance | Compact status badge, detail disclosure, no negative uncalibrated lead message | Done |
+| P0.4 Presenter state | Business-result lead, secondary scene controls hidden until Explore, one-click reset | Done |
+| P0.5 Time controls | Play/pause, ±1 h, 1×/10×/100× and absolute UTC, reusing the single SimulationClock | Done |
+
+Constraints held: no change to orbital physics, access computation, workers,
+scenario schema or CSV numerical output; no new timer; no new Cesium viewer.

@@ -17,18 +17,16 @@
  * application already shipping ~193 MB of static assets to draw a single curve
  * is a poor trade (ADR-001, proposal §3.5).
  *
- * ── THE CURVE IS NOT MONOTONIC, AND THAT IS A FEATURE ───────────────────────
- * Ladder rungs are not nested: the next rung up can concentrate payloads into
- * FEWER planes, and plane spread matters more than raw count. The engine's own
- * sweep shows this (8 over 2 planes losing to 6 over 3). The chart therefore
- * plots what the engine returns and does not smooth it, and "payloads required"
- * comes from `payloadsRequiredFor`, which returns the smallest count that
- * actually meets the requirement — the honest answer when the curve wobbles.
+ * The executive view plots the Pareto frontier: the best revisit demonstrated
+ * with up to a payload budget. It never invents or smooths a result; it only
+ * omits dominated exact-count topologies. The raw, non-monotonic measurements
+ * remain available in the same component for engineering inspection.
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { formatGap } from '../analysis/gapStatistics';
 import { payloadsRequiredFor, type PayloadSweepResult } from '../analysis/payloadSweep';
+import { executiveEnvelopePoints } from '../analysis/executiveEnvelope';
 import { REVISIT_COLORS, REVISIT_LABEL, REVISIT_PANEL } from './revisitTheme';
 
 interface ValueCurveProps {
@@ -52,11 +50,13 @@ export const ValueCurve: React.FC<ValueCurveProps> = ({
     sweep, isComputing, requirementMs, currentPayloadCount,
     currentMaxGapMs, currentIsMeasuredBest, targetName, onSelectPayloadCount,
 }) => {
+    const [showExactTopologies, setShowExactTopologies] = useState(false);
     const model = useMemo(() => {
         if (!sweep) return null;
         // Points with no measurable gap (target never in view) cannot be placed
         // on a log axis; they are excluded from the line but reported below it.
-        const points = sweep.points.filter((p) => p.maxGapMs !== null && p.maxGapMs > 0);
+        const points = (showExactTopologies ? sweep.points : executiveEnvelopePoints(sweep))
+            .filter((p) => p.maxGapMs !== null && p.maxGapMs > 0);
         if (points.length < 2) return null;
 
         const counts = points.map((p) => p.payloadCount);
@@ -80,11 +80,14 @@ export const ValueCurve: React.FC<ValueCurveProps> = ({
             PAD.top + (1 - (Math.log(ms) - yMin) / (yMax - yMin)) * plotH;
 
         return { points, sx, sy, plotH };
-    }, [sweep, requirementMs, currentMaxGapMs]);
+    }, [sweep, requirementMs, currentMaxGapMs, showExactTopologies]);
 
     const answer = sweep ? payloadsRequiredFor(sweep, requirementMs) : null;
     const currentSweepPoint = sweep?.points
         .find((point) => point.payloadCount === currentPayloadCount) ?? null;
+    const currentIsOnDisplayedCurve = Boolean(
+        model?.points.some((point) => point.payloadCount === currentPayloadCount)
+    );
 
     return (
         <div className={`${REVISIT_PANEL} px-3 py-2.5`}>
@@ -93,7 +96,9 @@ export const ValueCurve: React.FC<ValueCurveProps> = ({
                 <span className="text-right text-[9px] font-semibold uppercase tracking-[0.08em] text-slate-500">
                     {!sweep
                         ? (isComputing ? 'computing…' : 'no valid sweep')
-                        : 'measured outputs · lower is better'}
+                        : showExactTopologies
+                            ? 'exact topology points · lower is better'
+                            : 'best achieved with up to X payloads'}
                 </span>
             </div>
 
@@ -107,7 +112,7 @@ export const ValueCurve: React.FC<ValueCurveProps> = ({
                     </span>
                 ) : answer ? (
                     <>
-                        You need{' '}
+                        Minimum tested balanced configuration:{' '}
                         <span className="font-black text-amber-300">{answer.payloadCount} payloads</span>{' '}
                         to see {targetName} every {formatGap(requirementMs)}.
                     </>
@@ -243,11 +248,11 @@ export const ValueCurve: React.FC<ValueCurveProps> = ({
                     {/* A manual split can share the payload count but not the
                         sweep winner's gap. Plot its exact KPI result separately
                         so "current" never points at a different constellation. */}
-                    {!currentIsMeasuredBest
+                    {(!currentIsMeasuredBest || !currentIsOnDisplayedCurve)
                         && currentSweepPoint
                         && currentMaxGapMs !== null
                         && currentMaxGapMs > 0 && (
-                        <g aria-label={`Current manual split: ${formatGap(currentMaxGapMs)}`}>
+                        <g aria-label={`${currentIsMeasuredBest ? 'Current exact topology' : 'Current manual split'}: ${formatGap(currentMaxGapMs)}`}>
                             <circle
                                 cx={model.sx(currentPayloadCount)}
                                 cy={model.sy(currentMaxGapMs)}
@@ -264,7 +269,8 @@ export const ValueCurve: React.FC<ValueCurveProps> = ({
                                 fill={REVISIT_COLORS.accent}
                             />
                             <title>
-                                Current manual split · {currentPayloadCount} payloads ·{' '}
+                                {currentIsMeasuredBest ? 'Current exact topology' : 'Current manual split'}
+                                {' · '}{currentPayloadCount} payloads ·{' '}
                                 {formatGap(currentMaxGapMs)}
                             </title>
                         </g>
@@ -301,6 +307,17 @@ export const ValueCurve: React.FC<ValueCurveProps> = ({
                     <text x={4} y={PAD.top + 6} fontSize={8} fill="#475569">worst</text>
                     <text x={4} y={PAD.top + 15} fontSize={8} fill="#475569">case</text>
                 </svg>
+            )}
+
+            {sweep && (
+                <button
+                    type="button"
+                    className="mt-1 rounded text-[9px] font-bold uppercase tracking-[0.08em] text-sky-300 hover:text-sky-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300"
+                    aria-pressed={showExactTopologies}
+                    onClick={() => setShowExactTopologies((shown) => !shown)}
+                >
+                    {showExactTopologies ? 'Show executive envelope' : 'Show exact topology points'}
+                </button>
             )}
 
             {/* The comparison worth making out loud (design note §3.2). */}

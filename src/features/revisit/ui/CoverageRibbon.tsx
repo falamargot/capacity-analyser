@@ -25,6 +25,7 @@ import { formatGap } from '../analysis/gapStatistics';
 import type { AccessInterval, GapStatistics } from '../domain/types';
 import { computeGaps } from '../analysis/gapStatistics';
 import { REVISIT_COLORS, REVISIT_LABEL, REVISIT_PANEL } from './revisitTheme';
+import type { SimulationSpeed } from '../../../time/SimulationClock';
 
 interface CoverageRibbonProps {
     intervals: AccessInterval[];
@@ -33,12 +34,15 @@ interface CoverageRibbonProps {
     windowHours: number;
     getTimeMs: () => number;
     onSeek: (ms: number) => void;
+    speed: SimulationSpeed;
+    onSetSpeed: (speed: SimulationSpeed) => void;
 }
 
 const RIBBON_HEIGHT = 34;
 
 export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
     intervals, statistics, windowStartMs, windowHours, getTimeMs, onSeek,
+    speed, onSetSpeed,
 }) => {
     const svgRef = useRef<SVGSVGElement | null>(null);
     /** Playhead position for `aria-valuenow`; see the throttling note below. */
@@ -96,6 +100,9 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
         onSeek(windowStartMs + clamped * 3600_000);
     };
 
+    const currentTimestampMs = windowStartMs + Math.max(0, Math.min(windowHours, currentHours)) * 3600_000;
+    const timestampLabel = new Date(currentTimestampMs).toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+
     const handleClick = (event: React.MouseEvent<SVGSVGElement>) => {
         const svg = svgRef.current;
         if (!svg) return;
@@ -146,6 +153,53 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                         Longest gap {formatGap(longestGap.durationMs)}
                     </span>
                 )}
+            </div>
+
+            <div className="mb-2 flex flex-wrap items-center gap-1.5" aria-label="Simulation time controls">
+                <button
+                    type="button"
+                    onClick={() => onSetSpeed(speed === 0 ? 1 : 0)}
+                    aria-label={speed === 0 ? 'Play simulation' : 'Pause simulation'}
+                    className="min-h-8 rounded border border-slate-600 px-2 text-[10px] font-black uppercase tracking-[0.08em] text-slate-200 hover:border-amber-400/60"
+                >
+                    {speed === 0 ? 'Play' : 'Pause'}
+                </button>
+                <button
+                    type="button"
+                    onClick={() => seekToHours(currentHours - 1)}
+                    aria-label="Step simulation back one hour"
+                    className="min-h-8 rounded border border-slate-700 px-2 text-[10px] font-bold text-slate-300 hover:text-white"
+                >
+                    −1 h
+                </button>
+                <button
+                    type="button"
+                    onClick={() => seekToHours(currentHours + 1)}
+                    aria-label="Step simulation forward one hour"
+                    className="min-h-8 rounded border border-slate-700 px-2 text-[10px] font-bold text-slate-300 hover:text-white"
+                >
+                    +1 h
+                </button>
+                <label className="flex min-h-8 items-center gap-1 rounded border border-slate-700 px-2">
+                    <span className="text-[9px] font-black uppercase tracking-[0.08em] text-slate-500">Speed</span>
+                    <select
+                        aria-label="Simulation speed"
+                        value={speed === 0 ? 1 : speed}
+                        onChange={(event) => onSetSpeed(Number(event.target.value))}
+                        className="bg-transparent text-[10px] font-bold text-slate-200 outline-none"
+                    >
+                        <option value={1}>1×</option>
+                        <option value={10}>10×</option>
+                        <option value={100}>100×</option>
+                    </select>
+                </label>
+                <time
+                    dateTime={new Date(currentTimestampMs).toISOString()}
+                    className="ml-auto text-[10px] font-bold tabular-nums text-sky-200"
+                    aria-live="off"
+                >
+                    {timestampLabel}
+                </time>
             </div>
 
             {/* A seek control, not decoration.

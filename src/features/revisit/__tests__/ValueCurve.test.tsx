@@ -4,6 +4,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ValueCurve } from '../ui/ValueCurve';
+import { executiveEnvelopePoints } from '../analysis/executiveEnvelope';
 import { formatGap } from '../analysis/gapStatistics';
 import type { PayloadSweepResult } from '../analysis/payloadSweep';
 
@@ -71,6 +72,25 @@ const sweep: PayloadSweepResult = {
 };
 
 describe('ValueCurve current-selection coherence', () => {
+    it('builds a monotonic executive envelope without inventing results', () => {
+        const nonMonotonic: PayloadSweepResult = {
+            warnings: [],
+            points: [
+                { ...sweep.points[0], payloadCount: 4, maxGapMs: 4 * 3600_000 },
+                { ...sweep.points[0], payloadCount: 8, maxGapMs: 2 * 3600_000 },
+                { ...sweep.points[0], payloadCount: 12, maxGapMs: 3 * 3600_000 },
+                { ...sweep.points[1], payloadCount: 16, maxGapMs: 60 * 60_000 },
+            ],
+        };
+
+        const envelope = executiveEnvelopePoints(nonMonotonic);
+        expect(envelope.map((point) => point.payloadCount)).toEqual([4, 8, 16]);
+        expect(envelope.map((point) => point.maxGapMs)).toEqual([
+            4 * 3600_000, 2 * 3600_000, 60 * 60_000,
+        ]);
+        expect(envelope[1]).toBe(nonMonotonic.points[1]);
+    });
+
     it('does not describe a rejected sweep as measured output', async () => {
         await act(async () => root?.render(
             <ValueCurve
@@ -127,5 +147,28 @@ describe('ValueCurve current-selection coherence', () => {
 
         expect(container.textContent).toContain('Current configuration');
         expect(container.textContent).not.toContain('Current manual split');
+        expect(container.textContent).toContain('Minimum tested balanced configuration');
+        expect(container.textContent).toContain('Show exact topology points');
+    });
+
+    it('keeps exact topology measurements available on demand', async () => {
+        await act(async () => root?.render(
+            <ValueCurve
+                sweep={sweep}
+                isComputing={false}
+                requirementMs={2 * 3600_000}
+                currentPayloadCount={4}
+                currentMaxGapMs={2 * 3600_000}
+                currentIsMeasuredBest
+                targetName="London"
+                onSelectPayloadCount={() => undefined}
+            />
+        ));
+
+        const toggle = [...container.querySelectorAll('button')]
+            .find((button) => button.textContent?.includes('Show exact topology points'))!;
+        await act(async () => toggle.click());
+        expect(container.textContent).toContain('exact topology points');
+        expect(container.textContent).toContain('Show executive envelope');
     });
 });

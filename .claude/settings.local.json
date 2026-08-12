@@ -96,7 +96,25 @@
       "Bash(gh api *)",
       "Bash(git fetch *)",
       "Bash(git pull *)",
-      "Bash(rg -n \"97024a8|edc17e8|6e768a1|528e55b|9dfb5d2|a8c8e26\" docs/*.md)"
+      "Bash(rg -n \"97024a8|edc17e8|6e768a1|528e55b|9dfb5d2|a8c8e26\" docs/*.md)",
+      "Bash(python3 -c \"print\\(f'{7571 - 6378.137:.6f}'\\)\")",
+      "Bash(R28_REPORT=1 ./node_modules/.bin/vitest run src/features/revisit/__tests__/r28Delta.bench.test.ts)",
+      "Bash(git worktree *)",
+      "Bash(git ls-tree *)",
+      "Bash(git reset *)",
+      "Bash(sed -n '/=== HEADLINE KPI/,/=== FOOTPRINT/p' /tmp/r28_report.txt)",
+      "Bash(sed -n '/=== HEADLINE KPI/,/=== WHY/p' /tmp/r28_after.txt)",
+      "Bash(gh run *)",
+      "Bash(curl -sL -o /private/tmp/claude-501/-Users-falamargot-Developpement-capacity-analyser/6c2158f2-8e13-4271-ab38-5ad67c931230/scratchpad/gmat/gmat.dmg -w 'http=%{http_code} size=%{size_download}\\\\n' https://sourceforge.net/projects/gmat/files/GMAT/GMAT-R2026a/gmat-mac-x64-R2026a-signed.dmg/download)",
+      "Bash(codesign -dv --verbose=2 '/private/tmp/claude-501/-Users-falamargot-Developpement-capacity-analyser/6c2158f2-8e13-4271-ab38-5ad67c931230/scratchpad/gmat/mnt/GMAT R2026a/bin/GMAT-R2026a_Beta.app')",
+      "Bash(codesign -dv --verbose=2 /private/tmp/claude-501/-Users-falamargot-Developpement-capacity-analyser/6c2158f2-8e13-4271-ab38-5ad67c931230/scratchpad/gmat/gmat.dmg)",
+      "Bash(sed -n '/=== FLEET/,/=== WHY/p' /tmp/r28_report.txt)",
+      "Bash(sed -n '/=== BENCHMARK/,$p' /tmp/r28_report.txt)",
+      "Bash(sed -n '/=== HEADLINE KPI \\(default scenario/,/=== FLEET/p' /tmp/r28_report.txt)",
+      "Bash(sed -n '/=== WHY THIS REVISIT/,/=== BENCHMARK/p' /tmp/r28_report.txt)",
+      "Bash(awk '/^#+ *4\\\\./,/^#+ *5\\\\./' docs/REVISIT_ADR_001_Model_Decisions.md)",
+      "Bash(awk '/## 9\\\\./,0' docs/REVISIT_UX_INTEGRATION_REVIEW_2026-08-11.md)",
+      "Bash(grep -n \"^#\\\\{1,3\\\\} \" docs/IMPLEMENTATION_PLAN.md)"
     ]
   }
 }

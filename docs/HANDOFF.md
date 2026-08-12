@@ -2,6 +2,25 @@
 
 _Last updated 2026-08-12._
 
+## 2026-08-12 — REVISIT P0 demo corrective
+
+The P0 items from `REVISIT_REQUIREMENT_RECHECK_2026-08-12.md` are implemented:
+complete 634/576 fleet truth, measured executive envelope with exact topology
+drill-down, compact provenance, presenter/reset flow, and explicit time controls.
+No physics, worker protocol, session schema or numerical export changed.
+Clock publications are subscribed at the ribbon boundary rather than the app
+shell, avoiding unnecessary reconciliation of the globe and analysis tree.
+
+Verification is green across the complete unit suite, build/typecheck/lint,
+Advanced, accessibility, responsive and 18-reference visual gates. The existing
+20-transition lifecycle issue remains: Cesium may display a render error panel
+after repeated viewer teardown/recreation. Do not describe Programme 2 as fully
+validated until that separate viewer-lifecycle defect is closed.
+
+The dedicated P0 browser contract is green on desktop and mobile (9 passed,
+1 viewport-independent skip). Its five-cycle interaction check reports listener
+delta 0, timer delta 0 and exactly one Cesium canvas.
+
 ## Current project state
 
 REVISIT — the hosted-payload revisit mode — is implemented across four lots,

@@ -36,9 +36,29 @@ export const ModelProvenance: React.FC<ModelProvenanceProps> = ({
     reference, profile, fit, isRunning, error, onCalibrate, onAdoptFit,
 }) => {
     const matchesFit = Boolean(fit && fitMatchesReference(fit.spec, reference));
+    const summaryLabel = profile?.isAuthoritative
+        ? 'Validated model'
+        : profile
+            ? 'Illustrative model'
+            : 'Custom constellation';
+    const summaryTone = profile?.isAuthoritative ? 'text-lime-200' : 'text-amber-200';
+    const dotTone = profile?.isAuthoritative ? 'bg-lime-400' : 'bg-amber-400';
 
     return (
-        <div className={`${REVISIT_PANEL} px-3 py-2`}>
+        <details className={`${REVISIT_PANEL} group px-3 py-2`}>
+            <summary className="flex min-h-7 cursor-pointer list-none items-center justify-between gap-3 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300">
+                <span className="flex items-center gap-2">
+                    <span className={`h-2 w-2 rounded-full ${dotTone}`} aria-hidden="true" />
+                    <span className={`${REVISIT_LABEL} ${summaryTone}`}>{summaryLabel}</span>
+                </span>
+                <span className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-500 group-open:hidden">
+                    details
+                </span>
+                <span className="hidden text-[9px] font-bold uppercase tracking-[0.08em] text-slate-500 group-open:inline">
+                    close
+                </span>
+            </summary>
+            <div className="mt-2 border-t border-slate-700/50 pt-2">
             <span className={REVISIT_LABEL}>Model provenance</span>
             <ul className="mt-1 space-y-0.5 text-[10px] leading-4 text-slate-400">
                 {/*
@@ -97,7 +117,7 @@ export const ModelProvenance: React.FC<ModelProvenanceProps> = ({
                         )}
                     </li>
                 ) : (
-                    <li className="text-slate-600">Fit vs OneWeb TLE — not yet calibrated</li>
+                    <li className="text-slate-500">HLD reference profile · live-TLE fit optional</li>
                 )}
             </ul>
 
@@ -141,6 +161,7 @@ export const ModelProvenance: React.FC<ModelProvenanceProps> = ({
             >
                 {isRunning ? 'Fetching fleet…' : fit ? 'Re-calibrate' : 'Calibrate vs OneWeb'}
             </button>
-        </div>
+            </div>
+        </details>
     );
 };

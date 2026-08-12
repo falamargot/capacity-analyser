@@ -2,6 +2,20 @@
 
 _Last updated 2026-08-12._
 
+## REVISIT demonstration P0 — 2026-08-12
+
+The requirement recheck corrective is implemented without changing physics,
+worker protocols, persistence schemas or exports. The value curve defaults to
+the measured non-dominated envelope and retains the exact topology points on
+demand; the UI now states the full 576 active + 58 spare fleet truth and opens
+in a resettable presenter view with explicit UTC time controls.
+
+Performance containment is structural: the clock snapshot subscription lives
+at the coverage-ribbon boundary, so pause/speed publications do not rerender the
+Cesium globe or analysis tree. Five repeated Presenter/Explore and Pause/Play
+cycles produced listener delta 0 and timer delta 0 with one viewer. This does
+not clear the older 20-transition cross-mode teardown failure described below.
+
 ## UIX integration closure — 2026-08-12
 
 Programme 2 from `IMPLEMENTATION_PLAN.md` is implemented (U1–U16) but **not
@@ -307,3 +321,39 @@ qualifications stated rather than implied:
   the propagator, not the claim that any real fleet is this Walker.
 - Altitude is measured from 6371 km, which is not the aerospace convention. Now
   disclosed in the CSV header.
+# Review — REVISIT P0 demo corrective (2026-08-12)
+
+## Verdict
+
+The five P0 recommendations from the requirement recheck are implemented and
+the functional/UI contract is green on ordinary demonstration paths. The
+reported orbital results are unchanged: the executive curve is a pure filter of
+measured sweep points, not a new calculation, interpolation or smoothing.
+
+## Evidence
+
+- Full unit suite: 185 files passed, 2 skipped; 1,965 tests passed, 5 skipped.
+- Lint, TypeScript and production build: pass.
+- P0 E2E: desktop and 390×844 mobile pass.
+- Advanced scenario edits: 6/6 pass.
+- Axe: zero critical/serious issues in ENG, COMM and REVISIT, dark and light.
+- Responsive: desktop, short-wide, tablet and mobile pass; no horizontal
+  overflow and a usable globe stage.
+- Visual: 18 dark/light references from 390×844 to 2048×320 regenerated and pass.
+- Browser review: no overflow at 390×844, 1440×900 or 2048×320; semantic DOM
+  exposes fleet truth, presenter result, exact-curve disclosure and all time
+  controls.
+
+## Performance and memory assessment
+
+No orbital engine, worker or scene update cadence changed. The time controls
+reuse the existing timer-free `SimulationClock`; timestamp rendering reuses the
+CoverageRibbon rAF and its existing 500 ms React throttle. The executive
+envelope is O(number of ladder points), memoized, and retains references to the
+original sweep points instead of cloning them. Presenter mode removes scene
+toggle DOM while active and creates no second scene or data copy.
+
+The long-cycle integration gate remains independently red: repeated viewer
+reconstruction can trigger Cesium's render error overlay, after which the UI is
+blocked. This was already an open lifecycle issue before P0. It is not hidden by
+the otherwise green P0 acceptance result.

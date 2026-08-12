@@ -7,6 +7,12 @@ _Last updated 2026-08-12._
 **REVISIT engine complete and validated. Programme 2 implemented, NOT validated —
 the 20-transition lifecycle gate is RED.**
 
+The REVISIT demonstration P0 corrective is complete. Clock-state publications
+are isolated inside the coverage ribbon, so pause/speed changes do not reconcile
+the 576-satellite Cesium scene or the analysis tree. Five repeated
+Presenter/Explore and Pause/Play cycles leave active listener and timer counts
+unchanged; the separate cross-mode teardown gate below remains red.
+
 > **Blocking, 2026-08-12.** `e2e/mode-smoke.spec.ts` → "keeps one viewer and
 > bounded lifecycle counters across 20 transitions" currently FAILS with a
 > **listener delta of +534** against a budget of 50. The "+0" figure previously
@@ -64,6 +70,10 @@ containment for both modes, added 2026-08-12).
   constellation / hosted-payload / target rail is flush to the top and the
   named origin-aware Back control is the sole exit. The flow-based Cesium
   viewport and compact treatment are validated at 2048×320.
+- **REVISIT demonstration P0.** Complete fleet truth, executive Pareto envelope
+  with exact-topology drill-down, compact model provenance, presenter/reset flow
+  and explicit UTC clock controls. The P0 browser contract passes on desktop and
+  mobile (9 passed, 1 viewport-independent lifecycle check skipped on mobile).
 
 ---
 
@@ -135,3 +145,18 @@ The separate R12 foreground FPS measurement remains open and is documented in
 Note the "not trajectory-validated" qualifier in `ModelProvenance` stays: it
 qualifies the **OneWeb single-epoch fit**, which GMAT says nothing about. GMAT
 validated the propagator, and that is now a separate line.
+# REVISIT P0 demo corrective — 2026-08-12
+
+Implemented in the working tree. The requirement-facing contract is covered by
+`e2e/revisit-p0.spec.ts` on desktop and mobile, unit tests for the measured
+executive envelope and P0 components, the existing Advanced suite, Axe and the
+responsive matrix. Current gates: 1,965 unit tests pass (5 skipped), lint,
+typecheck and production build clean; 18 visual references regenerated and
+passing; Advanced 6/6; Axe 6/6; responsive 9/9.
+
+The pre-existing long-cycle lifecycle gate remains red. A repeated 20-transition
+run reached a Cesium `widget-errorPanel` after several viewer reconstructions;
+the overlay intercepted the return control and the test timed out. This P0 adds
+no timer and only one `SimulationClock` subscription through
+`useSyncExternalStore`, which is cleaned up by React, but the repository cannot
+yet claim the global mode-transition lifecycle gate is closed.

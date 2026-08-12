@@ -14,7 +14,9 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSimulationClock } from '../../../contexts/SimulationClockContext';
+import {
+    useSimulationClock, useSimulationClockSnapshot,
+} from '../../../contexts/SimulationClockContext';
 import { RevisitGlobe } from '../render/RevisitGlobe';
 import { useRevisitAnalysis } from '../hooks/useRevisitAnalysis';
 import { useRevisitSweep } from '../hooks/useRevisitSweep';
@@ -48,6 +50,7 @@ import { RevisitHeader } from './RevisitHeader';
 import { RevisitKpiPanel } from './RevisitKpiPanel';
 import { CoverageRibbon } from './CoverageRibbon';
 import { REVISIT_PANEL } from './revisitTheme';
+import { formatGap } from '../analysis/gapStatistics';
 import type { AppMode } from '../../../hooks/useAppModeState';
 import { GlobalAppHeader } from '../../../components/navigation/GlobalAppHeader';
 import {
@@ -70,10 +73,43 @@ type MobileAnalysisPanel = 'summary' | 'curve' | 'details' | 'advanced';
 
 const TOGGLES: Array<{ key: keyof DisplayOptions; label: string }> = [
     { key: 'showOrbits', label: 'Orbits' },
-    { key: 'showSwaths', label: 'Swath' },
-    { key: 'showHostFleet', label: 'Fleet' },
-    { key: 'autoRotate', label: 'Spin' },
+    { key: 'showSwaths', label: 'Sensor swath' },
+    { key: 'showHostFleet', label: 'Host fleet' },
+    { key: 'autoRotate', label: 'Auto-rotate globe' },
 ];
+
+type ClockedCoverageRibbonProps = Omit<
+    React.ComponentProps<typeof CoverageRibbon>,
+    'speed' | 'onSetSpeed'
+>;
+
+/**
+ * Keep clock publications below the expensive globe/application boundary.
+ * Pausing or changing speed must refresh the controls, but it must not make
+ * the 576-satellite Cesium scene and every analysis panel reconcile again.
+ */
+const ClockedCoverageRibbon: React.FC<ClockedCoverageRibbonProps> = (props) => {
+    const clock = useSimulationClock();
+    const snapshot = useSimulationClockSnapshot();
+    return (
+        <CoverageRibbon
+            {...props}
+            speed={snapshot.speed}
+            onSetSpeed={clock.setSpeed}
+        />
+    );
+};
+
+function defaultDisplayOptions(): DisplayOptions {
+    return {
+        showOrbits: true,
+        showSwaths: true,
+        showHostFleet: true,
+        autoRotate: typeof window === 'undefined'
+            ? true
+            : !window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    };
+}
 
 /**
  * A readable label for a picked coordinate: `51.51°N 0.13°W`.
@@ -98,8 +134,6 @@ interface RevisitAppProps {
     returnMode?: Exclude<AppMode, 'revisit'>;
 }
 
-const REVISIT_NOTICE_KEY = 'capacity-analyzer:revisit-independent-scenario-notice';
-
 export const RevisitApp: React.FC<RevisitAppProps> = ({
     onExit,
     returnMode = 'engineering',
@@ -110,15 +144,6 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     // the first render's result is kept, so useRef here would re-run the
     // sessionStorage read + deep clone on every re-render of this component.
     const [restoredSession] = useState(() => readRevisitSessionSnapshot());
-    const [showEntryNotice, setShowEntryNotice] = useState(() => (
-        typeof window !== 'undefined' && window.localStorage.getItem(REVISIT_NOTICE_KEY) !== 'dismissed'
-    ));
-
-    const dismissEntryNotice = useCallback(() => {
-        window.localStorage.setItem(REVISIT_NOTICE_KEY, 'dismissed');
-        setShowEntryNotice(false);
-    }, []);
-
     // The analysis window is anchored ONCE, at mount. The playhead moves within
     // it; scrubbing never moves the window and therefore never changes the
     // statistics. See useRevisitAnalysis for the full argument.
@@ -126,14 +151,11 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     const [scenario, setScenario] = useState<RevisitScenario>(
         () => restoredSession?.scenario ?? defaultScenario(epochRef.current)
     );
-    const [options, setOptions] = useState<DisplayOptions>(() => restoredSession?.options ?? ({
-        showOrbits: true,
-        showSwaths: true,
-        showHostFleet: true,
-        autoRotate: typeof window === 'undefined'
-            ? true
-            : !window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-    }));
+    const [options, setOptions] = useState<DisplayOptions>(
+        () => restoredSession?.options ?? defaultDisplayOptions()
+    );
+    const [presenterMode, setPresenterMode] = useState(true);
+    const [demoResetRevision, setDemoResetRevision] = useState(0);
     const [mobileAnalysisPanel, setMobileAnalysisPanel] = useState<MobileAnalysisPanel>('summary');
 
     const [requirementMs, setRequirementMs] = useState(restoredSession?.requirementMs ?? DEFAULT_REQUIREMENT_MS);
@@ -380,7 +402,24 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     );
 
     const getTimeMs = useCallback(() => clock.getTimeMs(), [clock]);
-    const handleSeek = useCallback((ms: number) => clock.setDateTime(ms), [clock]);
+    const handleSeek = useCallback((ms: number) => {
+        const previousSpeed = clock.getSnapshot().speed;
+        clock.setDateTime(ms);
+        if (previousSpeed !== 1) clock.setSpeed(previousSpeed);
+    }, [clock]);
+
+    const handleResetDemo = useCallback(() => {
+        const resetScenario = defaultScenario(epochRef.current);
+        setScenario(resetScenario);
+        setOptions(defaultDisplayOptions());
+        setRequirementMs(DEFAULT_REQUIREMENT_MS);
+        setSelectionSource('auto');
+        setMobileAnalysisPanel('summary');
+        setPresenterMode(true);
+        setDemoResetRevision((revision) => revision + 1);
+        areaRun.clear();
+        clock.setDateTime(resetScenario.window.startMs);
+    }, [areaRun, clock]);
 
     const toggle = useCallback((key: keyof DisplayOptions) => {
         setOptions((current) => ({ ...current, [key]: !current[key] }));
@@ -422,20 +461,18 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                 and silently overlapped the KPI panel. Flow layout cannot. */}
               <div className="pointer-events-none absolute inset-0 z-10 flex flex-col gap-2 p-2 sm:p-3">
                 <div className="pointer-events-auto flex items-center justify-end gap-3">
-                    {showEntryNotice && (
+                    {presenterMode && (
                         <aside
-                            className={`${REVISIT_PANEL} z-30 ml-auto flex max-w-[calc(100vw-1rem)] items-center gap-3 px-3 py-2 text-[11px] text-slate-300 sm:max-w-xl`}
-                            aria-label="About the REVISIT scenario"
+                            className={`${REVISIT_PANEL} z-30 ml-auto max-w-[calc(100vw-1rem)] px-3 py-2 text-[11px] font-semibold text-slate-300 sm:max-w-xl`}
+                            aria-label="Demo result summary"
+                            aria-live="polite"
                         >
-                            <span>Your telecom workspace is preserved, but its settings are not applied to this independent orbital scenario.</span>
-                            <button
-                                type="button"
-                                onClick={dismissEntryNotice}
-                                className="min-h-8 rounded-md border border-slate-600 px-2 text-[10px] font-bold uppercase tracking-wide text-slate-200 hover:border-amber-400/60 hover:text-amber-200"
-                                aria-label="Dismiss REVISIT scenario notice"
-                            >
-                                Got it
-                            </button>
+                            <span className="font-black text-amber-300">{currentPayloadCount} payloads</span>
+                            {' → '}
+                            <span className="text-slate-100">
+                                {formatGap(analysis?.statistics.maxGapMs ?? null)} worst-case over {scenario.target.name}
+                            </span>
+                            {' · target '}{formatGap(requirementMs)}
                         </aside>
                     )}
                 </div>
@@ -457,10 +494,32 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                                 onClick={onExit}
                                 className="revisit-origin-return min-h-11 rounded-md border border-slate-700/60 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-slate-400 transition-colors hover:text-slate-100 md:mb-0.5 md:min-h-0 md:border-x-0 md:border-t-0"
                             >
-                                ‹ Back to {returnMode === 'commercial' ? 'Commercial' : 'Engineering'}
+                                <span className="sm:hidden">‹ Back</span>
+                                <span className="hidden sm:inline">
+                                    ‹ Back to {returnMode === 'commercial' ? 'Commercial' : 'Engineering'}
+                                </span>
                             </button>
                         )}
-                        {TOGGLES.map(({ key, label }) => (
+                        <button
+                            type="button"
+                            onClick={() => setPresenterMode((active) => !active)}
+                            aria-pressed={presenterMode}
+                            className="min-h-11 rounded-md border border-sky-400/30 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-sky-200 transition-colors hover:border-sky-300 md:min-h-0"
+                        >
+                            <span className="sm:hidden">{presenterMode ? 'Explore' : 'Present'}</span>
+                            <span className="hidden sm:inline">
+                                {presenterMode ? 'Explore controls' : 'Presenter view'}
+                            </span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleResetDemo}
+                            className="min-h-11 rounded-md px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-slate-400 transition-colors hover:text-amber-200 md:min-h-0"
+                        >
+                            <span className="sm:hidden">Reset</span>
+                            <span className="hidden sm:inline">Reset demo</span>
+                        </button>
+                        {!presenterMode && TOGGLES.map(({ key, label }) => (
                             <button
                                 key={key}
                                 type="button"
@@ -541,6 +600,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                         </div>
                         <div className={`${mobileAnalysisPanel === 'curve' ? 'block' : 'hidden'} md:contents`}>
                             <ValueCurve
+                                key={demoResetRevision}
                                 sweep={sweep}
                                 isComputing={isSweeping}
                                 requirementMs={requirementMs}
@@ -605,7 +665,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                 </div>
 
                 <div className="pointer-events-auto">
-                    <CoverageRibbon
+                    <ClockedCoverageRibbon
                         intervals={analysis?.intervals ?? []}
                         statistics={analysis?.statistics ?? null}
                         windowStartMs={scenario.window.startMs}

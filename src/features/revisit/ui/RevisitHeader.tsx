@@ -64,6 +64,10 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
 }) => {
     const { reference, target } = scenario;
     const sliderIndex = Math.max(0, payloadCounts.indexOf(currentPayloadCount));
+    const activeSatelliteCount = reference.planes * reference.satsPerPlane;
+    const spareSatelliteCount = (reference.sparesPerPlane ?? [])
+        .reduce((sum, count) => sum + count, 0);
+    const totalSatelliteCount = activeSatelliteCount + spareSatelliteCount;
 
     return (
         <div
@@ -79,7 +83,9 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                 </div>
                 <div className="revisit-context-detail text-[11px] text-slate-400">
                     {reference.inclinationDeg}° · {reference.altitudeKm} km ·{' '}
-                    {reference.planes * reference.satsPerPlane} sats
+                    {spareSatelliteCount > 0
+                        ? `${activeSatelliteCount} active + ${spareSatelliteCount} spare · ${totalSatelliteCount} total`
+                        : `${activeSatelliteCount} active`}
                 </div>
             </Panel>
 
