@@ -21,9 +21,11 @@ interface RevisitKpiPanelProps {
     /** Customer requirement, ms. The verdict badge compares against it. */
     requirementMs: number | null;
     isComputing: boolean;
-    /** Selectable requirements, in hours. Omit to render the requirement read-only. */
-    requirementChoicesHours?: number[];
-    onRequirementChange?: (ms: number) => void;
+    comparison?: {
+        baselineMaxGapMs: number | null;
+        currentPayloadCount: number;
+        targetPayloadCount: number | null;
+    };
 }
 
 function Metric({ label, value, tone = 'secondary' }: {
@@ -47,8 +49,7 @@ function Metric({ label, value, tone = 'secondary' }: {
 }
 
 export const RevisitKpiPanel: React.FC<RevisitKpiPanelProps> = ({
-    statistics, windowHours, requirementMs, isComputing,
-    requirementChoicesHours, onRequirementChange,
+    statistics, windowHours, requirementMs, isComputing, comparison,
 }) => {
     const maxGapMs = statistics?.maxGapMs ?? null;
     const meets = requirementMs !== null && maxGapMs !== null && maxGapMs <= requirementMs;
@@ -78,12 +79,12 @@ export const RevisitKpiPanel: React.FC<RevisitKpiPanelProps> = ({
         };
     } else if (meets) {
         verdict = {
-            text: `MEETS ${formatGap(requirementMs).toUpperCase()} TARGET`,
+            text: `MEETS ${formatGap(requirementMs).toUpperCase()} REQUIREMENT`,
             className: 'border-lime-400/40 bg-lime-500/15 text-lime-200',
         };
     } else {
         verdict = {
-            text: `MISSES ${formatGap(requirementMs).toUpperCase()} TARGET`,
+            text: `MISSES ${formatGap(requirementMs).toUpperCase()} REQUIREMENT`,
             className: 'border-red-400/40 bg-red-500/15 text-red-200',
         };
     }
@@ -91,6 +92,14 @@ export const RevisitKpiPanel: React.FC<RevisitKpiPanelProps> = ({
     const passesPerDay = statistics
         ? (statistics.accessCount / Math.max(windowHours / 24, 1e-9)).toFixed(1)
         : '—';
+    const gainVsOne = maxGapMs !== null
+        && comparison?.baselineMaxGapMs != null
+        && comparison.baselineMaxGapMs > 0
+        ? Math.max(0, 1 - maxGapMs / comparison.baselineMaxGapMs)
+        : null;
+    const additionalPayloads = comparison?.targetPayloadCount == null
+        ? null
+        : Math.max(0, comparison.targetPayloadCount - comparison.currentPayloadCount);
 
     return (
         <div className={`${REVISIT_PANEL} revisit-kpi-panel px-4 py-3 ${isComputing ? 'opacity-60' : ''}`}>
@@ -121,20 +130,28 @@ export const RevisitKpiPanel: React.FC<RevisitKpiPanelProps> = ({
                 {isComputing && ' · recomputing…'}
             </p>
 
-            {requirementChoicesHours && onRequirementChange && (
-                <label className="revisit-kpi-requirement mt-2 flex items-center gap-2 border-t border-slate-700/50 pt-2">
-                    <span className={REVISIT_LABEL}>Requirement</span>
-                    <select
-                        className="rounded border border-slate-700 bg-slate-900/80 px-1.5 py-0.5 text-[11px] font-bold text-slate-200 outline-none"
-                        value={requirementMs ?? ''}
-                        onChange={(e) => onRequirementChange(Number(e.target.value))}
-                    >
-                        {requirementChoicesHours.map((h) => (
-                            <option key={h} value={h * 3600_000}>{formatGap(h * 3600_000)}</option>
-                        ))}
-                    </select>
-                </label>
+            {comparison && (
+                <div
+                    className="mt-2 flex flex-wrap gap-x-3 gap-y-1 border-t border-slate-700/50 pt-2 text-[10px] leading-4 text-slate-400"
+                    aria-label="Business comparison"
+                >
+                    <span>
+                        <strong className="text-slate-200">Vs 1 payload:</strong>{' '}
+                        {gainVsOne === null
+                            ? 'awaiting measured 1-payload baseline'
+                            : `${Math.round(gainVsOne * 100)}% shorter worst-case`}
+                    </span>
+                    <span>
+                        <strong className="text-slate-200">To target:</strong>{' '}
+                        {additionalPayloads === null
+                            ? 'not reached in tested configurations'
+                            : additionalPayloads === 0
+                                ? 'current configuration meets it'
+                                : `+${additionalPayloads} payloads`}
+                    </span>
+                </div>
             )}
+
         </div>
     );
 };

@@ -253,3 +253,91 @@ export function computeAccessIntervals(
         warnings: validation.warnings,
     };
 }
+
+/**
+ * Compute a small target set while propagating every satellite only once per
+ * coarse sample. Three independent runs repeat the dominant Kepler/J2 work
+ * three times; this keeps identical containment and bisection semantics while
+ * bounding the public comparison workflow to `targets.length <= 3`.
+ */
+export function computeAccessIntervalsForTargets(
+    elements: OrbitalElements[],
+    targets: Target[],
+    fovSpec: FovSpec,
+    window: AnalysisWindow,
+): AccessComputation[] {
+    if (targets.length === 0) return [];
+    if (targets.length > 3) throw new Error('Target comparison supports at most 3 targets');
+    const validation = validateWindow(window);
+    if (!validation.ok) {
+        throw new Error(`Invalid AnalysisWindow: ${validation.errors.join('; ')}`);
+    }
+    const fov = prepareFov(fovSpec);
+    const propagators = preparePropagators(elements);
+    const perTarget: SatelliteAccess[][] = targets.map(() => []);
+    const epochMs = window.startMs;
+    const durationSec = window.durationHours * 3600;
+    const step = window.stepSeconds;
+    const stepCount = Math.ceil(durationSec / step);
+
+    for (const sat of propagators) {
+        const scratch: EciState = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0 };
+        const intervals = targets.map(() => [] as SatelliteAccess['intervals']);
+        propagateState(sat, 0, scratch);
+        const previous = targets.map((target) => (
+            isTargetInFov(scratch, targetEciAt(target, epochMs, 0), fov)
+        ));
+        const openStarts = previous.map((inView) => inView ? 0 : NaN);
+        const clippedStarts = [...previous];
+        let previousT = 0;
+
+        for (let index = 1; index <= stepCount; index += 1) {
+            const t = Math.min(index * step, durationSec);
+            propagateState(sat, t, scratch);
+            for (let targetIndex = 0; targetIndex < targets.length; targetIndex += 1) {
+                const inView = isTargetInFov(
+                    scratch, targetEciAt(targets[targetIndex], epochMs, t), fov
+                );
+                if (inView !== previous[targetIndex]) {
+                    const crossing = bisectTransition(
+                        sat, fov, targets[targetIndex], epochMs,
+                        previousT, t, previous[targetIndex], scratch,
+                    );
+                    if (inView) {
+                        openStarts[targetIndex] = crossing;
+                        clippedStarts[targetIndex] = false;
+                    } else {
+                        intervals[targetIndex].push({
+                            startMs: epochMs + openStarts[targetIndex] * 1000,
+                            endMs: epochMs + crossing * 1000,
+                            clippedAtStart: clippedStarts[targetIndex],
+                            clippedAtEnd: false,
+                        });
+                        openStarts[targetIndex] = NaN;
+                    }
+                }
+                previous[targetIndex] = inView;
+            }
+            previousT = t;
+            if (t >= durationSec) break;
+        }
+
+        for (let targetIndex = 0; targetIndex < targets.length; targetIndex += 1) {
+            if (previous[targetIndex] && Number.isFinite(openStarts[targetIndex])) {
+                intervals[targetIndex].push({
+                    startMs: epochMs + openStarts[targetIndex] * 1000,
+                    endMs: epochMs + durationSec * 1000,
+                    clippedAtStart: clippedStarts[targetIndex],
+                    clippedAtEnd: true,
+                });
+            }
+            perTarget[targetIndex].push({ satelliteId: sat.id, intervals: intervals[targetIndex] });
+        }
+    }
+
+    return perTarget.map((perSatellite) => ({
+        intervals: unionAccessIntervals(perSatellite),
+        perSatellite,
+        warnings: validation.warnings,
+    }));
+}

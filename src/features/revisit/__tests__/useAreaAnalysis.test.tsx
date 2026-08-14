@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SimulationClockProvider } from '../../../contexts/SimulationClockContext';
 import { createSimulationClock } from '../../../time/SimulationClock';
 import { useAreaAnalysis, type UseAreaAnalysisResult } from '../hooks/useAreaAnalysis';
-import { areaForPreset, AREA_PRESETS } from '../domain/areaPresets';
+import { boxArea } from '../domain/areaTarget';
 import { defaultScenario } from '../domain/presets';
 import type { RevisitScenario } from '../domain/types';
 
@@ -60,7 +60,7 @@ describe('useAreaAnalysis cancellation', () => {
     it('terminates obsolete work on scenario change, clear and unmount', async () => {
         const scenario = defaultScenario(Date.UTC(2026, 7, 6));
         const clock = createSimulationClock({ now: () => scenario.window.startMs });
-        const area = areaForPreset(AREA_PRESETS[0], scenario.reference, scenario.payload);
+        const area = boxArea('Test area', 51, -2, 61, 9, 2);
         const render = async (value: RevisitScenario) => act(async () => root?.render(
             <SimulationClockProvider clock={clock}>
                 <Harness scenario={value} />

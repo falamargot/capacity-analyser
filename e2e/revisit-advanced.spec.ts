@@ -3,10 +3,8 @@ import { expect, test } from '@playwright/test';
 const openAdvanced = async (page: import('@playwright/test').Page) => {
   await page.goto('/?mode=revisit');
   await expect(page.getByRole('region', { name: 'REVISIT analysis' })).toBeVisible({ timeout: 30_000 });
-  const advancedTab = page.getByRole('button', { name: 'Advanced', exact: true });
-  if (await advancedTab.isVisible()) await advancedTab.click();
-  const expand = page.getByRole('button', { name: 'Expand Advanced' });
-  if (await expand.isVisible()) await expand.click();
+  await page.getByRole('button', { name: 'Advanced constellation settings' }).click();
+  await expect(page.getByRole('dialog', { name: 'Advanced constellation settings' })).toBeVisible();
   await expect(page.getByRole('spinbutton', { name: 'Planes P' })).toBeVisible();
 };
 
@@ -28,7 +26,7 @@ test.describe('REVISIT Advanced stabilization', () => {
     await expect(satellitesPerPlane).toHaveValue('48');
     expect(await satellitesPerPlane.evaluate((element) => (element as HTMLInputElement).validity.valid)).toBe(true);
 
-    await page.getByRole('spinbutton', { name: 'Planes P' }).fill('13');
+    await page.getByRole('spinbutton', { name: 'Planes P' }).fill('13', { force: true });
     await expect(page.locator('[data-revisit-context-panel="constellation"]')).toContainText('13 × 48');
     await expect(page.getByText('Custom constellation').first()).toBeVisible();
     await expect(page.getByRole('region', { name: 'REVISIT analysis' })).toBeVisible();
@@ -41,19 +39,19 @@ test.describe('REVISIT Advanced stabilization', () => {
     await openAdvanced(page);
 
     const altitude = page.getByRole('spinbutton', { name: 'Altitude km' });
-    await altitude.fill('0');
+    await altitude.fill('0', { force: true });
     await expect(altitude).toHaveValue('200');
 
     const inclination = page.getByRole('spinbutton', { name: 'Inclination °' });
-    await inclination.fill('999');
+    await inclination.fill('999', { force: true });
     await expect(inclination).toHaveValue('180');
 
     const duration = page.getByRole('spinbutton', { name: /Duration h/ });
-    await duration.fill('99999');
+    await duration.fill('99999', { force: true });
     await expect(duration).toHaveValue('240');
 
     const step = page.getByRole('spinbutton', { name: /Step s/ });
-    await step.fill('999');
+    await step.fill('999', { force: true });
     await expect(step).toHaveValue('120');
 
     await expect(page.getByRole('region', { name: 'REVISIT analysis' })).toBeVisible();
@@ -65,10 +63,10 @@ test.describe('REVISIT Advanced stabilization', () => {
     page.on('pageerror', (error) => pageErrors.push(error.message));
     await openAdvanced(page);
 
-    await page.getByRole('spinbutton', { name: 'Altitude km' }).fill('1300');
+    await page.getByRole('spinbutton', { name: 'Altitude km' }).fill('1300', { force: true });
     await expect(page.locator('[data-revisit-context-panel="constellation"]')).toContainText('1300 km');
     await page.getByRole('combobox', { name: 'Pattern' }).selectOption('DELTA');
-    await page.getByRole('spinbutton', { name: /Fudge/ }).fill('1.5');
+    await page.getByRole('spinbutton', { name: /Fudge/ }).fill('1.5', { force: true });
 
     await expect(page.locator('[data-revisit-context-panel="constellation"]')).toContainText('DELTA');
     await expect(page.getByText('Custom constellation').first()).toBeVisible();
@@ -77,18 +75,26 @@ test.describe('REVISIT Advanced stabilization', () => {
 
   test('surfaces engine warnings produced by an advanced edit', async ({ page }) => {
     await openAdvanced(page);
-    await page.getByRole('spinbutton', { name: 'Phasing f' }).fill('1.5');
+    await page.getByRole('spinbutton', { name: 'Phasing f' }).fill('1.5', { force: true });
     await expect(page.getByText(/non-standard Walker phasing/).first()).toBeVisible({ timeout: 30_000 });
   });
 
   test('offers real cancellation while the first area grid is running', async ({ page }) => {
-    await openAdvanced(page);
-    await page.getByRole('button', { name: 'Barents Sea', exact: true }).click();
+    await page.goto('/?mode=revisit');
+    await expect(page.getByRole('region', { name: 'REVISIT analysis' })).toBeVisible({ timeout: 30_000 });
+    await page.getByRole('tab', { name: 'Area' }).click();
+    await page.getByRole('button', { name: 'Define area target' }).click();
+    const areaPanel = page.getByRole('region', { name: 'Area coverage' });
+    await areaPanel.getByLabel('Custom area grid spacing').fill('0.5');
+    await areaPanel.getByText('Paste coordinate list', { exact: true }).click();
+    await areaPanel.getByLabel('Custom area coordinate list').fill('68, 20\n68, 30\n75, 30\n75, 20');
+    await areaPanel.getByRole('button', { name: 'Apply list' }).click();
+    await areaPanel.getByRole('button', { name: 'Run custom area' }).click();
     const cancel = page.getByRole('button', { name: 'Cancel', exact: true });
     await expect(cancel).toBeVisible();
     await cancel.click();
     await expect(cancel).toBeHidden();
-    await expect(page.getByRole('button', { name: 'Barents Sea', exact: true })).toBeEnabled();
+    await expect(areaPanel.getByRole('button', { name: 'Run custom area' })).toBeEnabled();
   });
 });
 

@@ -1543,10 +1543,6 @@ h1, h2, h3, h4 {
     margin-top: 0;
   }
 
-  .revisit-model-provenance {
-    display: none !important;
-  }
-
   .revisit-stage [aria-label='REVISIT analysis'] {
     max-height: 100%;
     overflow-y: auto;
@@ -1568,8 +1564,7 @@ h1, h2, h3, h4 {
     display: none;
   }
 
-  .revisit-kpi-qualification,
-  .revisit-kpi-requirement {
+  .revisit-kpi-qualification {
     display: none;
   }
 

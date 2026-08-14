@@ -79,6 +79,8 @@ calibration/  fitWalker   (plain numbers only — no satrec crosses the boundary
 | 12 | R28: WGS84 equatorial altitude datum + authoritative ellipsoid geometry | Done — merged on `main` |
 | 13 | Ω̇ residual up to 0.3 % vs GMAT (R29) | Open — accepted, bounded |
 | 14 | OneWeb HLD reference profile: 576 active + 58 spares, plane altitude ladder | Done — `ONEWEB_HLD_V1` is the default on `main` |
+| 15 | Requirement recheck P0 demonstration corrective | Done |
+| 16 | Requirement recheck P1 configurability and demo narrative | Done — bounded labels and staged geometry |
 
 ---
 
@@ -178,7 +180,7 @@ Do not relitigate these; each was weighed against ADR-001 and the measured code.
 | U14 | D | Transition instrumentation and performance budgets, reusing the existing dev memory monitor (`window.__memStats`) rather than new instrumentation | Done |
 | U15 | D | Crash containment for both modes via a shared `CrashBoundary` — `RevisitErrorBoundary` (wraps `RevisitApp`) and `TelecomErrorBoundary` (wraps `App`), both clearing the offending session snapshot on any exit path | Done — added 2026-08-12; the telecom boundary's exit path did not in fact purge until the 2026-08-12 review fix, so the "any exit path" claim only became true then. Covered by `src/components/errors/__tests__/errorBoundaryExit.test.tsx` |
 | U16 | — | Review fix: `fitMatchesReference` compared four of the eight parameters `fitWalker` estimates, so editing `pattern`, `phasingF`, `fudge` or `raan0Deg` left a stale fit's residuals presented as applicable in `ModelProvenance` and the CSV provenance header. All eight are now compared — exact for the discrete ones, circular tolerance for Ω₀, and `fudge` judged by the plane displacement it causes | Done — 2026-08-12 |
-| U17 | — | **Open, blocking:** listener delta +534 over 20 mode transitions (budget 50). Programme 2 is not validated until this closes | Open |
+| U17 | — | Correct lifecycle instrumentation with weak observations, detached-node filtering and listener-type diagnostics; close the 20-transition gate | Done — 2026-08-13 |
 
 ## Risks specific to this programme
 
@@ -235,13 +237,9 @@ Do not relitigate these; each was weighed against ADR-001 and the measured code.
   down to the 2048×320 regression case.
 - Accessibility: Axe WCAG 2 A/AA + 2.1 A/AA reports no critical or serious
   violation in ENG, COMM or REVISIT, in dark and light themes.
-- Lifecycle/performance: **gate RED.** 20 real mode transitions keep exactly one
-  Cesium canvas and one clock authority throughout, maximum recorded shell
-  transition 353 ms, timer delta 0 and heap delta 0 MB after exposed GC — but
-  the **listener delta is +534 against a budget of 50**. The "delta 0" recorded
-  here previously was stale and never re-measured. `REVIEW_REPORT.md` holds the
-  authoritative account; `IMPLEMENTATION_STATUS.md` carries it as the blocking
-  known issue.
+- Lifecycle/performance: **gate GREEN.** 20 transitions keep one canvas and one
+  clock authority; max 572 ms, listener delta −46, timer delta 0 and heap
+  delta 0 MB after exposed GC.
 - Browser inspection: desktop and 390×844 light/dark layouts inspected in the
   foreground; no horizontal overflow and mobile controls meet the 44 px floor.
 # Programme 3 — REVISIT P0 demo perception corrective
@@ -258,3 +256,27 @@ _Added and implemented 2026-08-12 from `REVISIT_REQUIREMENT_RECHECK_2026-08-12.m
 
 Constraints held: no change to orbital physics, access computation, workers,
 scenario schema or CSV numerical output; no new timer; no new Cesium viewer.
+
+# Programme 4 — REVISIT P2a product workflow
+
+_Added and implemented 2026-08-13._
+
+| Item | Result | Status |
+|---|---|---|
+| P2a.1 Lifecycle | Correct live-listener semantics and green 20-transition gate | Done |
+| P2a.2 Named scenarios | 12 browser-local snapshots, load/delete and versioned JSON share/import | Done |
+| P2a.3 Result sheet | One-page PDF with worst-case KPI, reproducibility inputs and explicit caveats | Done |
+| P2a.4 Target comparison | Lazy London/Longyearbyen/Singapore table; shared propagation, one Worker on demand | Done |
+
+# Programme 5 — REVISIT P2b area and analysis contexts
+
+_Added and implemented 2026-08-13._
+
+| Item | Result | Status |
+|---|---|---|
+| P2b-A custom area | Draw/import/paste a validated bounded polygon and run the existing opt-in area worker | Done |
+| P2b-B1 context model | Persistent `Points` / `Area` contexts without destructive switching | Done |
+| P2b-B1 multi-point input | One reference point by plain click plus up to two comparison points by Shift-click or explicit add | Done |
+| P2b-B1 scope qualification | Header, result context and timeline state whether values concern the reference point or area | Done |
+| P2b-B2 result layout | Context-specific sidebar, workspace submenu, point lanes and area-adapted timeline | Done |
+| P2b-B3 interface relief | Dedicated Scenario Workspace drawer, complete model persistence, context-aware PDF and demo paths | Done |

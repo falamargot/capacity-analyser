@@ -31,8 +31,9 @@
 
 import { useEffect, useRef } from 'react';
 import {
-    Cartesian3, Color, Math as CesiumMath, NearFarScalar, PointPrimitiveCollection,
-    PolylineCollection, Material, type Viewer,
+    Cartesian2, Cartesian3, Color, DistanceDisplayCondition, LabelCollection, LabelStyle,
+    Math as CesiumMath, NearFarScalar, PointPrimitiveCollection, PolylineCollection,
+    Material, VerticalOrigin, type Viewer,
 } from 'cesium';
 import { EARTH_RADIUS_KM } from '../../../utils/earthGeometry';
 import type { OrbitalElements, RevisitScenario } from '../domain/types';
@@ -56,6 +57,14 @@ const POSITION_UPDATE_HZ = 20;
  * cadence was the single largest allocator in the scene and bought nothing.
  */
 const ORBIT_UPDATE_HZ = 2;
+/** Labels are annotations, not motion evidence; 2 Hz is visually sufficient. */
+const LABEL_UPDATE_HZ = 2;
+/**
+ * Labels are for identifying the highlighted payload topology, not for turning
+ * the 634-host scene into an unreadable text cloud. The cap also bounds Cesium's
+ * glyph/vertex buffers when the executive slider reaches the full fleet.
+ */
+export const MAX_SATELLITE_LABELS = 96;
 /** Vertices per orbit ring. 128 is smooth at any zoom and costs nothing. */
 const ORBIT_SAMPLES = 128;
 /** Boundary vertices per swath. */
@@ -65,12 +74,51 @@ export interface RevisitSceneOptions {
     showOrbits: boolean;
     showSwaths: boolean;
     showHostFleet: boolean;
+    showLabels: boolean;
 }
 
 interface SceneHandles {
     points: PointPrimitiveCollection;
+    labels: LabelCollection;
     orbits: PolylineCollection;
     swaths: PolylineCollection;
+}
+
+/**
+ * (Re)builds the satellite label collection from scratch. Cesium rasterises
+ * each label's glyphs into a shared canvas atlas, which is materially more
+ * expensive than a point primitive — never called while labels are hidden.
+ */
+function populateSatelliteLabels(
+    handles: SceneHandles,
+    fleet: OrbitalElements[],
+    selectedIds: Set<string>,
+    payloadColor: Color,
+    spaceOutline: Color,
+    labelBackgroundColor: Color,
+): void {
+    handles.labels.removeAll();
+    for (const el of fleet) {
+        if (!selectedIds.has(el.id)) continue;
+        if (handles.labels.length >= MAX_SATELLITE_LABELS) break;
+        handles.labels.add({
+            show: true,
+            position: Cartesian3.ZERO,
+            text: el.id,
+            font: 'bold 11px sans-serif',
+            style: LabelStyle.FILL_AND_OUTLINE,
+            fillColor: payloadColor,
+            outlineColor: spaceOutline,
+            outlineWidth: 3,
+            showBackground: true,
+            backgroundColor: labelBackgroundColor,
+            backgroundPadding: new Cartesian2(3, 2),
+            pixelOffset: new Cartesian2(0, -14),
+            verticalOrigin: VerticalOrigin.BOTTOM,
+            scaleByDistance: new NearFarScalar(1.0e6, 1, 3.0e7, 0.7),
+            distanceDisplayCondition: new DistanceDisplayCondition(0, 3.0e7),
+        });
+    }
 }
 
 /** ECEF position of a satellite at `tSeconds` after epoch, in metres for Cesium. */
@@ -109,9 +157,10 @@ export function useRevisitScene(
         if (!viewer || viewer.isDestroyed?.()) return;
 
         const points = viewer.scene.primitives.add(new PointPrimitiveCollection());
+        const labels = viewer.scene.primitives.add(new LabelCollection());
         const orbits = viewer.scene.primitives.add(new PolylineCollection());
         const swaths = viewer.scene.primitives.add(new PolylineCollection());
-        handlesRef.current = { points, orbits, swaths };
+        handlesRef.current = { points, labels, orbits, swaths };
 
         return () => {
             handlesRef.current = null;
@@ -119,6 +168,7 @@ export function useRevisitScene(
             // `remove` destroys the primitive, which releases its GPU buffers.
             // Leaking these is how the 109 MB retention bug happened before.
             viewer.scene.primitives.remove(points);
+            viewer.scene.primitives.remove(labels);
             viewer.scene.primitives.remove(orbits);
             viewer.scene.primitives.remove(swaths);
         };
@@ -132,6 +182,7 @@ export function useRevisitScene(
         const hostColor = Color.fromCssColorString(REVISIT_COLORS.hostFleet).withAlpha(0.72);
         const payloadColor = Color.fromCssColorString(REVISIT_COLORS.bright);
         const spaceOutline = Color.fromCssColorString('#05070D').withAlpha(0.9);
+        const labelBackgroundColor = Color.fromCssColorString('#05070D').withAlpha(0.72);
 
         handles.points.removeAll();
         for (const el of fleet) {
@@ -149,8 +200,41 @@ export function useRevisitScene(
             // framing without moving a point away from its propagated position.
             point.scaleByDistance = new NearFarScalar(1.0e6, 1.18, 3.0e7, 1.0);
         }
+        // Labels are rasterised into a glyph atlas, materially more expensive
+        // than a point — never built while hidden. The toggle effect below
+        // populates them on demand if the fleet/selection changed while off.
+        if (stateRef.current.options.showLabels) {
+            populateSatelliteLabels(handles, fleet, selectedIds, payloadColor, spaceOutline, labelBackgroundColor);
+        } else {
+            handles.labels.removeAll();
+        }
         viewer.scene.requestRender();
     }, [viewer, fleet, selectedIds, options.showHostFleet]);
+
+    // Visibility is a cheap property update. Keep the bounded label collection
+    // alive across toggles so Cesium's glyph atlas and event plumbing are not
+    // repeatedly destroyed and rebuilt. If the fleet/selection changed while
+    // labels were off, the collection above will be empty — populate it now
+    // rather than waiting for the next fleet change.
+    useEffect(() => {
+        const handles = handlesRef.current;
+        if (!viewer || viewer.isDestroyed?.() || !handles) return;
+        if (options.showLabels && handles.labels.length === 0) {
+            const payloadColor = Color.fromCssColorString(REVISIT_COLORS.bright);
+            const spaceOutline = Color.fromCssColorString('#05070D').withAlpha(0.9);
+            const labelBackgroundColor = Color.fromCssColorString('#05070D').withAlpha(0.72);
+            populateSatelliteLabels(
+                handles, stateRef.current.fleet, stateRef.current.selectedIds,
+                payloadColor, spaceOutline, labelBackgroundColor,
+            );
+        } else {
+            for (let index = 0; index < handles.labels.length; index += 1) {
+                const label = handles.labels.get(index);
+                if (label) label.show = options.showLabels;
+            }
+        }
+        viewer.scene.requestRender();
+    }, [viewer, options.showLabels]);
 
     // ── The update pass ────────────────────────────────────────────────────
     useEffect(() => {
@@ -159,6 +243,7 @@ export function useRevisitScene(
         let frame = 0;
         let lastUpdateMs = 0;
         let lastOrbitMs = 0;
+        let lastLabelMs = 0;
         const scratch = new Cartesian3();
         let propagators: PropagatorState[] = [];
         /**
@@ -199,17 +284,25 @@ export function useRevisitScene(
 
             const epochMs = sc.window.startMs;
             const tSeconds = (readTime() - epochMs) / 1000;
+            const updateLabels = opt.showLabels
+                && now - lastLabelMs >= 1000 / LABEL_UPDATE_HZ;
+            if (updateLabels) lastLabelMs = now;
 
             // Satellites. `PointPrimitive.position` copies what it is given, so
             // the scratch vector can be handed straight over — cloning first
             // allocated one Cartesian3 per satellite per tick for nothing.
             let index = 0;
+            let labelIndex = 0;
             for (let i = 0; i < fl.length; i++) {
                 const isPayload = sel.has(fl[i].id);
                 if (!isPayload && !opt.showHostFleet) continue;
                 const point = handles.points.get(index++);
                 if (!point) break;
                 point.position = ecefPosition(propagators[i], epochMs, tSeconds, scratch);
+                if (updateLabels && isPayload && labelIndex < handles.labels.length) {
+                    const label = handles.labels.get(labelIndex++);
+                    if (label) label.position = scratch;
+                }
             }
 
             // Rings move slowly; refresh them on their own, much slower clock.

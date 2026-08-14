@@ -1,6 +1,177 @@
 # Handoff
 
-_Last updated 2026-08-12._
+_Last updated 2026-08-14._
+
+## 2026-08-14 — Code-review fix batch (P2b/P1 diff)
+
+`/code-review` (8 parallel finder agents) on the P2b/P1 diff surfaced 14
+verified findings; all 14 fixed, tests/typecheck/build green.
+
+**Correctness (6):**
+- `recommendedAreaGridSpacing` had no area-size-aware growth loop (the retired
+  preset system's `areaForPreset` did), so a GeoJSON/coordinate-list import of
+  a large region could default straight into "exceeds 400-cell limit" with no
+  working spacing suggested. Added `recommendedAreaGridSpacingForBoundary`
+  (grows spacing until the actual boundary's cell count fits), used by both
+  import paths in `AreaPanel.tsx`.
+- `RevisitGlobe.tsx`'s `belongsToVisibleAnalysis` compared areas by mutable
+  `name` (every fresh draft defaults to "Custom area"), risking a stale heat
+  map rendering as if it belonged to a new, unrun draft. `AreaTarget` gained an
+  optional `id` (stable per draft/run, backfilled on restore of pre-`id`
+  sessions in `revisitSessionSnapshot.ts`); the globe now compares by `id`.
+- `downloadResultSheet.ts` (new REVISIT PDF export) wrote target/scenario text
+  straight into jsPDF without the `toPdfSafeText` transliteration the existing
+  `pdfExport.ts` uses everywhere else — non-ASCII target names (geocoded
+  search results) would render as mojibake. Fixed, and `toPdfSafeText` was
+  extracted to a dependency-free `pdfSafeText.ts` so the fix doesn't drag
+  `pdfExport.ts`'s `jspdf`-heavy module into an eagerly-loaded chunk (confirmed
+  via a `vite build` bundle-splitting regression this surfaced and fixed).
+- `handleAddComparisonPoint` (RevisitApp.tsx) generated a UUID and called
+  `setSelectedPointId` as side effects inside a `setComparisonPoints` updater
+  — impure, and StrictMode double-invokes updaters in dev. Refactored so id
+  generation and selection happen outside the updater.
+- `TargetComparisonTable.tsx` keyed rows by `target.name`, which collides if a
+  comparison point shares a name with the reference or another point. Keyed by
+  index instead (rows are replaced wholesale each computation, index-stable).
+- `areaImport.ts`'s `parseAreaCoordinateList` "paste at least three lines"
+  guard only fired for 0 lines, not 1–2 — the message promised a check it
+  didn't perform. Fixed to `< 3`.
+
+**Efficiency (2):** satellite labels in `useRevisitScene.ts` were rasterized
+into Cesium's glyph atlas on every fleet/selection change even while hidden
+(now skipped while `showLabels` is off, populated lazily on toggle-on). The
+area-draft polygon preview in `RevisitGlobe.tsx` tore down and rebuilt its
+whole `PointPrimitiveCollection` on every vertex click while drawing; the
+collection is now persisted and repopulated across edits to the same draft
+(matched by the new `id`), only recreated on a genuinely different draft.
+
+**Duplication (4):** lat/lon range validation (three independent copies) →
+`isValidLatDeg`/`isValidLonDeg`/`isValidLatLonDeg` in `areaTarget.ts`. Three
+copy-pasted click-outside-to-close effects in `RevisitHeader.tsx` → one
+`useClickOutside` hook. Two near-duplicate comparison-point upsert handlers in
+`RevisitApp.tsx` (which also disagreed on whether to select the point) →
+one `upsertComparisonPoint` helper, both paths now select consistently.
+`isConfigurationSettling` re-ran `reconcileToMeasuredBest`/`selectionStatus` a
+second time, unmemoized, duplicating the already-memoized `status` — now
+derived from `status` directly. `CoverageRibbonLane` recovered the bare target
+name by regex-stripping its formatted label; gained an explicit `name` field
+instead.
+
+**Minor:** the `'REFERENCE' | string` sentinel widened to plain `string`
+(no compile-time typo protection) across four files — centralised as
+`REFERENCE_POINT_ID` in `domain/analysisTargets.ts`, imported everywhere
+instead of retyped as a literal.
+
+Full type-check, `src/features/revisit` + `src/utils` unit suites (1325+450
+tests), and `vite build` all clean. One pre-existing test updated
+(`revisitSessionSnapshot.test.ts`) to assert the new id-backfill behavior
+rather than bit-for-bit round-trip equality.
+
+## 2026-08-13 — Constellation settings moved out of results
+
+Walker, hosted-payload topology, instrument geometry and analysis-window inputs
+now open from the `…` action in the header's Constellation card. The former
+Advanced result-sidebar section and mobile tab are removed. Export remains with
+the contextual result modules. The popover is closed by default, bounded and
+scrollable on compact viewports; staged instrument edits retain their existing
+single-recomputation behavior.
+
+## 2026-08-13 — REVISIT P2b-B3 interface relief
+
+Scenario Workspace is now a portalled application drawer instead of a rail
+popover. It is closed by default, overlays rather than compresses the analysis,
+contains focus, closes with Escape/backdrop/close, restores focus to its launcher
+and fills narrow mobile viewports without horizontal overflow.
+
+Saved and shared scenarios retain the reference point, comparison points, AOI,
+active context, constellation/payload selection, requirement and display
+options. Preset AOIs are now copied into that persisted model. Loading restores
+the configuration but clears derived Area results, preventing a stale heatmap or
+KPI. PDF export follows the active context with an Area-specific worst-cell
+sheet. Point demo stories are hidden in Area and replaced by an explicit Area
+workflow cue.
+
+The Area timeline now contains only the contractual worst cell. The former
+30-minute mean band was removed because it had no clear contractual meaning;
+removing its accumulator also reduces per-cell CPU work and memory.
+
+## 2026-08-13 — REVISIT P2b-B2 contextual results
+
+P2b-B2 removes the remaining cross-context ambiguity. The sidebar renders only
+point results in `Points` and only area results in `Area`; the Scenario Workspace
+is an on-demand submenu in the left rail. Area definition now belongs to an
+on-demand `…` menu in the header's `Analysis Target / Area` tab, matching point
+editing without increasing header height. Mobile result sections adapt to the
+context (`Summary/Curve/Details` versus `Result/Cells`).
+
+The bottom timeline is now a result of the active context. Points shows the
+reference and up to two comparison access lanes. Area shows only the
+contractual worst-cell access lane. Memory is independent of grid size: no
+per-cell or aggregate mean timeline is retained. Area launch is held while automatic
+topology reconciliation is still settling, avoiding a silently discarded run.
+
+## 2026-08-13 — REVISIT P2b-B1 analysis contexts
+
+P2b-B1 separates the analysis target into two explicit, persistent contexts.
+`Points` owns one reference point plus at most two user-defined comparison
+points; a plain globe click moves the reference, while Shift-click or the
+explicit add action creates a comparison point. `Area` owns the P2b-A polygon
+without destroying or recomputing the point configuration when contexts change.
+The former permanent add/hint/edit footer has been removed: a compact `+` owns
+touch-friendly creation and each point row owns an on-demand `…` location dialog
+with the shared place search and bounded coordinate entry.
+
+The version-1 session contract remains backward compatible: the new context and
+comparison-point fields are optional on read and migrate to `Points` with no
+comparisons. Globe resources remain static and cleanup-owned; point placement
+does not start a Worker, and the existing shared multi-target computation is
+still lazy. The browser lifecycle contract adds and removes the bounded points,
+returns the Cesium entity count to baseline and retains exactly one canvas. The
+temporary B1 scope labels are superseded by the context-owned B2 layout above.
+
+## 2026-08-13 — REVISIT P2b-A custom areas
+
+P2b-A is implemented without changing the validated point engine. A custom AOI
+can be drawn vertex-by-vertex on the globe, imported from a GeoJSON Polygon or
+pasted as latitude/longitude rows. The editor reports self-intersection,
+coordinate, antimeridian/pole, swath-aliasing and 400-cell budget failures
+before the existing opt-in area worker runs.
+
+Polygon drafts are optional fields in the backward-compatible REVISIT session
+snapshot and therefore travel with P2a saved/shared scenarios. Drawing pauses
+auto-rotation, never starts an analysis worker, caps geometry at 128 vertices,
+and owns one static point collection plus at most two preview entities. The
+P2b-A browser lifecycle check confirms all preview resources return to the
+pre-drawing Cesium counts after removal.
+
+## 2026-08-13 — REVISIT P2a product workflow
+
+P2a is implemented: up to 12 named scenarios are stored locally, versioned JSON
+files can be shared and imported, a qualified one-page result PDF can be
+downloaded, and London / Longyearbyen / Singapore can be compared on one table.
+The comparison is lazy, capped at three targets and shares each satellite's
+propagation pass; no comparison Worker exists until the user requests it.
+
+The 20-transition lifecycle gate is now green. Its former +534/+614 result was
+an instrumentation defect: listeners on detached form/canvas nodes and
+terminated Workers were counted forever despite being garbage-collectable.
+The monitor now uses weak observations and counts only live, connected targets.
+Measured after exposed GC: listener delta −46, timer delta 0, heap delta 0 MB,
+one Cesium canvas and maximum transition 553 ms.
+
+## 2026-08-13 — REVISIT P1 functional corrective
+
+The six P1 items from the requirement recheck are implemented: named EO/IR
+swath presets, complete staged FOV geometry, numerical target coordinates,
+opt-in payload labels, explicit topology transitions, business comparisons and
+three named demo stories. Physics, worker protocols and numerical exports are
+unchanged.
+
+Performance containment is deliberate: advanced FOV edits stay local until
+`Apply geometry`; labels are payload-only, off by default, capped at 96 and
+updated at 2 Hz; their Cesium collection is retained across visibility toggles.
+Repeated label toggles add no active listeners or timers and preserve one viewer.
+The corrected cross-mode teardown gate is green.
 
 ## 2026-08-12 — REVISIT P0 demo corrective
 
@@ -12,10 +183,7 @@ Clock publications are subscribed at the ribbon boundary rather than the app
 shell, avoiding unnecessary reconciliation of the globe and analysis tree.
 
 Verification is green across the complete unit suite, build/typecheck/lint,
-Advanced, accessibility, responsive and 18-reference visual gates. The existing
-20-transition lifecycle issue remains: Cesium may display a render error panel
-after repeated viewer teardown/recreation. Do not describe Programme 2 as fully
-validated until that separate viewer-lifecycle defect is closed.
+Advanced, accessibility, responsive and 18-reference visual gates.
 
 The dedicated P0 browser contract is green on desktop and mobile (9 passed,
 1 viewport-independent skip). Its five-cycle interaction check reports listener
@@ -33,8 +201,7 @@ survive runtime isolation, COMM no longer presents missing input as a negative
 verdict, REVISIT is responsive from 390 to 1920 px, and automated functional,
 visual, accessibility and lifecycle gates are operational.
 
-**It is not validated.** The 20-transition lifecycle gate is red (see below), so
-Programme 2 is implemented-but-unvalidated, not complete.
+Programme 2 is validated, including its corrected 20-transition lifecycle gate.
 
 The REVISIT header corrective is also complete: there is no standalone global
 rail in REVISIT. The scenario triad is flush to the top, the named origin-aware
@@ -44,14 +211,12 @@ compact-height contract is covered at 2048×320.
 - Authoritative branch: `main`
 - R28: PR https://github.com/falamargot/capacity-analyser/pull/2 — MERGED
 - R29a–c: PR https://github.com/falamargot/capacity-analyser/pull/3 — MERGED
-- Current gate: 0 TypeScript errors, 1960 tests passing, 5 skipped, ESLint and
+- Current gate: 0 TypeScript errors, 1985 tests passing, 5 skipped, ESLint and
   production build clean; Axe 0 critical/serious across 3 modes × 2 themes;
   18 visual baselines
-- **20-transition lifecycle gate is RED: listener delta +534, budget 50.** Heap
-  and timers are clean. This blocks validation of Programme 2 and is the next
-  action. See `REVIEW_REPORT.md` for the measurement and
-  `IMPLEMENTATION_STATUS.md` for the issue entry.
-- `npm test` excludes the Playwright specs in `e2e/` and is green: 1960 tests
+- **20-transition lifecycle gate is GREEN:** listener delta −46, timer delta 0,
+  heap delta 0 MB and one Cesium canvas after exposed GC.
+- `npm test` excludes the Playwright specs in `e2e/` and is green: 1985 tests
   passing, 5 skipped. Browser suites remain under the separate `test:e2e` gate.
 
 Reachable in the app via the **Revisit** button in the mode switcher, or
@@ -189,14 +354,10 @@ script:
 - **Oracles that share the engine's constants prove less than they appear to.**
   This is the concrete lesson of R4 and it generalises: when adding a test,
   check whether it could fail if the constant under test were wrong.
-- **`e2e/mode-smoke.spec.ts` "20 transitions" lifecycle gate is currently
-  FAILING, not passing at delta 0 as `REVIEW_REPORT.md`, `IMPLEMENTATION_STATUS.md`
-  and `IMPLEMENTATION_PLAN.md` all claimed before 2026-08-12. Discovered while
-  verifying an unrelated fix set: 534 listener delta against a budget of 50.
-  Confirmed not caused by that fix set — reverting it did not clear the
-  failure. Not yet root-caused; likely a Cesium viewer-teardown listener leak
-  on `window`/`document` across repeated mode transitions. See the correction
-  note in `REVIEW_REPORT.md`.
+- **`e2e/mode-smoke.spec.ts` "20 transitions" lifecycle gate is green.** The
+  historical failure was caused by counting listeners attached to detached DOM
+  nodes and terminated Workers as permanently active. Weak, connectivity-aware
+  observations now measure the actual live target set after GC.
 - **`CLAUDE.md` untracked-by-git risk — resolved.** An earlier version of this
   note claimed git tracked `CLAUDE.md` and reported `claude.md` as a separate
   untracked file; that was wrong (the two names are one inode on this

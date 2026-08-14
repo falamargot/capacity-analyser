@@ -16,19 +16,22 @@
  * does nothing mid-demo costs more than the feature is worth.
  */
 
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import CollapsibleSection from '../../../components/layout/CollapsibleSection';
 import {
     divisorsOf, payloadCount, reconcileSelection, validateSelection,
 } from '../domain/subConstellation';
-import type { RevisitScenario, WalkerPattern } from '../domain/types';
+import type { FovSpec, RevisitScenario, WalkerPattern } from '../domain/types';
+import { validateFovSpec } from '../domain/inputValidation';
+import { swathKmForFov } from '../domain/presets';
 import { MAX_STEP_SECONDS, MAX_WINDOW_HOURS } from '../analysis/accessIntervals';
 import { referenceWithPatch } from '../domain/referenceEditing';
-import { REVISIT_COLORS } from './revisitTheme';
 
 interface AdvancedDrawerProps {
     scenario: RevisitScenario;
     onChange: (next: RevisitScenario) => void;
+    /** Header popovers provide their own container and are open on demand. */
+    variant?: 'panel' | 'menu';
 }
 
 const fieldClass =
@@ -57,7 +60,158 @@ const Field: React.FC<{ label: string; hint?: string; children: React.ReactNode 
     </label>
 );
 
-export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({ scenario, onChange }) => {
+const PayloadGeometryEditor: React.FC<AdvancedDrawerProps> = ({ scenario, onChange }) => {
+    const [draft, setDraft] = useState<FovSpec>(scenario.payload);
+    useEffect(() => setDraft(scenario.payload), [scenario.payload]);
+
+    const validation = useMemo(
+        () => validateFovSpec(draft, scenario.reference.altitudeKm),
+        [draft, scenario.reference.altitudeKm]
+    );
+    const dirty = JSON.stringify(draft) !== JSON.stringify(scenario.payload);
+    const setBias = (axis: 'alongTrack' | 'crossTrack', value: number) => {
+        setDraft((current) => ({
+            ...current,
+            biasDeg: { ...current.biasDeg, [axis]: value },
+        }));
+    };
+
+    return (
+        <div className="border-t border-slate-700/60 pt-2.5">
+            <div className="mb-1.5 flex items-center justify-between gap-2">
+                <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-500">
+                    Instrument geometry
+                </p>
+                <span className="text-[9px] text-slate-500 tabular-nums">
+                    ≈ {Math.round(swathKmForFov(scenario.reference.altitudeKm, draft))} km swath
+                </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                <Field label="FOV shape">
+                    <select
+                        aria-label="FOV shape"
+                        className={fieldClass}
+                        value={draft.shape}
+                        onChange={(event) => setDraft((current) => ({
+                            ...current, shape: event.target.value as FovSpec['shape'],
+                        }))}
+                    >
+                        <option value="ELLIPSE">Ellipse</option>
+                        <option value="RECTANGLE">Rectangle</option>
+                    </select>
+                </Field>
+                <Field label="Half-angle 1 °" hint="semi-axis / half-width">
+                    <input
+                        aria-label="FOV half-angle 1"
+                        type="number" min={0.01} max={89.9} step={0.1} className={fieldClass}
+                        value={draft.halfAngle1Deg}
+                        onChange={(event) => setDraft((current) => ({
+                            ...current,
+                            halfAngle1Deg: bounded(event.target.value, 0.01, 89.9, current.halfAngle1Deg),
+                        }))}
+                    />
+                </Field>
+                <Field label="Half-angle 2 °" hint="semi-axis / half-height">
+                    <input
+                        aria-label="FOV half-angle 2"
+                        type="number" min={0.01} max={89.9} step={0.1} className={fieldClass}
+                        value={draft.halfAngle2Deg}
+                        onChange={(event) => setDraft((current) => ({
+                            ...current,
+                            halfAngle2Deg: bounded(event.target.value, 0.01, 89.9, current.halfAngle2Deg),
+                        }))}
+                    />
+                </Field>
+                <Field label="Along-track bias °">
+                    <input
+                        aria-label="Along-track bias"
+                        type="number" min={-90} max={90} step={0.1} className={fieldClass}
+                        value={draft.biasDeg.alongTrack}
+                        onChange={(event) => setBias('alongTrack', bounded(
+                            event.target.value, -90, 90, draft.biasDeg.alongTrack
+                        ))}
+                    />
+                </Field>
+                <Field label="Cross-track bias °">
+                    <input
+                        aria-label="Cross-track bias"
+                        type="number" min={-90} max={90} step={0.1} className={fieldClass}
+                        value={draft.biasDeg.crossTrack}
+                        onChange={(event) => setBias('crossTrack', bounded(
+                            event.target.value, -90, 90, draft.biasDeg.crossTrack
+                        ))}
+                    />
+                </Field>
+                <Field label="Clocking °" hint="rotation about boresight">
+                    <input
+                        aria-label="FOV clocking"
+                        type="number" step={1} className={fieldClass}
+                        value={draft.clockingDeg}
+                        onChange={(event) => setDraft((current) => ({
+                            ...current,
+                            clockingDeg: bounded(event.target.value, -360, 360, current.clockingDeg),
+                        }))}
+                    />
+                </Field>
+                <Field label="Elevation mask °" hint="optional ground mask">
+                    <div className="flex items-center gap-1.5">
+                        <input
+                            aria-label="Enable elevation mask"
+                            type="checkbox"
+                            checked={draft.minElevationDeg !== undefined}
+                            onChange={(event) => setDraft((current) => ({
+                                ...current,
+                                minElevationDeg: event.target.checked ? 0 : undefined,
+                            }))}
+                        />
+                        <input
+                            aria-label="Minimum elevation"
+                            type="number" min={0} max={89.9} step={0.1}
+                            disabled={draft.minElevationDeg === undefined}
+                            className={fieldClass}
+                            value={draft.minElevationDeg ?? 0}
+                            onChange={(event) => setDraft((current) => ({
+                                ...current,
+                                minElevationDeg: bounded(event.target.value, 0, 89.9, current.minElevationDeg ?? 0),
+                            }))}
+                        />
+                    </div>
+                </Field>
+            </div>
+
+            <p className="mt-1.5 text-[9px] leading-3 text-slate-500">
+                Changes are staged locally to avoid recomputing the analysis and full payload sweep on every keystroke.
+            </p>
+            {!validation.ok && (
+                <p className="mt-1.5 rounded border border-red-400/40 bg-red-500/10 px-2 py-1 text-[10px] leading-4 text-red-200">
+                    {validation.errors.join('; ')}
+                </p>
+            )}
+            <div className="mt-2 flex justify-end gap-2">
+                <button
+                    type="button"
+                    disabled={!dirty}
+                    onClick={() => setDraft(scenario.payload)}
+                    className="rounded px-2 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-slate-400 disabled:opacity-40"
+                >
+                    Revert
+                </button>
+                <button
+                    type="button"
+                    disabled={!dirty || !validation.ok}
+                    onClick={() => onChange({ ...scenario, payload: draft })}
+                    className="rounded border border-amber-400/40 bg-amber-500/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-amber-200 disabled:opacity-40"
+                >
+                    Apply geometry
+                </button>
+            </div>
+        </div>
+    );
+};
+
+export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
+    scenario, onChange, variant = 'panel',
+}) => {
     const { reference, selection, window: analysisWindow } = scenario;
 
     /** Editing the constellation must leave the selection legal. */
@@ -78,15 +232,8 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({ scenario, onChan
     // so only warn when the user has actually set a shift that does nothing.
     const showDegeneracy = validation.shiftHasNoEffect && selection.planeShift !== 0;
 
-    return (
-        <CollapsibleSection
-            storageKey="revisit-advanced"
-            title="Advanced"
-            subtitle="Walker parameters and sub-constellation selection"
-            accentColor={REVISIT_COLORS.accent}
-            defaultOpen={false}
-        >
-            <div className="space-y-3">
+    const content = (
+        <div className="space-y-3">
                 <div>
                     <p className="mb-1.5 text-[9px] font-black uppercase tracking-[0.12em] text-slate-500">
                         Reference constellation
@@ -235,6 +382,8 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({ scenario, onChan
                     )}
                 </div>
 
+                <PayloadGeometryEditor scenario={scenario} onChange={onChange} />
+
                 <div className="border-t border-slate-700/60 pt-2.5">
                     <p className="mb-1.5 text-[9px] font-black uppercase tracking-[0.12em] text-slate-500">
                         Analysis window
@@ -274,7 +423,33 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({ scenario, onChan
                         </Field>
                     </div>
                 </div>
-            </div>
+        </div>
+    );
+
+    if (variant === 'menu') {
+        return (
+            <section className="px-3 py-3" aria-label="Constellation settings">
+                <div className="mb-3 border-b border-slate-700/60 pb-2">
+                    <p className="text-[9px] font-black uppercase tracking-[0.14em] text-amber-300">
+                        Constellation settings
+                    </p>
+                    <p className="mt-0.5 text-[9px] text-slate-500">
+                        Walker model, hosted-payload topology, instrument geometry and analysis window
+                    </p>
+                </div>
+                {content}
+            </section>
+        );
+    }
+
+    return (
+        <CollapsibleSection
+            storageKey="revisit-advanced"
+            title="Advanced"
+            subtitle="Walker parameters and sub-constellation selection"
+            defaultOpen={false}
+        >
+            {content}
         </CollapsibleSection>
     );
 };

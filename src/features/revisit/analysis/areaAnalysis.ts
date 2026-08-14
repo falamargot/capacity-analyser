@@ -20,7 +20,7 @@
  */
 
 import type {
-    AnalysisWindow, FovSpec, GapStatistics, PointTarget, RevisitScenario,
+    AccessInterval, AnalysisWindow, FovSpec, GapStatistics, PointTarget, RevisitScenario,
 } from '../domain/types';
 import type { AreaTarget } from '../domain/areaTarget';
 import { generateGrid, validateArea } from '../domain/areaTarget';
@@ -50,6 +50,8 @@ export interface AreaAnalysis {
     neverInViewCount: number;
     /** Cells that produced no interior gap, usually because the window is short. */
     unmeasuredCount: number;
+    /** Accesses of the contractual worst cell only; avoids retaining every cell timeline. */
+    worstCellIntervals: AccessInterval[];
     warnings: string[];
 }
 
@@ -88,6 +90,9 @@ export function analyseArea(
 
     const cells: AreaCellResult[] = [];
     const warningSet = new Set<string>(validation.warnings);
+    let worstMeasuredGapMs = -Infinity;
+    let worstCellIntervals: AccessInterval[] = [];
+    let hasNeverInViewCell = false;
 
     for (let i = 0; i < grid.length; i++) {
         const target = grid[i];
@@ -96,6 +101,16 @@ export function analyseArea(
         );
         const statistics = computeGapStatistics(access.intervals, scenario.window, access.warnings);
         cells.push({ target, statistics, maxGapMs: statistics.maxGapMs });
+
+        if (statistics.coverage === 'NEVER_IN_VIEW') {
+            if (!hasNeverInViewCell) worstCellIntervals = [];
+            hasNeverInViewCell = true;
+        } else if (!hasNeverInViewCell && statistics.maxGapMs !== null
+            && statistics.maxGapMs > worstMeasuredGapMs) {
+            worstMeasuredGapMs = statistics.maxGapMs;
+            worstCellIntervals = access.intervals;
+        }
+
         options.onProgress?.(i + 1, grid.length);
     }
 
@@ -139,6 +154,7 @@ export function analyseArea(
             : null,
         neverInViewCount,
         unmeasuredCount,
+        worstCellIntervals,
         warnings: [...warningSet],
     };
 }

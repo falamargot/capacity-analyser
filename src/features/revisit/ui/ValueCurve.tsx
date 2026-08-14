@@ -141,7 +141,7 @@ export const ValueCurve: React.FC<ValueCurveProps> = ({
             )}
 
             {model && (
-                <svg viewBox={`0 0 ${W} ${H}`} className="mt-1.5 w-full" role="img"
+                <svg viewBox={`0 0 ${W} ${H}`} className="mt-1.5 w-full" role="group"
                     aria-label={`Worst-case revisit against payload count for ${targetName}`}>
                     {/* Requirement threshold */}
                     <line

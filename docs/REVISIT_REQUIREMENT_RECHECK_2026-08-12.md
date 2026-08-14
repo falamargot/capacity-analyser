@@ -34,7 +34,7 @@ Pour une démonstration exécutive, le risque principal n'est pas la crédibilit
 | Presets de swath / instrument | **Partiel** | Narrow / Standard / Wide existent dans le domaine, mais ne sont pas exposés dans l'écran testé | Ajouter un choix simple `Narrow / Standard / Wide` près du scénario principal |
 | Point défini par latitude / longitude | **Partiel** | Presets et clic sur le globe ; pas de saisie numérique explicite | Ajouter `lat/lon` et un bouton `Use map point` |
 | Plusieurs emplacements | **Partiel** | Quatre presets, un seul target actif à la fois | Ajouter une comparaison multi-target si elle sert le pitch ; sinon expliciter « one target at a time » |
-| Zone définie par une série de coordonnées | **Partiel** | Analyse de zone et heatmap sur North Sea / Gulf of Guinea / Barents Sea ; pas de polygone utilisateur | Suffisant pour la démo ; import/dessin de zone en P2 |
+| Zone définie par une série de coordonnées | **Conforme** | Polygone utilisateur par dessin, liste de coordonnées ou import GeoJSON ; analyse sur grille et heatmap | Les anciennes zones de démonstration arbitraires ont été retirées pour garder un parcours métier explicite |
 | Durée de propagation | **Conforme** | Durée et pas configurables ; 72 h par défaut | Conserver 72 h et le warning sous 24 h |
 | Afficher/masquer les orbites | **Conforme** | Toggle `Orbits` | Conserver |
 | Afficher/masquer les FOV/swaths | **Conforme** | Toggle `Swath` | Renommer éventuellement `Sensor swath` |
@@ -61,20 +61,32 @@ Pour une démonstration exécutive, le risque principal n'est pas la crédibilit
 
 ### P1 — prochain incrément fonctionnel
 
-1. Exposer `Narrow / Standard / Wide` dans le parcours principal, avec swath en km et avertissement `illustrative EO/IR preset`.
-2. Exposer dans Advanced toute la géométrie déjà supportée par le moteur : biais along/cross-track, ellipse/rectangle, deux demi-angles, clocking et masque d'élévation.
-3. Ajouter une saisie lat/lon et un toggle de labels satellites ; garder les labels désactivés par défaut.
-4. Afficher clairement les changements de topologie lors du déplacement du slider : `12 payloads = 4 planes × 3`, puis animation ou transition explicite vers la nouvelle répartition.
-5. Faire du KPI un récit comparatif : `vs 1 payload`, `gain en %`, `payloads additionnels pour atteindre la cible`, tout en gardant worst-case comme métrique contractuelle.
-6. Ajouter des scénarios de démo nommés : `London 2 h`, `Arctic high revisit`, `Equatorial challenge`, avec un court takeaway pour chacun.
+**Implémenté le 13 août 2026.** Les réglages instrument sont appliqués en une
+seule transaction afin d'éviter un recalcul worker à chaque frappe. Les labels
+sont limités aux satellites porteurs, désactivés par défaut, cadencés à 2 Hz et
+plafonnés à 96 pour préserver lisibilité, mémoire GPU et fluidité.
+
+1. ✅ Exposer `Narrow / Standard / Wide` dans le parcours principal, avec swath en km et avertissement `illustrative EO/IR preset`.
+2. ✅ Exposer dans Advanced toute la géométrie déjà supportée par le moteur : biais along/cross-track, ellipse/rectangle, deux demi-angles, clocking et masque d'élévation.
+3. ✅ Ajouter une saisie lat/lon et un toggle de labels satellites ; garder les labels désactivés par défaut.
+4. ✅ Afficher clairement les changements de topologie lors du déplacement du slider : `12 payloads = 4 planes × 3`, avec transition textuelle immédiate vers la nouvelle répartition.
+5. ✅ Faire du KPI un récit comparatif : `vs 1 payload`, `gain en %`, `payloads additionnels pour atteindre la cible`, tout en gardant worst-case comme métrique contractuelle.
+6. ✅ Ajouter des scénarios de démo nommés : `London 2 h`, `Arctic high revisit`, `Equatorial challenge`, avec un court takeaway intégré au choix.
 
 ### P2 — amélioration produit, non bloquante pour la démo
 
-1. Dessin/import de polygone ou liste de coordonnées pour les zones.
-2. Comparaison de plusieurs targets dans un tableau ou small multiples.
-3. Sauvegarde et partage de scénarios nommés, export d'une fiche de résultat orientée client.
+**P2a implémenté le 13 août 2026 :** cycle de vie, scénarios nommés et partage
+JSON, fiche résultat PDF et comparaison tabulaire de trois cibles.
+
+**P2b-A implémenté le 13 août 2026 :** dessin d'une zone sur le globe, import
+GeoJSON Polygon, collage d'une liste latitude/longitude, validation bornée et
+persistance avec les scénarios P2a. Les datasheets réelles restent en P2b-B.
+
+1. ✅ Dessin/import de polygone ou liste de coordonnées pour les zones.
+2. ✅ Comparaison de plusieurs targets dans un tableau (bornée à trois cibles).
+3. ✅ Sauvegarde et partage de scénarios nommés, export d'une fiche de résultat orientée client.
 4. Presets instrument issus d'une vraie datasheet lorsque le produit payload est identifié.
-5. Fermeture du gate de cycle de vie ENG/COMM/REVISIT déjà documenté : le delta de listeners reste au-dessus du budget après 20 transitions. Ce point n'affecte pas un passage de démo court mais empêche de déclarer l'intégration complètement validée.
+5. ✅ Fermeture du gate de cycle de vie ENG/COMM/REVISIT avec instrumentation corrigée et budget vert sur 20 transitions.
 
 ## 4. Arbitrage des partis pris discutables
 

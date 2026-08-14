@@ -2,6 +2,11 @@ import type { RevisitScenario } from '../domain/types';
 import type { RevisitSceneOptions } from '../render/useRevisitScene';
 import type { SelectionSource } from '../domain/selectionReconcile';
 import { validateScenario } from '../analysis/scenarioValidation';
+import { isAreaTargetDraft, type AreaTarget } from '../domain/areaTarget';
+import {
+  isRevisitAnalysisContext, isRevisitComparisonPointList,
+  type RevisitAnalysisContext, type RevisitComparisonPoint,
+} from '../domain/analysisTargets';
 
 export const REVISIT_SESSION_SCHEMA_VERSION = 1 as const;
 const STORAGE_KEY = 'capacity-analyzer:revisit-session:v1';
@@ -16,6 +21,12 @@ export interface RevisitSessionSnapshotV1 {
   options: RevisitDisplayOptions;
   requirementMs: number;
   selectionSource: SelectionSource;
+  /** Optional P2b-A polygon draft. Kept backward-compatible inside v1. */
+  customArea?: AreaTarget | null;
+  /** P2b-B1: one active result context; both geometries remain persisted. */
+  analysisContext?: RevisitAnalysisContext;
+  /** Up to two user-defined points compared with `scenario.target`. */
+  comparisonPoints?: RevisitComparisonPoint[];
 }
 
 let memorySnapshot: RevisitSessionSnapshotV1 | null = null;
@@ -24,7 +35,7 @@ function cloneSnapshot(snapshot: RevisitSessionSnapshotV1): RevisitSessionSnapsh
   return JSON.parse(JSON.stringify(snapshot)) as RevisitSessionSnapshotV1;
 }
 
-function isSnapshot(value: unknown): value is RevisitSessionSnapshotV1 {
+export function isRevisitSessionSnapshot(value: unknown): value is RevisitSessionSnapshotV1 {
   if (!value || typeof value !== 'object') return false;
   const candidate = value as Partial<RevisitSessionSnapshotV1>;
   const structurallyValid = candidate.schemaVersion === REVISIT_SESSION_SCHEMA_VERSION
@@ -36,10 +47,18 @@ function isSnapshot(value: unknown): value is RevisitSessionSnapshotV1 {
     && typeof candidate.options?.showOrbits === 'boolean'
     && typeof candidate.options?.showSwaths === 'boolean'
     && typeof candidate.options?.showHostFleet === 'boolean'
+    && (candidate.options?.showLabels === undefined
+      || typeof candidate.options.showLabels === 'boolean')
     && typeof candidate.options?.autoRotate === 'boolean'
     && Number.isFinite(candidate.requirementMs) && (candidate.requirementMs ?? 0) > 0
     && (candidate.selectionSource === 'auto' || candidate.selectionSource === 'manual');
-  if (!structurallyValid) return false;
+  const areaValid = candidate.customArea === undefined || candidate.customArea === null
+    || isAreaTargetDraft(candidate.customArea);
+  const contextValid = candidate.analysisContext === undefined
+    || isRevisitAnalysisContext(candidate.analysisContext);
+  const comparisonValid = candidate.comparisonPoints === undefined
+    || isRevisitComparisonPointList(candidate.comparisonPoints);
+  if (!structurallyValid || !areaValid || !contextValid || !comparisonValid) return false;
 
   try {
     return validateScenario(candidate.scenario as RevisitScenario).ok;
@@ -49,7 +68,7 @@ function isSnapshot(value: unknown): value is RevisitSessionSnapshotV1 {
 }
 
 export function writeRevisitSessionSnapshot(snapshot: RevisitSessionSnapshotV1): void {
-  if (!isSnapshot(snapshot)) {
+  if (!isRevisitSessionSnapshot(snapshot)) {
     clearRevisitSessionSnapshot();
     return;
   }
@@ -63,14 +82,26 @@ export function writeRevisitSessionSnapshot(snapshot: RevisitSessionSnapshotV1):
 }
 
 export function readRevisitSessionSnapshot(): RevisitSessionSnapshotV1 | null {
-  if (memorySnapshot) return cloneSnapshot(memorySnapshot);
+  if (memorySnapshot) {
+    const copy = cloneSnapshot(memorySnapshot);
+    copy.options.showLabels ??= false;
+    copy.analysisContext ??= 'POINTS';
+    copy.comparisonPoints ??= [];
+    if (copy.customArea) copy.customArea.id ??= crypto.randomUUID();
+    return copy;
+  }
   try {
     const raw = window.sessionStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
-    if (!isSnapshot(parsed)) return null;
+    if (!isRevisitSessionSnapshot(parsed)) return null;
     memorySnapshot = parsed;
-    return cloneSnapshot(parsed);
+    const copy = cloneSnapshot(parsed);
+    copy.options.showLabels ??= false;
+    copy.analysisContext ??= 'POINTS';
+    copy.comparisonPoints ??= [];
+    if (copy.customArea) copy.customArea.id ??= crypto.randomUUID();
+    return copy;
   } catch {
     return null;
   }

@@ -115,6 +115,28 @@ export function fovPresets(altitudeKm: number): Record<FovPresetName, FovSpec> {
     };
 }
 
+/** Identify an untouched executive preset at the current reference altitude. */
+export function fovPresetNameFor(
+    altitudeKm: number,
+    fov: FovSpec,
+    toleranceDeg: number = 1e-6
+): FovPresetName | null {
+    const presets = fovPresets(altitudeKm);
+    for (const name of Object.keys(presets) as FovPresetName[]) {
+        const preset = presets[name];
+        if (
+            fov.shape === preset.shape
+            && Math.abs(fov.halfAngle1Deg - preset.halfAngle1Deg) <= toleranceDeg
+            && Math.abs(fov.halfAngle2Deg - preset.halfAngle2Deg) <= toleranceDeg
+            && Math.abs(fov.clockingDeg - preset.clockingDeg) <= toleranceDeg
+            && Math.abs(fov.biasDeg.alongTrack - preset.biasDeg.alongTrack) <= toleranceDeg
+            && Math.abs(fov.biasDeg.crossTrack - preset.biasDeg.crossTrack) <= toleranceDeg
+            && fov.minElevationDeg === undefined
+        ) return name;
+    }
+    return null;
+}
+
 /** Presets at the default altitude — the common case. */
 export const FOV_PRESETS = fovPresets(DEFAULT_REFERENCE.altitudeKm);
 
@@ -144,6 +166,43 @@ export const TARGET_PRESETS: Target[] = [
 ];
 
 export const DEFAULT_TARGET = TARGET_PRESETS[2];
+
+export interface RevisitDemoPreset {
+    id: 'LONDON_2H' | 'ARCTIC_HIGH_REVISIT' | 'EQUATORIAL_CHALLENGE';
+    label: string;
+    targetName: string;
+    requirementHours: number;
+    cue: string;
+    takeaway: string;
+}
+
+/** Named stories for a presenter; all retain the same model and payload count. */
+export const REVISIT_DEMO_PRESETS: RevisitDemoPreset[] = [
+    {
+        id: 'LONDON_2H',
+        label: 'London 2 h',
+        targetName: 'London',
+        requirementHours: 2,
+        cue: 'payload increment',
+        takeaway: 'Mid-latitude benchmark: show the payload increment needed to close the 2 h target.',
+    },
+    {
+        id: 'ARCTIC_HIGH_REVISIT',
+        label: 'Arctic high revisit',
+        targetName: 'Longyearbyen',
+        requirementHours: 1,
+        cue: 'latitude advantage',
+        takeaway: 'Near-polar geometry concentrates access at high latitude.',
+    },
+    {
+        id: 'EQUATORIAL_CHALLENGE',
+        label: 'Equatorial challenge',
+        targetName: 'Singapore',
+        requirementHours: 2,
+        cue: 'sparser access',
+        takeaway: 'The same payload topology is less effective near the equator.',
+    },
+];
 
 /**
  * 12 payloads over 2 planes — mid-ladder, so the slider has room both ways.

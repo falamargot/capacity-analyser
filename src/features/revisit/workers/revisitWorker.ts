@@ -20,6 +20,7 @@
 import { runRevisitScenario, type ConstellationCache } from '../analysis/runScenario';
 import { runPayloadSweep } from '../analysis/payloadSweep';
 import { analyseArea } from '../analysis/areaAnalysis';
+import { compareRevisitTargets } from '../analysis/targetComparison';
 import type { RevisitWorkerInput, RevisitWorkerOutput } from './revisitProtocol';
 
 const cache: { current: ConstellationCache | null } = { current: null };
@@ -27,7 +28,8 @@ const cache: { current: ConstellationCache | null } = { current: null };
 self.addEventListener('message', (event: MessageEvent<RevisitWorkerInput>) => {
     const message = event.data;
     if (!message
-        || (message.type !== 'analyse' && message.type !== 'sweep' && message.type !== 'area')) {
+        || (message.type !== 'analyse' && message.type !== 'sweep'
+            && message.type !== 'area' && message.type !== 'compare')) {
         return;
     }
 
@@ -37,6 +39,22 @@ self.addEventListener('message', (event: MessageEvent<RevisitWorkerInput>) => {
 
     let response: RevisitWorkerOutput;
     try {
+        if (message.type === 'compare') {
+            // One worker and one retained constellation cache. Only compact
+            // statistics cross the structured-clone boundary; the much larger
+            // access interval arrays remain inside the worker and are released.
+            const rows = compareRevisitTargets(scenario, message.targets.slice(0, 3), cache);
+            self.postMessage({
+                requestId,
+                timelineRevision,
+                computeMs: performance.now() - startedAt,
+                ok: true,
+                kind: 'compare',
+                rows,
+            } satisfies RevisitWorkerOutput);
+            return;
+        }
+
         if (message.type === 'area') {
             const { target: _ignored, ...rest } = scenario;
 

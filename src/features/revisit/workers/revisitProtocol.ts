@@ -17,7 +17,7 @@
  * Type-only module — safe to import from both the main thread and the worker.
  */
 
-import type { RevisitScenario } from '../domain/types';
+import type { AccessInterval, GapStatistics, PointTarget, RevisitScenario } from '../domain/types';
 import type { RevisitAnalysis } from '../analysis/runScenario';
 import type { PayloadSweepResult } from '../analysis/payloadSweep';
 import type { AreaAnalysis } from '../analysis/areaAnalysis';
@@ -66,8 +66,26 @@ export interface RevisitAreaRequest {
     area: AreaTarget;
 }
 
+/** Compare a bounded target set without cloning every access interval to the UI. */
+export interface RevisitCompareRequest {
+    type: 'compare';
+    requestId: number;
+    timelineRevision: number;
+    scenario: RevisitScenario;
+    targets: PointTarget[];
+}
+
+export interface RevisitTargetComparisonRow {
+    target: PointTarget;
+    statistics: GapStatistics;
+    /** Bounded timeline payload: at most three targets and their merged passes. */
+    intervals: AccessInterval[];
+    payloadCount: number;
+    warnings: string[];
+}
+
 export type RevisitWorkerInput =
-    | RevisitAnalyseRequest | RevisitSweepRequest | RevisitAreaRequest;
+    | RevisitAnalyseRequest | RevisitSweepRequest | RevisitAreaRequest | RevisitCompareRequest;
 
 /** The subset of a scenario the sweep actually depends on. */
 export function sweepInvalidationKey(scenario: RevisitScenario): string {
@@ -105,7 +123,8 @@ export type RevisitWorkerOutput =
     | (RevisitEnvelope & { ok: true; kind: 'analyse'; analysis: RevisitAnalysis })
     | (RevisitEnvelope & { ok: true; kind: 'sweep'; sweep: PayloadSweepResult })
     | (RevisitEnvelope & { ok: true; kind: 'area'; area: AreaAnalysis })
-    | (RevisitEnvelope & { ok: false; kind: 'analyse' | 'sweep' | 'area'; error: string })
+    | (RevisitEnvelope & { ok: true; kind: 'compare'; rows: RevisitTargetComparisonRow[] })
+    | (RevisitEnvelope & { ok: false; kind: 'analyse' | 'sweep' | 'area' | 'compare'; error: string })
     | RevisitAreaProgress;
 
 /**

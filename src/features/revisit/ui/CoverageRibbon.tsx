@@ -1,97 +1,113 @@
 /**
- * CoverageRibbon — the temporal journey (UX §4.4).
+ * Context-aware temporal result.
  *
- * The most important transposition in the mode. In ENG and COMM the ribbon
- * narrates the *service path*; REVISIT has no spatial journey, so the same slot
- * carries the same "progression" semantics on a different axis: time.
- *
- *  - filled amber where the target is in view, empty during gaps
- *  - the longest gap outlined in red with a translucent fill, labelled
- *  - a thin white playhead bound to SimulationClock; click to seek
- *
- * This makes revisit tangible without a word of explanation, and it is the most
- * valuable thing on screen after the headline number.
- *
- * Hand-rolled SVG. No charting dependency (ADR-001, proposal §3.5).
- *
- * The playhead is driven by requestAnimationFrame reading `getTimeMs()`, NOT by
- * React state: clock progression deliberately emits no render, and a ribbon that
- * re-rendered the whole tree 60 times a second would reintroduce exactly the
- * 2 Hz amplification this module was isolated to avoid.
+ * POINTS keeps one bounded lane per target. AREA keeps only the contractual
+ * worst-cell intervals. An averaged area timeline has no clear mission meaning
+ * and is deliberately neither computed nor presented.
  */
-
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { formatGap } from '../analysis/gapStatistics';
-import type { AccessInterval, GapStatistics } from '../domain/types';
-import { computeGaps } from '../analysis/gapStatistics';
-import { REVISIT_COLORS, REVISIT_LABEL, REVISIT_PANEL } from './revisitTheme';
 import type { SimulationSpeed } from '../../../time/SimulationClock';
+import type { AreaAnalysis } from '../analysis/areaAnalysis';
+import { computeGaps, formatGap } from '../analysis/gapStatistics';
+import { REFERENCE_POINT_ID, type RevisitAnalysisContext } from '../domain/analysisTargets';
+import type { AccessInterval, GapStatistics } from '../domain/types';
+import { REVISIT_COLORS, REVISIT_LABEL, REVISIT_PANEL } from './revisitTheme';
 
-interface CoverageRibbonProps {
+export interface CoverageRibbonLane {
+    id: string;
+    label: string;
+    /** The bare target name, for contexts (like the comparison table) that
+     * must not carry the "Reference · " / "Compare N · " label prefix. */
+    name: string;
     intervals: AccessInterval[];
     statistics: GapStatistics | null;
+    selected?: boolean;
+}
+
+interface CoverageRibbonProps {
+    /** Backward-compatible reference lane. */
+    intervals: AccessInterval[];
+    statistics: GapStatistics | null;
+    pointLanes?: CoverageRibbonLane[];
+    areaAnalysis?: AreaAnalysis | null;
     windowStartMs: number;
     windowHours: number;
     getTimeMs: () => number;
     onSeek: (ms: number) => void;
     speed: SimulationSpeed;
     onSetSpeed: (speed: SimulationSpeed) => void;
+    analysisContext?: RevisitAnalysisContext;
+    referenceTargetName?: string;
+    areaName?: string | null;
+    requirementMs?: number;
+    comparisonIsComputing?: boolean;
+    comparisonError?: string | null;
+    onSelectPoint?: (id: string) => void;
 }
 
-const RIBBON_HEIGHT = 34;
+const TRACK_HEIGHT = 18;
+
+function longestInteriorGap(
+    intervals: AccessInterval[], statistics: GapStatistics | null,
+    windowStartMs: number, windowHours: number,
+) {
+    if (!statistics || statistics.maxGapMs === null) return null;
+    const gaps = computeGaps(intervals, {
+        startMs: windowStartMs, durationHours: windowHours, stepSeconds: 1,
+    }).filter((gap) => !gap.truncatedAtStart && !gap.truncatedAtEnd);
+    return gaps.length > 0
+        ? gaps.reduce((worst, gap) => gap.durationMs > worst.durationMs ? gap : worst)
+        : null;
+}
 
 export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
-    intervals, statistics, windowStartMs, windowHours, getTimeMs, onSeek,
-    speed, onSetSpeed,
+    intervals, statistics, pointLanes, areaAnalysis,
+    windowStartMs, windowHours, getTimeMs, onSeek,
+    speed, onSetSpeed, analysisContext = 'POINTS',
+    referenceTargetName = 'Reference target', areaName,
+    requirementMs = 2 * 3600_000, comparisonIsComputing = false,
+    comparisonError = null, onSelectPoint,
 }) => {
-    const svgRef = useRef<SVGSVGElement | null>(null);
-    /** Playhead position for `aria-valuenow`; see the throttling note below. */
+    const seekRef = useRef<HTMLDivElement | null>(null);
+    const playheadRef = useRef<HTMLDivElement | null>(null);
     const [currentHours, setCurrentHours] = useState(0);
-    const playheadRef = useRef<SVGLineElement | null>(null);
     const windowMs = windowHours * 3600_000;
-
-    /** Fraction 0–1 of the window, clamped. */
+    const windowEndMs = windowStartMs + windowMs;
     const fractionOf = (ms: number) => Math.max(0, Math.min(1, (ms - windowStartMs) / windowMs));
 
-    const longestGap = useMemo(() => {
-        if (!statistics || statistics.maxGapMs === null) return null;
-        const gaps = computeGaps(intervals, {
-            startMs: windowStartMs, durationHours: windowHours, stepSeconds: 1,
-        });
-        const interior = gaps.filter((g) => !g.truncatedAtStart && !g.truncatedAtEnd);
-        if (interior.length === 0) return null;
-        return interior.reduce((a, b) => (b.durationMs > a.durationMs ? b : a));
-    }, [intervals, statistics, windowStartMs, windowHours]);
-
-    // Playhead animation — outside React, for the reason in the header note.
-    //
-    // `currentHours` is the one value React does need, because `aria-valuenow`
-    // has to be a real attribute. It is throttled hard — at most twice a second,
-    // and only when the tenth-of-an-hour changes — so announcing the position
-    // does not drag the per-frame playhead back into the render cycle.
+    const lanes = useMemo<CoverageRibbonLane[]>(() => pointLanes?.length ? pointLanes : [{
+        id: REFERENCE_POINT_ID, label: referenceTargetName, name: referenceTargetName,
+        intervals, statistics, selected: true,
+    }], [pointLanes, referenceTargetName, intervals, statistics]);
+    const pointRows = useMemo(() => lanes.map((lane) => ({
+        ...lane,
+        longestGap: longestInteriorGap(lane.intervals, lane.statistics, windowStartMs, windowHours),
+    })), [lanes, windowStartMs, windowHours]);
+    const areaWorstGap = useMemo(() => areaAnalysis ? longestInteriorGap(
+        areaAnalysis.worstCellIntervals,
+        areaAnalysis.worstCell?.statistics ?? null,
+        windowStartMs,
+        windowHours,
+    ) : null, [areaAnalysis, windowStartMs, windowHours]);
     useEffect(() => {
         let frame = 0;
         let lastAriaMs = 0;
         const tick = () => {
             frame = requestAnimationFrame(tick);
-            const line = playheadRef.current;
-            if (!line) return;
             const nowMs = getTimeMs();
-            const x = fractionOf(nowMs) * 100;
-            line.setAttribute('x1', `${x}%`);
-            line.setAttribute('x2', `${x}%`);
-
+            if (playheadRef.current) {
+                playheadRef.current.style.left = `${fractionOf(nowMs) * 100}%`;
+            }
             const wall = performance.now();
             if (wall - lastAriaMs >= 500) {
                 lastAriaMs = wall;
-                const hours = ((nowMs - windowStartMs) / 3600_000);
-                setCurrentHours((previous) =>
-                    Math.abs(previous - hours) >= 0.1 ? hours : previous
-                );
+                const hours = (nowMs - windowStartMs) / 3600_000;
+                setCurrentHours((previous) => Math.abs(previous - hours) >= 0.1 ? hours : previous);
             }
         };
         frame = requestAnimationFrame(tick);
         return () => cancelAnimationFrame(frame);
+        // fractionOf is intentionally derived from these stable scalar inputs.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [getTimeMs, windowStartMs, windowMs]);
 
@@ -99,169 +115,191 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
         const clamped = Math.max(0, Math.min(windowHours, hours));
         onSeek(windowStartMs + clamped * 3600_000);
     };
-
-    const currentTimestampMs = windowStartMs + Math.max(0, Math.min(windowHours, currentHours)) * 3600_000;
-    const timestampLabel = new Date(currentTimestampMs).toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
-
-    const handleClick = (event: React.MouseEvent<SVGSVGElement>) => {
-        const svg = svgRef.current;
-        if (!svg) return;
-        const rect = svg.getBoundingClientRect();
-        const fraction = (event.clientX - rect.left) / rect.width;
-        onSeek(windowStartMs + Math.max(0, Math.min(1, fraction)) * windowMs);
+    const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
+        const rect = seekRef.current?.getBoundingClientRect();
+        if (!rect || rect.width === 0) return;
+        onSeek(windowStartMs + Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)) * windowMs);
     };
-
-    /** Slider keyboard conventions: arrows fine, Page coarse, Home/End absolute. */
-    const handleKeyDown = (event: React.KeyboardEvent<SVGSVGElement>) => {
+    const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
         const current = (getTimeMs() - windowStartMs) / 3600_000;
-        let next: number | null = null;
-
-        switch (event.key) {
-            case 'ArrowRight': case 'ArrowUp': next = current + 1; break;
-            case 'ArrowLeft': case 'ArrowDown': next = current - 1; break;
-            case 'PageUp': next = current + 6; break;
-            case 'PageDown': next = current - 6; break;
-            case 'Home': next = 0; break;
-            case 'End': next = windowHours; break;
-            default: return;
-        }
-
+        const next = event.key === 'ArrowRight' || event.key === 'ArrowUp' ? current + 1
+            : event.key === 'ArrowLeft' || event.key === 'ArrowDown' ? current - 1
+                : event.key === 'PageUp' ? current + 6
+                    : event.key === 'PageDown' ? current - 6
+                        : event.key === 'Home' ? 0
+                            : event.key === 'End' ? windowHours : null;
+        if (next === null) return;
         event.preventDefault();
         seekToHours(next);
         setCurrentHours(Math.max(0, Math.min(windowHours, next)));
     };
-
     const hourTicks = useMemo(() => {
-        // One tick every 6 h keeps the axis readable at 24 h and at 72 h.
-        const stepHours = windowHours <= 24 ? 6 : 12;
-        const ticks: number[] = [];
-        for (let h = 0; h <= windowHours; h += stepHours) ticks.push(h);
-        return ticks;
+        const step = windowHours <= 24 ? 6 : 12;
+        const values: number[] = [];
+        for (let hour = 0; hour <= windowHours; hour += step) values.push(hour);
+        return values;
     }, [windowHours]);
+    const timestampMs = windowStartMs + Math.max(0, Math.min(windowHours, currentHours)) * 3600_000;
+    const showComparisonSidecar = analysisContext === 'POINTS' && pointRows.length > 1;
+
+    const accessTrack = (
+        laneIntervals: AccessInterval[], longestGap: ReturnType<typeof longestInteriorGap>,
+        color: string,
+    ) => (
+        <svg className="block w-full" height={TRACK_HEIGHT} aria-hidden="true">
+            <rect width="100%" height={TRACK_HEIGHT} rx={3} fill="#111a2b" stroke="#1e2b42" />
+            {laneIntervals.map((interval, index) => {
+                const clippedStart = Math.max(interval.startMs, windowStartMs);
+                const clippedEnd = Math.min(interval.endMs, windowEndMs);
+                if (clippedEnd <= clippedStart) return null;
+                return <rect key={`${interval.startMs}-${index}`} x={`${fractionOf(clippedStart) * 100}%`} y={0}
+                    width={`${Math.max((clippedEnd - clippedStart) / windowMs * 100, 0.12)}%`}
+                    height={TRACK_HEIGHT} fill={color} opacity={0.94} />;
+            })}
+            {longestGap && <rect x={`${fractionOf(longestGap.startMs) * 100}%`} y={1}
+                width={`${longestGap.durationMs / windowMs * 100}%`} height={TRACK_HEIGHT - 2}
+                fill={REVISIT_COLORS.alert} fillOpacity={0.16} stroke={REVISIT_COLORS.alert}
+                strokeWidth={1.2} rx={2} />}
+        </svg>
+    );
 
     return (
-        <div className={`${REVISIT_PANEL} revisit-coverage-ribbon px-2 py-2 sm:px-4 sm:py-3`}>
-            <div className="revisit-coverage-ribbon-heading mb-2 flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
-                <div>
-                    <div className={REVISIT_LABEL}>Coverage timeline</div>
-                    <div className="mt-0.5 hidden text-[9px] font-semibold uppercase tracking-[0.08em] text-slate-500 sm:block">
-                        {windowHours} h analysis window · amber access · dark gaps
+        <section className={`${REVISIT_PANEL} revisit-coverage-ribbon overflow-hidden`} aria-label="Coverage timeline">
+            <div className={showComparisonSidecar ? 'lg:grid lg:grid-cols-[minmax(0,1fr)_400px]' : ''}>
+                <div className="px-2 pt-2 sm:px-4 sm:pt-3 lg:col-start-1 lg:row-start-1">
+                    <div className="mb-2 flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
+                        <div>
+                            <div className={REVISIT_LABEL}>
+                                {analysisContext === 'AREA' ? 'Worst-cell access timeline' : lanes.length > 1 ? 'Point access comparison' : 'Reference point access'}
+                            </div>
+                            <div className="mt-0.5 hidden text-[9px] font-semibold uppercase tracking-[0.08em] text-slate-500 sm:block">
+                                {analysisContext === 'AREA'
+                                    ? `${areaName ?? 'Area'} · contractual determining cell`
+                                    : `${windowHours} h analysis window · one access lane per point`}
+                            </div>
+                        </div>
+                        {analysisContext === 'AREA' && areaAnalysis?.worstCell && (
+                            <span className="text-[9px] font-bold tabular-nums text-sky-200">
+                                {areaAnalysis.worstCell.target.latDeg.toFixed(2)}° · {areaAnalysis.worstCell.target.lonDeg.toFixed(2)}°
+                            </span>
+                        )}
+                    </div>
+
+                    <div className="mb-2 flex flex-wrap items-center gap-1.5" aria-label="Simulation time controls">
+                        <button type="button" onClick={() => onSetSpeed(speed === 0 ? 1 : 0)}
+                            aria-label={speed === 0 ? 'Play simulation' : 'Pause simulation'}
+                            className="min-h-8 rounded border border-slate-600 px-2 text-[10px] font-black uppercase tracking-[0.08em] text-slate-200 hover:border-amber-400/60">
+                            {speed === 0 ? 'Play' : 'Pause'}
+                        </button>
+                        <button type="button" onClick={() => seekToHours(currentHours - 1)} aria-label="Step simulation back one hour"
+                            className="min-h-8 rounded border border-slate-700 px-2 text-[10px] font-bold text-slate-300">−1 h</button>
+                        <button type="button" onClick={() => seekToHours(currentHours + 1)} aria-label="Step simulation forward one hour"
+                            className="min-h-8 rounded border border-slate-700 px-2 text-[10px] font-bold text-slate-300">+1 h</button>
+                        <label className="flex min-h-8 items-center gap-1 rounded border border-slate-700 px-2">
+                            <span className="text-[9px] font-black uppercase tracking-[0.08em] text-slate-500">Speed</span>
+                            <select aria-label="Simulation speed" value={speed === 0 ? 1 : speed}
+                                onChange={(event) => onSetSpeed(Number(event.target.value))}
+                                className="bg-transparent text-[10px] font-bold text-slate-200 outline-none">
+                                <option value={1}>1×</option><option value={10}>10×</option><option value={100}>100×</option>
+                            </select>
+                        </label>
+                        <time dateTime={new Date(timestampMs).toISOString()} className="ml-auto text-[10px] font-bold tabular-nums text-sky-200">
+                            {new Date(timestampMs).toISOString().replace('T', ' ').slice(0, 19)} UTC
+                        </time>
                     </div>
                 </div>
-                {longestGap && (
-                    <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.12em] text-red-300">
-                        Longest gap {formatGap(longestGap.durationMs)}
-                    </span>
-                )}
-            </div>
 
-            <div className="mb-2 flex flex-wrap items-center gap-1.5" aria-label="Simulation time controls">
-                <button
-                    type="button"
-                    onClick={() => onSetSpeed(speed === 0 ? 1 : 0)}
-                    aria-label={speed === 0 ? 'Play simulation' : 'Pause simulation'}
-                    className="min-h-8 rounded border border-slate-600 px-2 text-[10px] font-black uppercase tracking-[0.08em] text-slate-200 hover:border-amber-400/60"
-                >
-                    {speed === 0 ? 'Play' : 'Pause'}
-                </button>
-                <button
-                    type="button"
-                    onClick={() => seekToHours(currentHours - 1)}
-                    aria-label="Step simulation back one hour"
-                    className="min-h-8 rounded border border-slate-700 px-2 text-[10px] font-bold text-slate-300 hover:text-white"
-                >
-                    −1 h
-                </button>
-                <button
-                    type="button"
-                    onClick={() => seekToHours(currentHours + 1)}
-                    aria-label="Step simulation forward one hour"
-                    className="min-h-8 rounded border border-slate-700 px-2 text-[10px] font-bold text-slate-300 hover:text-white"
-                >
-                    +1 h
-                </button>
-                <label className="flex min-h-8 items-center gap-1 rounded border border-slate-700 px-2">
-                    <span className="text-[9px] font-black uppercase tracking-[0.08em] text-slate-500">Speed</span>
-                    <select
-                        aria-label="Simulation speed"
-                        value={speed === 0 ? 1 : speed}
-                        onChange={(event) => onSetSpeed(Number(event.target.value))}
-                        className="bg-transparent text-[10px] font-bold text-slate-200 outline-none"
-                    >
-                        <option value={1}>1×</option>
-                        <option value={10}>10×</option>
-                        <option value={100}>100×</option>
-                    </select>
-                </label>
-                <time
-                    dateTime={new Date(currentTimestampMs).toISOString()}
-                    className="ml-auto text-[10px] font-bold tabular-nums text-sky-200"
-                    aria-live="off"
-                >
-                    {timestampLabel}
-                </time>
-            </div>
+                {showComparisonSidecar && (
+                    <section className="hidden lg:contents" aria-label="Target comparison">
+                        <div className="border-l border-slate-700/60 bg-slate-950/25 px-4 pt-3 lg:col-start-2 lg:row-start-1">
+                            <div className="flex items-start justify-between gap-2">
+                                <div>
+                                    <div className={REVISIT_LABEL}>Compare targets</div>
+                                    <p className="mt-0.5 text-[9px] text-slate-500">Same topology, FOV and requirement</p>
+                                    {comparisonError && <p role="alert" className="mt-0.5 text-[9px] text-red-300">{comparisonError}</p>}
+                                </div>
+                                {comparisonIsComputing && <span className="text-[8px] font-black uppercase tracking-wide text-sky-300">Computing…</span>}
+                            </div>
+                            <div className="mt-3 grid grid-cols-[minmax(0,1fr)_4.5rem_4.5rem_4rem] gap-2 text-[8px] font-black uppercase tracking-wide text-slate-500">
+                                <span>Target</span><span>Worst</span><span>Mean</span><span className="text-right">Goal</span>
+                            </div>
+                        </div>
 
-            {/* A seek control, not decoration.
-                It was marked `role="presentation"` while carrying a click
-                handler — the one combination that guarantees assistive tech
-                cannot reach it. It is a slider over the analysis window: arrows
-                step an hour, Page keys six, Home/End jump to the ends. */}
-            <svg
-                ref={svgRef}
-                className="w-full cursor-pointer rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300"
-                height={RIBBON_HEIGHT}
-                onClick={handleClick}
-                onKeyDown={handleKeyDown}
-                role="slider"
-                tabIndex={0}
-                aria-label={`Seek within the ${windowHours} hour analysis window`}
-                aria-valuemin={0}
-                aria-valuemax={windowHours}
-                aria-valuenow={Number(currentHours.toFixed(2))}
-                aria-valuetext={`${currentHours.toFixed(1)} hours into the window`}
-            >
-                {/* Empty track — the gaps. */}
-                <rect x={0} y={0} width="100%" height={RIBBON_HEIGHT} rx={4}
-                    fill="#111a2b" stroke="#1e2b42" />
-
-                {/* Filled where the target is in view. */}
-                {intervals.map((iv, i) => {
-                    const x = fractionOf(iv.startMs) * 100;
-                    const w = Math.max(
-                        (Math.min(iv.endMs, windowStartMs + windowMs) - Math.max(iv.startMs, windowStartMs))
-                        / windowMs * 100,
-                        0.12, // never render a pass so short it becomes invisible
-                    );
-                    return (
-                        <rect key={i} x={`${x}%`} y={0} width={`${w}%`} height={RIBBON_HEIGHT}
-                            fill={REVISIT_COLORS.accent} opacity={0.94}
-                            stroke={REVISIT_COLORS.bright} strokeOpacity={0.35} strokeWidth={0.5} />
-                    );
-                })}
-
-                {/* The longest gap, outlined — the single most legible fact here. */}
-                {longestGap && (
-                    <rect
-                        x={`${fractionOf(longestGap.startMs) * 100}%`}
-                        y={1}
-                        width={`${(longestGap.durationMs / windowMs) * 100}%`}
-                        height={RIBBON_HEIGHT - 2}
-                        fill={REVISIT_COLORS.alert}
-                        fillOpacity={0.16}
-                        stroke={REVISIT_COLORS.alert}
-                        strokeWidth={1.5}
-                        rx={3}
-                    />
+                        <div className="border-l border-slate-700/60 bg-slate-950/25 px-4 lg:col-start-2 lg:row-start-2">
+                            <div className="space-y-1.5">
+                                {pointRows.map((lane, index) => {
+                                    const maxGapMs = lane.statistics?.maxGapMs ?? null;
+                                    const meets = maxGapMs !== null && maxGapMs <= requirementMs;
+                                    const waiting = index > 0 && !lane.statistics && comparisonIsComputing;
+                                    return (
+                                        <div
+                                            key={lane.id}
+                                            data-revisit-comparison-row={lane.id}
+                                            className={`grid h-7 grid-cols-[minmax(0,1fr)_4.5rem_4.5rem_4rem] items-center gap-2 rounded px-1 text-[9px] tabular-nums ${lane.selected ? 'bg-sky-400/10' : ''}`}
+                                        >
+                                            <button
+                                                type="button"
+                                                onClick={() => onSelectPoint?.(lane.id)}
+                                                className={`truncate text-left font-bold ${index === 0 ? 'text-amber-200' : 'text-sky-200'}`}
+                                            >{lane.name}</button>
+                                            <span className="text-slate-200">{waiting ? '…' : formatGap(maxGapMs)}</span>
+                                            <span className="text-slate-400">{waiting ? '…' : formatGap(lane.statistics?.meanGapMs ?? null)}</span>
+                                            <span className={`text-right font-black ${maxGapMs === null ? 'text-slate-500' : meets ? 'text-lime-300' : 'text-red-300'}`}>
+                                                {maxGapMs === null ? '—' : meets ? 'MEETS' : 'MISSES'}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                        <div className="border-l border-slate-700/60 bg-slate-950/25 lg:col-start-2 lg:row-start-3" />
+                    </section>
                 )}
 
-                <line ref={playheadRef} x1="0%" x2="0%" y1={0} y2={RIBBON_HEIGHT}
-                    stroke="#ffffff" strokeWidth={1.5} />
-            </svg>
+                <div className="px-2 sm:px-4 lg:col-start-1 lg:row-start-2">
+                    <div ref={seekRef} role="slider" tabIndex={0} onClick={handleClick} onKeyDown={handleKeyDown}
+                        aria-label={`Seek within the ${windowHours} hour analysis window`}
+                        aria-valuemin={0} aria-valuemax={windowHours} aria-valuenow={Number(currentHours.toFixed(2))}
+                        aria-valuetext={`${currentHours.toFixed(1)} hours into the window`}
+                        className="relative cursor-pointer rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300">
+                        {analysisContext === 'AREA' ? (
+                            areaAnalysis ? <div className="space-y-1.5">
+                                <div className="grid h-7 grid-cols-[6rem_minmax(0,1fr)_5rem] items-center gap-2">
+                                    <span className="truncate text-[9px] font-bold text-amber-200">Worst cell</span>
+                                    {accessTrack(areaAnalysis.worstCellIntervals, areaWorstGap, REVISIT_COLORS.accent)}
+                                    <span className="text-right text-[8px] font-bold text-red-300">
+                                        {areaAnalysis.neverInViewCount > 0 ? 'Never seen' : formatGap(areaAnalysis.worstCell?.maxGapMs ?? null)}
+                                    </span>
+                                </div>
+                            </div> : <div className="rounded border border-dashed border-slate-700 px-3 py-2 text-[10px] text-slate-400">
+                                Run an area analysis to populate the area timeline.
+                            </div>
+                        ) : <div className="space-y-1.5">
+                            {pointRows.map((lane, index) => (
+                                <div key={lane.id} className={`grid h-7 items-center gap-2 rounded ${showComparisonSidecar ? 'grid-cols-[6rem_minmax(0,1fr)]' : 'grid-cols-[6rem_minmax(0,1fr)_5rem]'} ${lane.selected ? 'bg-white/[0.04]' : ''}`}>
+                                    <button
+                                        type="button"
+                                        onClick={(event) => {
+                                            event.stopPropagation();
+                                            onSelectPoint?.(lane.id);
+                                        }}
+                                        className={`truncate text-left text-[9px] font-bold ${index === 0 ? 'text-amber-200' : 'text-sky-200'}`}
+                                    >{lane.label}</button>
+                                    {accessTrack(lane.intervals, lane.longestGap, index === 0 ? REVISIT_COLORS.accent : '#38bdf8')}
+                                    {!showComparisonSidecar && <span className="text-right text-[8px] font-bold text-slate-400">{formatGap(lane.statistics?.maxGapMs ?? null)}</span>}
+                                </div>
+                            ))}
+                        </div>}
+                        <div ref={playheadRef} aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 w-px bg-white shadow-[0_0_4px_#fff]" />
+                    </div>
+                </div>
 
-            <div className="revisit-coverage-ribbon-ticks mt-1 flex justify-between text-[9px] font-semibold tabular-nums text-slate-500">
-                {hourTicks.map((h) => <span key={h}>{String(h).padStart(2, '0')}:00</span>)}
+                <div className="px-2 pb-2 sm:px-4 sm:pb-3 lg:col-start-1 lg:row-start-3">
+                    <div className="mt-1 flex justify-between text-[9px] font-semibold tabular-nums text-slate-500">
+                        {hourTicks.map((hour) => <span key={hour}>{String(hour).padStart(2, '0')}:00</span>)}
+                    </div>
+                </div>
             </div>
-        </div>
+        </section>
     );
 };

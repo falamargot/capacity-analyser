@@ -20,8 +20,9 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Viewer as ResiumViewer, type CesiumComponentRef } from 'resium';
 import {
     Cartesian2, Cartesian3, Cartographic, Color, Ellipsoid, ImageryLayer,
-    Math as CesiumMath, Rectangle, ScreenSpaceEventHandler, ScreenSpaceEventType,
-    TileMapServiceImageryProvider, buildModuleUrl, Viewer as CesiumViewer,
+    Math as CesiumMath, PointPrimitiveCollection, PolygonHierarchy, Rectangle,
+    KeyboardEventModifier, ScreenSpaceEventHandler, ScreenSpaceEventType, TileMapServiceImageryProvider,
+    buildModuleUrl, Viewer as CesiumViewer,
 } from 'cesium';
 import { setMemoryMonitorViewerGetter } from '../../../utils/memoryMonitor';
 import type { OrbitalElements, RevisitScenario } from '../domain/types';
@@ -29,6 +30,10 @@ import { REVISIT_COLORS } from '../ui/revisitTheme';
 import { frameGlobe, useRevisitScene, type RevisitSceneOptions } from './useRevisitScene';
 import { heatColorFor } from './heatMapColors';
 import type { AreaAnalysis } from '../analysis/areaAnalysis';
+import type { AreaTarget } from '../domain/areaTarget';
+import {
+    REFERENCE_POINT_ID, type RevisitAnalysisContext, type RevisitComparisonPoint,
+} from '../domain/analysisTargets';
 
 interface RevisitGlobeProps {
     scenario: RevisitScenario;
@@ -38,12 +43,20 @@ interface RevisitGlobeProps {
     getTimeMs: () => number;
     /** Per-cell area results to drape as a heat map. Null hides the layer. */
     areaAnalysis: AreaAnalysis | null;
+    /** P2b-A polygon being drawn/imported; previewed without triggering analysis. */
+    areaDraft: AreaTarget | null;
+    isDrawingArea: boolean;
+    analysisContext: RevisitAnalysisContext;
+    comparisonPoints: RevisitComparisonPoint[];
+    selectedPointId: typeof REFERENCE_POINT_ID | string;
     /** The requirement the heat scale is anchored to. */
     requirementMs: number;
     /** Slow automatic rotation. */
     autoRotate: boolean;
     /** Called when the user clicks a point on the globe. */
     onPickTarget: (latDeg: number, lonDeg: number) => void;
+    onDrawAreaVertex: (latDeg: number, lonDeg: number) => void;
+    onAddComparisonPoint: (latDeg: number, lonDeg: number) => void;
 }
 
 /** Static screen-space reticle: crisp at any zoom and free of per-frame work. */
@@ -82,11 +95,14 @@ function createTargetReticle(): HTMLCanvasElement {
 }
 
 export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
-    scenario, fleet, selectedIds, options, getTimeMs, areaAnalysis, requirementMs,
-    autoRotate, onPickTarget,
+    scenario, fleet, selectedIds, options, getTimeMs, areaAnalysis, areaDraft,
+    isDrawingArea, analysisContext, comparisonPoints, selectedPointId,
+    requirementMs, autoRotate, onPickTarget,
+    onDrawAreaVertex, onAddComparisonPoint,
 }) => {
     const viewerRef = useRef<CesiumViewer | null>(null);
     const [viewer, setViewer] = useState<CesiumViewer | null>(null);
+    const areaDraftPointsRef = useRef<{ id: string | null; points: PointPrimitiveCollection } | null>(null);
 
     const handleViewerRef = useCallback((ref: CesiumComponentRef<CesiumViewer> | null) => {
         const instance = ref?.cesiumElement ?? null;
@@ -218,36 +234,66 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
         if (!viewer || viewer.isDestroyed?.()) return;
         const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
 
-        handler.setInputAction((event: { position: Cartesian2 }) => {
+        const pointAt = (event: { position: Cartesian2 }) => {
             if (viewer.isDestroyed?.()) return;
             // pickEllipsoid returns undefined when the click misses the globe —
             // space, or past the limb.
             const cartesian = viewer.camera.pickEllipsoid(
                 event.position, viewer.scene.globe.ellipsoid
             );
-            if (!cartesian) return;
+            if (!cartesian) return null;
 
             const carto = Cartographic.fromCartesian(cartesian);
-            onPickTarget(
-                CesiumMath.toDegrees(carto.latitude),
-                CesiumMath.toDegrees(carto.longitude),
-            );
+            return {
+                latDeg: CesiumMath.toDegrees(carto.latitude),
+                lonDeg: CesiumMath.toDegrees(carto.longitude),
+            };
+        };
+
+        handler.setInputAction((event: { position: Cartesian2 }) => {
+            const point = pointAt(event);
+            if (!point) return;
+            const { latDeg, lonDeg } = point;
+            if (isDrawingArea) onDrawAreaVertex(latDeg, lonDeg);
+            else if (analysisContext === 'POINTS') {
+                onPickTarget(latDeg, lonDeg);
+            }
         }, ScreenSpaceEventType.LEFT_CLICK);
 
+        handler.setInputAction((event: { position: Cartesian2 }) => {
+            if (isDrawingArea || analysisContext !== 'POINTS') return;
+            const point = pointAt(event);
+            if (point) onAddComparisonPoint(point.latDeg, point.lonDeg);
+        }, ScreenSpaceEventType.LEFT_CLICK, KeyboardEventModifier.SHIFT);
+
         return () => handler.destroy();
-    }, [viewer, onPickTarget]);
+    }, [
+        viewer, isDrawingArea, analysisContext,
+        onAddComparisonPoint, onDrawAreaVertex, onPickTarget,
+    ]);
+
+    useEffect(() => {
+        if (!viewer || viewer.isDestroyed?.() || !isDrawingArea) return;
+        const canvas = viewer.scene.canvas;
+        const previousCursor = canvas.style.cursor;
+        canvas.style.cursor = 'crosshair';
+        return () => { canvas.style.cursor = previousCursor; };
+    }, [viewer, isDrawingArea]);
 
     useRevisitScene(viewer, scenario, fleet, selectedIds, options, getTimeMs);
 
     // The target reticle. An Entity is right here — there is exactly one of it,
     // and the per-entity cost the fleet must avoid is irrelevant at n = 1.
+    const pointTarget = scenario.target;
     useEffect(() => {
         if (!viewer || viewer.isDestroyed?.()) return;
-        const { target } = scenario;
+        const target = pointTarget;
+        const pointContextActive = analysisContext === 'POINTS';
         const entity = viewer.entities.add({
             position: Cartesian3.fromDegrees(target.lonDeg, target.latDeg, 0),
             billboard: {
                 image: createTargetReticle(),
+                color: Color.WHITE.withAlpha(pointContextActive ? 1 : 0.25),
                 width: 64,
                 height: 64,
                 // Draw the reticle in front of coincident ground overlays while
@@ -262,7 +308,7 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
                 // almost none of it, which showed up as a picked coordinate
                 // label rendering as a single stray character.
                 font: '600 13px Helvetica, Arial, sans-serif',
-                fillColor: Color.fromCssColorString(REVISIT_COLORS.target),
+                fillColor: Color.fromCssColorString(REVISIT_COLORS.target).withAlpha(pointContextActive ? 1 : 0.3),
                 outlineColor: Color.fromCssColorString('#05070D'),
                 outlineWidth: 3,
                 showBackground: true,
@@ -277,7 +323,125 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
             if (viewer.isDestroyed?.()) return;
             viewer.entities.remove(entity);
         };
-    }, [viewer, scenario]);
+    }, [viewer, pointTarget, analysisContext]);
+
+    // Secondary comparison points are deliberately static and bounded to two.
+    // They use simple entities rather than joining the fleet's hot primitive loop.
+    useEffect(() => {
+        if (!viewer || viewer.isDestroyed?.() || comparisonPoints.length === 0) return;
+        const pointContextActive = analysisContext === 'POINTS';
+        const added = comparisonPoints.map((point, index) => {
+            const selected = selectedPointId === point.id;
+            const color = Color.fromCssColorString('#38BDF8').withAlpha(pointContextActive ? 1 : 0.25);
+            return viewer.entities.add({
+                position: Cartesian3.fromDegrees(point.target.lonDeg, point.target.latDeg, 0),
+                point: {
+                    pixelSize: selected ? 15 : 11,
+                    color,
+                    outlineColor: Color.fromCssColorString('#05070D'),
+                    outlineWidth: 3,
+                },
+                label: {
+                    text: `COMPARE ${index + 1} · ${point.target.name}`.toUpperCase(),
+                    font: '600 11px Helvetica, Arial, sans-serif',
+                    fillColor: color,
+                    outlineColor: Color.fromCssColorString('#05070D'),
+                    outlineWidth: 3,
+                    showBackground: true,
+                    backgroundColor: Color.fromCssColorString('#05070D').withAlpha(0.82),
+                    backgroundPadding: new Cartesian2(5, 3),
+                    pixelOffset: new Cartesian2(0, -22),
+                },
+            });
+        });
+        viewer.scene.requestRender();
+        return () => {
+            if (viewer.isDestroyed?.()) return;
+            for (const entity of added) viewer.entities.remove(entity);
+            viewer.scene.requestRender();
+        };
+    }, [viewer, comparisonPoints, selectedPointId, analysisContext]);
+
+    // ── P2b-A polygon preview ───────────────────────────────────────────────
+    // Entities are rebuilt on every vertex, but the point PRIMITIVE COLLECTION
+    // — the expensive part, a GPU buffer allocation via `scene.primitives.add`
+    // — is kept alive across edits to the SAME draft (matched by `id`, not the
+    // user-editable `name`) and merely repopulated. A 20-30 vertex freehand
+    // draw then costs 20-30 cheap `removeAll`/`add` passes instead of 20-30
+    // full primitive-collection create/destroy cycles.
+    useEffect(() => {
+        if (!viewer || viewer.isDestroyed?.()) return;
+        if (!areaDraft || areaDraft.boundary.length === 0) {
+            const existing = areaDraftPointsRef.current;
+            if (existing) {
+                viewer.scene.primitives.remove(existing.points);
+                areaDraftPointsRef.current = null;
+                viewer.scene.requestRender();
+            }
+            return;
+        }
+        const belongsToVisibleAnalysis = Boolean(areaAnalysis?.area.id)
+            && areaAnalysis?.area.id === areaDraft.id;
+        if (!isDrawingArea && areaAnalysis && !belongsToVisibleAnalysis) return;
+
+        const draftId = areaDraft.id ?? null;
+        let handles = areaDraftPointsRef.current;
+        if (!handles || handles.id !== draftId) {
+            if (handles) viewer.scene.primitives.remove(handles.points);
+            handles = { id: draftId, points: viewer.scene.primitives.add(new PointPrimitiveCollection()) };
+            areaDraftPointsRef.current = handles;
+        }
+
+        const positions = areaDraft.boundary.map((point) => (
+            Cartesian3.fromDegrees(point.lonDeg, point.latDeg, 250)
+        ));
+        const areaContextActive = analysisContext === 'AREA';
+        const pointColor = Color.fromCssColorString('#38BDF8').withAlpha(areaContextActive ? 1 : 0.28);
+        handles.points.removeAll();
+        for (const position of positions) {
+            handles.points.add({
+                position,
+                color: pointColor,
+                pixelSize: 8,
+                outlineColor: Color.fromCssColorString('#05070D'),
+                outlineWidth: 2,
+            });
+        }
+
+        const outlinePositions = positions.length >= 3 ? [...positions, positions[0]] : positions;
+        const outline = positions.length >= 2 ? viewer.entities.add({
+            polyline: {
+                positions: outlinePositions,
+                width: 2.5,
+                material: pointColor.withAlpha(areaContextActive ? 0.95 : 0.24),
+            },
+        }) : null;
+        const fill = positions.length >= 3 ? viewer.entities.add({
+            polygon: {
+                hierarchy: new PolygonHierarchy(positions),
+                material: pointColor.withAlpha(areaContextActive ? 0.12 : 0.035),
+                height: 0,
+            },
+        }) : null;
+
+        viewer.scene.requestRender();
+        return () => {
+            if (viewer.isDestroyed?.()) return;
+            if (outline) viewer.entities.remove(outline);
+            if (fill) viewer.entities.remove(fill);
+            viewer.scene.requestRender();
+        };
+    }, [viewer, areaDraft, areaAnalysis, isDrawingArea, analysisContext]);
+
+    // The persisted point collection above outlives any single effect run —
+    // release it only when the viewer itself goes away.
+    useEffect(() => () => {
+        const handles = areaDraftPointsRef.current;
+        if (handles && viewer && !viewer.isDestroyed?.()) {
+            viewer.scene.primitives.remove(handles.points);
+        }
+        areaDraftPointsRef.current = null;
+    }, [viewer]);
 
     // ── Area heat map ───────────────────────────────────────────────────────
     // One rectangle per grid cell, as entities. Cell counts are bounded to 400
@@ -296,7 +460,7 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
                         cell.target.lonDeg - half, cell.target.latDeg - half,
                         cell.target.lonDeg + half, cell.target.latDeg + half,
                     ),
-                    material: new Color(rgb[0], rgb[1], rgb[2], 0.55),
+                    material: new Color(rgb[0], rgb[1], rgb[2], analysisContext === 'AREA' ? 0.55 : 0.14),
                     height: 0,
                 },
             });
@@ -308,7 +472,7 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
             for (const entity of added) viewer.entities.remove(entity);
             viewer.scene.requestRender();
         };
-    }, [viewer, areaAnalysis, requirementMs]);
+    }, [viewer, areaAnalysis, requirementMs, analysisContext]);
 
     return (
         <ResiumViewer

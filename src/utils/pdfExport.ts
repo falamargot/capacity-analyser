@@ -2,6 +2,7 @@ import jsPDF from 'jspdf';
 import { format } from 'date-fns';
 import { dataProvenanceRows, type DataProvenanceModel } from './dataProvenance';
 import type { EngineeringServiceState } from './engineeringAnalysisViewModel';
+import { toPdfSafeText } from './pdfSafeText';
 
 // Types pour les données de performance
 export interface PerformanceData {
@@ -121,35 +122,11 @@ export function generateFileName(location: LocationData): string {
   return `Capacity_Analysis_${location.lat.toFixed(2)}_${location.lng.toFixed(2)}_${timestamp}.pdf`;
 }
 
-const CYRILLIC_TO_LATIN: Record<string, string> = {
-  А: 'A', Б: 'B', В: 'V', Г: 'G', Д: 'D', Ђ: 'Dj', Е: 'E', Ё: 'E', Ж: 'Zh', З: 'Z', И: 'I', Й: 'Y',
-  Ј: 'J', К: 'K', Л: 'L', Љ: 'Lj', М: 'M', Н: 'N', Њ: 'Nj', О: 'O', П: 'P', Р: 'R', С: 'S', Т: 'T', Ћ: 'C',
-  У: 'U', Ф: 'F', Х: 'Kh', Ц: 'Ts', Ч: 'Ch', Џ: 'Dz', Ш: 'Sh', Щ: 'Shch', Ъ: '', Ы: 'Y', Ь: '',
-  Э: 'E', Ю: 'Yu', Я: 'Ya', Є: 'Ye', І: 'I', Ї: 'Yi', Ґ: 'G',
-  а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', ђ: 'dj', е: 'e', ё: 'e', ж: 'zh', з: 'z', и: 'i', й: 'y',
-  ј: 'j', к: 'k', л: 'l', љ: 'lj', м: 'm', н: 'n', њ: 'nj', о: 'o', п: 'p', р: 'r', с: 's', т: 't', ћ: 'c',
-  у: 'u', ф: 'f', х: 'kh', ц: 'ts', ч: 'ch', џ: 'dz', ш: 'sh', щ: 'shch', ъ: '', ы: 'y', ь: '',
-  э: 'e', ю: 'yu', я: 'ya', є: 'ye', і: 'i', ї: 'yi', ґ: 'g',
-};
-
-export function toPdfSafeText(value: string): string {
-  const transliterated = Array.from(value.normalize('NFKD'))
-    .filter((character) => !/[\u0300-\u036f]/.test(character))
-    .map((character) => CYRILLIC_TO_LATIN[character] ?? character)
-    .join('');
-  return transliterated
-    .replaceAll('→', ' -> ')
-    .replaceAll('←', ' <- ')
-    .replaceAll('–', '-')
-    .replaceAll('—', '-')
-    .replaceAll('·', ' / ')
-    .replaceAll('’', "'")
-    .replaceAll('“', '"')
-    .replaceAll('”', '"')
-    .replace(/[^\x20-\x7E°]/g, '?')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
+// Re-exported so existing importers of this module are unaffected. The
+// implementation lives in `pdfSafeText.ts`, which has no `jspdf` dependency,
+// so a caller that only needs sanitization is not forced to pull the rest of
+// this (much larger, jsPDF-heavy) module into its bundle chunk.
+export { toPdfSafeText };
 
 function formatLocationLabel(location: LocationData): string {
   const coordinates = `${location.lat.toFixed(2)}, ${location.lng.toFixed(2)}`;

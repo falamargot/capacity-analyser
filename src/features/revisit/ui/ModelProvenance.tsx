@@ -20,7 +20,7 @@ import type { WalkerSpec } from '../domain/types';
 import { fitMatchesReference, type ReferenceProfile } from '../domain/referenceProfiles';
 import { REVISIT_LABEL, REVISIT_PANEL } from './revisitTheme';
 
-interface ModelProvenanceProps {
+export interface ModelProvenanceProps {
     reference: WalkerSpec;
     /** Which named profile the reference came from. */
     profile: ReferenceProfile | null;
@@ -30,10 +30,13 @@ interface ModelProvenanceProps {
     onCalibrate: () => void;
     /** Adopt the fitted shell as the reference constellation. */
     onAdoptFit: (spec: WalkerSpec) => void;
+    /** Dialog mode exposes the evidence immediately in its dedicated popover. */
+    variant?: 'panel' | 'dialog';
 }
 
 export const ModelProvenance: React.FC<ModelProvenanceProps> = ({
     reference, profile, fit, isRunning, error, onCalibrate, onAdoptFit,
+    variant = 'panel',
 }) => {
     const matchesFit = Boolean(fit && fitMatchesReference(fit.spec, reference));
     const summaryLabel = profile?.isAuthoritative
@@ -45,8 +48,14 @@ export const ModelProvenance: React.FC<ModelProvenanceProps> = ({
     const dotTone = profile?.isAuthoritative ? 'bg-lime-400' : 'bg-amber-400';
 
     return (
-        <details className={`${REVISIT_PANEL} group px-3 py-2`}>
-            <summary className="flex min-h-7 cursor-pointer list-none items-center justify-between gap-3 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300">
+        <details
+            open={variant === 'dialog' ? true : undefined}
+            className={`${variant === 'panel' ? REVISIT_PANEL : ''} group ${variant === 'panel' ? 'px-3 py-2' : ''}`}
+        >
+            <summary className={variant === 'dialog'
+                ? 'sr-only'
+                : 'flex min-h-7 cursor-pointer list-none items-center justify-between gap-3 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300'}
+            >
                 <span className="flex items-center gap-2">
                     <span className={`h-2 w-2 rounded-full ${dotTone}`} aria-hidden="true" />
                     <span className={`${REVISIT_LABEL} ${summaryTone}`}>{summaryLabel}</span>
@@ -58,7 +67,7 @@ export const ModelProvenance: React.FC<ModelProvenanceProps> = ({
                     close
                 </span>
             </summary>
-            <div className="mt-2 border-t border-slate-700/50 pt-2">
+            <div className={variant === 'dialog' ? '' : 'mt-2 border-t border-slate-700/50 pt-2'}>
             <span className={REVISIT_LABEL}>Model provenance</span>
             <ul className="mt-1 space-y-0.5 text-[10px] leading-4 text-slate-400">
                 {/*

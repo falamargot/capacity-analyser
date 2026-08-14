@@ -5,7 +5,7 @@ import {
 import { isCurrentResponse } from '../workers/revisitProtocol';
 import {
     DEFAULT_REFERENCE, defaultScenario, FOV_PRESET_SWATH_KM, FOV_PRESETS, fovForSwath,
-    fovPresets, offNadirDegForSwath, swathKmForFov, TARGET_PRESETS,
+    fovPresetNameFor, fovPresets, offNadirDegForSwath, swathKmForFov, TARGET_PRESETS,
 } from '../domain/presets';
 import type { RevisitScenario } from '../domain/types';
 /** By name, not by index — the preset list's order is not a contract. */
@@ -210,6 +210,15 @@ describe('presets — the entry moment', () => {
         expect(FOV_PRESETS.STANDARD.halfAngle1Deg).toBeLessThan(FOV_PRESETS.WIDE.halfAngle1Deg);
         // Horizon off-nadir at 1200 km is 57.30°; every preset must stay inside it.
         expect(FOV_PRESETS.WIDE.halfAngle1Deg).toBeLessThan(57);
+    });
+
+    it('identifies untouched presets and treats edited geometry as custom', () => {
+        expect(fovPresetNameFor(DEFAULT_REFERENCE.altitudeKm, FOV_PRESETS.NARROW)).toBe('NARROW');
+        expect(fovPresetNameFor(DEFAULT_REFERENCE.altitudeKm, FOV_PRESETS.STANDARD)).toBe('STANDARD');
+        expect(fovPresetNameFor(DEFAULT_REFERENCE.altitudeKm, {
+            ...FOV_PRESETS.STANDARD,
+            biasDeg: { alongTrack: 2, crossTrack: 0 },
+        })).toBeNull();
     });
 });
 

@@ -90,7 +90,7 @@ test.describe('desktop history and lifecycle', () => {
     await page.goto('/?mode=engineering');
     await waitForTelecomShell(page);
     await page.evaluate(() => (window as unknown as { gc?: () => void }).gc?.());
-    const initial = await page.evaluate(() => (window as unknown as { __memStats?: () => { activeListeners: number; activeTimers: number } }).__memStats?.());
+    const initial = await page.evaluate(() => (window as unknown as { __memStats?: () => { activeListeners: number; activeTimers: number; listenerBreakdown?: Record<string, number> } }).__memStats?.());
 
     for (let cycle = 0; cycle < 10; cycle += 1) {
       await page.getByRole('button', { name: 'Revisit', exact: true }).click();
@@ -105,12 +105,21 @@ test.describe('desktop history and lifecycle', () => {
 
     await page.evaluate(() => (window as unknown as { gc?: () => void }).gc?.());
     const result = await page.evaluate(() => ({
-      stats: (window as unknown as { __memStats?: () => { activeListeners: number; activeTimers: number } }).__memStats?.(),
+      stats: (window as unknown as { __memStats?: () => { activeListeners: number; activeTimers: number; listenerBreakdown?: Record<string, number> } }).__memStats?.(),
       metrics: (window as unknown as { __capacityModeMetrics?: Array<{ durationMs: number }> }).__capacityModeMetrics ?? [],
     }));
     expect(result.metrics).toHaveLength(20);
     expect(result.metrics.every((metric) => metric.durationMs < 10_000)).toBe(true);
     expect(await page.locator('.cesium-widget canvas').count()).toBe(1);
+    console.log('[mode-transition-budget]', JSON.stringify({
+      maxDurationMs: Math.max(...result.metrics.map((metric) => metric.durationMs)),
+      listenerDelta: initial && result.stats ? result.stats.activeListeners - initial.activeListeners : null,
+      timerDelta: initial && result.stats ? result.stats.activeTimers - initial.activeTimers : null,
+      listenerBreakdown: result.stats?.listenerBreakdown,
+      heapDeltaMB: initial && result.stats && 'heap' in initial && 'heap' in result.stats
+        ? ((result.stats as { heap?: { usedMB: number } | null }).heap?.usedMB ?? 0) - ((initial as { heap?: { usedMB: number } | null }).heap?.usedMB ?? 0)
+        : null,
+    }));
     if (initial && result.stats) {
       expect(result.stats.activeListeners - initial.activeListeners).toBeLessThan(50);
       expect(result.stats.activeTimers - initial.activeTimers).toBeLessThan(20);
@@ -120,14 +129,6 @@ test.describe('desktop history and lifecycle', () => {
         if (initialHeap && finalHeap) expect(finalHeap.usedMB - initialHeap.usedMB).toBeLessThan(40);
       }
     }
-    console.log('[mode-transition-budget]', JSON.stringify({
-      maxDurationMs: Math.max(...result.metrics.map((metric) => metric.durationMs)),
-      listenerDelta: initial && result.stats ? result.stats.activeListeners - initial.activeListeners : null,
-      timerDelta: initial && result.stats ? result.stats.activeTimers - initial.activeTimers : null,
-      heapDeltaMB: initial && result.stats && 'heap' in initial && 'heap' in result.stats
-        ? ((result.stats as { heap?: { usedMB: number } | null }).heap?.usedMB ?? 0) - ((initial as { heap?: { usedMB: number } | null }).heap?.usedMB ?? 0)
-        : null,
-    }));
   });
 });
 

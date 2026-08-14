@@ -1,28 +1,27 @@
 # Implementation Status
 
-_Last updated 2026-08-12._
+_Last updated 2026-08-13._
 
 ## Current phase
 
-**REVISIT engine complete and validated. Programme 2 implemented, NOT validated —
-the 20-transition lifecycle gate is RED.**
+**REVISIT engine and Programme 2 complete and validated. P2a and P2b-A/B1/B2/B3 implemented.**
 
 The REVISIT demonstration P0 corrective is complete. Clock-state publications
 are isolated inside the coverage ribbon, so pause/speed changes do not reconcile
 the 576-satellite Cesium scene or the analysis tree. Five repeated
 Presenter/Explore and Pause/Play cycles leave active listener and timer counts
-unchanged; the separate cross-mode teardown gate below remains red.
+unchanged; the corrected cross-mode teardown gate is green.
 
-> **Blocking, 2026-08-12.** `e2e/mode-smoke.spec.ts` → "keeps one viewer and
-> bounded lifecycle counters across 20 transitions" currently FAILS with a
-> **listener delta of +534** against a budget of 50. The "+0" figure previously
-> reported here, in `IMPLEMENTATION_PLAN.md` and in `HANDOFF.md` was stale: it
-> was not re-measured when those documents were reconciled, and reverting to the
-> committed `memoryMonitor.ts` and pre-pass `App.tsx`/`RootShell.tsx` does not
-> clear it, so the leak predates the correction pass. `REVIEW_REPORT.md` is the
-> authoritative account. Programme 2 cannot be called validated while this gate
-> is red — the exit criterion "no continuous memory growth after 20 transitions"
-> is exactly what it measures.
+The REVISIT demonstration P1 corrective is also complete: all brief-requested
+point/FOV/label controls are now exposed through progressive disclosure, and
+the derived demo improvements (topology narration, comparison and named stories)
+are present. Advanced geometry is staged before one worker dispatch; payload
+labels are bounded to 96 and reused across toggles.
+
+> **Closed, 2026-08-13.** The lifecycle counter treated detached DOM targets and
+> terminated Workers as active forever. Weak, connectivity-aware observations
+> now match browser reachability semantics. The 20-transition gate passes with
+> listener delta −46, timer delta 0, heap delta 0 MB and one Cesium canvas.
 
 Lots 1–4 are implemented, reviewed, remediated and merged on `main`. R4 is closed: the
 propagator has been cross-checked against NASA GMAT R2026a, which found two real
@@ -74,6 +73,37 @@ containment for both modes, added 2026-08-12).
   with exact-topology drill-down, compact model provenance, presenter/reset flow
   and explicit UTC clock controls. The P0 browser contract passes on desktop and
   mobile (9 passed, 1 viewport-independent lifecycle check skipped on mobile).
+- **REVISIT demonstration P1.** Executive swath presets, full advanced FOV,
+  lat/lon target entry, bounded payload labels, topology narration, comparative
+  KPI and named demo scenarios. Dedicated desktop/mobile browser coverage and
+  lifecycle instrumentation added.
+- **REVISIT P2a.** Named local scenarios, versioned JSON sharing/import,
+  qualified result PDF, lazy three-target comparison and corrected lifecycle
+  instrumentation.
+- **REVISIT P2b-A.** Custom AOIs can be drawn on the globe, imported from a
+  GeoJSON Polygon or pasted as latitude/longitude rows. Geometry is validated
+  before the existing bounded area worker runs; drafts survive session and P2a
+  scenario sharing. Drawing adds no analysis worker and its Cesium preview
+  primitives/entities return to baseline after removal.
+- **REVISIT P2b-B1.** The target module now owns explicit `Points` and `Area`
+  contexts. Points supports one plain-click reference and two bounded
+  Shift-click/explicit-add comparisons; point and polygon geometries coexist,
+  persist and never trigger work solely because the active context changes.
+- **REVISIT P2b-B2.** The sidebar is now context-specific: Points owns its KPI,
+  payload curve, rationale and comparison; Area owns its worst-cell result,
+  cell distribution and exports. Area definition moved to a compact header
+  popover, and Scenario Workspace moved to the left rail. The
+  bottom timeline has one bounded lane per point, or the contractual worst-cell
+  accesses in Area. No synthetic mean-area timeline is computed.
+- **REVISIT P2b-B3.** Scenario Workspace is a closed-by-default, focus-contained
+  application drawer. Named/JSON scenarios restore the complete Points/Area
+  configuration, including preset AOIs; result PDF export follows the active
+  context. Loading a saved Area intentionally restores inputs but not a stale
+  result, which must be rerun against the current model.
+- **REVISIT configuration ownership.** Advanced Walker, payload topology,
+  instrument and analysis-window settings now belong to the Constellation card
+  in a compact header popover; the result sidebar and its mobile navigation no
+  longer expose a configuration section.
 
 ---
 
@@ -93,8 +123,7 @@ containment for both modes, added 2026-08-12).
 
 ## Current blockers
 
-- **U17 — listener leak across mode transitions:** +534 retained
-  `window`/`document` listeners after 20 transitions, against a budget of 50.
+- None for P2b-B3.
 
 ---
 
@@ -104,11 +133,11 @@ containment for both modes, added 2026-08-12).
 |---|---|
 | TypeScript | 0 errors |
 | ESLint | clean |
-| Unit + integration tests | 1960 passing, 5 skipped; `npm test` excludes `e2e/**`, which is exercised separately by Playwright |
+| Unit + integration tests | 1993 passing, 5 skipped; `npm test` excludes `e2e/**`, which is exercised separately by Playwright |
 | E2E | Three viewports; URL/history, state/camera restoration, one viewer/clock, responsive overflow |
 | Visual | 18 REVISIT baselines — 9 viewports × dark/light, including 2048×320, `requestRenderMode` active |
 | Accessibility | Axe: 0 critical/serious in ENG, COMM and REVISIT, dark and light |
-| Performance | **RED.** 20 transitions: max 353 ms and heap +0 MB after GC, but **listeners +534** against a budget of 50. The previously reported +0 was stale. |
+| Performance | **GREEN.** 20 transitions: max 572 ms, heap +0 MB after GC, listener delta −46, timer delta 0 and one Cesium canvas. At most three point timelines are retained; Area retains only one worst-cell timeline and no mean-area accumulator. |
 | Browser | Desktop and 390×844 light/dark inspected; no horizontal overflow |
 | Review | external, three rounds; P0, P1 and R4 closed |
 | External authority | NASA GMAT R2026a — 9 km / 72 h, non-divergent; max gap exact at four targets |
@@ -134,10 +163,9 @@ containment for both modes, added 2026-08-12).
 
 ## Next Action
 
-**Investigate the +534 listener delta and close the 20-transition gate.** This is
-the only thing standing between Programme 2 and validation; no further feature
-work should land before it. Start from the Cesium viewer teardown path, since
-heap and timers are clean while listeners are not.
+P2b-B remains optional: datasheet-backed instrument presets require explicit
+product and payload inputs before implementation. P2b-A polygon drawing/import
+is complete.
 
 The separate R12 foreground FPS measurement remains open and is documented in
 `REVISIT_FOREGROUND_PERFORMANCE.md`.
@@ -154,9 +182,5 @@ responsive matrix. Current gates: 1,965 unit tests pass (5 skipped), lint,
 typecheck and production build clean; 18 visual references regenerated and
 passing; Advanced 6/6; Axe 6/6; responsive 9/9.
 
-The pre-existing long-cycle lifecycle gate remains red. A repeated 20-transition
-run reached a Cesium `widget-errorPanel` after several viewer reconstructions;
-the overlay intercepted the return control and the test timed out. This P0 adds
-no timer and only one `SimulationClock` subscription through
-`useSyncExternalStore`, which is cleaned up by React, but the repository cannot
-yet claim the global mode-transition lifecycle gate is closed.
+The corrected long-cycle lifecycle gate is green across 20 transitions and
+keeps one viewer, one clock authority and stable heap/timer budgets.

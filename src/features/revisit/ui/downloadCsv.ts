@@ -24,3 +24,16 @@ export function downloadCsv(filename: string, content: string): void {
     // the event loop is enough for the navigation to have started.
     setTimeout(() => URL.revokeObjectURL(url), 0);
 }
+
+/** Download a UTF-8 text artifact without pulling export concerns into React. */
+export function downloadText(filename: string, content: string, mimeType: string): void {
+    const blob = new Blob([content], { type: `${mimeType};charset=utf-8` });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+}

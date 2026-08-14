@@ -85,7 +85,7 @@ const CollapsibleSection = memo<CollapsibleSectionProps>(({
           />
         )}
         <div className="pointer-events-none relative z-10 min-w-0 flex-1">
-          <div className="text-sm font-semibold flex items-center" style={accentColor ? { color: accentColor } : undefined}>
+          <div className="flex items-center text-sm font-semibold text-gray-900 dark:text-gray-100" style={accentColor ? { color: accentColor } : undefined}>
             {title}
           </div>
           {subtitle && (

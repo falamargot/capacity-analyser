@@ -25,13 +25,20 @@ test.describe('REVISIT visual baselines', () => {
         }, theme);
         await page.goto('/?mode=revisit');
         await expect(page.getByRole('region', { name: 'REVISIT analysis' })).toBeVisible({ timeout: 30_000 });
+        // Capture only after the asynchronous payload sweep has settled. At
+        // wide resolutions it could previously land between Playwright's two
+        // stability screenshots and make snapshot regeneration time out.
+        await expect(page.getByText('best achieved with up to X payloads')).toHaveCount(1, { timeout: 60_000 });
         await expect(page.locator('.cesium-widget canvas')).toHaveCount(1);
 
-        await expect(page.locator('.revisit-shell')).toHaveScreenshot(
+        // The shell fills the viewport. A page screenshot avoids locator-stability
+        // retries caused by Cesium's continuously moving canvas while preserving
+        // the exact visual contract under test.
+        await expect(page).toHaveScreenshot(
           `${viewport.name}-${theme}.png`,
           {
             animations: 'disabled',
-            timeout: 15_000,
+            timeout: 30_000,
             mask: [page.locator('.cesium-widget canvas'), page.locator('.cesium-credit-logoContainer')],
             maxDiffPixelRatio: 0.01,
           },

@@ -32,6 +32,15 @@ export interface LatLonDeg {
 
 export interface AreaTarget {
     kind: 'AREA';
+    /**
+     * Stable identity for the draft/run, distinct from the user-editable
+     * `name`. Two areas can legitimately share a name (the default is always
+     * "Custom area"); rendering code that needs to know whether a result
+     * still belongs to the area on screen must compare `id`, never `name`.
+     * Optional only so that older persisted sessions and hand-built test
+     * fixtures keep parsing — every runtime constructor below always sets it.
+     */
+    id?: string;
     name: string;
     /**
      * Boundary ring, in order. May be open or closed — the last vertex is
@@ -42,6 +51,23 @@ export interface AreaTarget {
     gridSpacingDeg: number;
 }
 
+/** Valid WGS84 latitude, degrees. */
+export function isValidLatDeg(value: number): boolean {
+    return Number.isFinite(value) && value >= -90 && value <= 90;
+}
+
+/** Valid longitude, degrees, in the −180…180 convention used throughout this feature. */
+export function isValidLonDeg(value: number): boolean {
+    return Number.isFinite(value) && value >= -180 && value <= 180;
+}
+
+export function isValidLatLonDeg(point: LatLonDeg): boolean {
+    return isValidLatDeg(point.latDeg) && isValidLonDeg(point.lonDeg);
+}
+
+/** Keeps imported/drawn geometry cheap to validate, render and persist. */
+export const MAX_AREA_VERTICES = 128;
+
 /**
  * Above this the per-cell sweep stops being interactive: each cell is a full
  * engine run, so 400 cells over a 72 h window is already tens of seconds.
@@ -50,6 +76,60 @@ export const MAX_GRID_CELLS = 400;
 
 /** Ratio of swath width to grid spacing below which aliasing is likely. */
 const MIN_SAMPLES_PER_SWATH = 2;
+
+/** Three samples per swath gives the editor a safe, useful default before any
+ * boundary exists yet (e.g. before the first vertex of a freehand draw). */
+export function recommendedAreaGridSpacing(
+    reference: WalkerSpec,
+    payload: FovSpec
+): number {
+    return Number((swathWidthDeg(reference, payload) / 3).toFixed(3));
+}
+
+/**
+ * Grid spacing recommendation once a boundary is already known, as it is for
+ * an import (GeoJSON or a pasted coordinate list).
+ *
+ * Starts from the swath-based default and grows it — the same growth the
+ * retired preset system used — until THIS polygon's cell count clears
+ * `MAX_GRID_CELLS`. Without this, importing a large region (a country, an
+ * ocean basin) at the flat swath/3 default can land directly on "N cells
+ * exceeds the limit" with no spacing that has been checked to actually work.
+ */
+export function recommendedAreaGridSpacingForBoundary(
+    reference: WalkerSpec,
+    payload: FovSpec,
+    boundary: LatLonDeg[]
+): number {
+    let spacing = swathWidthDeg(reference, payload) / 3;
+    if (boundary.length < 3) return Number(spacing.toFixed(3));
+
+    const probe = (value: number): AreaTarget => (
+        { kind: 'AREA', name: '', boundary, gridSpacingDeg: value }
+    );
+    let iterations = 0;
+    while (generateGrid(probe(spacing)).length > MAX_GRID_CELLS && iterations < 40) {
+        spacing *= 1.25;
+        iterations += 1;
+    }
+    return Number(spacing.toFixed(3));
+}
+
+/** Structural guard used by versioned session restore. Drafts may have fewer
+ * than three vertices; numerical validity is reported by `validateArea`. */
+export function isAreaTargetDraft(value: unknown): value is AreaTarget {
+    if (!value || typeof value !== 'object') return false;
+    const candidate = value as Partial<AreaTarget>;
+    return candidate.kind === 'AREA'
+        && typeof candidate.name === 'string'
+        && candidate.name.length <= 80
+        && Number.isFinite(candidate.gridSpacingDeg)
+        && Array.isArray(candidate.boundary)
+        && candidate.boundary.length <= MAX_AREA_VERTICES
+        && candidate.boundary.every((point) => (
+            Boolean(point) && Number.isFinite(point.latDeg) && Number.isFinite(point.lonDeg)
+        ));
+}
 
 /** Swath width in degrees of ground arc, for the aliasing check. */
 export function swathWidthDeg(reference: WalkerSpec, payload: FovSpec): number {
@@ -121,6 +201,16 @@ export function validateArea(
     if (area.boundary.length < 3) {
         errors.push(`An area needs at least 3 boundary points, got ${area.boundary.length}`);
     }
+    if (area.boundary.length > MAX_AREA_VERTICES) {
+        errors.push(`An area is limited to ${MAX_AREA_VERTICES} boundary points.`);
+    }
+    const invalidPoint = area.boundary.find((point) => !isValidLatLonDeg(point));
+    if (invalidPoint) {
+        errors.push('Every boundary point needs latitude −90…90 and longitude −180…180.');
+    }
+    if (area.boundary.length >= 3 && hasSelfIntersection(area.boundary)) {
+        errors.push('The boundary crosses itself. Reorder or remove the intersecting points.');
+    }
     if (!Number.isFinite(area.gridSpacingDeg) || area.gridSpacingDeg <= 0) {
         errors.push(`gridSpacingDeg must be positive, got ${area.gridSpacingDeg}`);
     }
@@ -168,6 +258,39 @@ export function validateArea(
     }
 
     return { ok: errors.length === 0, errors, warnings, estimatedCells };
+}
+
+/** Simple-ring check in the same unwrapped lon/lat plane as `isPointInRing`.
+ * Adjacent segments share an endpoint and are deliberately ignored. */
+export function hasSelfIntersection(ring: LatLonDeg[]): boolean {
+    if (ring.length < 4) return false;
+    const reference = ring[0].lonDeg;
+    const points = ring.map((point) => {
+        let x = point.lonDeg - reference;
+        while (x > 180) x -= 360;
+        while (x < -180) x += 360;
+        return { x, y: point.latDeg };
+    });
+    const orientation = (
+        a: { x: number; y: number }, b: { x: number; y: number }, c: { x: number; y: number }
+    ) => Math.sign((b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x));
+    const intersects = (
+        a: { x: number; y: number }, b: { x: number; y: number },
+        c: { x: number; y: number }, d: { x: number; y: number }
+    ) => orientation(a, b, c) !== orientation(a, b, d)
+        && orientation(c, d, a) !== orientation(c, d, b);
+
+    for (let first = 0; first < points.length; first += 1) {
+        const firstNext = (first + 1) % points.length;
+        for (let second = first + 1; second < points.length; second += 1) {
+            const secondNext = (second + 1) % points.length;
+            if (first === second || firstNext === second || secondNext === first) continue;
+            if (intersects(
+                points[first], points[firstNext], points[second], points[secondNext]
+            )) return true;
+        }
+    }
+    return false;
 }
 
 /** Longitude span of a ring, measured the short way round. */

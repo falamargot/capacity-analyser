@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-    boxArea, generateGrid, isPointInRing, longitudeSpanDeg, MAX_GRID_CELLS,
+    boxArea, generateGrid, hasSelfIntersection, isPointInRing, longitudeSpanDeg, MAX_GRID_CELLS,
     swathWidthDeg, validateArea, type AreaTarget,
 } from '../domain/areaTarget';
 import { analyseArea } from '../analysis/areaAnalysis';
@@ -76,6 +76,32 @@ describe('longitudeSpanDeg', () => {
         expect(longitudeSpanDeg([
             { latDeg: 0, lonDeg: 0 }, { latDeg: 0, lonDeg: 30 },
         ])).toBeCloseTo(30, 9);
+    });
+});
+
+describe('P2b-A polygon validation', () => {
+    it('detects a self-intersecting drawn boundary', () => {
+        const bowTie = [
+            { latDeg: 0, lonDeg: 0 }, { latDeg: 5, lonDeg: 5 },
+            { latDeg: 0, lonDeg: 5 }, { latDeg: 5, lonDeg: 0 },
+        ];
+        expect(hasSelfIntersection(bowTie)).toBe(true);
+        expect(validateArea({
+            kind: 'AREA', name: 'Bow tie', boundary: bowTie, gridSpacingDeg: 1,
+        }, reference, FOV_PRESETS.STANDARD).errors.join(' ')).toMatch(/crosses itself/i);
+    });
+
+    it('rejects imported coordinates outside geographic bounds', () => {
+        const validation = validateArea({
+            kind: 'AREA',
+            name: 'Invalid',
+            boundary: [
+                { latDeg: 91, lonDeg: 0 }, { latDeg: 0, lonDeg: 1 }, { latDeg: 1, lonDeg: 0 },
+            ],
+            gridSpacingDeg: 1,
+        }, reference, FOV_PRESETS.STANDARD);
+        expect(validation.ok).toBe(false);
+        expect(validation.errors.join(' ')).toMatch(/latitude/i);
     });
 });
 
@@ -233,6 +259,7 @@ describe('analyseArea', () => {
         expect(result.worstCell).not.toBeNull();
         expect(result.bestCell).not.toBeNull();
         expect(result.meanCellMaxGapMs).not.toBeNull();
+        expect(result.worstCellIntervals.length).toBeGreaterThan(0);
     });
 
     it('makes the worst cell at least as bad as the best', () => {
@@ -265,6 +292,7 @@ describe('analyseArea', () => {
         const b = analyseArea(scenarioBase, area);
         expect(b.cells.map((c) => c.maxGapMs)).toEqual(a.cells.map((c) => c.maxGapMs));
         expect(b.meanCellMaxGapMs).toBe(a.meanCellMaxGapMs);
+        expect(b.worstCellIntervals).toEqual(a.worstCellIntervals);
     });
 
     // The most misleading result the module could produce: quoting a finite
@@ -282,6 +310,7 @@ describe('analyseArea', () => {
         expect(result.neverInViewCount).toBeGreaterThan(0);
         expect(result.worstCell!.statistics.coverage).toBe('NEVER_IN_VIEW');
         expect(result.worstCell!.maxGapMs).toBeNull();
+        expect(result.worstCellIntervals).toEqual([]);
         expect(result.warnings.join(' ')).toMatch(/unbounded, not the largest measured gap/);
     });
 });

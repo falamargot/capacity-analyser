@@ -27,6 +27,7 @@ import { getPosition, LEO_SMOKED_GLYPH, PLANE_ICON, SATELLITE_GLYPH, type Camera
 import { GROUND_POINT_ALTITUDE_KM, GROUND_POINT_LAYER_HEIGHT_M, LABEL_EYE_OFFSET } from './layerHeights';
 import { leoServingSatelliteEntityIds, leoSiteBeamEntityIds } from './commercialLeoEntityIds';
 import { shouldRequestPathFlowFrame } from './renderPerformancePolicy';
+import { elapsedVisualSeconds, visualNowSeconds } from './commercialVisualTime';
 
 interface CommercialSymbolicConnectivityLayerProps {
   routeModel: CommercialRouteModel;
@@ -358,28 +359,25 @@ function easeOutCubic(value: number): number {
   return 1 - (1 - clamped) ** 3;
 }
 
-function animationSeconds(time: JulianDate | undefined, startSeconds: number): number {
-  const now = time ? JulianDate.toDate(time).getTime() / 1000 : Date.now() / 1000;
-  return now - startSeconds;
+function animationSeconds(startSeconds: number): number {
+  return elapsedVisualSeconds(startSeconds);
 }
 
 function timedProgress(
-  time: JulianDate | undefined,
   startSeconds: number,
   delaySeconds: number,
   durationSeconds: number,
 ): number {
-  return easeOutCubic((animationSeconds(time, startSeconds) - delaySeconds) / durationSeconds);
+  return easeOutCubic((animationSeconds(startSeconds) - delaySeconds) / durationSeconds);
 }
 
 function animatedAlpha(
-  time: JulianDate | undefined,
   startSeconds: number,
   delaySeconds: number,
   durationSeconds: number,
   maxAlpha: number,
 ): number {
-  return timedProgress(time, startSeconds, delaySeconds, durationSeconds) * maxAlpha;
+  return timedProgress(startSeconds, delaySeconds, durationSeconds) * maxAlpha;
 }
 
 function interpolateOpenPolylinePosition(
@@ -1233,7 +1231,7 @@ const DestinationArrivalMoment = React.memo<{
   const originLng = origin.coord.lng;
   const destinationLat = destination.coord.lat;
   const destinationLng = destination.coord.lng;
-  const startSecondsRef = useRef(Date.now() / 1000);
+  const startSecondsRef = useRef(visualNowSeconds());
 
   const positions = useMemo(() => (
     buildSymbolicArcPositions(
@@ -1251,25 +1249,22 @@ const DestinationArrivalMoment = React.memo<{
 
   const arrivalPosition = useMemo(() => {
     const scratch = new Cartesian3();
-    return new CallbackPositionProperty((time?: JulianDate) => {
-      const now = time ? JulianDate.toDate(time).getTime() / 1000 : Date.now() / 1000;
-      const raw = Math.min(1, Math.max(0, (now - startSecondsRef.current) / ARRIVAL_MOMENT_SECONDS));
+    return new CallbackPositionProperty(() => {
+      const raw = Math.min(1, elapsedVisualSeconds(startSecondsRef.current) / ARRIVAL_MOMENT_SECONDS);
       const eased = 1 - (1 - raw) ** 3;
       return interpolatePolylinePosition(positions, eased, scratch);
     }, false);
   }, [positions]);
 
-  const arrivalAlpha = useMemo(() => new CallbackProperty((time?: JulianDate) => {
-    const now = time ? JulianDate.toDate(time).getTime() / 1000 : Date.now() / 1000;
-    const raw = Math.min(1, Math.max(0, (now - startSecondsRef.current) / ARRIVAL_MOMENT_SECONDS));
+  const arrivalAlpha = useMemo(() => new CallbackProperty(() => {
+    const raw = Math.min(1, elapsedVisualSeconds(startSecondsRef.current) / ARRIVAL_MOMENT_SECONDS);
     if (raw >= 1) return Color.WHITE.withAlpha(0);
     const fadeOut = raw > 0.78 ? (1 - raw) / 0.22 : 1;
     return Color.fromCssColorString('#d1fae5').withAlpha(0.92 * fadeOut);
   }, false), []);
 
-  const arrivalGlowColor = useMemo(() => new CallbackProperty((time?: JulianDate) => {
-    const now = time ? JulianDate.toDate(time).getTime() / 1000 : Date.now() / 1000;
-    const raw = Math.min(1, Math.max(0, (now - startSecondsRef.current) / ARRIVAL_MOMENT_SECONDS));
+  const arrivalGlowColor = useMemo(() => new CallbackProperty(() => {
+    const raw = Math.min(1, elapsedVisualSeconds(startSecondsRef.current) / ARRIVAL_MOMENT_SECONDS);
     if (raw >= 1) return Color.fromCssColorString('#34d399').withAlpha(0);
     const fadeOut = raw > 0.78 ? (1 - raw) / 0.22 : 1;
     return Color.fromCssColorString('#34d399').withAlpha(0.34 * fadeOut);
@@ -1401,24 +1396,24 @@ const LeoServingSatelliteGlyph = React.memo<{
 }>(({ satellite, sizeScale, animationStartSeconds }) => {
   const accent = useMemo(() => satelliteFocusColor(satellite.status, 'LEO'), [satellite.status]);
   const entityIds = useMemo(() => leoServingSatelliteEntityIds(satellite.key), [satellite.key]);
-  const glyphColor = useMemo(() => new CallbackProperty((time?: JulianDate) => {
-    const alpha = animatedAlpha(time, animationStartSeconds, 0, LEO_FOCUS_SATELLITE_FADE_SECONDS, satellite.status === 'blocked' ? 0.7 : 1);
+  const glyphColor = useMemo(() => new CallbackProperty(() => {
+    const alpha = animatedAlpha(animationStartSeconds, 0, LEO_FOCUS_SATELLITE_FADE_SECONDS, satellite.status === 'blocked' ? 0.7 : 1);
     return Color.WHITE.withAlpha(alpha);
   }, false), [animationStartSeconds, satellite.status]);
-  const glowColor = useMemo(() => new CallbackProperty((time?: JulianDate) => {
-    const alpha = animatedAlpha(time, animationStartSeconds, 0, LEO_FOCUS_SATELLITE_FADE_SECONDS, satellite.status === 'blocked' ? 0.18 : 0.34);
+  const glowColor = useMemo(() => new CallbackProperty(() => {
+    const alpha = animatedAlpha(animationStartSeconds, 0, LEO_FOCUS_SATELLITE_FADE_SECONDS, satellite.status === 'blocked' ? 0.18 : 0.34);
     return accent.withAlpha(alpha);
   }, false), [accent, animationStartSeconds, satellite.status]);
-  const glowOutlineColor = useMemo(() => new CallbackProperty((time?: JulianDate) => {
-    const alpha = animatedAlpha(time, animationStartSeconds, 0, LEO_FOCUS_SATELLITE_FADE_SECONDS, 0.18);
+  const glowOutlineColor = useMemo(() => new CallbackProperty(() => {
+    const alpha = animatedAlpha(animationStartSeconds, 0, LEO_FOCUS_SATELLITE_FADE_SECONDS, 0.18);
     return accent.withAlpha(alpha);
   }, false), [accent, animationStartSeconds]);
-  const labelFillColor = useMemo(() => new CallbackProperty((time?: JulianDate) => {
-    const alpha = animatedAlpha(time, animationStartSeconds, 0.12, LEO_FOCUS_SATELLITE_FADE_SECONDS, satellite.status === 'blocked' ? 0.72 : 0.9);
+  const labelFillColor = useMemo(() => new CallbackProperty(() => {
+    const alpha = animatedAlpha(animationStartSeconds, 0.12, LEO_FOCUS_SATELLITE_FADE_SECONDS, satellite.status === 'blocked' ? 0.72 : 0.9);
     return Color.WHITE.withAlpha(alpha);
   }, false), [animationStartSeconds, satellite.status]);
-  const labelOutlineColor = useMemo(() => new CallbackProperty((time?: JulianDate) => {
-    const alpha = animatedAlpha(time, animationStartSeconds, 0.12, LEO_FOCUS_SATELLITE_FADE_SECONDS, 0.88);
+  const labelOutlineColor = useMemo(() => new CallbackProperty(() => {
+    const alpha = animatedAlpha(animationStartSeconds, 0.12, LEO_FOCUS_SATELLITE_FADE_SECONDS, 0.88);
     return Color.fromCssColorString('#020617').withAlpha(alpha);
   }, false), [animationStartSeconds]);
 
@@ -1493,15 +1488,15 @@ const LeoSiteToSatelliteBeam = React.memo<{
   const color = useMemo(() => satelliteFocusColor(beam.status, 'LEO'), [beam.status]);
   const animatedPositions = useMemo(() => {
     const scratch = new Cartesian3();
-    return new CallbackProperty((time?: JulianDate) => {
-      const progress = timedProgress(time, animationStartSeconds, LEO_FOCUS_BEAM_DELAY_SECONDS, LEO_FOCUS_BEAM_GROW_SECONDS);
+    return new CallbackProperty(() => {
+      const progress = timedProgress(animationStartSeconds, LEO_FOCUS_BEAM_DELAY_SECONDS, LEO_FOCUS_BEAM_GROW_SECONDS);
       return revealPolylinePositions(positions, progress, scratch);
     }, false);
   }, [animationStartSeconds, positions]);
   const material = useMemo(() => new PolylineGlowMaterialProperty({
-    color: new CallbackProperty((time?: JulianDate) => {
-      const alpha = animatedAlpha(time, animationStartSeconds, LEO_FOCUS_BEAM_DELAY_SECONDS, LEO_FOCUS_BEAM_GROW_SECONDS, beam.status === 'blocked' ? 0.72 : 1);
-      const pulseSeconds = animationSeconds(time, animationStartSeconds);
+    color: new CallbackProperty(() => {
+      const alpha = animatedAlpha(animationStartSeconds, LEO_FOCUS_BEAM_DELAY_SECONDS, LEO_FOCUS_BEAM_GROW_SECONDS, beam.status === 'blocked' ? 0.72 : 1);
+      const pulseSeconds = animationSeconds(animationStartSeconds);
       const pulse = 0.9 + 0.1 * Math.sin(pulseSeconds * Math.PI * 1.22);
       return color.withAlpha(alpha * pulse);
     }, false),
@@ -1509,8 +1504,8 @@ const LeoSiteToSatelliteBeam = React.memo<{
     taperPower: 0.72,
   }), [animationStartSeconds, beam.status, color]);
   const haloMaterial = useMemo(() => new PolylineGlowMaterialProperty({
-    color: new CallbackProperty((time?: JulianDate) => {
-      const alpha = animatedAlpha(time, animationStartSeconds, LEO_FOCUS_BEAM_DELAY_SECONDS, LEO_FOCUS_BEAM_GROW_SECONDS, beam.status === 'active' || beam.status === 'limited' ? 0.44 : 0.2);
+    color: new CallbackProperty(() => {
+      const alpha = animatedAlpha(animationStartSeconds, LEO_FOCUS_BEAM_DELAY_SECONDS, LEO_FOCUS_BEAM_GROW_SECONDS, beam.status === 'active' || beam.status === 'limited' ? 0.44 : 0.2);
       return Color.WHITE.withAlpha(alpha);
     }, false),
     glowPower: 0.36,
@@ -1581,9 +1576,9 @@ const LeoSatelliteRelay = React.memo<{
   );
   const entityKey = useMemo(() => entitySafeSignature(`${from.key}-${to.key}`), [from.key, to.key]);
   const material = useMemo(() => new PolylineGlowMaterialProperty({
-    color: new CallbackProperty((time?: JulianDate) => {
-      const alpha = animatedAlpha(time, animationStartSeconds, LEO_FOCUS_RELAY_DELAY_SECONDS, LEO_FOCUS_RELAY_FADE_SECONDS, 0.92);
-      const pulseSeconds = animationSeconds(time, animationStartSeconds);
+    color: new CallbackProperty(() => {
+      const alpha = animatedAlpha(animationStartSeconds, LEO_FOCUS_RELAY_DELAY_SECONDS, LEO_FOCUS_RELAY_FADE_SECONDS, 0.92);
+      const pulseSeconds = animationSeconds(animationStartSeconds);
       const pulse = 0.86 + 0.14 * Math.sin(pulseSeconds * Math.PI * 1.05);
       return Color.fromCssColorString('#f0abfc').withAlpha(alpha * pulse);
     }, false),
@@ -1591,8 +1586,8 @@ const LeoSatelliteRelay = React.memo<{
     taperPower: 0.64,
   }), [animationStartSeconds]);
   const haloMaterial = useMemo(() => new PolylineGlowMaterialProperty({
-    color: new CallbackProperty((time?: JulianDate) => {
-      const alpha = animatedAlpha(time, animationStartSeconds, LEO_FOCUS_RELAY_DELAY_SECONDS, LEO_FOCUS_RELAY_FADE_SECONDS, 0.36);
+    color: new CallbackProperty(() => {
+      const alpha = animatedAlpha(animationStartSeconds, LEO_FOCUS_RELAY_DELAY_SECONDS, LEO_FOCUS_RELAY_FADE_SECONDS, 0.36);
       return Color.WHITE.withAlpha(alpha);
     }, false),
     glowPower: 0.42,
@@ -1654,7 +1649,7 @@ const LeoSatelliteServiceFocus = React.memo<{
   reverseFlow: boolean;
   sizeScale: number;
 }>(({ topology, reverseFlow, sizeScale }) => {
-  const animationStartSecondsRef = useRef(Date.now() / 1000);
+  const animationStartSecondsRef = useRef(visualNowSeconds());
   const animationStartSeconds = animationStartSecondsRef.current;
   const relayFrom = topology.satellites[0] ?? null;
   const relayTo = topology.satellites.length > 1 ? topology.satellites[1] : null;

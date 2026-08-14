@@ -1,6 +1,88 @@
 # Review Report
 
-_Last updated 2026-08-12._
+_Last updated 2026-08-13._
+
+## REVISIT constellation-settings placement — 2026-08-13
+
+Advanced is no longer presented as a result-sidebar module. Its Walker,
+sub-constellation, payload geometry and time-window controls are opened from the
+Constellation header card, which owns those inputs conceptually. This reduces
+the Point and Area mobile result navigation to result-only destinations while
+preserving validation, bounded inputs and staged FOV application.
+
+## REVISIT P2b-B3 — 2026-08-13
+
+B3 removes scenario management from the analysis surface. The dedicated modal
+drawer is responsive and keyboard-contained, while saved/JSON scenarios cover
+both Points and Area models. Preset areas now persist as geometry, and loading
+clears derived Area output so no stale result survives a configuration restore.
+
+The one-page result export is context-aware: Points keeps the target/comparison
+sheet and Area gets a worst-cell sheet with cell compliance, grid assumptions
+and area qualifications. Area presentation no longer exposes Point demo stories.
+The non-contractual mean-area temporal band and its per-cell bin accumulation
+were removed; Area retains only its worst-cell interval list.
+
+## REVISIT P2b-B2 — 2026-08-13
+
+P2b-B2 replaces qualification text with context-owned results. Points and Area
+no longer display one another's KPI modules, the saved-scenario workflow is
+moved out of the result stack, and the temporal ribbon now answers the active
+question directly. The area headline remains worst-cell contractual performance;
+the Area temporal ribbon is restricted to the determining worst cell.
+
+Area setup is owned by the header target selector: its summary remains one
+compact row and an on-demand `…` dialog carries presets, drawing, GeoJSON,
+coordinate paste, validation and run controls. The result sidebar therefore no
+longer mixes target definition with result interpretation.
+
+The implementation is bounded: comparison output carries at most three merged
+interval lists, while an area retains one worst-cell list. It does not retain the timelines of every grid
+cell and introduces no timer, Cesium resource or additional Worker.
+
+## REVISIT P2b-B1 — 2026-08-13
+
+P2b-B1 resolves the ambiguity between a selected target, comparison points and
+an AOI by introducing explicit `Points` and `Area` contexts. The reference point
+survives area work, polygon geometry survives point comparison, and a bounded
+two-point comparison set can be placed directly on the globe. Switching context
+changes presentation and interaction ownership, not the validated access model.
+
+The implementation adds no timer or continuous allocation path. Comparison
+entities are static and capped, placement is synchronous, saved scenarios use a
+backward-compatible schema migration, and the existing comparison Worker remains
+opt-in. B1 deliberately qualifies the current point-oriented KPI/ribbon instead
+of pretending it represents an area; a context-specific result layout remains
+the separately scoped B2 step.
+
+## REVISIT P2a — 2026-08-13
+
+P2a adds a bounded product workflow without changing orbital physics: 12 local
+named scenarios maximum, versioned JSON exchange, a one-page PDF result sheet
+with assumptions/caveats, and an on-demand three-target table. The multi-target
+engine shares the dominant propagation pass and is byte-identical to independent
+runs. Its Worker is created only after explicit user action.
+
+The lifecycle blocker is closed. The old counter retained counts for detached
+React inputs, detached Cesium canvases and terminated Workers even after GC.
+Weak observations plus DOM connectivity filtering now measure live event targets.
+The 20-transition result is listener delta −46, timer delta 0, heap delta
+0 MB, one canvas and max transition 553 ms.
+
+## REVISIT demonstration P1 — 2026-08-13
+
+The requirement's missing configurability is now exposed without compromising
+the executive-first flow. `Narrow / Standard / Wide` show physical ground swath
+and the illustrative-datasheet caveat; Advanced exposes bias, shape, both
+half-angles, clocking and elevation mask; point coordinates and payload labels
+are available on demand. Topology changes, comparison to one payload, remaining
+payload effort and three named stories complete the demonstration narrative.
+
+The implementation deliberately bounds cost. Geometry edits are drafts until a
+single Apply action, preventing worker/sweep amplification. Labels cover payload
+satellites only, default off, update at 2 Hz, cap at 96 and reuse their Cesium
+collection across toggles. Repeated toggles retain one canvas and add no active
+listeners or timers.
 
 ## REVISIT demonstration P0 — 2026-08-12
 
@@ -13,39 +95,25 @@ in a resettable presenter view with explicit UTC time controls.
 Performance containment is structural: the clock snapshot subscription lives
 at the coverage-ribbon boundary, so pause/speed publications do not rerender the
 Cesium globe or analysis tree. Five repeated Presenter/Explore and Pause/Play
-cycles produced listener delta 0 and timer delta 0 with one viewer. This does
-not clear the older 20-transition cross-mode teardown failure described below.
+cycles produced listener delta 0 and timer delta 0 with one viewer.
 
 ## UIX integration closure — 2026-08-12
 
-Programme 2 from `IMPLEMENTATION_PLAN.md` is implemented (U1–U16) but **not
-validated**: the 20-transition lifecycle gate is red. The integration keeps
+Programme 2 from `IMPLEMENTATION_PLAN.md` is implemented (U1–U17) and validated. The integration keeps
 ADR-001's dependency and runtime isolation while removing accidental state loss
 through explicit versioned snapshots. `src/features/revisit/` is prevented by
 ESLint from importing the telecom session adapter.
 
 The delivered gates are discriminating rather than documentary: browser history
 caught and fixed a StrictMode double-`pushState` defect; Axe caught unnamed
-selects and composited contrast failures; the 20-transition test distinguished
-discarded-element listeners from retained global listeners before setting its
-budget — which is exactly the check now failing. Evidence: TypeScript and
-ESLint clean, 1,960 tests passing (5 skipped), build successful, 18 visual
-baselines, Axe with no critical/serious finding over three modes and two
-themes, and 20 transitions with max 353 ms, timer delta 0 and heap delta 0 MB
-after GC — **but listener delta +534 against a budget of 50.** That single
-figure is why Programme 2 cannot be called complete or validated yet.
+selects and composited contrast failures. Evidence: TypeScript and ESLint clean,
+1,979 tests passing (5 skipped), build successful, 18 visual baselines, Axe with
+no critical/serious finding over three modes and two themes, and a green
+20-transition lifecycle budget after GC.
 
-_History, 2026-08-12: this section originally reported 14 visual baselines,
-max 433 ms, timer delta −1 and a clean listener delta of 0, none of which
-matched `IMPLEMENTATION_STATUS.md` or `IMPLEMENTATION_PLAN.md`. Visual
-baseline count, max transition time and timer delta were simple transcription
-errors and are reconciled above. The "listener delta 0" claim was different:
-re-running the actual gate found it failing at +534, not passing at 0 — the
-figure was stale, not merely mistranscribed, and predates this reconciliation
-pass (reverting to the committed `memoryMonitor.ts` and to the pre-pass
-`App.tsx`/`RootShell.tsx` does not clear it). Root cause not yet investigated;
-likely a Cesium viewer-teardown listener leak on `window`/`document` across
-repeated mode transitions, given the file that counts them was untouched._
+_History: the 2026-08-12 +534 result was real for the old counter but did not
+represent active listeners. P2a corrected the instrumentation rather than
+loosening the budget._
 
 ## Scope
 
