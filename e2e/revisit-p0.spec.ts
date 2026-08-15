@@ -11,10 +11,8 @@ test.beforeEach(async ({ page }) => {
 test.describe('REVISIT P0 demonstration contract', () => {
   test('opens on a business result with the complete OneWeb fleet truth', async ({ page }) => {
     await expect(page.getByText('576 active + 58 spare · 634 total')).toBeVisible();
-    await expect(page.getByRole('complementary', { name: 'Demo result summary' }))
-      .toContainText('London 2 h · payload increment');
-    await expect(page.getByRole('complementary', { name: 'Demo result summary' }))
-      .not.toContainText('worst-case');
+    await expect(page.getByText('Demo story')).toHaveCount(0);
+    await expect(page.getByRole('combobox', { name: 'Demo scenario' })).toHaveCount(0);
     await expect(page.getByText(/telecom workspace is preserved/i)).toHaveCount(0);
     await expect(page.getByText('Validated model')).toHaveCount(1);
     await expect(page.getByText(/not yet calibrated/i)).toHaveCount(0);
@@ -48,7 +46,7 @@ test.describe('REVISIT P0 demonstration contract', () => {
     await payloadSlider.press('ArrowRight');
     await expect(payloadSlider).not.toHaveAttribute('aria-valuetext', '12 payloads');
 
-    await page.getByRole('button', { name: /^(Reset demo|Reset)$/ }).click();
+    await page.getByRole('button', { name: /^(Reset scenario|Reset)$/ }).click();
     await expect(payloadSlider).toHaveAttribute('aria-valuetext', '12 payloads');
 
     const timestamp = page.locator('time');

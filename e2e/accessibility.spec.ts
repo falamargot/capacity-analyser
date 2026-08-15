@@ -35,7 +35,6 @@ test.describe('critical accessibility gate', () => {
           await areaPanel.getByText('Paste coordinate list', { exact: true }).click();
           await areaPanel.getByLabel('Custom area coordinate list').fill('51, -2\n51, 9\n61, 9\n61, -2');
           await areaPanel.getByRole('button', { name: 'Apply list' }).click();
-          await areaPanel.getByRole('button', { name: 'Run custom area' }).click();
           await expect(page.getByRole('region', { name: 'Area result summary' })).toContainText('Worst cell', { timeout: 60_000 });
           analyses.push(await new AxeBuilder({ page })
             .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])

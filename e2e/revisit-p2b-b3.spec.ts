@@ -21,7 +21,6 @@ test.describe('REVISIT P2b-B3 scenario workspace', () => {
     await areaPanel.getByText('Paste coordinate list', { exact: true }).click();
     await areaPanel.getByLabel('Custom area coordinate list').fill('51, -2\n51, 9\n61, 9\n61, -2');
     await areaPanel.getByRole('button', { name: 'Apply list' }).click();
-    await areaPanel.getByRole('button', { name: 'Run custom area' }).click();
     await expect(page.getByRole('region', { name: 'Area result summary' })).toContainText('North Sea', { timeout: 60_000 });
 
     const launcher = page.getByRole('button', { name: 'Scenario workspace' });
@@ -50,8 +49,8 @@ test.describe('REVISIT P2b-B3 scenario workspace', () => {
 
     await expect(page.getByRole('tab', { name: 'Area' })).toHaveAttribute('aria-selected', 'true');
     await expect(page.locator('[data-revisit-context-panel="analysis-target"]')).toContainText('North Sea');
-    await expect(page.getByRole('region', { name: 'Area result summary' })).toContainText('Not run');
-    await expect(page.getByRole('region', { name: 'Coverage timeline' })).toContainText('Run an area analysis');
+    await expect(page.getByRole('region', { name: 'Area result summary' })).toContainText('North Sea', { timeout: 60_000 });
+    await expect(page.getByRole('region', { name: 'Coverage timeline' })).toContainText('Worst-cell access timeline');
   });
 
   test('fills the mobile viewport without horizontal overflow', async ({ page }, testInfo) => {

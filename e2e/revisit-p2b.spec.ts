@@ -33,7 +33,6 @@ test.describe('REVISIT P2b-A custom areas', () => {
     await expect(area.getByLabel('Custom area name')).toHaveValue('Channel AOI');
     await expect(area.getByLabel('Custom area validation')).toContainText(/Ready · 4 vertices · \d+ cells/);
 
-    await area.getByRole('button', { name: 'Run custom area' }).click();
     await expect(page.getByRole('region', { name: 'Area result summary' })).toContainText('Channel AOI', { timeout: 60_000 });
 
     await page.getByRole('button', { name: 'Scenario workspace' }).click();
@@ -80,6 +79,7 @@ test.describe('REVISIT P2b-A custom areas', () => {
     await expect(page.locator('[data-revisit-context-panel="analysis-target"]')).toContainText('3 vertices');
     await area.getByRole('button', { name: 'Finish polygon' }).click();
     await expect(area.getByLabel('Custom area validation')).toContainText('Ready');
+    await expect(page.getByRole('region', { name: 'Area result summary' })).toContainText('Worst cell', { timeout: 60_000 });
 
     await page.getByRole('tab', { name: 'Points 1' }).click();
     await expect(page.getByRole('combobox', { name: 'Target' })).toHaveValue('London');

@@ -25,7 +25,7 @@ test.describe('REVISIT P1 requirement contract', () => {
     await expect(page.getByRole('combobox', { name: 'Area requirement' })).toHaveCount(0);
   });
 
-  test('exposes truthful instrument presets and named demonstration stories', async ({ page }, testInfo) => {
+  test('exposes truthful instrument presets without a demo workflow', async ({ page }, testInfo) => {
     const instrument = page.getByRole('combobox', { name: 'Instrument preset' });
     await expect(instrument).toHaveValue('STANDARD');
     await expect(page.getByText('Illustrative EO/IR preset · not an instrument datasheet')).toBeVisible();
@@ -37,11 +37,8 @@ test.describe('REVISIT P1 requirement contract', () => {
     }
     await expect(page.getByRole('button', { name: /Swath 1400 km/ })).toBeVisible({ timeout: 30_000 });
 
-    await page.getByRole('combobox', { name: 'Demo scenario' }).selectOption('ARCTIC_HIGH_REVISIT');
-    await expect(page.getByRole('combobox', { name: 'Demo scenario' }).locator('option:checked'))
-      .toContainText('Arctic high revisit · latitude advantage');
-    await expect(page.getByRole('combobox', { name: 'Demo scenario' }).locator('option:checked'))
-      .toContainText('latitude advantage');
+    await expect(page.getByRole('combobox', { name: 'Demo scenario' })).toHaveCount(0);
+    await expect(page.getByText(/demo (story|workflow)/i)).toHaveCount(0);
   });
 
   test('accepts bounded coordinates and reports topology changes', async ({ page }) => {

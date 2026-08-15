@@ -76,7 +76,8 @@ the executive-first flow. `Narrow / Standard / Wide` show physical ground swath
 and the illustrative-datasheet caveat; Advanced exposes bias, shape, both
 half-angles, clocking and elevation mask; point coordinates and payload labels
 are available on demand. Topology changes, comparison to one payload, remaining
-payload effort and three named stories complete the demonstration narrative.
+payload effort complete the demonstration narrative. The separate named-story
+workflow was removed on 2026-08-15 to reduce UI and code weight.
 
 The implementation deliberately bounds cost. Geometry edits are drafts until a
 single Apply action, preventing worker/sweep amplification. Labels cover payload

@@ -1,6 +1,6 @@
 # Implementation Status
 
-_Last updated 2026-08-13._
+_Last updated 2026-08-15._
 
 ## Current phase
 
@@ -14,8 +14,9 @@ unchanged; the corrected cross-mode teardown gate is green.
 
 The REVISIT demonstration P1 corrective is also complete: all brief-requested
 point/FOV/label controls are now exposed through progressive disclosure, and
-the derived demo improvements (topology narration, comparison and named stories)
-are present. Advanced geometry is staged before one worker dispatch; payload
+the derived topology narration and comparison improvements are present. The
+former named-story workflow was removed to keep the interface focused on the
+user's active scenario. Advanced geometry is staged before one worker dispatch; payload
 labels are bounded to 96 and reused across toggles.
 
 > **Closed, 2026-08-13.** The lifecycle counter treated detached DOM targets and

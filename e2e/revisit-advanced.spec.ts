@@ -89,12 +89,12 @@ test.describe('REVISIT Advanced stabilization', () => {
     await areaPanel.getByText('Paste coordinate list', { exact: true }).click();
     await areaPanel.getByLabel('Custom area coordinate list').fill('68, 20\n68, 30\n75, 30\n75, 20');
     await areaPanel.getByRole('button', { name: 'Apply list' }).click();
-    await areaPanel.getByRole('button', { name: 'Run custom area' }).click();
     const cancel = page.getByRole('button', { name: 'Cancel', exact: true });
-    await expect(cancel).toBeVisible();
+    await expect(cancel).toBeVisible({ timeout: 10_000 });
     await cancel.click();
     await expect(cancel).toBeHidden();
-    await expect(areaPanel.getByRole('button', { name: 'Run custom area' })).toBeEnabled();
+    await expect(areaPanel.getByRole('button', { name: 'Run custom area' })).toHaveCount(0);
+    await expect(areaPanel).toContainText('analysed automatically');
   });
 });
 

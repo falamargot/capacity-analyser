@@ -167,43 +167,6 @@ export const TARGET_PRESETS: Target[] = [
 
 export const DEFAULT_TARGET = TARGET_PRESETS[2];
 
-export interface RevisitDemoPreset {
-    id: 'LONDON_2H' | 'ARCTIC_HIGH_REVISIT' | 'EQUATORIAL_CHALLENGE';
-    label: string;
-    targetName: string;
-    requirementHours: number;
-    cue: string;
-    takeaway: string;
-}
-
-/** Named stories for a presenter; all retain the same model and payload count. */
-export const REVISIT_DEMO_PRESETS: RevisitDemoPreset[] = [
-    {
-        id: 'LONDON_2H',
-        label: 'London 2 h',
-        targetName: 'London',
-        requirementHours: 2,
-        cue: 'payload increment',
-        takeaway: 'Mid-latitude benchmark: show the payload increment needed to close the 2 h target.',
-    },
-    {
-        id: 'ARCTIC_HIGH_REVISIT',
-        label: 'Arctic high revisit',
-        targetName: 'Longyearbyen',
-        requirementHours: 1,
-        cue: 'latitude advantage',
-        takeaway: 'Near-polar geometry concentrates access at high latitude.',
-    },
-    {
-        id: 'EQUATORIAL_CHALLENGE',
-        label: 'Equatorial challenge',
-        targetName: 'Singapore',
-        requirementHours: 2,
-        cue: 'sparser access',
-        takeaway: 'The same payload topology is less effective near the equator.',
-    },
-];
-
 /**
  * 12 payloads over 2 planes — mid-ladder, so the slider has room both ways.
  *

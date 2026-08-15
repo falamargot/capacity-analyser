@@ -160,6 +160,20 @@ test.describe('responsive REVISIT shell', () => {
     expect(layout.outOfBounds).toEqual([]);
   });
 
+  test('reserves a visible globe band between mobile controls and results', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile-chromium', 'Dedicated mobile regression gate');
+    await page.goto('/?mode=revisit');
+    await expect(page.getByRole('region', { name: 'REVISIT analysis' })).toBeVisible({ timeout: 30_000 });
+
+    const clearBand = await page.evaluate(() => {
+      const controls = document.querySelector<HTMLElement>('[data-revisit-stage-controls]')!;
+      const analysis = document.querySelector<HTMLElement>('[data-revisit-analysis-panel]')!;
+      return analysis.getBoundingClientRect().top - controls.getBoundingClientRect().bottom;
+    });
+
+    expect(clearBand).toBeGreaterThanOrEqual(72);
+  });
+
   test('keeps the scenario rail flush to the top and the globe below it', async ({ page }) => {
     await page.goto('/?mode=revisit');
     await expect(page.getByRole('region', { name: 'REVISIT analysis' })).toBeVisible({ timeout: 30_000 });

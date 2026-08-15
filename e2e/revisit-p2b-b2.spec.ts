@@ -38,7 +38,6 @@ test.describe('REVISIT P2b-B2 contextual results', () => {
     await areaPanel.getByText('Paste coordinate list', { exact: true }).click();
     await areaPanel.getByLabel('Custom area coordinate list').fill('51, -2\n51, 9\n61, 9\n61, -2');
     await areaPanel.getByRole('button', { name: 'Apply list' }).click();
-    await areaPanel.getByRole('button', { name: 'Run custom area' }).click();
     await expect(analysis.getByRole('region', { name: 'Area result summary' })).toContainText('Worst cell', { timeout: 60_000 });
     await expect(page.getByRole('slider', { name: /Seek within/ })).toContainText('Worst cell');
     await expect(page.locator('[data-revisit-context-panel="analysis-target"]')).toContainText('North Sea');

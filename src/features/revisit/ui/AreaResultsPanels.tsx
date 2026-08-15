@@ -51,7 +51,7 @@ export const AreaResultSummary: React.FC<AreaResultsProps> = ({
                     : missesRequirement
                         ? 'border-rose-400/50 bg-rose-400/10 text-rose-300'
                         : 'border-lime-400/50 bg-lime-400/10 text-lime-300'}`}>
-                    {isRunning ? `${Math.round((progress ?? 0) * 100)}%` : !analysis ? 'Not run' : missesRequirement ? 'Area misses' : 'Area meets'}
+                    {isRunning ? `${Math.round((progress ?? 0) * 100)}%` : !analysis ? 'Awaiting area' : missesRequirement ? 'Area misses' : 'Area meets'}
                 </span>
             </div>
 
@@ -98,7 +98,7 @@ export const AreaDistributionPanel: React.FC<Pick<AreaResultsProps, 'analysis' |
     if (!analysis) return (
         <section className={`${REVISIT_PANEL} px-3 py-3`} aria-label="Area cell distribution">
             <span className={REVISIT_LABEL}>Cells vs requirement</span>
-            <p className="mt-2 text-[10px] leading-4 text-slate-400">Run an area analysis to see the compliant, failing and never-seen cells.</p>
+            <p className="mt-2 text-[10px] leading-4 text-slate-400">Define a valid area to see the compliant, failing and never-seen cells.</p>
         </section>
     );
     const total = Math.max(analysis.cells.length, 1);

@@ -36,7 +36,7 @@ import {
 import { useOneWebCalibration } from '../hooks/useOneWebCalibration';
 import { useAreaAnalysis } from '../hooks/useAreaAnalysis';
 import {
-    MAX_AREA_VERTICES, recommendedAreaGridSpacing, type AreaTarget,
+    MAX_AREA_VERTICES, recommendedAreaGridSpacing, validateArea, type AreaTarget,
 } from '../domain/areaTarget';
 import {
     MAX_SECONDARY_TARGETS, REFERENCE_POINT_ID,
@@ -48,7 +48,7 @@ import {
 import { downloadCsv } from './downloadCsv';
 import { AreaDistributionPanel, AreaResultSummary } from './AreaResultsPanels';
 import {
-    REVISIT_DEMO_PRESETS, TARGET_PRESETS, defaultScenario, fovPresets, type FovPresetName,
+    TARGET_PRESETS, defaultScenario, fovPresets, type FovPresetName,
 } from '../domain/presets';
 import { executiveEnvelopePoints } from '../analysis/executiveEnvelope';
 import type { PointTarget, RevisitScenario, WalkerSpec } from '../domain/types';
@@ -175,7 +175,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         () => restoredSession?.options ?? defaultDisplayOptions()
     );
     const [presenterMode, setPresenterMode] = useState(true);
-    const [demoResetRevision, setDemoResetRevision] = useState(0);
+    const [resetRevision, setResetRevision] = useState(0);
     const [mobileAnalysisPanel, setMobileAnalysisPanel] = useState<MobileAnalysisPanel>('summary');
     const [exportError, setExportError] = useState<string | null>(null);
     const [customArea, setCustomArea] = useState<AreaTarget | null>(
@@ -503,6 +503,43 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
 
     const calibration = useOneWebCalibration();
     const areaRun = useAreaAnalysis(scenario);
+    const runAreaAnalysis = areaRun.run;
+    const lastAutoAreaRunKeyRef = useRef<string | null>(null);
+    const autoAreaRunKey = useMemo(() => customArea ? JSON.stringify([
+        customArea,
+        scenario.reference,
+        scenario.selection,
+        scenario.payload,
+        scenario.window,
+    ]) : null, [customArea, scenario.reference, scenario.selection, scenario.payload, scenario.window]);
+
+    /**
+     * Area analysis follows a valid, stable definition automatically. The
+     * debounce is deliberate: drawing vertices and editing numeric fields must
+     * cancel obsolete work, not enqueue a full grid run for every intermediate
+     * value. Scenario settling is also awaited so the worker receives the
+     * measured topology that will actually remain on screen.
+     */
+    useEffect(() => {
+        if (
+            analysisContext !== 'AREA'
+            || isDrawingArea
+            || isConfigurationSettling
+            || !customArea
+            || !autoAreaRunKey
+            || lastAutoAreaRunKeyRef.current === autoAreaRunKey
+            || !validateArea(customArea, scenario.reference, scenario.payload).ok
+        ) return;
+
+        const timeout = window.setTimeout(() => {
+            lastAutoAreaRunKeyRef.current = autoAreaRunKey;
+            runAreaAnalysis(customArea);
+        }, 450);
+        return () => window.clearTimeout(timeout);
+    }, [
+        analysisContext, isDrawingArea, isConfigurationSettling, customArea,
+        autoAreaRunKey, scenario.reference, scenario.payload, runAreaAnalysis,
+    ]);
     const warnings = useMemo(() => analysisContext === 'AREA' ? [] : [...new Set([
         ...(analysis?.warnings ?? []), ...(sweep?.warnings ?? []),
     ])], [analysisContext, analysis, sweep]);
@@ -550,42 +587,20 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         // Keeping the previous run here would make a stale result look current.
         areaRun.clear();
         setCustomArea(area);
-        if (!area) setIsDrawingArea(false);
+        if (!area) {
+            setIsDrawingArea(false);
+            lastAutoAreaRunKeyRef.current = null;
+        }
         if (area) {
             setAnalysisContext('AREA');
         }
     }, [areaRun]);
-
-    const handleRunCustomArea = useCallback(() => {
-        if (!customArea) return;
-        setIsDrawingArea(false);
-        areaRun.run(customArea);
-        setAnalysisContext('AREA');
-    }, [areaRun, customArea]);
 
     const handleInstrumentPresetChange = useCallback((name: FovPresetName) => {
         setScenario((current) => ({
             ...current,
             payload: fovPresets(current.reference.altitudeKm)[name],
         }));
-    }, []);
-
-    const activeDemoPreset = useMemo(() => REVISIT_DEMO_PRESETS.find((preset) => (
-        preset.targetName === scenario.target.name
-        && preset.requirementHours * 3600_000 === requirementMs
-    )) ?? null, [scenario.target.name, requirementMs]);
-
-    const handleDemoPresetChange = useCallback((id: string) => {
-        const preset = REVISIT_DEMO_PRESETS.find((candidate) => candidate.id === id);
-        if (!preset) return;
-        const target = TARGET_PRESETS.find((candidate) => candidate.name === preset.targetName);
-        if (!target) return;
-        setScenario((current) => ({ ...current, target }));
-        setRequirementMs(preset.requirementHours * 3600_000);
-        setSelectionSource('auto');
-        setMobileAnalysisPanel('summary');
-        setAnalysisContext('POINTS');
-        setSelectedPointId(REFERENCE_POINT_ID);
     }, []);
 
     /** Exports carry the calibration when one has been run — see csvExport. */
@@ -639,7 +654,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         if (previousSpeed !== 1) clock.setSpeed(previousSpeed);
     }, [clock]);
 
-    const handleResetDemo = useCallback(() => {
+    const handleResetScenario = useCallback(() => {
         const resetScenario = defaultScenario(epochRef.current);
         setScenario(resetScenario);
         setOptions(defaultDisplayOptions());
@@ -655,7 +670,8 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         setPendingComparisonPointIds([]);
         setSelectedPointId(REFERENCE_POINT_ID);
         setScenarioWorkspaceOpen(false);
-        setDemoResetRevision((revision) => revision + 1);
+        setResetRevision((revision) => revision + 1);
+        lastAutoAreaRunKeyRef.current = null;
         areaRun.clear();
         clock.setDateTime(resetScenario.window.startMs);
     }, [areaRun, clock]);
@@ -686,6 +702,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         setPendingComparisonPointIds([]);
         setSelectedPointId(REFERENCE_POINT_ID);
         setScenarioWorkspaceOpen(false);
+        lastAutoAreaRunKeyRef.current = null;
         areaRun.clear();
         clock.setDateTime(snapshot.scenario.window.startMs);
     }, [areaRun, clock]);
@@ -754,7 +771,6 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                         onStartAreaDrawing={handleStartAreaDrawing}
                         onFinishAreaDrawing={() => setIsDrawingArea(false)}
                         onUndoAreaVertex={handleUndoAreaVertex}
-                        onRunCustomArea={handleRunCustomArea}
                         isAreaScenarioSettling={isConfigurationSettling}
                         onAdvancedScenarioChange={handleAdvancedChange}
                         modelValidation={{
@@ -795,48 +811,6 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                 panels were fragile: the header grows when a spread note appears
                 and silently overlapped the KPI panel. Flow layout cannot. */}
               <div className="pointer-events-none absolute inset-0 z-10 flex flex-col gap-2 p-2 sm:p-3">
-                <div className="pointer-events-none flex items-center justify-end gap-3">
-                        <aside
-                            className={`${REVISIT_PANEL} ${presenterMode ? 'block' : 'hidden'} z-30 ml-auto w-full max-w-[calc(100vw-1rem)] px-3 py-2 text-[11px] font-semibold text-slate-300 sm:w-auto sm:max-w-[26rem]`}
-                            aria-label="Demo result summary"
-                            aria-live="polite"
-                            aria-hidden={!presenterMode}
-                        >
-                            <div className="flex flex-col items-stretch gap-1.5 lg:flex-row lg:items-center lg:justify-end lg:gap-2">
-                                {analysisContext === 'POINTS' ? (
-                                    <label className="pointer-events-auto grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-2 lg:flex lg:max-w-[23rem] lg:flex-1">
-                                        <span className="whitespace-nowrap text-[8px] font-black uppercase tracking-[0.1em] text-slate-500">
-                                            Demo story
-                                        </span>
-                                        <select
-                                            aria-label="Demo scenario"
-                                            value={activeDemoPreset?.id ?? 'CUSTOM'}
-                                            onChange={(event) => handleDemoPresetChange(event.target.value)}
-                                            className="min-w-0 rounded border border-slate-700 bg-slate-950/80 px-2 py-1 text-[9px] font-bold text-slate-200 outline-none"
-                                        >
-                                            {!activeDemoPreset && <option value="CUSTOM">Custom</option>}
-                                            {REVISIT_DEMO_PRESETS.map((preset) => (
-                                                <option key={preset.id} value={preset.id}>
-                                                    {preset.label} · {preset.cue}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </label>
-                                ) : (
-                                    <div className="min-w-0 lg:max-w-[23rem] lg:flex-1">
-                                        <span className="text-[8px] font-black uppercase tracking-[0.1em] text-slate-500">Area demo workflow</span>
-                                        <p className="truncate text-[9px] font-bold text-sky-200">
-                                            Define and run the area from Analysis target
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-                            {analysisContext === 'POINTS' && activeDemoPreset && (
-                                <span className="sr-only">{activeDemoPreset.takeaway}</span>
-                            )}
-                    </aside>
-                </div>
-
                 {/* `flex-1 min-h-0` is load-bearing: it gives this row the leftover
                     height and lets the analysis column scroll inside it. Without
                     min-h-0 a tall column grows the row instead, pushing the ribbon
@@ -847,7 +821,10 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                       than stretching to the width of the widest sibling. */}
                   <div className="pointer-events-none absolute left-0 top-0 z-20 flex flex-col items-start justify-between md:static">
                     {/* Display toggles — the slot ENG uses for REG / 5G / CONN / LOAD */}
-                    <div className={`pointer-events-auto ${REVISIT_PANEL} flex max-w-[calc(100vw-1rem)] flex-row flex-wrap gap-1 p-1.5 md:max-w-none md:flex-col`}>
+                    <div
+                        data-revisit-stage-controls
+                        className={`pointer-events-auto ${REVISIT_PANEL} flex max-w-[calc(100vw-1rem)] flex-row flex-wrap gap-1 p-1.5 md:max-w-none md:flex-col`}
+                    >
                         {onExit && (
                             <button
                                 type="button"
@@ -883,11 +860,11 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                         </button>
                         <button
                             type="button"
-                            onClick={handleResetDemo}
+                            onClick={handleResetScenario}
                             className="min-h-11 rounded-md px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-slate-400 transition-colors hover:text-amber-200 md:min-h-0"
                         >
                             <span className="sm:hidden">Reset</span>
-                            <span className="hidden sm:inline">Reset demo</span>
+                            <span className="hidden sm:inline">Reset scenario</span>
                         </button>
                         {!presenterMode && TOGGLES.map(({ key, label, hint }) => (
                             <button
@@ -927,7 +904,8 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                         Scrolls independently so it can never push the ribbon out. */}
                     <section
                         ref={analysisColumnRef}
-                        className={`pointer-events-auto absolute inset-x-0 bottom-0 top-16 z-10 flex max-h-[46vh] w-full shrink-0 flex-col gap-2 overflow-y-auto rounded-t-2xl md:static md:max-h-none md:w-[400px] md:rounded-none [&>*]:shrink-0`}
+                        className={`pointer-events-auto absolute inset-x-0 bottom-0 z-10 flex max-h-[22vh] w-full shrink-0 flex-col gap-2 overflow-y-auto rounded-t-2xl md:static md:max-h-none md:w-[400px] md:rounded-none [&>*]:shrink-0`}
+                        data-revisit-analysis-panel
                         aria-label="REVISIT analysis"
                     >
                         <nav className={`${REVISIT_PANEL} sticky top-0 z-20 grid gap-1 p-1 md:hidden ${analysisContext === 'AREA' ? 'grid-cols-2' : 'grid-cols-3'}`} aria-label="REVISIT analysis sections">
@@ -1009,7 +987,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                                 <AreaDistributionPanel analysis={areaRun.analysis} requirementMs={requirementMs} onExportCsv={handleExportAreaCsv} />
                             ) : (
                                 <ValueCurve
-                                    key={demoResetRevision}
+                                    key={resetRevision}
                                     sweep={sweep}
                                     isComputing={isSweeping}
                                     requirementMs={requirementMs}

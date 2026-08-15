@@ -90,7 +90,9 @@ body {
 /* REVISIT keeps its amber mission accent while sharing the application's light
    and dark surface tokens. Cesium remains dark; only the product shell changes. */
 .revisit-shell {
-  --revisit-panel-bg: rgba(2, 6, 23, 0.82);
+  /* One shared glass surface for header cards, side panels and the access
+     timeline. Keeping the alpha here prevents those three zones drifting. */
+  --revisit-panel-bg: rgba(2, 6, 23, 0.74);
   --revisit-panel-border: rgba(245, 158, 11, 0.28);
   --revisit-muted: #94a3b8;
 }
@@ -101,7 +103,7 @@ body {
 }
 
 .light .revisit-shell {
-  --revisit-panel-bg: rgba(255, 255, 255, 0.91);
+  --revisit-panel-bg: rgba(255, 255, 255, 0.86);
   --revisit-panel-border: rgba(217, 119, 6, 0.34);
   --revisit-muted: #475569;
 }
@@ -1906,6 +1908,20 @@ h1, h2, h3, h4 {
 
 .dark .capacity-header {
   background: rgb(5 8 13 / 0.975) !important;
+}
+
+/* REVISIT cards already carry the same translucent surface as the sidebar and
+   timeline. Remove the generic header's almost-opaque layer underneath them,
+   otherwise the two stacked backgrounds make the header look materially
+   heavier even though every card uses `revisit-panel`. */
+.capacity-header.revisit-global-header,
+.dark .capacity-header.revisit-global-header {
+  background: transparent !important;
+  backdrop-filter: none;
+}
+
+.revisit-global-header .revisit-context-rail {
+  background: transparent;
 }
 
 .capacity-header .header-site-section {

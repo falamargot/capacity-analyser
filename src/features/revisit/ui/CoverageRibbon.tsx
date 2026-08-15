@@ -272,7 +272,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                                     </span>
                                 </div>
                             </div> : <div className="rounded border border-dashed border-slate-700 px-3 py-2 text-[10px] text-slate-400">
-                                Run an area analysis to populate the area timeline.
+                                Define a valid area to populate the area timeline automatically.
                             </div>
                         ) : <div className="space-y-1.5">
                             {pointRows.map((lane, index) => (

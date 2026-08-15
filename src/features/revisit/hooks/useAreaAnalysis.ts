@@ -1,9 +1,8 @@
 /**
- * useAreaAnalysis — run a gridded area, on demand.
+ * useAreaAnalysis — run a validated gridded area when the UI commits it.
  *
- * Every cell is a full engine run, so this is opt-in rather than automatic: a
- * 300-cell grid over 72 hours is tens of seconds and must never be triggered by
- * simply opening the mode (UX §6 — the mode opens instantly on a preset).
+ * Every cell is a full engine run. RevisitApp therefore debounces valid area
+ * changes and never calls `run` for intermediate drawing states.
  *
  * Runs on its own worker for the same reason the sweep does: it would otherwise
  * block the headline analysis behind a queue for the whole run.

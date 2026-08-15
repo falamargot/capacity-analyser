@@ -1,9 +1,9 @@
 /**
- * AreaPanel — define and run an area target.
+ * AreaPanel — define an area target and expose automatic analysis status.
  *
- * Areas are opt-in: every cell is a full engine run, so nothing here starts
- * until the user asks. It is mounted in the compact Analysis Target popover;
- * result interpretation lives in AreaResultsPanels.
+ * Every cell is a full engine run, so intermediate drawing states never start
+ * work. A valid, stable polygon is analysed automatically by RevisitApp after
+ * drawing, import or coordinate-list application.
  */
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -37,7 +37,6 @@ interface AreaPanelProps {
     onStartDrawing: () => void;
     onFinishDrawing: () => void;
     onUndoVertex: () => void;
-    onRunCustomArea: () => void;
     showAnalysisSummary?: boolean;
     /** Prevent a run against an automatic topology that is about to be replaced. */
     isScenarioSettling?: boolean;
@@ -49,7 +48,6 @@ export const AreaPanel: React.FC<AreaPanelProps> = ({
     scenario, analysis, isRunning, error, progress, requirementMs,
     onClear, onCancel, onExportCsv, customArea, isDrawing,
     onCustomAreaChange, onStartDrawing, onFinishDrawing, onUndoVertex,
-    onRunCustomArea,
     showAnalysisSummary = true,
     isScenarioSettling = false,
     variant = 'panel',
@@ -93,7 +91,7 @@ export const AreaPanel: React.FC<AreaPanelProps> = ({
                 gridSpacingDeg: customArea?.gridSpacingDeg
                     ?? recommendedAreaGridSpacingForBoundary(scenario.reference, scenario.payload, boundary),
             });
-            setEditorMessage(`${boundary.length} boundary points loaded. Review validation, then run.`);
+            setEditorMessage(`${boundary.length} boundary points loaded. Analysis starts automatically.`);
         } catch (cause) {
             setEditorMessage(cause instanceof Error ? cause.message : String(cause));
         }
@@ -112,7 +110,7 @@ export const AreaPanel: React.FC<AreaPanelProps> = ({
                         scenario.reference, scenario.payload, imported.boundary
                     ),
             ));
-            setEditorMessage(`${imported.boundary.length} GeoJSON boundary points imported.`);
+            setEditorMessage(`${imported.boundary.length} GeoJSON boundary points imported. Analysis starts automatically.`);
         } catch (cause) {
             setEditorMessage(cause instanceof Error ? cause.message : String(cause));
         } finally {
@@ -139,13 +137,7 @@ export const AreaPanel: React.FC<AreaPanelProps> = ({
                             onClick={onCancel}
                             className="rounded border border-red-400/50 px-2 py-0.5 text-[9px] font-bold text-red-200 hover:bg-red-500/10"
                         >Cancel</button>
-                    ) : analysis && (
-                        <button
-                            type="button"
-                            onClick={onClear}
-                            className="rounded border border-slate-700 px-2 py-0.5 text-[9px] font-bold text-slate-500 hover:text-slate-300"
-                        >Clear result</button>
-                    )}
+                    ) : null}
                 </div>
             </div>
 
@@ -233,7 +225,7 @@ export const AreaPanel: React.FC<AreaPanelProps> = ({
                             <p className="mt-0.5 text-[9px] text-sky-200/70">Camera rotation is paused while drawing.</p>
                             <div className="mt-1.5 flex gap-1">
                                 <button type="button" disabled={!customArea?.boundary.length} onClick={onUndoVertex} className="min-h-8 rounded border border-slate-600 px-2 text-[9px] font-bold text-slate-200 disabled:opacity-30">Undo</button>
-                                <button type="button" disabled={(customArea?.boundary.length ?? 0) < 3} onClick={onFinishDrawing} className="min-h-8 rounded bg-sky-400/20 px-2 text-[9px] font-black text-sky-100 disabled:opacity-30">Finish polygon</button>
+                                <button type="button" disabled={!customValidation?.ok} onClick={onFinishDrawing} className="min-h-8 rounded bg-sky-400/20 px-2 text-[9px] font-black text-sky-100 disabled:opacity-30">Finish polygon</button>
                             </div>
                         </div>
                     )}
@@ -268,13 +260,13 @@ export const AreaPanel: React.FC<AreaPanelProps> = ({
                         </div>
                     )}
                     {editorMessage && <p role="status" className="text-[9px] leading-3 text-slate-400">{editorMessage}</p>}
-                    <button
-                        type="button"
-                        disabled={isRunning || isScenarioSettling || isDrawing || !customValidation?.ok}
-                        onClick={onRunCustomArea}
-                        className="min-h-9 w-full rounded border border-amber-400/50 bg-amber-400/10 px-2 text-[9px] font-black uppercase tracking-[0.08em] text-amber-100 disabled:border-slate-700 disabled:bg-transparent disabled:text-slate-600"
-                    >Run custom area</button>
-                    <p className="text-[8px] leading-3 text-slate-600">Analysis starts only when requested · maximum 400 cells</p>
+                    <p className="text-[8px] leading-3 text-slate-500">
+                        {isDrawing
+                            ? 'Analysis will start after Finish polygon.'
+                            : isScenarioSettling
+                                ? 'Analysis is waiting for the final topology.'
+                                : 'Valid area changes are analysed automatically · maximum 400 cells'}
+                    </p>
                 </div>
             </div>
 

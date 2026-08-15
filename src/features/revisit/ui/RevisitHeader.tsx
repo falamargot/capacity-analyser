@@ -91,7 +91,6 @@ interface RevisitHeaderProps {
     onStartAreaDrawing?: () => void;
     onFinishAreaDrawing?: () => void;
     onUndoAreaVertex?: () => void;
-    onRunCustomArea?: () => void;
     isAreaScenarioSettling?: boolean;
     onAdvancedScenarioChange?: (scenario: RevisitScenario) => void;
     modelValidation?: Omit<ModelProvenanceProps, 'reference' | 'variant'>;
@@ -342,7 +341,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
     onExportAreaCsv = () => undefined, isDrawingArea = false,
     onCustomAreaChange = () => undefined, onStartAreaDrawing = () => undefined,
     onFinishAreaDrawing = () => undefined, onUndoAreaVertex = () => undefined,
-    onRunCustomArea = () => undefined, isAreaScenarioSettling = false,
+    isAreaScenarioSettling = false,
     onAdvancedScenarioChange = () => undefined,
     modelValidation,
 }) => {
@@ -501,13 +500,13 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                         </span>
                     </div>
                     {onInstrumentPresetChange && (
-                        <label className="flex min-w-[190px] flex-col gap-1 rounded-md border border-amber-400/35 bg-amber-400/8 px-2.5 py-1.5">
-                            <span className="text-[9px] font-black uppercase tracking-[0.12em] text-amber-200/80">
+                        <label className="flex min-w-[160px] flex-col gap-0.5 md:min-w-[190px]">
+                            <span className="text-[8px] font-black uppercase tracking-[0.12em] text-amber-200/70">
                                 EO/IR swath
                             </span>
                             <select
                                 aria-label="Instrument preset"
-                                className="min-h-8 rounded border border-amber-400/45 bg-slate-950/85 px-2 py-1 text-base font-black text-amber-200 outline-none md:text-lg"
+                                className="min-h-8 rounded border border-amber-400/40 bg-transparent px-2 py-1 text-sm font-black text-amber-200 outline-none md:text-base"
                                 value={presetName ?? 'CUSTOM'}
                                 onChange={(event) => {
                                     if (event.target.value !== 'CUSTOM') {
@@ -720,7 +719,6 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                     onStartDrawing={onStartAreaDrawing}
                                     onFinishDrawing={onFinishAreaDrawing}
                                     onUndoVertex={onUndoAreaVertex}
-                                    onRunCustomArea={onRunCustomArea}
                                     showAnalysisSummary={false}
                                     isScenarioSettling={isAreaScenarioSettling}
                                     variant="menu"
