@@ -1,6 +1,60 @@
 # Handoff
 
-_Last updated 2026-08-14._
+_Last updated 2026-08-15._
+
+## 2026-08-15 — REVISIT compact-viewport (mobile) layout
+
+The phone layout gave the globe 73 px of unobstructed canvas (9 % of a 375×812
+viewport) and left the Earth's centre behind the analysis column, so it could
+be neither seen nor rotated. Rebuilt globe-first below `md`; `md:` and up is
+byte-for-byte the same layout as before.
+
+- `RevisitHeader.tsx` — new compact bar (`#revisit-mobile-setup` disclosure):
+  `12 × 48 STAR · London`, geometry line, and a `− count +` payload stepper so
+  the continuously-manipulated control survives the collapse. Triad hidden by
+  default below `md`.
+- `MobileResultStrip.tsx` (new) — the permanent answer line above the ribbon:
+  verdict pill, `worst case vs <requirement>`, headline gap, mean. Handles both
+  POINTS and AREA. Doubles as the analysis sheet's handle.
+- `RevisitApp.tsx` — analysis column is now a `closed` / `half` (48 dvh) /
+  `full` (82 dvh) sheet below `md`; stage toolbar collapses behind a `☰` button
+  (`#revisit-stage-controls`); warnings are `pointer-events-none` below `md` so
+  they cannot swallow a rotate gesture.
+- `CoverageRibbon.tsx` — `−1 h` / `+1 h` / speed appear from `sm` up; play/pause,
+  timestamp, lanes and axis stay at every width.
+
+Measured after: header 75 px, **530 px** of directly hittable globe canvas,
+strip 65 px, ribbon 127 px at 375×812.
+
+Rationale, the measured before/after table and the data-priority ranking are in
+`docs/REVISIT_MOBILE_UX_PLAN.md` — read that before changing compact layout.
+
+**E2E contract change:** specs written against the desktop layout must now open
+a surface before asserting on it. `e2e/revisitCompact.ts` provides
+`waitForRevisitReady` / `openRevisitSetup` / `openRevisitAnalysis` /
+`openRevisitStageControls` / `openRevisitSurfaces`; all are no-ops at `md` and
+up. Every REVISIT spec's `beforeEach` now calls `openRevisitSurfaces(page)`
+instead of waiting on the analysis region directly. New unit coverage:
+`src/features/revisit/__tests__/RevisitMobileUi.test.tsx`.
+
+`mode-smoke`'s old mobile gate ("reserves a visible globe band…", ≥72 px between
+the toolbar and the analysis column) no longer describes anything: both are
+collapsed. It is replaced by two gates — a hit-test gate (≥360 px clear band and
+`elementFromPoint` at the stage centre returning the Cesium canvas) and a sheet
+open/expand/close gate. The four `phone-*` visual baselines were regenerated.
+
+**Verification, 2026-08-15/16:** `npm test`, `npm run typecheck`, `npm run lint`;
+mobile-chromium REVISIT specs + `mode-smoke` green (previously 25 failing after
+the layout change, now 0 — and two of those were already failing on `main`
+because the exit control's label collapses to "‹ Back" below `sm`);
+desktop-chromium REVISIT specs + `mode-smoke` green; tablet and short-wide green.
+
+**Known pre-existing failure, NOT from this work:** `e2e/accessibility.spec.ts`
+`revisit dark` / `revisit light` fail on `main` (verified by stashing) with
+serious `color-contrast` and `nested-interactive` Axe violations. Untouched here;
+worth its own pass.
+
+## 2026-08-14 — Code-review fix batch (P2b/P1 diff)
 
 ## 2026-08-14 — Code-review fix batch (P2b/P1 diff)
 

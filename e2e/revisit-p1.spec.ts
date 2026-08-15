@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { openRevisitSurfaces } from './revisitCompact';
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
@@ -6,7 +7,7 @@ test.beforeEach(async ({ page }) => {
     localStorage.removeItem('collapsible:revisit-advanced');
   });
   await page.goto('/?mode=revisit');
-  await expect(page.getByRole('region', { name: 'REVISIT analysis' })).toBeVisible({ timeout: 30_000 });
+  await openRevisitSurfaces(page);
   await expect(page.getByLabel('Business comparison')).toBeVisible({ timeout: 30_000 });
 });
 

@@ -1,0 +1,114 @@
+/**
+ * MobileResultStrip — the phone's permanent answer line.
+ *
+ * On a phone the analysis column cannot stay open: it and the header between
+ * them left the globe a 73 px slit (mobile UX plan §2). But collapsing the
+ * column must not collapse the *answer* — REVISIT's entry promise is "a number
+ * on screen, immediately".
+ *
+ * So the column becomes a sheet, and this strip is what remains when the sheet
+ * is closed: the verdict, the worst-case gap, and the requirement it is judged
+ * against. Nothing else. Everything on this strip is content the user is
+ * looking for; the rest of the column is content they go and get.
+ *
+ * It doubles as the sheet's handle — tapping it opens the full analysis.
+ */
+
+import React from 'react';
+import type { AreaAnalysis } from '../analysis/areaAnalysis';
+import { formatGap } from '../analysis/gapStatistics';
+import type { GapStatistics } from '../domain/types';
+import type { RevisitAnalysisContext } from '../domain/analysisTargets';
+import { REVISIT_PANEL } from './revisitTheme';
+
+export interface MobileResultStripProps {
+    analysisContext: RevisitAnalysisContext;
+    statistics: GapStatistics | null;
+    areaAnalysis: AreaAnalysis | null;
+    requirementMs: number;
+    isComputing: boolean;
+    /** Sheet state, so the chevron and the aria state stay truthful. */
+    expanded: boolean;
+    onToggle: () => void;
+}
+
+type Verdict = { text: string; className: string };
+
+function pointVerdict(
+    statistics: GapStatistics | null, requirementMs: number, isComputing: boolean,
+): Verdict {
+    if (!statistics) {
+        return isComputing
+            ? { text: 'Analysing', className: 'border-slate-500/40 bg-slate-500/15 text-slate-300' }
+            : { text: 'No result', className: 'border-red-400/40 bg-red-500/15 text-red-200' };
+    }
+    if (statistics.coverage === 'NEVER_IN_VIEW') {
+        return { text: 'Never in view', className: 'border-red-400/40 bg-red-500/15 text-red-200' };
+    }
+    return statistics.maxGapMs !== null && statistics.maxGapMs <= requirementMs
+        ? { text: 'Meets', className: 'border-lime-400/40 bg-lime-500/15 text-lime-200' }
+        : { text: 'Misses', className: 'border-red-400/40 bg-red-500/15 text-red-200' };
+}
+
+function areaVerdict(
+    analysis: AreaAnalysis | null, requirementMs: number, isComputing: boolean,
+): Verdict {
+    if (!analysis) {
+        return isComputing
+            ? { text: 'Analysing', className: 'border-slate-500/40 bg-slate-500/15 text-slate-300' }
+            : { text: 'No area', className: 'border-slate-500/40 bg-slate-500/15 text-slate-300' };
+    }
+    const misses = analysis.neverInViewCount > 0
+        || analysis.unmeasuredCount > 0
+        || analysis.cells.some((cell) => cell.maxGapMs !== null && cell.maxGapMs > requirementMs);
+    return misses
+        ? { text: 'Area misses', className: 'border-red-400/40 bg-red-500/15 text-red-200' }
+        : { text: 'Area meets', className: 'border-lime-400/40 bg-lime-500/15 text-lime-200' };
+}
+
+export const MobileResultStrip: React.FC<MobileResultStripProps> = ({
+    analysisContext, statistics, areaAnalysis, requirementMs, isComputing, expanded, onToggle,
+}) => {
+    const isArea = analysisContext === 'AREA';
+    const verdict = isArea
+        ? areaVerdict(areaAnalysis, requirementMs, isComputing)
+        : pointVerdict(statistics, requirementMs, isComputing);
+    const unbounded = isArea && (areaAnalysis?.neverInViewCount ?? 0) > 0;
+    const headlineMs = isArea ? areaAnalysis?.worstCell?.maxGapMs ?? null : statistics?.maxGapMs ?? null;
+    const secondaryMs = isArea ? areaAnalysis?.meanCellMaxGapMs ?? null : statistics?.meanGapMs ?? null;
+
+    return (
+        <button
+            type="button"
+            onClick={onToggle}
+            aria-expanded={expanded}
+            aria-controls="revisit-analysis-sheet"
+            data-revisit-result-strip
+            className={`${REVISIT_PANEL} flex w-full items-center gap-3 px-3 py-2 text-left ${isComputing ? 'opacity-70' : ''}`}
+        >
+            <span className="min-w-0 flex-1">
+                <span className="flex items-center gap-2">
+                    <span className={`inline-flex shrink-0 rounded border px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] ${verdict.className}`}>
+                        {verdict.text}
+                    </span>
+                    <span className="truncate text-[9px] font-black uppercase tracking-[0.12em] text-slate-500">
+                        {isArea ? 'Worst cell' : 'Worst case'} vs {formatGap(requirementMs)}
+                    </span>
+                </span>
+                <span className="mt-0.5 flex items-baseline gap-2">
+                    <span className="text-2xl font-black leading-none text-amber-300 tabular-nums">
+                        {unbounded ? 'Never seen' : formatGap(headlineMs)}
+                    </span>
+                    <span className="truncate text-[10px] font-bold text-slate-400 tabular-nums">
+                        {isArea ? 'mean cell' : 'mean'} {formatGap(secondaryMs)}
+                    </span>
+                </span>
+            </span>
+            <span aria-hidden="true" className="shrink-0 text-sm text-amber-300">
+                {expanded ? '⌄' : '⌃'}
+            </span>
+        </button>
+    );
+};
+
+export default MobileResultStrip;

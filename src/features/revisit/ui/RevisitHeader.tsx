@@ -350,6 +350,8 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
     const [areaMenuOpen, setAreaMenuOpen] = useState(false);
     const [constellationMenuOpen, setConstellationMenuOpen] = useState(false);
     const [modelValidationMenuOpen, setModelValidationMenuOpen] = useState(false);
+    /** Compact viewports only; `md:` always renders the triad regardless. */
+    const [mobileSetupOpen, setMobileSetupOpen] = useState(false);
     const { reference, target, payload } = scenario;
     const presetName = useMemo(
         () => fovPresetNameFor(reference.altitudeKm, payload),
@@ -379,10 +381,71 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
         constellationMenuRef, closeConstellationMenus,
         constellationMenuOpen || modelValidationMenuOpen,
     );
+    const stepPayload = (delta: number) => {
+        const next = payloadCounts[Math.min(Math.max(sliderIndex + delta, 0), payloadCounts.length - 1)];
+        if (next !== undefined && next !== currentPayloadCount) onPayloadCountChange(next);
+    };
     return (
+        <>
+        {/*
+          * Compact viewports get a one-line stand-in for the triad. Expanded,
+          * the triad is 330 px tall on a 812 px phone — 41% of the viewport for
+          * configuration the user reads once, which left the globe a 73 px slit
+          * (mobile UX plan §2). Collapsed it is ~44 px, and the one control that
+          * is genuinely manipulated all the time — the payload count — stays on
+          * the bar as a stepper so collapsing costs no interaction.
+          */}
+        <div className="md:hidden" data-revisit-compact-bar>
+            <div className={`${REVISIT_PANEL} flex items-center gap-2 px-2 py-1.5`}>
+                <button
+                    type="button"
+                    onClick={() => setMobileSetupOpen((open) => !open)}
+                    aria-expanded={mobileSetupOpen}
+                    aria-controls="revisit-mobile-setup"
+                    className="flex min-h-11 min-w-0 flex-1 items-center gap-2 text-left"
+                >
+                    <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[11px] font-bold text-slate-100">
+                            {reference.planes} × {reference.satsPerPlane} {reference.pattern}
+                            <span className="text-slate-500"> · </span>
+                            {analysisContext === 'AREA'
+                                ? customArea?.name ?? 'No area'
+                                : target.name}
+                        </span>
+                        <span className="block truncate text-[9px] text-slate-500">
+                            {reference.altitudeKm} km · {reference.inclinationDeg}° · {swathKm} km swath
+                            {comparisonPoints.length > 0 && ` · +${comparisonPoints.length} compared`}
+                        </span>
+                    </span>
+                    <span aria-hidden="true" className="shrink-0 text-sm text-amber-300">
+                        {mobileSetupOpen ? '⌃' : '⌄'}
+                    </span>
+                </button>
+                <div className="flex shrink-0 items-center gap-1 rounded-lg border border-amber-400/40 bg-amber-500/10 px-1">
+                    <button
+                        type="button"
+                        aria-label="One payload fewer"
+                        disabled={sliderIndex <= 0}
+                        onClick={() => stepPayload(-1)}
+                        className="min-h-11 w-9 text-lg font-black leading-none text-amber-200 disabled:opacity-30"
+                    >−</button>
+                    <span className="min-w-[2.25rem] text-center text-base font-black tabular-nums leading-none text-amber-300">
+                        {currentPayloadCount}
+                    </span>
+                    <button
+                        type="button"
+                        aria-label="One payload more"
+                        disabled={sliderIndex >= payloadCounts.length - 1}
+                        onClick={() => stepPayload(1)}
+                        className="min-h-11 w-9 text-lg font-black leading-none text-amber-200 disabled:opacity-30"
+                    >+</button>
+                </div>
+            </div>
+        </div>
         <div
+            id="revisit-mobile-setup"
             data-revisit-context-bar
-            className="revisit-context-bar grid grid-cols-2 items-stretch gap-2 md:flex"
+            className={`revisit-context-bar ${mobileSetupOpen ? 'mt-2 grid' : 'hidden'} grid-cols-2 items-stretch gap-2 md:mt-0 md:flex`}
         >
             <Panel label="Constellation" className="relative z-50 min-w-0 md:min-w-[190px]">
                 <div ref={constellationMenuRef} className="relative">
@@ -729,5 +792,6 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                 )}
             </Panel>
         </div>
+        </>
     );
 };

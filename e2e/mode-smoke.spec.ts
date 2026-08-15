@@ -1,4 +1,7 @@
 import { expect, test } from '@playwright/test';
+import {
+  openRevisitStageControls, openRevisitSurfaces, waitForRevisitReady,
+} from './revisitCompact';
 
 const waitForTelecomShell = async (page: import('@playwright/test').Page) => {
   await expect(page.getByRole('button', { name: 'Revisit', exact: true })).toBeVisible({ timeout: 30_000 });
@@ -17,7 +20,10 @@ test.describe('application mode shell', () => {
     await expect(page.locator('.cesium-widget canvas')).toHaveCount(1);
 
     await page.getByRole('button', { name: 'Revisit', exact: true }).click();
-    await expect(page.getByRole('button', { name: 'Back to Commercial', exact: false })).toBeVisible();
+    await openRevisitStageControls(page);
+    // The exit control shortens to "‹ Back" below `sm` and lives in the stage
+    // menu below `md`; it is the same button either way.
+    await expect(page.getByRole('button', { name: /Back( to Commercial)?$/ })).toBeVisible();
     await expect(page.locator('.cesium-widget canvas')).toHaveCount(1);
   });
 
@@ -26,7 +32,8 @@ test.describe('application mode shell', () => {
     await waitForTelecomShell(page);
     await page.getByRole('button', { name: /^(Comm|Commercial)$/ }).click();
     await page.getByRole('button', { name: 'Revisit', exact: true }).click();
-    await page.getByRole('button', { name: 'Back to Commercial', exact: false }).click();
+    await openRevisitStageControls(page);
+    await page.getByRole('button', { name: /Back( to Commercial)?$/ }).click();
 
     await waitForTelecomShell(page);
     await expect(page.getByRole('button', { name: /^(Comm|Commercial)$/ })).toHaveAttribute('aria-pressed', 'true');
@@ -135,7 +142,7 @@ test.describe('desktop history and lifecycle', () => {
 test.describe('responsive REVISIT shell', () => {
   test('has no horizontal overflow and keeps interactive controls in the viewport', async ({ page }) => {
     await page.goto('/?mode=revisit');
-    await expect(page.getByRole('region', { name: 'REVISIT analysis' })).toBeVisible({ timeout: 30_000 });
+    await openRevisitSurfaces(page);
     const dismissNotice = page.getByRole('button', { name: 'Dismiss REVISIT scenario notice' });
     if (await dismissNotice.isVisible()) await dismissNotice.click();
 
@@ -160,29 +167,71 @@ test.describe('responsive REVISIT shell', () => {
     expect(layout.outOfBounds).toEqual([]);
   });
 
-  test('reserves a visible globe band between mobile controls and results', async ({ page }, testInfo) => {
+  /**
+   * The compact layout's whole point (mobile UX plan §2): the globe opens
+   * unobstructed and is directly hit-testable. Before it, only 73 px of canvas
+   * was reachable — a band no one could rotate the Earth with.
+   */
+  test('opens globe-first with a large, directly hit-testable canvas', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'mobile-chromium', 'Dedicated mobile regression gate');
     await page.goto('/?mode=revisit');
-    await expect(page.getByRole('region', { name: 'REVISIT analysis' })).toBeVisible({ timeout: 30_000 });
+    await waitForRevisitReady(page);
 
-    const clearBand = await page.evaluate(() => {
-      const controls = document.querySelector<HTMLElement>('[data-revisit-stage-controls]')!;
-      const analysis = document.querySelector<HTMLElement>('[data-revisit-analysis-panel]')!;
-      return analysis.getBoundingClientRect().top - controls.getBoundingClientRect().bottom;
+    // The analysis column is a closed sheet; the answer stays on the strip.
+    await expect(page.getByRole('region', { name: 'REVISIT analysis' })).toBeHidden();
+    await expect(page.locator('[data-revisit-result-strip]')).toBeVisible();
+
+    const stage = await page.evaluate(() => {
+      const canvas = document.querySelector<HTMLCanvasElement>('.revisit-stage canvas')!;
+      const strip = document.querySelector<HTMLElement>('[data-revisit-result-strip]')!;
+      const toolbar = document.querySelector<HTMLElement>(
+        'button[aria-controls="revisit-stage-controls"]'
+      )!;
+      const canvasRect = canvas.getBoundingClientRect();
+      const clearTop = Math.max(canvasRect.top, toolbar.getBoundingClientRect().bottom);
+      const centreX = Math.round(canvasRect.left + canvasRect.width / 2);
+      const centreY = Math.round((clearTop + strip.getBoundingClientRect().top) / 2);
+      return {
+        clearBand: strip.getBoundingClientRect().top - clearTop,
+        centreIsCanvas: document.elementFromPoint(centreX, centreY) === canvas,
+      };
     });
 
-    expect(clearBand).toBeGreaterThanOrEqual(72);
+    expect(stage.clearBand).toBeGreaterThanOrEqual(360);
+    expect(stage.centreIsCanvas).toBe(true);
+  });
+
+  test('opens the analysis sheet from the result strip and closes it again', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile-chromium', 'Compact sheet is a mobile surface');
+    await page.goto('/?mode=revisit');
+    await waitForRevisitReady(page);
+
+    const sheet = page.getByRole('region', { name: 'REVISIT analysis' });
+    await page.locator('[data-revisit-result-strip]').click();
+    await expect(sheet).toBeVisible();
+    await expect(sheet).toHaveAttribute('data-revisit-sheet-state', 'half');
+
+    await page.getByRole('button', { name: 'Expand analysis sheet' }).click();
+    await expect(sheet).toHaveAttribute('data-revisit-sheet-state', 'full');
+
+    await page.getByRole('button', { name: 'Close analysis sheet and show the globe' }).click();
+    await expect(sheet).toBeHidden();
   });
 
   test('keeps the scenario rail flush to the top and the globe below it', async ({ page }) => {
     await page.goto('/?mode=revisit');
-    await expect(page.getByRole('region', { name: 'REVISIT analysis' })).toBeVisible({ timeout: 30_000 });
+    await waitForRevisitReady(page);
     const dismissNotice = page.getByRole('button', { name: 'Dismiss REVISIT scenario notice' });
     if (await dismissNotice.isVisible()) await dismissNotice.click();
 
     const layout = await page.evaluate(() => {
       const header = document.querySelector<HTMLElement>('[data-global-app-header]')!;
-      const context = document.querySelector<HTMLElement>('[data-revisit-context-bar]')!;
+      // Below `md` the compact bar IS the scenario rail; the triad it expands
+      // into sits under it (mobile UX plan §5).
+      const compactBar = document.querySelector<HTMLElement>('[data-revisit-compact-bar]');
+      const context = compactBar && getComputedStyle(compactBar).display !== 'none'
+        ? compactBar
+        : document.querySelector<HTMLElement>('[data-revisit-context-bar]')!;
       const stage = document.querySelector<HTMLElement>('.revisit-stage')!;
       const headerRect = header.getBoundingClientRect();
       const contextRect = context.getBoundingClientRect();
@@ -211,6 +260,7 @@ test.describe('responsive REVISIT shell', () => {
 
     const stage = page.locator('.revisit-stage');
     await expect(stage).toBeVisible({ timeout: 30_000 });
+    await openRevisitSurfaces(page);
     await expect(page.getByRole('region', { name: 'REVISIT analysis' })).toBeVisible();
     expect(await stage.evaluate((element) => element.getBoundingClientRect().height)).toBeGreaterThan(180);
     await expect(page.getByRole('button', { name: /Back to / })).toBeVisible();

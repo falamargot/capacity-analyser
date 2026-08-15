@@ -1,11 +1,14 @@
 import { expect, test } from '@playwright/test';
+import {
+  isCompactViewport, openRevisitStageControls, openRevisitSurfaces,
+} from './revisitCompact';
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     sessionStorage.removeItem('capacity-analyzer:revisit-session:v1');
   });
   await page.goto('/?mode=revisit');
-  await expect(page.getByRole('region', { name: 'REVISIT analysis' })).toBeVisible({ timeout: 30_000 });
+  await openRevisitSurfaces(page);
 });
 
 test.describe('REVISIT P0 demonstration contract', () => {
@@ -42,6 +45,7 @@ test.describe('REVISIT P0 demonstration contract', () => {
   });
 
   test('supports presenter reset and explicit simulation time controls', async ({ page }) => {
+    await openRevisitStageControls(page);
     const payloadSlider = page.getByRole('slider', { name: 'Number of hosted payloads' });
     await payloadSlider.press('ArrowRight');
     await expect(payloadSlider).not.toHaveAttribute('aria-valuetext', '12 payloads');
@@ -53,13 +57,21 @@ test.describe('REVISIT P0 demonstration contract', () => {
     const initial = await timestamp.textContent();
     await page.getByRole('button', { name: 'Pause simulation' }).click();
     await expect(page.getByRole('button', { name: 'Play simulation' })).toBeVisible();
-    await page.getByRole('button', { name: 'Step simulation forward one hour' }).click();
+    // Hour stepping is a `sm`-and-up affordance; on a phone the same seek is
+    // done on the timeline itself, which is keyboard-operable everywhere.
+    if (isCompactViewport(page)) {
+      await page.getByRole('slider', { name: /Seek within the .* analysis window/ })
+        .press('ArrowRight');
+    } else {
+      await page.getByRole('button', { name: 'Step simulation forward one hour' }).click();
+    }
     await expect(timestamp).not.toHaveText(initial ?? '');
     await page.getByRole('combobox', { name: 'Simulation speed' }).selectOption('100');
     await expect(page.getByRole('combobox', { name: 'Simulation speed' })).toHaveValue('100');
   });
 
   test('keeps secondary scene controls out of presenter view and exposes them on demand', async ({ page }) => {
+    await openRevisitStageControls(page);
     await expect(page.getByRole('button', { name: 'Host fleet' })).toHaveCount(0);
     await page.getByRole('button', { name: /^(Explore controls|Explore)$/ }).click();
     await expect(page.getByRole('button', { name: 'Host fleet' })).toBeVisible();

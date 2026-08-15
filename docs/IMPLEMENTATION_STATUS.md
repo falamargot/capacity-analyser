@@ -40,6 +40,13 @@ containment for both modes, added 2026-08-12).
 
 ## Completed work
 
+- **REVISIT compact-viewport layout (2026-08-15).** Below `md` the globe is the
+  default surface: the triad collapses to a one-line bar with a payload stepper,
+  the analysis column becomes a closed-by-default sheet behind a permanent
+  result strip (verdict · worst case · requirement · mean), the stage toolbar
+  collapses behind one button and the ribbon drops its desktop transport
+  controls. Directly hittable globe canvas at 375×812 went from 73 px to 530 px.
+  Plan, evidence and data-priority table: `docs/REVISIT_MOBILE_UX_PLAN.md`.
 - **Lot 1** — headless engine. All seven kickoff §7 exit-gate tests pass.
 - **Lot 2** — worker protocol, `RevisitApp`, own Cesium viewer with
   `requestRenderMode`, `uiMode` lifted to `RootShell`.

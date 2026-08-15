@@ -1,6 +1,46 @@
 # Review Report
 
-_Last updated 2026-08-13._
+_Last updated 2026-08-15._
+
+## REVISIT compact-viewport layout — 2026-08-15
+
+The phone layout was measured before changing it: 331 px of always-expanded
+triad, a toolbar band across the scene and a docked analysis column left the
+globe 73 px of unobstructed, hit-testable canvas — 9 % of a 375×812 viewport,
+with the Earth's centre behind a panel. The globe could not meaningfully be
+seen or rotated, and the data order did not reflect what a user needs first.
+
+Below `md` the layout is now globe-first: a ~44 px context bar retaining the
+payload stepper, a `☰` stage menu, a permanent result strip carrying the verdict,
+the worst-case gap, the requirement and the mean, and an analysis sheet the user
+opens (`closed` / `half` / `full`). The ribbon keeps play/pause, speed, the UTC
+timestamp, the lanes and the axis; only hour stepping — which duplicates
+tap-to-seek — moves to `sm` and up. `md:` and up renders exactly as before.
+
+Review findings raised and fixed during implementation:
+
+- The sheet, sized purely in `dvh`, could exceed the stage row when the triad was
+  also expanded and slide up under the `z-[100]` header, which then swallowed
+  taps on its tab row. Capped at `min(<snap>, 100%)` of the row. Caught by the
+  mobile E2E gate, not by unit tests.
+- Warnings rendered `pointer-events-auto` over the scene; below `md` they now
+  pass pointer events through, so an advisory cannot block a rotate gesture.
+- Hiding the speed selector alongside hour stepping removed a real capability
+  from phones. Speed was kept at every width; only `−1 h` / `+1 h` are `sm`+.
+- Payload stepper targets were 36 px; raised to the 44 px used elsewhere.
+
+Two pre-existing mobile E2E failures were fixed in passing: `mode-smoke`
+asserted the exit control's full "Back to Commercial" label, which has collapsed
+to "‹ Back" below `sm` since before this change.
+
+Residual, deliberately accepted: the setup disclosure and the analysis sheet can
+be open simultaneously, which leaves the sheet ~190 px tall. Both are
+user-controlled and the cap keeps the result correct.
+
+Out of scope but found while running the gates: `e2e/accessibility.spec.ts`
+fails on `main` for `revisit dark` and `revisit light` (serious `color-contrast`
+and `nested-interactive` violations). Confirmed pre-existing by re-running the
+gate against a clean stash. Not addressed here.
 
 ## REVISIT constellation-settings placement — 2026-08-13
 

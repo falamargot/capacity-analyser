@@ -59,6 +59,7 @@ import { TargetComparisonTable } from './TargetComparisonTable';
 import { ScenarioWorkspace } from './ScenarioWorkspace';
 import { ScenarioWorkspaceDrawer } from './ScenarioWorkspaceDrawer';
 import { CoverageRibbon } from './CoverageRibbon';
+import { MobileResultStrip } from './MobileResultStrip';
 import { REVISIT_PANEL } from './revisitTheme';
 import { formatGap } from '../analysis/gapStatistics';
 import type { AppMode } from '../../../hooks/useAppModeState';
@@ -84,6 +85,16 @@ const REQUIREMENT_CHOICES_H = [0.5, 1, 2, 3, 6, 12, 24];
 interface DisplayOptions extends RevisitSceneOptions, RevisitDisplayOptions {}
 
 type MobileAnalysisPanel = 'summary' | 'curve' | 'details';
+
+/**
+ * The analysis column is a sheet on compact viewports.
+ *
+ * `closed` is the default: the strip above the ribbon still carries the verdict
+ * and the worst-case gap, so closing the sheet costs no answer — it buys back
+ * the globe, which was otherwise reduced to a 73 px band no one could rotate
+ * (mobile UX plan §2).
+ */
+type MobileSheetState = 'closed' | 'half' | 'full';
 
 const TOGGLES: Array<{ key: keyof DisplayOptions; label: string; hint?: string }> = [
     { key: 'showOrbits', label: 'Orbits' },
@@ -177,6 +188,9 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     const [presenterMode, setPresenterMode] = useState(true);
     const [resetRevision, setResetRevision] = useState(0);
     const [mobileAnalysisPanel, setMobileAnalysisPanel] = useState<MobileAnalysisPanel>('summary');
+    const [mobileSheet, setMobileSheet] = useState<MobileSheetState>('closed');
+    /** Compact viewports collapse the stage toolbar behind one button. */
+    const [stageMenuOpen, setStageMenuOpen] = useState(false);
     const [exportError, setExportError] = useState<string | null>(null);
     const [customArea, setCustomArea] = useState<AreaTarget | null>(
         () => restoredSession?.customArea ?? null
@@ -819,11 +833,25 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                 <div className="relative flex min-h-0 flex-1 items-stretch justify-between gap-2">
                   {/* `items-start` so each panel sizes to its own content rather
                       than stretching to the width of the widest sibling. */}
-                  <div className="pointer-events-none absolute left-0 top-0 z-20 flex flex-col items-start justify-between md:static">
+                  <div className="pointer-events-none absolute left-0 top-0 z-40 flex flex-col items-start justify-between md:static md:z-20">
                     {/* Display toggles — the slot ENG uses for REG / 5G / CONN / LOAD */}
+                    {/* On a phone this toolbar is a five-button band lying across
+                        the top of the globe. Collapsed behind one button it
+                        stops competing with the scene; `md:` keeps the band. */}
+                    <button
+                        type="button"
+                        onClick={() => setStageMenuOpen((open) => !open)}
+                        aria-expanded={stageMenuOpen}
+                        aria-controls="revisit-stage-controls"
+                        aria-label="Globe and scenario controls"
+                        className={`pointer-events-auto ${REVISIT_PANEL} flex h-11 w-11 items-center justify-center text-base text-amber-200 md:hidden`}
+                    >
+                        <span aria-hidden="true">{stageMenuOpen ? '×' : '☰'}</span>
+                    </button>
                     <div
+                        id="revisit-stage-controls"
                         data-revisit-stage-controls
-                        className={`pointer-events-auto ${REVISIT_PANEL} flex max-w-[calc(100vw-1rem)] flex-row flex-wrap gap-1 p-1.5 md:max-w-none md:flex-col`}
+                        className={`pointer-events-auto ${REVISIT_PANEL} ${stageMenuOpen ? 'mt-1 flex' : 'hidden'} max-w-[calc(100vw-1rem)] flex-col gap-1 p-1.5 md:mt-0 md:flex md:max-w-none`}
                     >
                         {onExit && (
                             <button
@@ -888,14 +916,14 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                   </div>
 
                     {(!renderValidation.ok || error || sweepError || isMainThreadFallback) && (
-                        <div className={`pointer-events-auto absolute left-0 top-14 z-30 ${REVISIT_PANEL} self-start border-red-400/40 px-3 py-1.5 text-[11px] text-red-200 md:static`}>
+                        <div className={`pointer-events-auto absolute left-12 right-0 top-0 z-30 ${REVISIT_PANEL} self-start border-red-400/40 md:left-0 px-3 py-1.5 text-[11px] text-red-200 md:static`}>
                             {renderValidation.errors.join('; ') || error || sweepError
                                 || 'Running on the main thread — Worker unavailable'}
                         </div>
                     )}
 
                     {warnings.length > 0 && (
-                        <div className={`pointer-events-auto absolute left-0 top-28 z-30 max-w-sm ${REVISIT_PANEL} self-start border-amber-400/40 px-3 py-1.5 text-[10px] leading-4 text-amber-200 md:static`}>
+                        <div className={`pointer-events-none absolute left-12 right-0 top-14 z-30 max-w-sm md:pointer-events-auto ${REVISIT_PANEL} self-start border-amber-400/40 md:left-0 md:top-28 px-3 py-1.5 text-[10px] leading-4 text-amber-200 md:static`}>
                             {warnings.map((warning) => <p key={warning}>{warning}</p>)}
                         </div>
                     )}
@@ -904,11 +932,37 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                         Scrolls independently so it can never push the ribbon out. */}
                     <section
                         ref={analysisColumnRef}
-                        className={`pointer-events-auto absolute inset-x-0 bottom-0 z-10 flex max-h-[22vh] w-full shrink-0 flex-col gap-2 overflow-y-auto rounded-t-2xl md:static md:max-h-none md:w-[400px] md:rounded-none [&>*]:shrink-0`}
+                        id="revisit-analysis-sheet"
+                        data-revisit-sheet-state={mobileSheet}
+                        className={`pointer-events-auto absolute inset-x-0 bottom-0 z-10 w-full shrink-0 flex-col gap-2 overflow-y-auto rounded-t-2xl md:static md:flex md:max-h-none md:w-[400px] md:rounded-none [&>*]:shrink-0 ${mobileSheet === 'closed'
+                            ? 'hidden'
+                            : mobileSheet === 'full'
+                                ? 'flex max-h-[min(82dvh,100%)]'
+                                : 'flex max-h-[min(48dvh,100%)]'}`}
                         data-revisit-analysis-panel
                         aria-label="REVISIT analysis"
                     >
-                        <nav className={`${REVISIT_PANEL} sticky top-0 z-20 grid gap-1 p-1 md:hidden ${analysisContext === 'AREA' ? 'grid-cols-2' : 'grid-cols-3'}`} aria-label="REVISIT analysis sections">
+                        {/* Sheet chrome: size and dismiss. Mobile only. */}
+                        <div className={`${REVISIT_PANEL} sticky top-0 z-20 flex items-center px-1 md:hidden`}>
+                            <button
+                                type="button"
+                                onClick={() => setMobileSheet(mobileSheet === 'full' ? 'half' : 'full')}
+                                aria-label={mobileSheet === 'full' ? 'Shrink analysis sheet' : 'Expand analysis sheet'}
+                                className="flex h-8 flex-1 items-center justify-center"
+                            >
+                                <span aria-hidden="true" className="h-1 w-10 rounded-full bg-slate-600" />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setMobileSheet('closed')}
+                                aria-label="Close analysis sheet and show the globe"
+                                className="h-8 w-9 text-base font-black text-slate-400"
+                            >
+                                <span aria-hidden="true">×</span>
+                            </button>
+                        </div>
+
+                        <nav className={`${REVISIT_PANEL} sticky top-8 z-20 grid gap-1 p-1 md:hidden ${analysisContext === 'AREA' ? 'grid-cols-2' : 'grid-cols-3'}`} aria-label="REVISIT analysis sections">
                             {((analysisContext === 'AREA' ? [
                                 ['summary', 'Result'], ['curve', 'Cells'],
                             ] : [
@@ -928,7 +982,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
 
                         <div
                             aria-label="Active result context"
-                            className={`${REVISIT_PANEL} sticky top-[3.25rem] z-[19] grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-l-4 px-3 py-2 md:top-0 ${analysisContext === 'AREA'
+                            className={`${REVISIT_PANEL} sticky top-[5.25rem] z-[19] grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-l-4 px-3 py-2 md:top-0 ${analysisContext === 'AREA'
                                 ? 'border-l-sky-400'
                                 : 'border-l-amber-400'}`}
                         >
@@ -1042,6 +1096,18 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                           </div>
                         </div>
                     </section>
+                </div>
+
+                <div className="pointer-events-auto md:hidden">
+                    <MobileResultStrip
+                        analysisContext={analysisContext}
+                        statistics={analysis?.statistics ?? null}
+                        areaAnalysis={areaRun.analysis}
+                        requirementMs={requirementMs}
+                        isComputing={analysisContext === 'AREA' ? areaRun.isRunning : isComputing}
+                        expanded={mobileSheet !== 'closed'}
+                        onToggle={() => setMobileSheet((state) => state === 'closed' ? 'half' : 'closed')}
+                    />
                 </div>
 
                 <div className="pointer-events-auto">

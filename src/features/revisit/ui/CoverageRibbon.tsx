@@ -191,10 +191,14 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                             className="min-h-8 rounded border border-slate-600 px-2 text-[10px] font-black uppercase tracking-[0.08em] text-slate-200 hover:border-amber-400/60">
                             {speed === 0 ? 'Play' : 'Pause'}
                         </button>
+                        {/* Hour stepping duplicates tap-to-seek on the timeline
+                            below and costs a wrapped row a phone cannot spare
+                            (mobile UX plan §4); play/pause and speed stay at
+                            every width. */}
                         <button type="button" onClick={() => seekToHours(currentHours - 1)} aria-label="Step simulation back one hour"
-                            className="min-h-8 rounded border border-slate-700 px-2 text-[10px] font-bold text-slate-300">−1 h</button>
+                            className="hidden min-h-8 rounded border border-slate-700 px-2 text-[10px] font-bold text-slate-300 sm:block">−1 h</button>
                         <button type="button" onClick={() => seekToHours(currentHours + 1)} aria-label="Step simulation forward one hour"
-                            className="min-h-8 rounded border border-slate-700 px-2 text-[10px] font-bold text-slate-300">+1 h</button>
+                            className="hidden min-h-8 rounded border border-slate-700 px-2 text-[10px] font-bold text-slate-300 sm:block">+1 h</button>
                         <label className="flex min-h-8 items-center gap-1 rounded border border-slate-700 px-2">
                             <span className="text-[9px] font-black uppercase tracking-[0.08em] text-slate-500">Speed</span>
                             <select aria-label="Simulation speed" value={speed === 0 ? 1 : speed}

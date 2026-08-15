@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
+import { openRevisitStageControls, openRevisitSurfaces } from './revisitCompact';
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
@@ -8,7 +9,7 @@ test.beforeEach(async ({ page }) => {
     localStorage.setItem('capacity-analyzer:revisit-independent-scenario-notice', 'dismissed');
   });
   await page.goto('/?mode=revisit');
-  await expect(page.getByRole('region', { name: 'REVISIT analysis' })).toBeVisible({ timeout: 30_000 });
+  await openRevisitSurfaces(page);
 });
 
 test.describe('REVISIT P2a product workflow', () => {
@@ -59,6 +60,7 @@ test.describe('REVISIT P2a product workflow', () => {
 
   test('keeps P2a available in the mobile details flow without overflow', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'mobile-chromium', 'Dedicated mobile contract');
+    await openRevisitStageControls(page);
     await page.getByRole('button', { name: 'Scenarios' }).click();
     await expect(page.getByRole('dialog', { name: 'Scenario workspace' })).toBeVisible();
     await expect(page.getByRole('region', { name: 'Saved scenario workspace' })).toBeVisible();

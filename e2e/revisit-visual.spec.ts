@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { waitForRevisitReady } from './revisitCompact';
 
 const viewports = [
   { name: 'phone-390x844', width: 390, height: 844 },
@@ -24,7 +25,9 @@ test.describe('REVISIT visual baselines', () => {
           localStorage.setItem('capacity-analyzer:revisit-independent-scenario-notice', 'dismissed');
         }, theme);
         await page.goto('/?mode=revisit');
-        await expect(page.getByRole('region', { name: 'REVISIT analysis' })).toBeVisible({ timeout: 30_000 });
+        // Phone widths open globe-first: the analysis column is a closed sheet
+        // and the result strip is the ready signal (mobile UX plan §5).
+        await waitForRevisitReady(page);
         // Capture only after the asynchronous payload sweep has settled. At
         // wide resolutions it could previously land between Playwright's two
         // stability screenshots and make snapshot regeneration time out.
