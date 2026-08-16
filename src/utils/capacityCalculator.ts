@@ -4,7 +4,6 @@ import type { GeoCapacityEstimate } from './geoCapacityModel';
 // Earth radius constant
 // Canonical constant lives in earthGeometry.ts (zero-dep leaf); re-exported here
 // for the many existing import sites.
-import { EARTH_RADIUS_KM } from './earthGeometry';
 import { elevationAngleDeg, slantRangeKm } from './wgs84Geometry';
 export { EARTH_RADIUS_KM } from './earthGeometry';
 
@@ -16,19 +15,6 @@ export const SPEED_OF_LIGHT_RADIO_KM_S = 299792.458;
 export function computeOneWayLatencyMs(distanceKm: number): number {
   return Math.round((distanceKm / SPEED_OF_LIGHT_RADIO_KM_S) * 1000);
 }
-
-// 2D distance calculation (surface distance)
-export const computeDistanceKm = (point1: { lat: number; lng: number }, point2: { lat: number; lng: number }): number => {
-  const R = EARTH_RADIUS_KM;
-  const dLat = (point2.lat - point1.lat) * Math.PI / 180;
-  const dLon = (point2.lng - point1.lng) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(point1.lat * Math.PI / 180) * Math.cos(point2.lat * Math.PI / 180) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-};
 
 /**
  * 3-D straight-line distance between two points, on the WGS84 ellipsoid.

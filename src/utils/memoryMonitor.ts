@@ -40,7 +40,6 @@ const activeIntervals = new Set<number>();
 const activeTimeouts = new Set<number>();
 let listenerCount = 0;
 const listenerBreakdown = new Map<string, number>();
-let consoleLogIntervalId: number | null = null;
 
 type Listener = EventListenerOrEventListenerObject;
 interface TrackedListener {
@@ -273,7 +272,7 @@ export function installMemoryMonitor(): void {
 
     win.__memStats = collectMemoryStats;
 
-    consoleLogIntervalId = _setInterval(() => {
+    _setInterval(() => {
         // Intentionally lightweight: reads only performance.memory (a free Chrome API)
         // and the in-memory counter fields — no Cesium API access. viewer.entities.values
         // can rebuild its internal array when dirty (entity add/remove), which blocks the
@@ -292,9 +291,3 @@ export function installMemoryMonitor(): void {
     }, 30_000) as unknown as number;
 }
 
-export function stopMemoryMonitorConsoleLogger(): void {
-    if (consoleLogIntervalId != null) {
-        window.clearInterval(consoleLogIntervalId);
-        consoleLogIntervalId = null;
-    }
-}

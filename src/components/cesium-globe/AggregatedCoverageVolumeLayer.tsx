@@ -16,6 +16,7 @@ import { isOperationalSatellite } from '../../utils/satelliteStatus';
 import { useCombGeometry } from './hooks';
 import { useSimulation } from '../../contexts/SimulationContext';
 import { calculateDeadReckoning, pickBeamFootprintPoints, propagateSatellite, sanitizeCartesianRing, isFiniteCartesian3 } from './utils';
+import { isPointInPolygon } from '../../utils/geoUtils';
 
 interface Props {
     selectedSatellite: SatelliteData | null;
@@ -163,18 +164,6 @@ function pickFootprintPoints(
     }
     return pts;
 }
-
-const isPointInPolygon = (point: { lat: number; lng: number }, ring: Array<[number, number]>): boolean => {
-    let inside = false;
-    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-        const [xi, yi] = ring[i];
-        const [xj, yj] = ring[j];
-        const intersect = ((yi > point.lat) !== (yj > point.lat))
-            && (point.lng < (xj - xi) * (point.lat - yi) / (yj - yi) + xi);
-        if (intersect) inside = !inside;
-    }
-    return inside;
-};
 
 function stripDuplicateClosure(poly: Cartesian3[]): Cartesian3[] {
     if (poly.length < 2) return poly;

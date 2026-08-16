@@ -122,7 +122,6 @@ export const isServedStarGatewaySelection = (
   selection: StarTrafficGatewayResolution | null | undefined
 ): selection is StarTrafficGatewaySelection => selection?.gateway != null;
 
-export type GatewayAssignmentRole = 'primary' | 'backup';
 export type ResolvedGatewayRole = 'nominal' | 'backup';
 export type GatewayResolutionPolicy = 'STATIC_NOMINAL' | 'STATIC_BACKUP';
 export type GatewayAssignmentSource = 'reference-gateway-allocation' | 'fallback-visible-gateway';

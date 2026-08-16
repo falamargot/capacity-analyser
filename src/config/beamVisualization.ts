@@ -142,26 +142,3 @@ export const CONNECTIVITY_THRESHOLDS = {
     MINIMUM: -12,
 } as const;
 
-export type LinkQualityLevel = 'EXCELLENT' | 'GOOD' | 'ACCEPTABLE' | 'MINIMUM' | 'NO_SIGNAL';
-
-// ────────────────────────────────────────────────────────────────────
-// Debug flags
-// ────────────────────────────────────────────────────────────────────
-export const DEBUG = {
-    SHOW_POWER_CONTOURS: false,
-    SHOW_BEAM_CENTERS: false,
-    LOG_CALCULATIONS: false,
-    SHOW_THRESHOLD_RADIUS: false,
-} as const;
-
-// ────────────────────────────────────────────────────────────────────
-// Convenience aggregate export
-// ────────────────────────────────────────────────────────────────────
-export const BEAM_VISUALIZATION_CONFIG = {
-    POWER_DECAY,
-    RENDERING: GRADIENT_RENDERING,
-    FREQUENCY_REUSE,
-    AGGREGATED_CONNECTIVITY,
-    CONNECTIVITY_THRESHOLDS,
-    DEBUG,
-} as const;

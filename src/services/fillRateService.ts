@@ -277,16 +277,3 @@ export async function loadFillRateCells(url = ONEWEB_LEO_FILL_RATE_GRID_URL): Pr
   return promise;
 }
 
-export async function lookupFillRate(
-  lat: number,
-  lng: number,
-  options: FillRateLookupOptions = {},
-): Promise<FillRateLookupResult | null> {
-  const cells = await loadFillRateCells();
-  return lookupFillRateFromCells(cells, lat, lng, options);
-}
-
-export function clearFillRateCacheForTests(): void {
-  datasetPromiseByUrl.clear();
-  cellsPromiseByUrl.clear();
-}

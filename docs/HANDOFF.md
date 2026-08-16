@@ -483,6 +483,62 @@ script:
   case-normalised to `CLAUDE.md` and committed. `git ls-files -s` shows one
   tracked blob. See SPA-08 in `docs/SPATIAL_PHYSICS_AUDIT.md`.
 
+## 2026-08-16 — Repository cleanup pass (dead code, artifacts, stale config)
+
+Evidence-based hygiene pass. No functional, numerical or visual change: the
+engineering models, GEO/LEO/REVISIT behaviour, scenario semantics and all
+render-performance policies were left untouched.
+
+Removed (all verified unreachable from `src/main.tsx` and `src/server/server.ts`
+by an import-graph walk, then re-verified by repo-wide grep):
+
+- 32 dead source files, including the abandoned Commercial-mode shell cluster
+  (`CommercialModeShell`, `CommercialInspectorPanel`, `CommercialMissionBar`,
+  `CommercialOutcomeCard`, `CommercialRouteHeader`, `CommercialNarrativeCard`,
+  `ConnectivityScenarioCard`, `ScenarioEndpointEditor`, the `shared/Shared*`
+  scenario builders), the superseded globe layers (`CommercialRouteLayer`,
+  `CommercialSkyBridgeLayer`, `GlobeControls` — replaced by
+  `CommercialSymbolicConnectivityLayer` and `GlobeIntelligenceRail`), the
+  unused screen-label components, and `ConnectivityScenarioStore`/`Context`
+  (the reducer, actions, adapters and projections stay — `App.tsx` uses them).
+- ~37 dead exported declarations and their second-order private helpers.
+- `artifacts/` — 30 MB of one-off smoke-test screenshots, referenced by nothing.
+- `.eslintrc.cjs` (ESLint 9 uses the flat `eslint.config.js`), `.bolt/`
+  scaffolding, and `scripts/patch-regulatory-statuses.mjs` (a spent one-time
+  data patch).
+- `@types/leaflet` — Leaflet is not used anywhere.
+
+Consolidated: three byte-identical copies of the ray-casting
+`isPointInPolygon` now import the canonical `utils/geoUtils` implementation.
+The Cartesian3 variant in `rfConnectivity.ts` has different input semantics and
+was left alone.
+
+Deliberately NOT touched, despite looking duplicated — proving equivalence was
+not worth the regression risk:
+
+- `computeFsplDb` (GEO vs LEO): algebraically the same FSPL, but the LEO form
+  guards non-positive inputs and the GEO form does not.
+- `latencyMsFromDistanceKm` (GEO vs LEO): different speed-of-light constants and
+  unit paths; merging risks last-ULP drift in golden snapshots.
+- `haversineDistanceKm`, `toRad`, `finitePositive`, and the `fmt*` families:
+  the local copies differ in rounding, fallback strings and return conventions,
+  so merging them would change rendered output.
+- Dead-looking engineering constants (`RAIN_FADE_DB`, `BACKHAUL_ELEVATION_DEG`,
+  `TOTAL_SWATH_WIDTH_KM`, `AGGREGATED_CONNECTIVITY`, `CONNECTIVITY_THRESHOLDS`)
+  are kept as documented conventions.
+- Dead CSS: ~11 unreferenced selectors were found, but 405 dynamic
+  `className={`…${}`}` sites make static proof unsafe for ~15 lines.
+
+Also fixed: `npm run update-celestrak` is now a real script — `satcatService.ts`
+already told users to run it at runtime, but package.json had no such entry.
+
+Validation: `typecheck` clean · `lint` clean · `test` 1985 passed / 5 skipped
+(193 files; the 13-test drop is the two deleted suites that covered deleted
+code) · `test:perf` 4 passed · `build` succeeds, main chunk 2,079.30 kB vs
+2,079.81 kB before. Runtime FPS/memory were not independently measured.
+
+---
+
 ---
 
 ## Restart instructions

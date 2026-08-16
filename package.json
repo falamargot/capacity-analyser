@@ -19,6 +19,7 @@
     "refresh:frequency-plans": "node scripts/generate-frequency-registry.mjs --validate && node scripts/fetch-frequency-plans.mjs && node scripts/build-frequency-plans.mjs",
     "build:regulatory-overlay": "node scripts/build-regulatory-overlay.mjs",
     "generate:fill-rate-grid": "node scripts/generate-fill-rate-grid.mjs",
+    "update-celestrak": "node scripts/update-celestrak.js",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
     "test": "vitest run --exclude 'e2e/**'",
@@ -30,7 +31,6 @@
   "dependencies": {
     "@fastify/compress": "^8.3.1",
     "@fastify/cors": "^11.2.0",
-    "@types/leaflet": "^1.9.21",
     "cesium": "^1.142.0",
     "date-fns": "^4.1.0",
     "fastify": "^5.8.5",

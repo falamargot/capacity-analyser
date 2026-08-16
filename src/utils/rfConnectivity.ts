@@ -224,57 +224,6 @@ export function getConnectivityStatus(
     }
 }
 
-/**
- * Calculates the link quality for a user position relative to a beam center.
- * Uses the cos^n antenna model to determine the power level at the user's
- * location, then maps it to a quality level.
- *
- * M-03 fix: replaced inline haversine with haversineDistanceKm from leoFootprint.
- */
-export function calculateLinkQuality(
-    userPosition: { lat: number; lng: number },
-    beamCenterPosition: { lat: number; lng: number },
-    beamRadiusKm: number,
-    cosineExponent: number = 8,
-    thresholdDb: number = -10
-): { powerDb: number; quality: 'EXCELLENT' | 'GOOD' | 'ACCEPTABLE' | 'MINIMUM' | 'NO_SIGNAL' } {
-    // M-03 fix: use canonical haversineDistanceKm from leoFootprint instead of inline
-    const distKm = haversineDistanceKm(userPosition, beamCenterPosition);
-
-    if (distKm >= beamRadiusKm || beamRadiusKm <= 0) {
-        return { powerDb: -Infinity, quality: 'NO_SIGNAL' };
-    }
-
-    // Normalized radial distance [0, 1]
-    const r = distKm / beamRadiusKm;
-
-    // The provided beamRadiusKm represents the chosen coverage contour, not the
-    // zero-gain edge of the idealized antenna pattern. Re-map the normalized
-    // distance back onto the intrinsic cos^n pattern coordinate.
-    const thresholdLinearPower = Math.pow(10, thresholdDb / 10);
-    const edgePatternDistance = (2 / Math.PI) * Math.acos(
-        Math.pow(Math.max(1e-10, thresholdLinearPower), 1 / cosineExponent)
-    );
-    const patternDistance = Math.max(0, Math.min(1, r * edgePatternDistance));
-    const linearPower = Math.pow(Math.cos((Math.PI / 2) * patternDistance), cosineExponent);
-    const powerDb = 10 * Math.log10(Math.max(linearPower, 1e-10));
-
-    let quality: 'EXCELLENT' | 'GOOD' | 'ACCEPTABLE' | 'MINIMUM' | 'NO_SIGNAL';
-    if (powerDb >= -3) {
-        quality = 'EXCELLENT';
-    } else if (powerDb >= -6) {
-        quality = 'GOOD';
-    } else if (powerDb >= -10) {
-        quality = 'ACCEPTABLE';
-    } else if (powerDb >= -12) {
-        quality = 'MINIMUM';
-    } else {
-        quality = 'NO_SIGNAL';
-    }
-
-    return { powerDb, quality };
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Beam link estimate types — output of estimateCurrentLeoBeamLink
 // ─────────────────────────────────────────────────────────────────────────────

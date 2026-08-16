@@ -111,11 +111,9 @@ import { isOperationalSatellite } from '../utils/satelliteStatus';
 import type { LeoConnectivityViewModel } from '../utils/leoServiceViewModel';
 import type { RegulatoryResult } from '../services/regulatoryService';
 import type { GeoPointStatus } from '../utils/selectedPointStatus';
-import type { SNPConnectedSatellite } from '../services/coverageService';
 import { GROUND_POINT_ALTITUDE_KM } from './cesium-globe/layerHeights';
 import type { CountryOverlayMode } from '../types/countryOverlays';
 import type { LinkMode } from '../types/linkMode';
-import type { LeoSiteToSiteResult } from '../utils/leoSiteToSiteModel';
 import type { CommercialScenarioViewModel } from './commercial/commercialViewModel';
 import type { CommercialRouteModel, CommercialRouteNodeType, CommercialRouteFocusTarget, CommercialRouteSegmentId, RouteCoordinate } from '../types/commercialRouteModel';
 import CommercialSymbolicConnectivityLayer from './cesium-globe/CommercialSymbolicConnectivityLayer';
@@ -901,18 +899,6 @@ export interface MaritimeTrafficStateProps {
     maritimeTrafficEnabled?: boolean;
     vessels?: Vessel[];
     interpolatedVesselMapRef?: React.MutableRefObject<Map<string, VesselInterpolation>>;
-}
-
-export interface SatelliteRuntimeProps {
-    satellites: SatelliteData[];
-    satelliteTypeByName: Map<string, SatelliteData['type']>;
-    coverageFeatures: Feature<Geometry, GeoJsonProperties>[];
-    autoSelectedLEOSatellite: SatelliteData | null;
-    autoSelectedLEOSatelliteB: SatelliteData | null;
-    snpConnectedSatellites: SNPConnectedSatellite[];
-    leoSiteToSiteResult: LeoSiteToSiteResult | null;
-    leoSiteToSiteFullResult: LeoSiteToSiteResult | null;
-    leoServiceViewModel: LeoConnectivityViewModel | null;
 }
 
 export interface SelectionAnalysisProps {
@@ -1748,8 +1734,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     // BEHAVIOUR-NEUTRAL: requestRender() is a no-op while scene.requestRenderMode
     // is false, which is the current configuration.
     //
-    // SatelliteScreenLabels, SelectedPointScreenLabel, SiteScreenLabel and
-    // PointAnchorLabel all reposition themselves from a `scene.postRender`
+    // SatelliteScreenLabels and SiteScreenLabel both reposition themselves
+    // from a `scene.postRender`
     // handler, i.e. they are consumers of frames rather than requesters. Under
     // requestRenderMode the camera's final settling movement can therefore leave
     // them projected from the second-to-last camera pose. One explicit frame
@@ -2598,7 +2584,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             vesselItem ? { type: 'vessel', data: vesselItem } : null
         );
     }, [onVesselHover, setHoveredEntityIfChanged]);
-
 
     const handleSnpHover = useCallback((snpName: string | null) => {
         onSnpHover(snpName);

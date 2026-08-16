@@ -19,8 +19,6 @@ interface EngineeringResultSummaryProps {
   stageSummaries?: Partial<Record<EngineeringCauseStageId, ReactNode>>;
 }
 
-export type EngineeringStageEvidenceMap = NonNullable<EngineeringResultSummaryProps['stageEvidence']>;
-
 const toneStyles: Record<EngineeringTruth['tone'], {
   border: string;
   wash: string;
@@ -93,7 +91,6 @@ const provenanceLabel: Record<EngineeringTruthMetric['provenance'], string> = {
   diagnostic: 'Diagnostic only',
   unavailable: 'Unavailable',
 };
-
 
 const MetricTile = ({ metric, diagnostic = false }: { metric: EngineeringTruthMetric; diagnostic?: boolean }) => (
   <div data-engineering-critical-metric="" className={`engineering-critical-metric min-w-0 rounded-lg border px-2.5 py-2 [@media(max-height:700px)]:py-1.5 ${

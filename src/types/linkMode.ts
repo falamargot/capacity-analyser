@@ -27,7 +27,3 @@ export const LINK_MODE_DESCRIPTIONS: Record<LinkMode, string> = {
  */
 export const LINK_MODE_REQUIRES_POINT_B = new Set<LinkMode>(['MESH', 'POINT_TO_POINT']);
 
-/**
- * Whether the mode uses a ground gateway as one endpoint (auto-resolved).
- */
-export const LINK_MODE_USES_GATEWAY = new Set<LinkMode>(['STAR_FORWARD', 'STAR_RETURN']);

@@ -12,7 +12,6 @@ import { elevationAngleDeg } from './wgs84Geometry';
 import {
     findCandidateCoverages,
     rankCandidateCoverages,
-    resolveCandidateCoverage,
 } from './geoCoverageSelection';
 import { MIN_SNP_GATEWAY_ELEVATION_DEG, MIN_USER_TERMINAL_ELEVATION_DEG } from './leoFootprint';
 import { estimateCurrentLeoBeamLink, findConnectedBeamIndex, hasRFConnectivity } from './rfConnectivity';
@@ -351,28 +350,3 @@ export const resolveAutoSelectedSatellites = (
     };
 };
 
-/**
- * Find the best GEO beam for a given position
- */
-export const findBestGEOBeam = (
-    position: { lat: number; lng: number },
-    satellite: SatelliteData,
-    geoTerminalRFClassId: string | null = null
-): any | null => {
-    if (!satellite.coverages || satellite.coverages.length === 0) {
-        return null;
-    }
-
-    const rankedCandidates = rankCandidateCoverages(
-        findCandidateCoverages(position, [satellite], { terminalRFClassId: geoTerminalRFClassId }),
-        [satellite],
-        position
-    );
-    const resolved = resolveCandidateCoverage(rankedCandidates[0] ?? null, [satellite]);
-
-    if (resolved?.beam) {
-        return resolved.beam;
-    }
-
-    return satellite.coverages[0] ?? null;
-};

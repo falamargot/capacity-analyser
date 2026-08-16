@@ -1,6 +1,6 @@
 import { Coverage, SatelliteData } from '../types/satellites';
 import { isPointInFootprint, TERMINAL_RF_RADIUS_KM, BACKHAUL_RADIUS_KM } from './leoFootprint';
-import { EARTH_RADIUS_KM } from './capacityCalculator';
+import { isPointInPolygon } from './geoUtils';
 
 // Performance optimization: cache coverage calculations to prevent recomputation.
 // LRU bounded to MAX_COVERAGE_CACHE entries so a long session cannot grow without limit.
@@ -74,50 +74,6 @@ function addToCache(key: string, value: Coverage[]): void {
 // Fonction pour appliquer la projection azimutale équidistante
 function projectPoint(lng: number, lat: number, centerLng: number, centerLat: number): [number, number] {
   return [centerLng + lng, centerLat + lat];
-}
-
-function toRad(deg: number): number {
-  return (deg * Math.PI) / 180;
-}
-
-function toDeg(rad: number): number {
-  return (rad * 180) / Math.PI;
-}
-
-function normalizeLng(lngDeg: number): number {
-  // Normalize to [-180, 180]
-  let x = ((lngDeg + 180) % 360 + 360) % 360 - 180;
-  // Avoid -180 when we expect 180 for continuity
-  if (x === -180) x = 180;
-  return x;
-}
-
-export function destinationPoint(
-  start: { lat: number; lng: number },
-  bearingDeg: number,
-  distanceKm: number
-): { lat: number; lng: number } {
-  const φ1 = toRad(start.lat);
-  const λ1 = toRad(start.lng);
-  const θ = toRad(bearingDeg);
-  const δ = distanceKm / EARTH_RADIUS_KM;
-
-  const sinφ1 = Math.sin(φ1);
-  const cosφ1 = Math.cos(φ1);
-  const sinδ = Math.sin(δ);
-  const cosδ = Math.cos(δ);
-
-  const sinφ2 = sinφ1 * cosδ + cosφ1 * sinδ * Math.cos(θ);
-  const φ2 = Math.asin(Math.max(-1, Math.min(1, sinφ2)));
-
-  const y = Math.sin(θ) * sinδ * cosφ1;
-  const x = cosδ - sinφ1 * Math.sin(φ2);
-  const λ2 = λ1 + Math.atan2(y, x);
-
-  return {
-    lat: toDeg(φ2),
-    lng: normalizeLng(toDeg(λ2)),
-  };
 }
 
 // Performance optimization: Memoize coverage calculations with caching
@@ -235,19 +191,6 @@ export function calculateCoverages(satellite: SatelliteData): Coverage[] {
     addToCache(cacheKey, newcoverages);
   }
   return newcoverages;
-}
-
-function isPointInPolygon(point: { lat: number; lng: number }, polygon: number[][]): boolean {
-  let inside = false;
-  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-    const xi = polygon[i][0], yi = polygon[i][1];
-    const xj = polygon[j][0], yj = polygon[j][1];
-
-    const intersect = ((yi > point.lat) !== (yj > point.lat))
-      && (point.lng < (xj - xi) * (point.lat - yi) / (yj - yi) + xi);
-    if (intersect) inside = !inside;
-  }
-  return inside;
 }
 
 export function isPointInCoverage(

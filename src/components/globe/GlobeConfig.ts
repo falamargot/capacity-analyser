@@ -131,22 +131,3 @@ export const getGatewayTrafficStatusNote = (trafficStatus: GatewayTrafficStatus)
 
 export const GEO_GATEWAYS: GeoGatewayData[] = projectGroundSitesToLegacyGeoGateways();
 
-export const GLOBE_CONFIG = {
-  EARTH_TEXTURE: '//unpkg.com/three-globe/example/img/earth-blue-marble.jpg',
-  TOPOLOGY_TEXTURE: '//unpkg.com/three-globe/example/img/earth-topology.png',
-  BACKGROUND_TEXTURE: '//unpkg.com/three-globe/example/img/night-sky.png',
-  UPDATE_INTERVAL: 1000,
-  INITIAL_VIEW: {
-    lat: 48.8566,
-    lng: 2.3522,
-    altitude: 2.5
-  },
-  ATMOSPHERE: {
-    color: '#ffffff',
-    altitude: 0.25
-  },
-  SATELLITE_COLORS: {
-    GEO: '#2563eb', // Blue for GEO (EUTELSAT)
-    LEO: '#ef4444'  // Red for LEO (ONEWEB)
-  }
-};

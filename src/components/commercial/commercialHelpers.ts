@@ -28,10 +28,6 @@ export function formatMaybeMbps(value: number | null | undefined): string {
   return finite == null ? '--' : formatRouteMbps(finite);
 }
 
-export function formatMaybeGbps(value: number | null | undefined): string {
-  return formatMaybeMbps(gbpsToMbps(value));
-}
-
 export function statusFromServiceStatus(status: string | null | undefined): CommercialStatus {
   if (status === 'ALLOWED') return 'active';
   if (status === 'DEGRADED') return 'degraded';
@@ -165,14 +161,6 @@ export function toCustomerLimitation(reason: string | null | undefined): string 
 
 export function routeLimitingFactor(routeReason: string | null | undefined, fallback: string | undefined): string | undefined {
   return routeReason ?? fallback;
-}
-
-export function hasCompleteDisplayedMetrics(
-  downloadMbps: number | undefined,
-  uploadMbps: number | undefined,
-  rttMs: number | undefined,
-): boolean {
-  return downloadMbps != null && uploadMbps != null && rttMs != null;
 }
 
 export function optionHasRecommendationEvidence(option: CommercialTechnologyOption): boolean {

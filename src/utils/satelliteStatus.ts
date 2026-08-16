@@ -59,12 +59,3 @@ export function isOperationalSatellite<T extends { opsStatus: SatelliteStatusCat
   return satellite?.opsStatus === 'operational';
 }
 
-/**
- * Human-readable label for each status category.
- * Used by the UI legend.
- */
-export const STATUS_LABELS: Record<SatelliteStatusCategory, string> = {
-  operational: 'Operational',
-  inactive:    'Inactive',
-  decayed:     'Decayed',   // Not shown in legend (decayed are filtered out)
-};

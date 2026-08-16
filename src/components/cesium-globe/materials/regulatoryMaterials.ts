@@ -218,20 +218,6 @@ export class RegulatoryBlockedPathMaterialProperty {
   }
 }
 
-export const regulatoryOutlineColor = (
-  baseColor: Color,
-  alphaMultiplier: number,
-  time?: JulianDate,
-) => {
-  const result = baseColor.clone();
-  result.alpha = baseColor.alpha * alphaMultiplier;
-  if (time) {
-    const pulse = 0.9 + 0.1 * Math.sin(secondsSinceEpoch(time) * 1.1);
-    result.alpha *= pulse;
-  }
-  return result;
-};
-
 export const getRegulatoryOverlayState = (status?: string | null) => {
   if (status === 'ALLOWED' || status === 'ALLOWED_CONFIRMED') return 'ALLOWED_CONFIRMED' as const;
   if (status === 'ALLOWED_ESTIMATED') return 'ALLOWED_ESTIMATED' as const;

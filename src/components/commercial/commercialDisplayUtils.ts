@@ -26,49 +26,12 @@ export const segmentStatusBadgeClassName: Record<CommercialRouteSegmentStatus, s
   unknown: 'bg-slate-300 text-slate-700 dark:bg-slate-700 dark:text-slate-200',
 };
 
-// Commercial-vocabulary segment status labels for COMM mode route strip badges.
-export const commSegmentStatusLabel: Record<CommercialRouteSegmentStatus, string> = {
-  healthy: 'Ready',
-  warning: 'At Risk',
-  blocked: 'Unavailable',
-  unknown: 'Pending',
-};
-
-// Segment-level border chip (CommercialRouteSegmentStatus: healthy | warning | blocked | unknown).
-// Border + semi-transparent background style for inspector panel badges. Used by CommercialInspectorPanel.
-export const segmentStatusChipClassName: Record<CommercialRouteSegmentStatus, string> = {
-  healthy: 'border-emerald-400/40 bg-emerald-500/12 text-emerald-700 dark:text-emerald-200',
-  warning: 'border-amber-400/45 bg-amber-500/12 text-amber-700 dark:text-amber-200',
-  blocked: 'border-rose-400/45 bg-rose-500/12 text-rose-700 dark:text-rose-200',
-  unknown: 'border-slate-300 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300',
-};
-
-// Short customer service state labels for space-constrained contexts (e.g. route strip badges).
-// Used by CommercialRouteStrip.
-export const customerServiceStateLabelShort: Record<CommercialCustomerServiceState, string> = {
-  available: 'Available',
-  limited: 'Limited',
-  degraded: 'Degraded',
-  alternative_available: 'Alternative',
-  unavailable: 'Unavailable',
-};
-
 // Commercial-vocabulary short labels for COMM mode route strip badges.
 export const commCustomerStateLabelShort: Record<CommercialCustomerServiceState, string> = {
   available: 'Ready',
   limited: 'At Risk',
   degraded: 'At Risk',
   alternative_available: 'Alternative',
-  unavailable: 'Unavailable',
-};
-
-// Full customer service state labels for expanded contexts (e.g. inspector panel).
-// Used by CommercialInspectorPanel.
-export const customerServiceStateLabel: Record<CommercialCustomerServiceState, string> = {
-  available: 'Available',
-  limited: 'Limited',
-  degraded: 'Degraded',
-  alternative_available: 'Alternative Available',
   unavailable: 'Unavailable',
 };
 

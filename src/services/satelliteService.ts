@@ -307,12 +307,6 @@ async function fetchTLE(
 
 // ─── TLE Parsing ─────────────────────────────────────────────────────────────
 
-export interface SatRecSatellite {
-  satrec: any;
-  name: string;
-  noradId: string;
-}
-
 function parseTLE(tleData: string, operator: string) {
   const lines = tleData.split('\n').filter(line => line.trim());
   const satellites = [];

@@ -30,7 +30,6 @@
 import {
     WGS84_A_KM,
     ecefToGeodetic as wgsEcefToGeodetic,
-    geodeticToEcef as wgsGeodeticToEcef,
     orbitalRadiusKm,
     rayEllipsoidIntersect,
 } from '../../../utils/wgs84Geometry';
@@ -38,7 +37,7 @@ import {
     type Vec3, v3, dot, cross, length, normalize, toDeg, clamp,
 } from '../../../utils/sphericalGeometry';
 import type { EciState } from '../domain/types';
-import { earthRotationRad, ecefToEci, eciToEcef } from '../propagation/keplerJ2';
+import { earthRotationRad, eciToEcef } from '../propagation/keplerJ2';
 import type { PreparedFov } from './containment';
 
 export interface LatLng { lat: number; lng: number }
@@ -330,19 +329,3 @@ export function horizonOffNadirDeg(altitudeKm: number): number {
     return toDeg(Math.asin(WGS84_A_KM / orbitalRadiusKm(altitudeKm)));
 }
 
-/**
- * The ECI position of a lat/lng at an instant, for callers drawing targets.
- *
- * R28: on the WGS84 ellipsoid, matching `targetEciAt` in `containment.ts`
- * exactly. It previously placed the marker on the 6371 km sphere while the
- * ACCESS TEST used the ellipsoid, so the drawn target and the analysed target
- * were up to 21 km apart — the geodetic-vs-geocentric deflection. That is the
- * "picture disagrees with the number" failure R28 set out to remove, and it is
- * worse than an approximation because it is invisible.
- */
-export function targetGroundPointEci(
-    latDeg: number, lonDeg: number, epochMs: number, tSeconds: number
-): Vec3 {
-    const e = wgsGeodeticToEcef({ latDeg, lonDeg, altKm: 0 });
-    return ecefToEci(v3(e.x, e.y, e.z), earthRotationRad(epochMs, tSeconds));
-}

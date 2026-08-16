@@ -68,7 +68,7 @@ interface GlobeIntelligenceRailProps {
     isMobileViewport?: boolean;
 }
 
-// ─── Camera helpers (mirrors GlobeControls logic exactly) ────────────────────
+// ─── Camera helpers ─────────────────────────────────────────────────────────
 
 function zoomIn(viewerRef: React.RefObject<CesiumViewerType | null>) {
     if (!viewerRef.current) return;
@@ -250,7 +250,7 @@ const GlobeIntelligenceRail: React.FC<GlobeIntelligenceRailProps> = ({
         };
     }, [isMobileLayersOpen, isOverflowOpen]);
 
-    // Keyboard shortcuts — mirrors GlobeControls
+    // Keyboard shortcuts
     useEffect(() => {
         const handler = (e: KeyboardEvent) => {
             const tag = (e.target as HTMLElement)?.tagName;

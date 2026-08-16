@@ -90,16 +90,6 @@ export const WEATHER_LABELS: Record<WeatherCondition, string> = {
 };
 
 /**
- * Convert a legacy WeatherType string (used in CapacityDetails) to the
- * new physics-based WeatherCondition enum.
- */
-export function legacyWeatherToCondition(legacy: string): WeatherCondition {
-  if (legacy === 'light_rain' || legacy === 'heavy_rain' || legacy === 'storm') return 'RAIN';
-  if (legacy === 'clear') return 'CLEAR';
-  return 'CLOUDS';
-}
-
-/**
  * Convert weather attenuation (dB) to a linear power multiplier.
  * e.g. -3 dB → 0.5, 0 dB → 1.0
  */
@@ -259,27 +249,6 @@ export function getPowerBoostDb(
 // ─────────────────────────────────────────────────────────────────────────────
 // Combined EIRP calculation
 // ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Effective EIRP (dBW) for a given beam, accounting for:
- *  - Scan loss (pillar 1)
- *  - Power boost from active beam count (pillar 2)
- *  - Health factor degradation (pillar 3)
- *
- * Formula:
- *   EIRP_eff = EIRP_nominal + ScanLoss_dB + PowerBoost_dB + Health_dB
- *   where Health_dB = 10·log10(healthFactor)
- */
-export function getEffectiveEirpDb(
-  beamIndex: number,
-  activeBeamCount: number,
-  healthFactor: number
-): number {
-  const scanLossDb = getScanLossDb(beamIndex);
-  const powerBoostDb = getPowerBoostDb(activeBeamCount);
-  const healthDb = 10 * Math.log10(Math.max(1e-6, healthFactor));
-  return NOMINAL_EIRP_DBW + scanLossDb + powerBoostDb + healthDb;
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Beam radius with all impairments

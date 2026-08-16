@@ -33,12 +33,6 @@ export const REVISIT_COLORS = {
     hostFleet: '#7C8BA1',
 } as const;
 
-/** Cesium wants 0–1 floats; convert once here rather than at each call site. */
-export function toCesiumRgb(hex: string): [number, number, number] {
-    const n = parseInt(hex.replace('#', ''), 16);
-    return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
-}
-
 /** Tailwind-ish class fragments reused across the REVISIT panels. */
 export const REVISIT_PANEL =
     'revisit-panel rounded-xl border border-amber-500/25 bg-slate-950/80 backdrop-blur-sm shadow-lg';

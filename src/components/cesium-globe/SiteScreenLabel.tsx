@@ -3,7 +3,17 @@ import { SceneTransforms, Viewer as CesiumViewerType, defined } from 'cesium';
 import { getPosition } from './utils';
 import { GROUND_POINT_ALTITUDE_KM } from './layerHeights';
 import { formatCoordinates } from '../../utils/formatters';
-import { ROUTE_REVEAL_TOTAL_MS } from './commercialAnimationDriver';
+
+/**
+ * Delay before the Site B outcome glow starts, in ms.
+ *
+ * Tuned by eye so the glow lands after the commercial route has drawn itself
+ * in. It is a standalone value: the route is drawn by
+ * CommercialSymbolicConnectivityLayer, which runs its own seconds-based
+ * schedule and does not publish a total draw time to synchronise against.
+ * Re-tune here if the route draw-in timing changes.
+ */
+const OUTCOME_GLOW_DELAY_MS = 1440;
 
 export type SiteLabelTone = 'success' | 'warning' | 'danger' | 'neutral';
 
@@ -178,14 +188,14 @@ const SiteScreenLabel: React.FC<SiteScreenLabelProps> = ({
   if (!position || sections.length === 0) return null;
 
   // Outcome highlight animation (Part F):
-  //   - Plays once on mount after a delay matching the route reveal sequence.
+  //   - Plays once on mount, after OUTCOME_GLOW_DELAY_MS.
   //   - Duration 600 ms, ease-out, forwards fill (disappears cleanly).
   //   - Only on Site B in commercial mode when outcomeHighlight is provided.
   const highlightStyle: React.CSSProperties =
     presentation === 'commercial' && outcomeHighlight
       ? {
           '--outcome-glow': outcomeGlowColor(outcomeHighlight),
-          animation: `commercial-outcome-reveal 600ms ease-out ${ROUTE_REVEAL_TOTAL_MS + 80}ms both`,
+          animation: `commercial-outcome-reveal 600ms ease-out ${OUTCOME_GLOW_DELAY_MS}ms both`,
           borderRadius: compact ? '10px' : '4px',
         } as React.CSSProperties
       : {};

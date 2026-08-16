@@ -316,11 +316,6 @@ export const isEngineeringDeliveryState = (state: EngineeringServiceState): bool
   state === 'available' || state === 'constrained' || state === 'degraded'
 );
 
-export const getEngineeringTruthMetric = (
-  truth: EngineeringTruth | null | undefined,
-  predicate: (metric: EngineeringTruthMetric) => boolean,
-): EngineeringTruthMetric | null => truth?.primaryMetrics.find(predicate) ?? null;
-
 const metric = (
   label: string,
   value: number | null | undefined,

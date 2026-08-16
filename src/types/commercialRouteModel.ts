@@ -3,7 +3,6 @@
  *
  * These types describe the unified route model that will be consumed by:
  *   - CommercialRouteStrip  — segment selection and focus dispatch
- *   - CommercialInspectorPanel — per-segment detail and tab identity
  *   - CesiumGlobe (commercial mode) — node rendering, edge rendering,
  *     camera focus, and status-driven colour
  *
@@ -340,7 +339,6 @@ export interface CommercialRouteFocusTarget {
  *
  * This model is the single source of truth consumed by:
  *   - CommercialRouteStrip  (segment selection → focusTarget dispatch)
- *   - CommercialInspectorPanel (tab identity, node-type header chip)
  *   - CesiumGlobe commercial rendering (node shapes, edge arcs, camera focus)
  *
  * It is intentionally separate from CommercialScenarioViewModel, which

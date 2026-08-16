@@ -32,6 +32,7 @@ import {
 } from '../../config/beamVisualization';
 import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
 import { requestGlobeRender } from '../../utils/globeRenderRequest';
+import { isPointInPolygon } from '../../utils/geoUtils';
 import {
     FOOTPRINT_HIGHLIGHT_LAYER_HEIGHT_M,
     FOOTPRINT_LAYER_HEIGHT_M,
@@ -161,18 +162,6 @@ function getServingBeamColor(
     _scratchColor.alpha = Math.min(1, alpha * 1.16);
     return _scratchColor;
 }
-
-const isPointInPolygon = (point: { lat: number; lng: number }, ring: Array<[number, number]>): boolean => {
-    let inside = false;
-    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-        const [xi, yi] = ring[i];
-        const [xj, yj] = ring[j];
-        const intersect = ((yi > point.lat) !== (yj > point.lat))
-            && (point.lng < (xj - xi) * (point.lat - yi) / (yj - yi) + xi);
-        if (intersect) inside = !inside;
-    }
-    return inside;
-};
 
 function getRenderablePolygon(
     geometries: Cartesian3[][] | null,

@@ -164,10 +164,3 @@ export async function fetchRegulatoryOverlayGeoJson(): Promise<any> {
   return overlayGeoJsonPromise;
 }
 
-/**
- * No-op — the server handles loading at startup.
- * Kept for API compatibility with previous call sites.
- */
-export async function ensureLoaded(): Promise<void> {
-  // Server-side; nothing to do on the client.
-}

@@ -7,7 +7,6 @@ import type {
   PublicTransponderProvenanceSource,
   UplinkInferenceMethod,
 } from '../../types/frequencyPlan';
-import type { SatelliteData } from '../../types/satellites';
 import { inferPublicTransponders } from './inference';
 import { ituAdapter } from './ituAdapter';
 import { lyngSatAdapter } from './lyngSatAdapter';
@@ -150,25 +149,6 @@ export const loadPublicFrequencyPlanByIds = (lookup: {
   requestCache.set(cacheKey, request);
   return request;
 };
-
-export const loadPublicFrequencyPlanRawCount = async (lookup: {
-  coverageFileId?: string | null;
-  noradId?: string | null;
-  id?: string | null;
-}): Promise<number | undefined> => {
-  const candidateIds = getCandidateIds(lookup);
-  for (const satelliteId of candidateIds) {
-    try {
-      const data = await fetchJsonIfAvailable(`/data/frequency-plans/normalized/${satelliteId}.json`);
-      if (isNormalizedFrequencyPlanFile(data)) return data.totalRawObservations;
-    } catch { /* ignore */ }
-  }
-  return undefined;
-};
-
-export const loadPublicFrequencyPlan = (satellite: SatelliteData): Promise<PublicTransponder[]> => (
-  loadPublicFrequencyPlanByIds(satellite)
-);
 
 export const loadNormalizedPublicTranspondersBySatelliteId = (satelliteId: string): Promise<PublicTransponder[] | null> => {
   const cached = normalizedRequestCache.get(satelliteId);

@@ -83,13 +83,6 @@ export function canonicalHeaderMetrics(
   };
 }
 
-export function canonicalRouteStateLabel(state: EngineeringServiceState): string {
-  if (state === 'path-unavailable') return 'No path';
-  if (state === 'budget-unavailable') return 'No budget';
-  if (state === 'incomplete') return 'Pending';
-  return state.charAt(0).toUpperCase() + state.slice(1);
-}
-
 export function canonicalRouteStateIsAvailable(state: EngineeringServiceState): boolean {
   return state === 'available'
     || state === 'constrained'

@@ -318,14 +318,6 @@ const getFeatureMissionName = (properties: Record<string, unknown>): string | un
   return value || undefined;
 };
 
-const getFeatureCoverageGroupId = (feature: Feature<Geometry, GeoJsonProperties>): string | null => {
-  const properties = (feature.properties as Record<string, unknown> | undefined) ?? {};
-  const rawName = getRawCoverageValue(properties);
-  if (!rawName) return null;
-
-  return getIdFromParts(rawName, getFeatureMissionName(properties));
-};
-
 const getFeatureBeamId = (feature: Feature<Geometry, GeoJsonProperties>): string | null => {
   const properties = (feature.properties as Record<string, unknown> | undefined) ?? {};
   const rawName = getRawBeamValue(properties);
@@ -365,23 +357,6 @@ export const getCandidateCoverageDisplayName = (
 
   const internalBeam = candidate.beamName.trim() || candidate.beamId.trim();
   return internalBeam ? `${candidate.satelliteName} · ${internalBeam}` : candidate.satelliteName;
-};
-
-export const getCandidateBeamKey = (
-  candidate: Pick<CandidateCoverage, 'satelliteName' | 'beamId'>
-): string => `${candidate.satelliteName}::${candidate.beamId}`;
-
-export const getFeatureCandidateCoverageKey = (
-  feature: Feature<Geometry, GeoJsonProperties>
-): string | null => {
-  const satelliteName = feature.properties?.satelliteId;
-  const coverageKey = getFeatureCoverageGroupId(feature);
-
-  if (typeof satelliteName !== 'string' || !coverageKey) {
-    return null;
-  }
-
-  return `${satelliteName}::${coverageKey}`;
 };
 
 const getBeamDistanceMetrics = (

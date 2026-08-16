@@ -144,10 +144,6 @@ export function getAffectedEngineeringStages(changes: EngineeringConfigureChange
   return STAGE_ORDER.filter((stage) => affected.has(stage));
 }
 
-export function engineeringConfigureDraftSignature(draft: EngineeringConfigureDraft): string {
-  return JSON.stringify(draft);
-}
-
 export function isEngineeringConfigureDirty(
   baseline: EngineeringConfigureDraft,
   draft: EngineeringConfigureDraft,

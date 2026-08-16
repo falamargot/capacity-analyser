@@ -348,14 +348,6 @@ export function eirpAdjustmentDb(actualEirpDbw: number): number {
   return actualEirpDbw - DEFAULT_TERMINAL.eirpTerminalDbw;
 }
 
-/**
- * Computes the dB adjustment needed when the actual receiver G/T differs
- * from the DEFAULT_TERMINAL value used during candidate computation.
- */
-export function gtAdjustmentDb(actualGtDbk: number): number {
-  return actualGtDbk - DEFAULT_TERMINAL.gtTerminalDbk;
-}
-
 // ─── Candidate synthesis ──────────────────────────────────────────────────────
 //
 // GEO satellite data often only contains one direction (EIRP contours for the

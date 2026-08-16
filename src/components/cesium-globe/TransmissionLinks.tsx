@@ -82,8 +82,8 @@ interface TransmissionLinksProps {
     commercialLeoRouteAvailable?: boolean;
     /** Per-technology route availability — when provided, overrides commercialRouteAvailable for GEO links. */
     commercialGeoRouteAvailable?: boolean;
-    /** When true, CommercialRouteLayer is the primary visual — reduce all link
-     *  widths to 30 % so legacy links recede into the background. */
+    /** When true, CommercialSymbolicConnectivityLayer is the primary visual —
+     *  reduce all link widths to 30 % so legacy links recede into the background. */
     narrativeLayerActive?: boolean;
 }
 
@@ -654,7 +654,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     // so the recommended technology's route reads as visually dominant.
     const commercialWidth = (segment: CommercialRouteSegmentType, baseWidth: number, tech?: 'LEO' | 'GEO') => {
         if (!commercialMode) return baseWidth;
-        // CommercialRouteLayer is the primary visual — reduce legacy links to 30%
+        // CommercialSymbolicConnectivityLayer is the primary visual — reduce legacy links to 30%
         // so they recede into the background without disappearing entirely.
         if (narrativeLayerActive) return Math.max(baseWidth * 0.3, 0.8);
         const isSecondary = !!commercialDisplayTechnology && !!tech && tech !== commercialDisplayTechnology;

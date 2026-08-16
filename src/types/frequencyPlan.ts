@@ -180,19 +180,6 @@ export interface NormalizedPublicTransponder {
   warnings: string[];
 }
 
-export interface ParserReport {
-  satelliteName: string;
-  source: string;
-  generatedAt: string;
-  totalRowsSeen: number;
-  observationsCreated: number;
-  rowsWithFrequency: number;
-  rowsWithBeam: number;
-  rowsWithTransponderId: number;
-  rowsSkipped: number;
-  skipReasons: Record<string, number>;
-}
-
 export interface NormalizedFrequencyPlanFile {
   version: '2';
   satelliteName: string;

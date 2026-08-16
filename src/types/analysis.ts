@@ -110,16 +110,6 @@ export interface CandidateCoverage {
  */
 export type SelectedSNP = SNPData | null;
 
-/**
- * Auto-selection state for satellites
- */
-export interface AutoSelectionState {
-    leoSatelliteId: string | null;
-    geoSatelliteId: string | null;
-    snp: SelectedSNP;
-    geoBeam: GEOBeam | null;
-}
-
 export interface MobileLinkMetrics {
     /**
      * Displayed latency in ms — legacy field name, NOT always a round trip.
