@@ -22,14 +22,14 @@ test.describe('REVISIT P0 demonstration contract', () => {
 
     await page.getByRole('button', { name: 'Open model and validation' }).click();
     const modelValidation = page.getByRole('dialog', { name: 'Model & validation' });
-    await expect(modelValidation.getByRole('button', { name: 'Calibrate vs OneWeb' })).toBeVisible();
+    await expect(modelValidation.getByRole('button', { name: 'Measure against real OneWeb fleet' })).toBeVisible();
     await expect(modelValidation).toContainText('Propagation cross-checked vs NASA GMAT');
 
     await page.getByRole('button', { name: 'Advanced constellation settings' }).click();
     const settings = page.getByRole('dialog', { name: 'Advanced constellation settings' });
     await expect(modelValidation).toHaveCount(0);
     await expect(settings.getByText('Model & validation')).toHaveCount(0);
-    await expect(settings.getByRole('button', { name: 'Calibrate vs OneWeb' })).toHaveCount(0);
+    await expect(settings.getByRole('button', { name: 'Measure against real OneWeb fleet' })).toHaveCount(0);
     await expect(page.locator('.revisit-model-provenance')).toHaveCount(0);
   });
 

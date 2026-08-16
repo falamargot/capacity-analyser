@@ -64,7 +64,7 @@ describe('REVISIT P0 presentation UI', () => {
         const details = container.querySelector('details');
         expect(details?.open).toBe(false);
         expect(container.textContent).toContain('Validated model');
-        expect(container.textContent).toContain('live-TLE fit optional');
+        expect(container.textContent).toContain('live-fleet check optional');
         expect(container.textContent).not.toContain('not yet calibrated');
     });
 

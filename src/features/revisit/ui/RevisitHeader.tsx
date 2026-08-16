@@ -325,6 +325,16 @@ const TargetEditor: React.FC<TargetEditorProps> = ({
     );
 };
 
+/**
+ * Reference shell figures are display-only here. A named preset carries round
+ * numbers, but an adopted live-TLE fit carries raw floats (1198.8741581239983
+ * km, 87.90049999999997°), which read as a bug on a demo screen. Rounding to
+ * the same precision the provenance card already uses keeps the two consistent
+ * and leaves preset values untouched.
+ */
+const displayAltitudeKm = (km: number): string => String(Math.round(km));
+const displayInclinationDeg = (deg: number): string => String(Number(deg.toFixed(2)));
+
 export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
     scenario, payloadCounts, currentPayloadCount, onPayloadCountChange,
     targetNames, onTargetChange, onTargetCoordinatesChange,
@@ -415,7 +425,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                 : target.name}
                         </span>
                         <span className="block truncate text-[9px] text-slate-500">
-                            {reference.altitudeKm} km · {reference.inclinationDeg}° · {swathKm} km swath
+                            {displayAltitudeKm(reference.altitudeKm)} km · {displayInclinationDeg(reference.inclinationDeg)}° · {swathKm} km swath
                             {comparisonPoints.length > 0 && ` · +${comparisonPoints.length} compared`}
                         </span>
                     </span>
@@ -484,7 +494,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                             )}
                         </div>
                         <div className="revisit-context-detail text-[11px] text-slate-400">
-                            {reference.inclinationDeg}° · {reference.altitudeKm} km ·{' '}
+                            {displayInclinationDeg(reference.inclinationDeg)}° · {displayAltitudeKm(reference.altitudeKm)} km ·{' '}
                             {spareSatelliteCount > 0
                                 ? `${activeSatelliteCount} active + ${spareSatelliteCount} spare · ${totalSatelliteCount} total`
                                 : `${activeSatelliteCount} active`}

@@ -4,9 +4,13 @@
  *
  * ENG uses this slot for the CelesTrak feed and its publication date. REVISIT
  * has no TLE of its own, so it carries the assumptions instead — and then, once
- * calibrated, the line that converts the mode from a simulation into evidence:
+ * measured, the line that converts the mode from a simulation into evidence:
  *
- *     Fit vs OneWeb TLE · 12 km RMS
+ *     Real fleet vs perfect shell · 12 km RMS along-track
+ *
+ * Measuring and adopting are two separate acts, and the card says which one has
+ * happened: the bottom button only ever measures, and a verdict box states
+ * whether the on-screen results actually use the measured shell.
  *
  * The residual is stated in kilometres because that is the unit an engineer in
  * the room can sanity-check against a satellite's own dimensions and orbital
@@ -116,25 +120,22 @@ export const ModelProvenance: React.FC<ModelProvenanceProps> = ({
                     // across the analysis window. The qualifier is part of the
                     // claim, not decoration.
                     <li className="text-sky-300">
-                        Single-epoch shell fit vs OneWeb TLE ·{' '}
+                        Real fleet vs perfect shell ·{' '}
                         {fit.alongTrackRmsKm.toFixed(0)} km RMS along-track
-                        <span className="block text-slate-500">not trajectory-validated</span>
-                        {!matchesFit && (
-                            <span className="block text-amber-200/70">
-                                fitted shell not applied to the current constellation
-                            </span>
-                        )}
+                        <span className="block text-slate-500">
+                            single-epoch mean-element fit · not trajectory-validated
+                        </span>
                     </li>
                 ) : (
-                    <li className="text-slate-500">HLD reference profile · live-TLE fit optional</li>
+                    <li className="text-slate-500">HLD reference profile · live-fleet check optional</li>
                 )}
             </ul>
 
             {fit && (
                 <div className="mt-1.5 border-t border-slate-700/50 pt-1.5">
                     <p className="text-[10px] leading-4 text-slate-400">
-                        {fit.satellitesUsed} real satellites · {fit.planesDetected} planes ·{' '}
-                        fitted <span className="font-bold text-slate-200">
+                        Measured against {fit.satellitesUsed} real satellites · {fit.planesDetected} planes ·{' '}
+                        <span className="font-bold text-slate-200">
                             {fit.spec.planes} × {fit.spec.satsPerPlane} · {fit.spec.inclinationDeg.toFixed(2)}°
                             {' · '}{Math.round(fit.spec.altitudeKm)} km
                         </span>
@@ -146,15 +147,37 @@ export const ModelProvenance: React.FC<ModelProvenanceProps> = ({
                     {fit.notes.map((note) => (
                         <p key={note} className="mt-0.5 text-[9px] leading-3 text-amber-200/70">{note}</p>
                     ))}
-                    {!matchesFit && (
-                        <button
-                            type="button"
-                            onClick={() => onAdoptFit(fit.spec)}
-                            className="mt-1.5 rounded border border-sky-400/40 bg-sky-500/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-sky-200 hover:bg-sky-500/20"
-                        >
-                            Use fitted shell
-                        </button>
-                    )}
+
+                    {/*
+                      * The demo question this answers in one glance: is the run
+                      * I am watching using these measured numbers, or not? The
+                      * verdict and the button that changes it must sit together
+                      * — a warning elsewhere on the card reads as a footnote and
+                      * gets skipped (UX charter: understood in under ten seconds).
+                      */}
+                    <div className={`mt-2 rounded border px-2 py-1.5 ${matchesFit
+                        ? 'border-lime-400/30 bg-lime-400/5'
+                        : 'border-amber-400/30 bg-amber-400/5'}`}
+                    >
+                        <p className={`text-[9px] font-black uppercase tracking-[0.1em] ${matchesFit ? 'text-lime-200' : 'text-amber-200'}`}>
+                            {matchesFit ? 'Measured shell in use' : 'Measured shell not in use'}
+                        </p>
+                        <p className="mt-0.5 text-[10px] leading-4 text-slate-300">
+                            {matchesFit
+                                ? 'The revisit results on screen are computed from these measured numbers.'
+                                : `The revisit results on screen still come from ${profile?.label ?? 'the current constellation'}`
+                                  + ` (${reference.planes} × ${reference.satsPerPlane} · ${Math.round(reference.altitudeKm)} km).`}
+                        </p>
+                        {!matchesFit && (
+                            <button
+                                type="button"
+                                onClick={() => onAdoptFit(fit.spec)}
+                                className="mt-1.5 rounded border border-sky-400/60 bg-sky-500/20 px-2 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-sky-100 hover:bg-sky-500/30"
+                            >
+                                Recompute with measured shell
+                            </button>
+                        )}
+                    </div>
                 </div>
             )}
 
@@ -162,13 +185,20 @@ export const ModelProvenance: React.FC<ModelProvenanceProps> = ({
                 <p className="mt-1.5 text-[9px] leading-3 text-red-300">{error}</p>
             )}
 
+            {/*
+              * Secondary on purpose. This button only ever MEASURES — it never
+              * changes what the simulation runs. "Calibrate" implied otherwise
+              * and was read as the apply action, which is the one above.
+              */}
             <button
                 type="button"
                 onClick={onCalibrate}
                 disabled={isRunning}
                 className="mt-1.5 rounded border border-slate-600 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-slate-300 transition-colors hover:border-sky-400/50 hover:text-sky-200 disabled:opacity-50"
             >
-                {isRunning ? 'Fetching fleet…' : fit ? 'Re-calibrate' : 'Calibrate vs OneWeb'}
+                {isRunning
+                    ? 'Fetching fleet…'
+                    : fit ? 'Measure again' : 'Measure against real OneWeb fleet'}
             </button>
             </div>
         </details>
