@@ -1,6 +1,6 @@
 # Implementation Status
 
-_Last updated 2026-08-15._
+_Last updated 2026-08-16._
 
 ## Current phase
 
@@ -40,6 +40,25 @@ containment for both modes, added 2026-08-12).
 
 ## Completed work
 
+- **REVISIT payload-sweep warning bleed (2026-08-16).** The "target is never
+  in view" banner could show while the on-screen configuration was clearly in
+  view (`MISSES … `, a real gap) — `payloadSweep.ts` folded every ladder
+  rung's own coverage narrative into one sweep-wide warning list, so a rung the
+  user wasn't looking at (often the 1-payload one) leaked its "never in view"
+  text onto whichever rung was selected. Reproduces on the DEFAULT scenario, so
+  this banner was very likely showing on most sessions and was a large share of
+  what read as the globe sitting too low behind the compact-viewport panels.
+  Fixed by aggregating only the scenario-level window/step warnings; the
+  per-selection coverage narrative still shows correctly via
+  `runScenario.ts`'s `analysis.warnings`. See `docs/HANDOFF.md`.
+- **REVISIT accessibility gate (2026-08-16).** All six Axe gates
+  (engineering / commercial / revisit × dark / light) pass. Four defects fixed:
+  the ribbon's `role="slider"` nested the lane buttons — and, behind it, measured
+  the seek fraction and playhead over a box ~190 px wider than the track, so both
+  pointed at the wrong time; the light-theme colour overrides matched `hover:`
+  and `dark:` variant classes by substring; popovers hardcoded a dark background
+  in both themes; `text-sky-700` was below AA on the light panel. See
+  `docs/REVIEW_REPORT.md`.
 - **REVISIT compact-viewport layout (2026-08-15).** Below `md` the globe is the
   default surface: the triad collapses to a one-line bar with a payload stepper,
   the analysis column becomes a closed-by-default sheet behind a permanent

@@ -141,6 +141,13 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
     }, [windowHours]);
     const timestampMs = windowStartMs + Math.max(0, Math.min(windowHours, currentHours)) * 3600_000;
     const showComparisonSidecar = analysisContext === 'POINTS' && pointRows.length > 1;
+    /** The sidecar carries the per-lane figures, so the rows drop their value column. */
+    const hasValueColumn = analysisContext === 'AREA' || !showComparisonSidecar;
+    const trackColumns = hasValueColumn
+        ? 'grid-cols-[6rem_minmax(0,1fr)_5rem]'
+        : 'grid-cols-[6rem_minmax(0,1fr)]';
+    /** AREA without an analysis shows a placeholder, not a timeline: nothing to seek on. */
+    const hasSeekableTrack = analysisContext === 'AREA' ? Boolean(areaAnalysis) : pointRows.length > 0;
 
     const accessTrack = (
         laneIntervals: AccessInterval[], longestGap: ReturnType<typeof longestInteriorGap>,
@@ -261,11 +268,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                 )}
 
                 <div className="px-2 sm:px-4 lg:col-start-1 lg:row-start-2">
-                    <div ref={seekRef} role="slider" tabIndex={0} onClick={handleClick} onKeyDown={handleKeyDown}
-                        aria-label={`Seek within the ${windowHours} hour analysis window`}
-                        aria-valuemin={0} aria-valuemax={windowHours} aria-valuenow={Number(currentHours.toFixed(2))}
-                        aria-valuetext={`${currentHours.toFixed(1)} hours into the window`}
-                        className="relative cursor-pointer rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300">
+                    <div className="relative" data-revisit-timeline>
                         {analysisContext === 'AREA' ? (
                             areaAnalysis ? <div className="space-y-1.5">
                                 <div className="grid h-7 grid-cols-[6rem_minmax(0,1fr)_5rem] items-center gap-2">
@@ -280,7 +283,11 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                             </div>
                         ) : <div className="space-y-1.5">
                             {pointRows.map((lane, index) => (
-                                <div key={lane.id} className={`grid h-7 items-center gap-2 rounded ${showComparisonSidecar ? 'grid-cols-[6rem_minmax(0,1fr)]' : 'grid-cols-[6rem_minmax(0,1fr)_5rem]'} ${lane.selected ? 'bg-white/[0.04]' : ''}`}>
+                                <div
+                                    key={lane.id}
+                                    data-revisit-timeline-lane={lane.id}
+                                    className={`grid h-7 items-center gap-2 rounded ${trackColumns} ${lane.selected ? 'bg-white/[0.04]' : ''}`}
+                                >
                                     <button
                                         type="button"
                                         onClick={(event) => {
@@ -294,7 +301,49 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                                 </div>
                             ))}
                         </div>}
-                        <div ref={playheadRef} aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 w-px bg-white shadow-[0_0_4px_#fff]" />
+
+                        {/*
+                          * The seek surface overlays the TRACK COLUMN only, and
+                          * carries the playhead with it.
+                          *
+                          * It used to be the wrapper around the whole rows
+                          * block, which had two consequences. Functionally, the
+                          * fraction was computed over a box ~11rem wider than
+                          * the track it annotates, so the playhead and every
+                          * click landed offset from the intervals they pointed
+                          * at (~100 px at desktop width). For accessibility, a
+                          * `role="slider"` wrapping the per-lane buttons is a
+                          * nested interactive control, which screen readers do
+                          * not reliably announce.
+                          *
+                          * The spacer cells reproduce the row template so the
+                          * middle cell is exactly the track box.
+                          */}
+                        {hasSeekableTrack && (
+                            <div className={`pointer-events-none absolute inset-0 grid gap-2 ${trackColumns}`}>
+                                <div />
+                                <div
+                                    ref={seekRef}
+                                    role="slider"
+                                    tabIndex={0}
+                                    onClick={handleClick}
+                                    onKeyDown={handleKeyDown}
+                                    aria-label={`Seek within the ${windowHours} hour analysis window`}
+                                    aria-valuemin={0}
+                                    aria-valuemax={windowHours}
+                                    aria-valuenow={Number(currentHours.toFixed(2))}
+                                    aria-valuetext={`${currentHours.toFixed(1)} hours into the window`}
+                                    className="pointer-events-auto relative cursor-pointer rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300"
+                                >
+                                    <div
+                                        ref={playheadRef}
+                                        aria-hidden="true"
+                                        className="pointer-events-none absolute inset-y-0 left-0 w-px bg-white shadow-[0_0_4px_#fff]"
+                                    />
+                                </div>
+                                {hasValueColumn && <div />}
+                            </div>
+                        )}
                     </div>
                 </div>
 

@@ -40,7 +40,7 @@ test.describe('REVISIT P2b-B2 contextual results', () => {
     await areaPanel.getByLabel('Custom area coordinate list').fill('51, -2\n51, 9\n61, 9\n61, -2');
     await areaPanel.getByRole('button', { name: 'Apply list' }).click();
     await expect(analysis.getByRole('region', { name: 'Area result summary' })).toContainText('Worst cell', { timeout: 60_000 });
-    await expect(page.getByRole('slider', { name: /Seek within/ })).toContainText('Worst cell');
+    await expect(page.locator('[data-revisit-timeline]')).toContainText('Worst cell');
     await expect(page.locator('[data-revisit-context-panel="analysis-target"]')).toContainText('North Sea');
     await expect(analysis).toHaveJSProperty('scrollTop', 0);
   });
@@ -55,13 +55,15 @@ test.describe('REVISIT P2b-B2 contextual results', () => {
       modifiers: ['Shift'], force: true,
     });
     await expect(page.getByText('Point access comparison')).toBeVisible();
-    const timeline = page.getByRole('slider', { name: /Seek within/ });
+    // The lanes and the seek slider are siblings: the slider overlays the track
+    // column only, so it can carry the playhead without nesting the lane buttons.
+    const timeline = page.locator('[data-revisit-timeline]');
     await expect(timeline).toContainText('Reference ·');
     await expect(timeline).toContainText('Compare 1 ·');
     const comparison = page.getByRole('region', { name: 'Target comparison' });
     await expect(comparison).toContainText('Worst', { timeout: 30_000 });
 
-    const timelineRows = timeline.locator(':scope > div > div');
+    const timelineRows = timeline.locator('[data-revisit-timeline-lane]');
     const comparisonRows = comparison.locator('[data-revisit-comparison-row]');
     await expect(comparisonRows).toHaveCount(2);
     for (let index = 0; index < 2; index += 1) {

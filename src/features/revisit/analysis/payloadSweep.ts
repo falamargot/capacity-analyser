@@ -176,11 +176,16 @@ export function runPayloadSweep(
     }
     points.sort((a, b) => a.payloadCount - b.payloadCount);
 
-    // The window caveats are identical across configurations — carry one copy.
-    const warnings = [...new Set([
-        ...validation.warnings,
-        ...points.flatMap((p) => p.best.statistics.warnings),
-    ])];
+    // Only `validation.warnings` (window duration, step size — properties of
+    // the scenario, not of any one configuration) is safe to state once for the
+    // whole sweep. `statistics.warnings` per point also carries coverage
+    // narrative — "never in view", "always in view", "every gap touches a
+    // boundary" — which is a fact about THAT configuration's selected
+    // satellites, not the sweep. A low payload count can genuinely miss the
+    // target within the window while the current, higher count sees it fine;
+    // flattening those across every point attached a caveat about a
+    // configuration the user was not looking at to the one they were.
+    const warnings = [...new Set(validation.warnings)];
 
     return { points, warnings };
 }

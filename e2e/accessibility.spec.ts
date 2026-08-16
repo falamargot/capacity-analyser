@@ -6,6 +6,11 @@ test.describe('critical accessibility gate', () => {
     for (const mode of ['engineering', 'commercial', 'revisit'] as const) {
       test(`${mode} ${theme} has no critical or serious Axe violation`, async ({ page }, testInfo) => {
         test.skip(testInfo.project.name !== 'desktop-chromium', 'One browser is sufficient for semantic rules');
+        // The REVISIT pass runs a real area analysis (allowed 60 s on its own)
+        // and six Axe sweeps inside one test. Under a full-suite run that
+        // exceeded the 90 s default and timed out mid-click — a scheduling
+        // flake reported as a gate failure.
+        if (mode === 'revisit') test.setTimeout(240_000);
         await page.addInitScript((selectedTheme) => localStorage.setItem('vite-ui-theme', selectedTheme), theme);
         await page.goto(`/?mode=${mode}`);
         if (mode === 'revisit') {

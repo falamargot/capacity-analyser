@@ -1,6 +1,71 @@
 # Handoff
 
-_Last updated 2026-08-15._
+_Last updated 2026-08-16._
+
+## 2026-08-16 — REVISIT "never in view" false positive (payload sweep warnings)
+
+Reported from a live session: the compact-viewport banner "The target is never
+in view over this window" was showing while the KPI strip and ribbon clearly
+showed the reference target in view (`MISSES … `, a real worst-case gap). Root
+cause in `payloadSweep.ts`: the value curve runs every ladder rung (every
+payload count) and its warnings were aggregated as
+`points.flatMap((p) => p.best.statistics.warnings)` — but `statistics.warnings`
+carries the coverage narrative ("never in view" / "always in view" / "every
+gap touches a boundary"), which is a fact about THAT rung's selected
+satellites, not the scenario. A low rung (often 1 payload) can genuinely miss
+the target within the window while a higher rung — the one actually on
+screen — sees it fine. The aggregation attached a warning about a
+configuration the user wasn't looking at to the one they were.
+
+This was not a rare edge case: it reproduces on `main` for the DEFAULT
+scenario (London, 12 payloads) — confirmed live via `git stash` on
+`payloadSweep.ts` alone. The banner was very likely showing on most default
+REVISIT sessions, which was most of what read as "the globe sits too low,
+masked by the bottom panels": the banner alone was ~150 px of the viewport,
+on top of unavoidable header/toolbar/strip/ribbon chrome.
+
+Fix: `payloadSweep.ts`'s aggregate `warnings` now carries only
+`validation.warnings` (window duration / step size — properties of the
+scenario, already deduped once by `validateSweepInputs`, itself already a
+superset of the per-point window caveat). The coverage narrative stays where
+it belongs: `runScenario.ts`'s `analysis.warnings`, computed for the CURRENT
+selection only, unaffected by this change — so a target the current selection
+genuinely cannot see still shows the warning correctly.
+
+Regression test: `payloadSweep.test.ts` — "does not fold one rung's coverage
+narrative into the sweep-wide warnings", using the real production reference
+(`DEFAULT_REFERENCE`/`FOV_PRESETS.STANDARD`/`defaultWindow`) at 10°N 10°E,
+where rung 1 is measurably `NEVER_IN_VIEW` and rung 12 is `INTERMITTENT` with a
+real worst-case gap; asserts the sweep-wide warnings don't mention it. Do not
+reintroduce `statistics.warnings` (or anything coverage-derived) into that
+aggregate — window/step caveats only.
+
+## 2026-08-16 — REVISIT accessibility gate green
+
+`e2e/accessibility.spec.ts` had been failing for REVISIT in both themes. Four
+distinct defects; full reasoning in `docs/REVIEW_REPORT.md`.
+
+- `CoverageRibbon.tsx` — the `role="slider"` wrapped the lane buttons
+  (`nested-interactive`). It is now a sibling overlay (`data-revisit-timeline`
+  container, `data-revisit-timeline-lane` rows) sized to the track column via
+  the shared `trackColumns` template, carrying the playhead. **This also fixed a
+  live correctness bug**: the seek fraction and the playhead were measured over
+  a box ~190 px wider than the track, so the playhead and every click landed
+  offset from the intervals they pointed at. Do not put focusable content back
+  inside the slider, and do not reintroduce a wrapper measurement.
+- `index.css` — the light-theme colour overrides matched variant classes by
+  substring (`[class*="text-slate-200"]` catches `hover:`/`dark:` variants), so
+  hover-only and dark-only colours were painted at rest. They now match the
+  class token, with the hover intents restated as `:hover` rules. `text-sky-700`
+  is darkened to `#075985` in light (it was 4.27:1 on the light panel).
+- `revisitTheme.ts` / `RevisitHeader.tsx` — popovers hardcoded
+  `bg-slate-950/95`, so they opened as dark sheets in the light theme with dark
+  ink inside. New `REVISIT_MENU_SURFACE` / `REVISIT_INSET_SURFACE` tokens
+  (`--revisit-menu-bg` / `--revisit-inset-bg`), same pattern as
+  `.revisit-panel`. Use them for any new floating or recessed REVISIT surface.
+
+All six gates (engineering / commercial / revisit × dark / light) pass. A unit
+test in `RevisitP0Ui.test.tsx` pins the ribbon contract.
 
 ## 2026-08-15 — REVISIT compact-viewport (mobile) layout
 
@@ -49,12 +114,9 @@ the layout change, now 0 — and two of those were already failing on `main`
 because the exit control's label collapses to "‹ Back" below `sm`);
 desktop-chromium REVISIT specs + `mode-smoke` green; tablet and short-wide green.
 
-**Known pre-existing failure, NOT from this work:** `e2e/accessibility.spec.ts`
-`revisit dark` / `revisit light` fail on `main` (verified by stashing) with
-serious `color-contrast` and `nested-interactive` Axe violations. Untouched here;
-worth its own pass.
-
-## 2026-08-14 — Code-review fix batch (P2b/P1 diff)
+**Pre-existing accessibility failure:** `e2e/accessibility.spec.ts`
+`revisit dark` / `revisit light` were already failing on `main` (verified by
+stashing). Fixed the next day — see the 2026-08-16 entry above.
 
 ## 2026-08-14 — Code-review fix batch (P2b/P1 diff)
 

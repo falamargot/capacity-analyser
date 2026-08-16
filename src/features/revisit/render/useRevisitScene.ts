@@ -502,12 +502,27 @@ function updateSwaths(
 }
 
 /** Camera framing: the full globe, per UX §4.3 — ENG's framing, not COMM's limb view. */
-export function frameGlobe(viewer: Viewer): void {
+export function frameGlobe(viewer: Viewer, verticalScreenBias = 0): void {
+    const standoff = EARTH_RADIUS_KM * 1000 * 3.2;
     viewer.camera.setView({
         // Camera standoff only — a distance to place the eye, not a model of
         // the Earth. The 6371 km sphere is fine here and nowhere else in this
         // module (R28): nothing downstream reads it.
-        destination: Cartesian3.fromDegrees(10, 25, EARTH_RADIUS_KM * 1000 * 3.2),
+        destination: Cartesian3.fromDegrees(10, 25, standoff),
         orientation: { heading: 0, pitch: CesiumMath.toRadians(-90), roll: 0 },
     });
+
+    if (verticalScreenBias === 0) return;
+
+    // Translate in the camera plane so the globe moves up without changing its
+    // scale or its nadir-facing orientation. `verticalScreenBias` is expressed
+    // as a fraction of the canvas height; converting it at the target plane
+    // keeps the composition stable across phone aspect ratios.
+    const fovy = ('fovy' in viewer.camera.frustum
+        ? viewer.camera.frustum.fovy
+        : undefined) ?? CesiumMath.toRadians(60);
+    const visibleHeightAtTarget = 2 * standoff * Math.tan(fovy / 2);
+    const translation = visibleHeightAtTarget * Math.abs(verticalScreenBias);
+    if (verticalScreenBias > 0) viewer.camera.moveDown(translation);
+    else viewer.camera.moveUp(translation);
 }

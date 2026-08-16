@@ -97,4 +97,45 @@ describe('REVISIT P0 presentation UI', () => {
         await act(async () => speed.dispatchEvent(new Event('change', { bubbles: true })));
         expect(onSetSpeed).toHaveBeenCalledWith(100);
     });
+
+    /**
+     * The seek surface used to wrap the lane rows, so the `role="slider"`
+     * contained the per-lane buttons — a nested interactive control, which the
+     * Axe gate rejects and screen readers do not reliably announce. It is now a
+     * sibling overlay carrying only the playhead.
+     */
+    it('keeps the seek slider free of nested interactive controls', async () => {
+        const startMs = Date.UTC(2026, 7, 12, 12);
+        await act(async () => root?.render(
+            <CoverageRibbon
+                intervals={[]}
+                statistics={null}
+                pointLanes={[
+                    {
+                        id: 'REFERENCE', label: 'Reference · London', name: 'London',
+                        intervals: [], statistics: null, selected: true,
+                    },
+                    {
+                        id: 'comparison-1', label: 'Compare 1 · Singapore', name: 'Singapore',
+                        intervals: [], statistics: null,
+                    },
+                ]}
+                windowStartMs={startMs}
+                windowHours={72}
+                getTimeMs={() => startMs}
+                onSeek={() => undefined}
+                speed={0}
+                onSetSpeed={() => undefined}
+            />
+        ));
+
+        const slider = container.querySelector('[role="slider"]') as HTMLElement;
+        expect(slider).not.toBeNull();
+        expect(slider.querySelectorAll('button, a, input, select, [tabindex]')).toHaveLength(0);
+        // The lane buttons still exist — they moved out of the slider, not away.
+        expect([...container.querySelectorAll('button')].map((button) => button.textContent))
+            .toEqual(expect.arrayContaining(['Reference · London', 'Compare 1 · Singapore']));
+        // Nothing may hide the slider from assistive technology.
+        expect(slider.closest('[aria-hidden="true"]')).toBeNull();
+    });
 });

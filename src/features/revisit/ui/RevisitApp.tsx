@@ -743,7 +743,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     }, []);
 
     return (
-        <div className="revisit-shell flex h-dvh w-screen flex-col overflow-hidden bg-[#05070D] text-slate-100 transition-colors light:bg-slate-100 light:text-slate-950">
+        <div className="revisit-shell relative isolate flex h-dvh w-screen flex-col overflow-hidden bg-[#05070D] text-slate-100 transition-colors light:bg-slate-100 light:text-slate-950">
             <GlobalAppHeader className="revisit-global-header">
                 <div className="revisit-context-rail px-2 py-2 sm:px-3 lg:px-4">
                     <RevisitHeader
@@ -799,8 +799,11 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                 </div>
             </GlobalAppHeader>
 
-            <div className="revisit-stage relative min-h-0 flex-1 overflow-hidden">
-              <div className="absolute inset-0">
+            <div className="revisit-stage pointer-events-none relative z-10 min-h-0 flex-1 overflow-hidden">
+              {/* Fixed to the shell viewport while remaining a descendant of the
+                  stage for picking and test contracts. The canvas therefore
+                  paints behind the header as well as the side/footer glass. */}
+              <div className="pointer-events-auto fixed inset-0 z-0">
                 <RevisitGlobe
                     scenario={scenario}
                     fleet={fleet}

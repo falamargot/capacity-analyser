@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { payloadsRequiredFor, runPayloadSweep } from '../analysis/payloadSweep';
+import { DEFAULT_REFERENCE, FOV_PRESETS, defaultWindow } from '../domain/presets';
 import { ladderPayloadCounts } from '../domain/subConstellation';
 import type { AnalysisWindow, FovSpec, Target, WalkerSpec } from '../domain/types';
 
@@ -153,4 +154,36 @@ describe('payloadSweep — options and the requirement crossing', () => {
         });
         expect(short.warnings.join(' ')).toMatch(/confidently wrong/);
     });
+
+    /**
+     * Regression for a real bug, reported against the production reference
+     * constellation (12×48, ONEWEB_HLD_V1) and default window: at 10°N 10°E
+     * the 1-payload rung genuinely never sees the target within 72 h, while
+     * every other rung — including 12, a config a user could easily be
+     * looking at — does. `sweep.warnings` used to fold every rung's coverage
+     * narrative into one caller-facing list, so a warning that was only ever
+     * true about the 1-payload rung was shown while looking at 12.
+     *
+     * "The window is short" is a fact about the SCENARIO; "never in view" is a
+     * fact about the CONFIGURATION currently on screen. Conflating them means
+     * a warning about a rung the user isn't looking at gets attached to the
+     * one they are.
+     */
+    it('does not fold one rung\'s coverage narrative into the sweep-wide warnings', () => {
+        const target: Target = { kind: 'POINT', name: 'Custom point', latDeg: 10, lonDeg: 10 };
+        const production = runPayloadSweep(
+            DEFAULT_REFERENCE, target, FOV_PRESETS.STANDARD, defaultWindow(EPOCH)
+        );
+
+        const oneRung = production.points.find((p) => p.payloadCount === 1);
+        expect(oneRung?.best.statistics.coverage).toBe('NEVER_IN_VIEW');
+
+        const twelveRung = production.points.find((p) => p.payloadCount === 12);
+        expect(twelveRung?.best.statistics.coverage).toBe('INTERMITTENT');
+        expect(twelveRung?.best.statistics.maxGapMs).not.toBeNull();
+
+        // The premise held (a rung with no coverage exists), but it must not
+        // leak into the sweep-wide warnings.
+        expect(production.warnings.join(' ')).not.toMatch(/never in view/i);
+    }, 30_000);
 });

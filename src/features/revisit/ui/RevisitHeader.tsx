@@ -29,7 +29,9 @@ import {
 import { useLocationSearch, type LocationResult } from '../../../hooks/useLocationSearch';
 import InlineLocationSearchInput from '../../../components/commercial/InlineLocationSearchInput';
 import InlineSearchResultsPopover from '../../../components/commercial/InlineSearchResultsPopover';
-import { REVISIT_LABEL, REVISIT_PANEL } from './revisitTheme';
+import {
+    REVISIT_INSET_SURFACE, REVISIT_LABEL, REVISIT_MENU_SURFACE, REVISIT_PANEL,
+} from './revisitTheme';
 import { isValidLatDeg, isValidLonDeg, type AreaTarget } from '../domain/areaTarget';
 import type { AreaAnalysis } from '../analysis/areaAnalysis';
 import { AreaPanel } from './AreaPanel';
@@ -240,7 +242,7 @@ const TargetEditor: React.FC<TargetEditorProps> = ({
             >
                 <span aria-hidden="true">…</span>
             </button>
-            {isOpen && <div role="dialog" aria-label={summaryLabel} className="absolute right-0 top-[calc(100%+0.25rem)] z-50 w-[min(18rem,calc(100vw-2rem))] space-y-2 rounded-lg border border-slate-700 bg-slate-950/95 p-2.5 shadow-2xl backdrop-blur-md">
+            {isOpen && <div role="dialog" aria-label={summaryLabel} className={`absolute right-0 top-[calc(100%+0.25rem)] z-50 w-[min(18rem,calc(100vw-2rem))] space-y-2 rounded-lg border border-slate-700 ${REVISIT_MENU_SURFACE} p-2.5 shadow-2xl`}>
                 <div className="text-[9px] font-black uppercase tracking-[0.1em] text-slate-300">{summaryLabel}</div>
                 <div className="relative z-20">
                     <InlineLocationSearchInput
@@ -507,7 +509,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                         <div
                             role="dialog"
                             aria-label="Advanced constellation settings"
-                            className="absolute left-0 top-[calc(100%+0.35rem)] z-[80] max-h-[min(74vh,42rem)] w-[min(36rem,calc(100vw-1rem))] overflow-y-auto rounded-lg border border-amber-400/35 bg-slate-950/95 shadow-2xl backdrop-blur-md"
+                            className={`absolute left-0 top-[calc(100%+0.35rem)] z-[80] max-h-[min(74vh,42rem)] w-[min(36rem,calc(100vw-1rem))] overflow-y-auto rounded-lg border border-amber-400/35 ${REVISIT_MENU_SURFACE} shadow-2xl`}
                         >
                             <AdvancedDrawer
                                 scenario={scenario}
@@ -520,7 +522,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                         <div
                             role="dialog"
                             aria-label="Model & validation"
-                            className="absolute left-0 top-[calc(100%+0.35rem)] z-[80] max-h-[min(74vh,42rem)] w-[min(30rem,calc(100vw-1rem))] overflow-y-auto rounded-lg border border-lime-400/35 bg-slate-950/95 shadow-2xl backdrop-blur-md"
+                            className={`absolute left-0 top-[calc(100%+0.35rem)] z-[80] max-h-[min(74vh,42rem)] w-[min(30rem,calc(100vw-1rem))] overflow-y-auto rounded-lg border border-lime-400/35 ${REVISIT_MENU_SURFACE} shadow-2xl`}
                         >
                             <section className="px-3 py-3" aria-label="Model validation evidence">
                                 <div className="mb-3 flex items-start justify-between gap-3 border-b border-slate-700/60 pb-2">
@@ -609,7 +611,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
             <Arrow />
 
             <Panel label="Analysis target" className="relative z-40 min-w-0 md:min-w-[260px] md:max-w-[320px]">
-                <div className="grid min-w-0 grid-cols-2 rounded border border-slate-700/70 bg-slate-950/45 p-0.5" role="tablist" aria-label="Analysis target context">
+                <div className={`grid min-w-0 grid-cols-2 rounded border border-slate-700/70 ${REVISIT_INSET_SURFACE} p-0.5`} role="tablist" aria-label="Analysis target context">
                         {(['POINTS', 'AREA'] as const).map((context) => (
                             <button
                                 key={context}
@@ -621,7 +623,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                     ? context === 'AREA'
                                         ? 'bg-sky-200 text-sky-950 dark:bg-sky-300/60 dark:text-slate-950'
                                         : 'bg-amber-200 text-amber-950 dark:bg-amber-300/60 dark:text-slate-950'
-                                    : 'text-slate-400 hover:text-slate-200'}`}
+                                    : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'}`}
                             >
                                 {context === 'POINTS' ? `Points ${comparisonPoints.length + pendingComparisonPointIds.length + 1}` : 'Area'}
                             </button>
@@ -765,7 +767,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                         </div>
                         {areaMenuOpen && (
                             <div role="dialog" aria-label="Define area target"
-                                className="absolute right-0 top-[calc(100%+0.25rem)] z-[70] max-h-[min(70vh,38rem)] w-[min(27rem,calc(100vw-1rem))] overflow-y-auto rounded-lg border border-sky-400/35 bg-slate-950/95 shadow-2xl backdrop-blur-md">
+                                className={`absolute right-0 top-[calc(100%+0.25rem)] z-[70] max-h-[min(70vh,38rem)] w-[min(27rem,calc(100vw-1rem))] overflow-y-auto rounded-lg border border-sky-400/35 ${REVISIT_MENU_SURFACE} shadow-2xl`}>
                                 <AreaPanel
                                     scenario={scenario}
                                     analysis={areaAnalysis}

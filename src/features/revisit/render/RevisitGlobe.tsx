@@ -101,6 +101,7 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
     onDrawAreaVertex, onAddComparisonPoint,
 }) => {
     const viewerRef = useRef<CesiumViewer | null>(null);
+    const frameForCurrentLayoutRef = useRef<(() => void) | null>(null);
     const [viewer, setViewer] = useState<CesiumViewer | null>(null);
     const areaDraftPointsRef = useRef<{ id: string | null; points: PointPrimitiveCollection } | null>(null);
 
@@ -179,7 +180,40 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
             // sphere and every number on screen remains correct.
         });
 
-        frameGlobe(viewer);
+        // On phones the result strip and timeline occupy the bottom of the
+        // canvas. Centre the globe in the unobstructed band above that footer,
+        // instead of in the full canvas where it reads visibly too low.
+        const frameForCurrentLayout = () => {
+            const canvasRect = viewer.scene.canvas.getBoundingClientRect();
+            const shell = viewer.container.closest('.revisit-shell');
+            const resultStrip = shell?.querySelector<HTMLElement>('[data-revisit-result-strip]');
+            const coverageRibbon = shell?.querySelector<HTMLElement>('.revisit-coverage-ribbon');
+            const header = shell?.querySelector<HTMLElement>('[data-global-app-header]');
+            const compact = window.matchMedia('(max-width: 767px)').matches;
+            const resultStripRect = resultStrip?.getBoundingClientRect();
+            const footerTop = resultStripRect && resultStripRect.height > 0
+                ? resultStripRect.top
+                : coverageRibbon?.getBoundingClientRect().top;
+            const footerOcclusion = footerTop !== undefined
+                ? Math.max(0, canvasRect.bottom - footerTop)
+                : 0;
+            const headerOcclusion = header
+                ? Math.max(0, header.getBoundingClientRect().bottom - canvasRect.top)
+                : 0;
+            const verticalScreenBias = canvasRect.height > 0
+                ? compact
+                    // The extra 2.5% favours the globe over the empty sky above
+                    // it, while the measured half-footer term keeps the sphere
+                    // centred against one or several timeline lanes.
+                    ? Math.min(0.34, Math.max(0.08, (footerOcclusion - headerOcclusion) / (2 * canvasRect.height)) + 0.025)
+                    : Math.max(-0.2, Math.min(0.2, (footerOcclusion - headerOcclusion) / (2 * canvasRect.height)))
+                : 0;
+
+            frameGlobe(viewer, verticalScreenBias);
+            viewer.scene.requestRender();
+        };
+        frameForCurrentLayoutRef.current = frameForCurrentLayout;
+        const initialFrame = requestAnimationFrame(frameForCurrentLayout);
 
         // Dev-only handle, in the same spirit as window.__memStats / __perfStats.
         // Statically dropped from production builds.
@@ -193,12 +227,29 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
 
         return () => {
             cancelled = true;
+            cancelAnimationFrame(initialFrame);
+            frameForCurrentLayoutRef.current = null;
             removeTileProgress();
             document.removeEventListener('visibilitychange', handleVisibility);
             observer.disconnect();
             setMemoryMonitorViewerGetter(() => null);
         };
     }, [viewer]);
+
+    // Adding comparison lanes (or switching POINTS/AREA) changes the footer
+    // height without resizing the Cesium canvas. Reframe after React has laid
+    // out that new footer so the globe does not fall back to the canvas centre.
+    useEffect(() => {
+        if (!viewer || viewer.isDestroyed?.()) return;
+        let secondFrame = 0;
+        const firstFrame = requestAnimationFrame(() => {
+            secondFrame = requestAnimationFrame(() => frameForCurrentLayoutRef.current?.());
+        });
+        return () => {
+            cancelAnimationFrame(firstFrame);
+            cancelAnimationFrame(secondFrame);
+        };
+    }, [analysisContext, comparisonPoints.length, viewer]);
 
     // Slow automatic rotation — ENG's framing, a full globe (UX §4.3).
     //

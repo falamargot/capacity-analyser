@@ -43,5 +43,15 @@ export function toCesiumRgb(hex: string): [number, number, number] {
 export const REVISIT_PANEL =
     'revisit-panel rounded-xl border border-amber-500/25 bg-slate-950/80 backdrop-blur-sm shadow-lg';
 
+/**
+ * Menus, popovers and dialogs that float above the shell. Themed through one
+ * CSS token so they cannot open as a dark sheet in the light theme — which also
+ * kept every label inside them readable (see `index.css`).
+ */
+export const REVISIT_MENU_SURFACE = 'revisit-menu-surface backdrop-blur-md';
+
+/** Recessed surfaces inside a panel — segmented controls, wells. */
+export const REVISIT_INSET_SURFACE = 'revisit-inset-surface';
+
 export const REVISIT_LABEL =
     'revisit-label text-[10px] font-black uppercase tracking-[0.16em] text-slate-400';

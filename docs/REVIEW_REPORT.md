@@ -1,6 +1,90 @@
 # Review Report
 
-_Last updated 2026-08-15._
+_Last updated 2026-08-16._
+
+## REVISIT false "never in view" warning — 2026-08-16
+
+Reported live: the compact-viewport warning banner "The target is never in
+view over this window" was showing above a KPI strip and ribbon that clearly
+showed the reference target in view (`MISSES 6 h`, a real worst-case gap).
+
+Cause: `runPayloadSweep` (`payloadSweep.ts`) evaluates every rung of the
+payload-count ladder to build the value curve, and its returned `warnings` was
+`[...validation.warnings, ...points.flatMap((p) => p.best.statistics.warnings)]`.
+`statistics.warnings` (from `computeGapStatistics`) includes the coverage
+narrative — "never in view", "always in view", "every gap touches a
+boundary" — which describes THAT rung's specific selected satellites, not the
+scenario. The comment above the line ("the window caveats are identical
+across configurations") was true of `validation.warnings` but not of the
+flattened `statistics.warnings`: a low rung, often the 1-payload one, can
+genuinely miss the target within the window purely by chance of which few
+satellites carry it, while the rung actually on screen sees it fine.
+`RevisitApp.tsx` then merges `sweep.warnings` into the same banner as the
+current selection's own `analysis.warnings`, so a caveat about a rung the user
+wasn't looking at got attached to the one they were.
+
+Verified this reproduces on the DEFAULT scenario (London, 12 payloads) — via
+`git stash` on `payloadSweep.ts` alone, the banner appears live for London
+despite a genuine 6 h worst-case (in view). Not a rare edge case: this banner
+was very likely present on most default sessions, and at ~150 px it was a
+large share of what read as the REVISIT globe sitting too low behind the
+compact-viewport chrome — a second, independent complaint that turned out to
+share this one root cause.
+
+Fix: the sweep's aggregate `warnings` now carries only `validation.warnings`.
+`access.warnings` (window duration / step size, from `validateWindow`) is
+already a subset of `validation.warnings` via `validateScenarioBase`, so
+nothing genuinely scenario-level is lost — only the per-rung coverage
+narrative, which was never sound to flatten. The reference target's own
+"never in view" warning still surfaces correctly when true: `runScenario.ts`
+builds `analysis.warnings` from the CURRENT selection only, untouched by this
+change.
+
+Regression test in `payloadSweep.test.ts`, against the real production
+reference/FOV/window (not a synthetic fixture): at 10°N 10°E, rung 1 is
+`NEVER_IN_VIEW` and rung 12 is `INTERMITTENT` with a measured gap; asserts the
+sweep's `warnings` do not mention "never in view". Verified live in both
+directions (`git stash`/`stash pop`) with the browser before and after.
+
+## REVISIT accessibility gate — 2026-08-16
+
+`e2e/accessibility.spec.ts` had been failing for REVISIT in both themes. Axe
+reported many nodes, but they reduced to four distinct defects, each with a
+cause worth stating.
+
+**1. `nested-interactive` (both themes) — and a real correctness bug behind it.**
+The coverage ribbon's `role="slider"` was the wrapper around the whole lane
+block, so it contained the per-lane selection buttons. Screen readers do not
+reliably announce controls nested that way. Fixing it exposed the more serious
+problem: the seek fraction and the playhead were computed over that wrapper,
+which is ~11 rem wider than the track it annotates (1222 px vs 1030 px at
+desktop width) — so the playhead was drawn up to ~190 px away from the moment it
+claimed to mark, and a click seeked to the wrong time by the same amount. The
+slider is now a sibling overlay sized to the track column exactly, carrying the
+playhead; the lane buttons stay outside it. Position and click mapping are now
+correct as a consequence, not as a separate fix.
+
+**2. Light-theme overrides matched variant classes by substring.**
+`[class*="text-slate-200"]` also matches `hover:text-slate-200` and
+`dark:text-slate-300`, so a hover-only or dark-only colour was painted at rest
+in the light theme. That is how the 9 px "Area" tab ended up as dark ink on a
+dark inset surface (4.28:1). The overrides now match the class token
+(`:is(.text-slate-200, …)`), and the hover intents are restated as `:hover`
+rules so the light theme keeps hover feedback instead of borrowing it as a
+resting colour.
+
+**3. Menus and popovers hardcoded `bg-slate-950/95`.** In the light theme they
+opened as dark sheets under a light shell, and every label inside inherited the
+light theme's dark ink (2.47:1). They now use one themed token,
+`revisit-menu-surface`, alongside `revisit-inset-surface` for recessed controls
+— the same pattern `.revisit-panel` already used.
+
+**4. `text-sky-700` is 4.27:1 on the translucent light panel**, below AA for the
+8-9 px labels REVISIT uses it on. Overridden to `#075985` in light.
+
+All six accessibility gates (engineering / commercial / revisit × dark / light)
+pass. A unit test pins the ribbon contract: the slider carries no focusable
+descendants, the lane buttons still exist, and nothing `aria-hidden` wraps it.
 
 ## REVISIT compact-viewport layout — 2026-08-15
 
@@ -38,9 +122,9 @@ be open simultaneously, which leaves the sheet ~190 px tall. Both are
 user-controlled and the cap keeps the result correct.
 
 Out of scope but found while running the gates: `e2e/accessibility.spec.ts`
-fails on `main` for `revisit dark` and `revisit light` (serious `color-contrast`
-and `nested-interactive` violations). Confirmed pre-existing by re-running the
-gate against a clean stash. Not addressed here.
+failed on `main` for `revisit dark` and `revisit light`. Confirmed pre-existing
+by re-running the gate against a clean stash, then fixed separately — see the
+next entry.
 
 ## REVISIT constellation-settings placement — 2026-08-13
 

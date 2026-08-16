@@ -112,17 +112,67 @@ body {
   box-shadow: 0 18px 42px -32px rgba(15, 23, 42, 0.5);
 }
 
+/* Menus and popovers used to hardcode `bg-slate-950/95`, so in the light theme
+   they opened as dark sheets over a light shell — and every label inside them
+   was painted with the light theme's dark ink (2.47:1). One token, both themes,
+   like `.revisit-panel`. */
+.revisit-shell {
+  --revisit-menu-bg: rgba(2, 6, 23, 0.95);
+  --revisit-inset-bg: rgba(2, 6, 23, 0.45);
+}
+
+.light .revisit-shell {
+  --revisit-menu-bg: rgba(255, 255, 255, 0.97);
+  --revisit-inset-bg: rgba(241, 245, 249, 0.85);
+}
+
+.revisit-shell .revisit-menu-surface {
+  background: var(--revisit-menu-bg) !important;
+}
+
+.revisit-shell .revisit-inset-surface {
+  background: var(--revisit-inset-bg) !important;
+}
+
+/* These match the class TOKEN, not a substring of the class attribute. A
+   substring match also caught `hover:text-slate-200` and `dark:text-slate-300`,
+   so a hover-only or dark-only colour was painted at rest in the light theme —
+   which is how a 9px "Area" tab ended up as dark ink on a dark inset surface
+   (4.28:1, below AA). Variant classes must keep their own conditions. */
 .light .revisit-shell .revisit-label,
-.light .revisit-shell [class*="text-slate-400"],
-.light .revisit-shell [class*="text-slate-500"],
-.light .revisit-shell [class*="text-slate-600"] {
+.light .revisit-shell :is(.text-slate-400, .text-slate-500, .text-slate-600) {
   color: #475569 !important;
 }
 
-.light .revisit-shell [class*="text-slate-100"],
-.light .revisit-shell [class*="text-slate-200"],
-.light .revisit-shell [class*="text-slate-300"] {
+.light .revisit-shell :is(.text-slate-100, .text-slate-200, .text-slate-300) {
   color: #0f172a !important;
+}
+
+/* sky-700 resolves to #0069a8, which is 4.27:1 on the translucent light panel —
+   below AA for the 8-9px labels REVISIT uses it on. */
+.light .revisit-shell :is(.text-sky-700, .text-sky-600) {
+  color: #075985 !important;
+}
+
+/* The hover states those tokens name are for the dark shell; on a light panel
+   they would be near-white on near-white. Restated here so hovering still says
+   something in the light theme — as a :hover rule, not as the rest colour. */
+.light .revisit-shell :is(
+  .hover\:text-slate-100, .hover\:text-slate-200, .hover\:text-slate-300
+):hover {
+  color: #0f172a !important;
+}
+
+.light .revisit-shell :is(.hover\:text-sky-200, .hover\:text-sky-300):hover {
+  color: #075985 !important;
+}
+
+.light .revisit-shell .hover\:text-amber-200:hover {
+  color: #92400e !important;
+}
+
+.light .revisit-shell .hover\:text-rose-300:hover {
+  color: #9f1239 !important;
 }
 
 .light .revisit-shell [class*="text-amber-200"],
@@ -1910,10 +1960,9 @@ h1, h2, h3, h4 {
   background: rgb(5 8 13 / 0.975) !important;
 }
 
-/* REVISIT cards already carry the same translucent surface as the sidebar and
-   timeline. Remove the generic header's almost-opaque layer underneath them,
-   otherwise the two stacked backgrounds make the header look materially
-   heavier even though every card uses `revisit-panel`. */
+/* The viewport-level REVISIT globe now continues behind the header, so its cards can
+   use the exact same glass surface as the sidebar and footer without a second
+   opaque rail underneath. */
 .capacity-header.revisit-global-header,
 .dark .capacity-header.revisit-global-header {
   background: transparent !important;
