@@ -29,7 +29,7 @@ import {
     validateSelection,
 } from '../domain/subConstellation';
 import { validateWalkerSpec } from '../domain/walker';
-import { referenceProfileFor } from '../domain/referenceProfiles';
+import { DEFAULT_PROFILE, referenceProfileFor } from '../domain/referenceProfiles';
 import {
     reconcileToMeasuredBest, sameSelection, selectionStatus, type SelectionSource,
 } from '../domain/selectionReconcile';
@@ -656,6 +656,24 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         }));
     }, []);
 
+    /**
+     * Put the reference constellation back to the HLD profile and nothing else.
+     *
+     * `Reset scenario` also discards the window, target, requirement, comparison
+     * points and clock, and re-typing 12 / 48 / 87.9 / 1200 in the drawer does
+     * NOT restore the profile: `referenceWithPatch` drops the per-plane altitude
+     * ladder, the RAAN seam and the spares as soon as planes or altitude change,
+     * and nothing in the UI can put them back. That look-alike propagates
+     * differently from the real profile, so this is the only faithful way back.
+     */
+    const handleRestoreReferenceProfile = useCallback(() => {
+        setScenario((current) => ({
+            ...current,
+            reference: DEFAULT_PROFILE.spec,
+            selection: reconcileSelection(DEFAULT_PROFILE.spec, current.selection),
+        }));
+    }, []);
+
     const explanation = useMemo(
         () => explainRevisit(scenario, analysis?.statistics ?? null, sweep),
         [scenario, analysis, sweep]
@@ -794,6 +812,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                             error: calibration.error,
                             onCalibrate: calibration.calibrate,
                             onAdoptFit: handleAdoptFit,
+                            onRestoreReference: handleRestoreReferenceProfile,
                         }}
                     />
                 </div>

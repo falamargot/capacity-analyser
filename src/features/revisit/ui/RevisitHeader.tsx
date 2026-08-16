@@ -30,13 +30,14 @@ import { useLocationSearch, type LocationResult } from '../../../hooks/useLocati
 import InlineLocationSearchInput from '../../../components/commercial/InlineLocationSearchInput';
 import InlineSearchResultsPopover from '../../../components/commercial/InlineSearchResultsPopover';
 import {
-    REVISIT_INSET_SURFACE, REVISIT_LABEL, REVISIT_MENU_SURFACE, REVISIT_PANEL,
+    modelBadge, REVISIT_INSET_SURFACE, REVISIT_LABEL, REVISIT_MENU_SURFACE, REVISIT_PANEL,
 } from './revisitTheme';
 import { isValidLatDeg, isValidLonDeg, type AreaTarget } from '../domain/areaTarget';
 import type { AreaAnalysis } from '../analysis/areaAnalysis';
 import { AreaPanel } from './AreaPanel';
 import { AdvancedDrawer } from './AdvancedDrawer';
 import { ModelProvenance, type ModelProvenanceProps } from './ModelProvenance';
+import { fitMatchesReference } from '../domain/referenceProfiles';
 import {
     REFERENCE_POINT_ID, type RevisitAnalysisContext, type RevisitComparisonPoint,
 } from '../domain/analysisTargets';
@@ -373,6 +374,15 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
         () => Math.round(swathKmForFov(reference.altitudeKm, payload)),
         [reference.altitudeKm, payload]
     );
+    // Same badge vocabulary as the Model & validation card, from one helper, so
+    // the chip and the card cannot disagree about the model's provenance.
+    const headerModelBadge = useMemo(
+        () => modelBadge(
+            modelValidation?.profile,
+            Boolean(modelValidation?.fit && fitMatchesReference(modelValidation.fit.spec, reference)),
+        ),
+        [modelValidation?.profile, modelValidation?.fit, reference]
+    );
     const sliderIndex = Math.max(0, payloadCounts.indexOf(currentPayloadCount));
     const activeSatelliteCount = reference.planes * reference.satsPerPlane;
     const spareSatelliteCount = (reference.sparesPerPlane ?? [])
@@ -480,16 +490,10 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                         setConstellationMenuOpen(false);
                                         setModelValidationMenuOpen((open) => !open);
                                     }}
-                                    className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300 ${modelValidation.profile?.isAuthoritative
-                                    ? 'border-lime-400/35 bg-lime-400/10 text-lime-200'
-                                    : 'border-amber-400/35 bg-amber-400/10 text-amber-200'}`}
+                                    className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300 ${headerModelBadge.chip}`}
                                 >
-                                    <span className={`h-1.5 w-1.5 rounded-full ${modelValidation.profile?.isAuthoritative ? 'bg-lime-400' : 'bg-amber-400'}`} aria-hidden="true" />
-                                    {modelValidation.profile?.isAuthoritative
-                                        ? 'Validated model'
-                                        : modelValidation.profile
-                                            ? 'Illustrative model'
-                                            : 'Custom constellation'}
+                                    <span className={`h-1.5 w-1.5 rounded-full ${headerModelBadge.dot}`} aria-hidden="true" />
+                                    {headerModelBadge.label}
                                 </button>
                             )}
                         </div>
@@ -524,6 +528,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                             <AdvancedDrawer
                                 scenario={scenario}
                                 onChange={onAdvancedScenarioChange}
+                                onRestoreReference={modelValidation?.onRestoreReference}
                                 variant="menu"
                             />
                         </div>

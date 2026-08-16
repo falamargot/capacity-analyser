@@ -26,10 +26,23 @@ import { validateFovSpec } from '../domain/inputValidation';
 import { swathKmForFov } from '../domain/presets';
 import { MAX_STEP_SECONDS, MAX_WINDOW_HOURS } from '../analysis/accessIntervals';
 import { referenceWithPatch } from '../domain/referenceEditing';
+import { DEFAULT_PROFILE_ID, referenceProfileFor } from '../domain/referenceProfiles';
 
 interface AdvancedDrawerProps {
     scenario: RevisitScenario;
     onChange: (next: RevisitScenario) => void;
+    /**
+     * Put the reference constellation back to the HLD profile.
+     *
+     * Offered here as well as on the Model & validation card because this drawer
+     * is where the reference gets changed, so it is where the way back is looked
+     * for. Editing planes or altitude makes `referenceWithPatch` drop the
+     * per-plane altitude ladder, the RAAN seam and the spares — deliberately,
+     * since they are meaningless against a different plane count — and no field
+     * here can put them back. Re-typing 12 / 48 / 87.9 / 1200 therefore yields a
+     * look-alike that propagates differently from the real profile.
+     */
+    onRestoreReference?: () => void;
     /** Header popovers provide their own container and are open on demand. */
     variant?: 'panel' | 'menu';
 }
@@ -210,9 +223,11 @@ const PayloadGeometryEditor: React.FC<AdvancedDrawerProps> = ({ scenario, onChan
 };
 
 export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
-    scenario, onChange, variant = 'panel',
+    scenario, onChange, onRestoreReference, variant = 'panel',
 }) => {
     const { reference, selection, window: analysisWindow } = scenario;
+    const canRestoreReference = Boolean(onRestoreReference)
+        && referenceProfileFor(reference)?.id !== DEFAULT_PROFILE_ID;
 
     /** Editing the constellation must leave the selection legal. */
     const setReference = (patch: Partial<typeof reference>) => {
@@ -235,9 +250,20 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
     const content = (
         <div className="space-y-3">
                 <div>
-                    <p className="mb-1.5 text-[9px] font-black uppercase tracking-[0.12em] text-slate-500">
-                        Reference constellation
-                    </p>
+                    <div className="mb-1.5 flex items-center justify-between gap-2">
+                        <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-500">
+                            Reference constellation
+                        </p>
+                        {canRestoreReference && (
+                            <button
+                                type="button"
+                                onClick={onRestoreReference}
+                                className="rounded border border-slate-600 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-slate-300 transition-colors hover:border-lime-400/50 hover:text-lime-200"
+                            >
+                                Restore HLD reference
+                            </button>
+                        )}
+                    </div>
                     <div className="grid grid-cols-3 gap-2">
                         <Field label="Pattern">
                             <select

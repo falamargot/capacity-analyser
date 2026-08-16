@@ -21,8 +21,10 @@
 import React from 'react';
 import type { WalkerFit } from '../calibration/fitWalker';
 import type { WalkerSpec } from '../domain/types';
-import { fitMatchesReference, type ReferenceProfile } from '../domain/referenceProfiles';
-import { REVISIT_LABEL, REVISIT_PANEL } from './revisitTheme';
+import {
+    DEFAULT_PROFILE_ID, fitMatchesReference, type ReferenceProfile,
+} from '../domain/referenceProfiles';
+import { modelBadge, REVISIT_LABEL, REVISIT_PANEL } from './revisitTheme';
 
 export interface ModelProvenanceProps {
     reference: WalkerSpec;
@@ -34,22 +36,25 @@ export interface ModelProvenanceProps {
     onCalibrate: () => void;
     /** Adopt the fitted shell as the reference constellation. */
     onAdoptFit: (spec: WalkerSpec) => void;
+    /**
+     * Put the reference constellation back to the HLD profile, and nothing else.
+     * Without it the only way back is `Reset scenario`, which also discards the
+     * window, target, requirement and comparison points — and re-typing the
+     * numbers by hand does NOT restore the profile, because the per-plane
+     * ladder, seam and spares cannot be re-entered through the drawer.
+     */
+    onRestoreReference?: () => void;
     /** Dialog mode exposes the evidence immediately in its dedicated popover. */
     variant?: 'panel' | 'dialog';
 }
 
 export const ModelProvenance: React.FC<ModelProvenanceProps> = ({
     reference, profile, fit, isRunning, error, onCalibrate, onAdoptFit,
-    variant = 'panel',
+    onRestoreReference, variant = 'panel',
 }) => {
     const matchesFit = Boolean(fit && fitMatchesReference(fit.spec, reference));
-    const summaryLabel = profile?.isAuthoritative
-        ? 'Validated model'
-        : profile
-            ? 'Illustrative model'
-            : 'Custom constellation';
-    const summaryTone = profile?.isAuthoritative ? 'text-lime-200' : 'text-amber-200';
-    const dotTone = profile?.isAuthoritative ? 'bg-lime-400' : 'bg-amber-400';
+    const badge = modelBadge(profile, matchesFit);
+    const canRestoreReference = Boolean(onRestoreReference) && profile?.id !== DEFAULT_PROFILE_ID;
 
     return (
         <details
@@ -61,8 +66,8 @@ export const ModelProvenance: React.FC<ModelProvenanceProps> = ({
                 : 'flex min-h-7 cursor-pointer list-none items-center justify-between gap-3 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300'}
             >
                 <span className="flex items-center gap-2">
-                    <span className={`h-2 w-2 rounded-full ${dotTone}`} aria-hidden="true" />
-                    <span className={`${REVISIT_LABEL} ${summaryTone}`}>{summaryLabel}</span>
+                    <span className={`h-2 w-2 rounded-full ${badge.dot}`} aria-hidden="true" />
+                    <span className={`${REVISIT_LABEL} ${badge.text}`}>{badge.label}</span>
                 </span>
                 <span className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-500 group-open:hidden">
                     details
@@ -186,20 +191,31 @@ export const ModelProvenance: React.FC<ModelProvenanceProps> = ({
             )}
 
             {/*
-              * Secondary on purpose. This button only ever MEASURES — it never
+              * Both secondary. The measure button only ever MEASURES — it never
               * changes what the simulation runs. "Calibrate" implied otherwise
               * and was read as the apply action, which is the one above.
               */}
-            <button
-                type="button"
-                onClick={onCalibrate}
-                disabled={isRunning}
-                className="mt-1.5 rounded border border-slate-600 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-slate-300 transition-colors hover:border-sky-400/50 hover:text-sky-200 disabled:opacity-50"
-            >
-                {isRunning
-                    ? 'Fetching fleet…'
-                    : fit ? 'Measure again' : 'Measure against real OneWeb fleet'}
-            </button>
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                <button
+                    type="button"
+                    onClick={onCalibrate}
+                    disabled={isRunning}
+                    className="rounded border border-slate-600 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-slate-300 transition-colors hover:border-sky-400/50 hover:text-sky-200 disabled:opacity-50"
+                >
+                    {isRunning
+                        ? 'Fetching fleet…'
+                        : fit ? 'Measure again' : 'Measure against real OneWeb fleet'}
+                </button>
+                {canRestoreReference && (
+                    <button
+                        type="button"
+                        onClick={onRestoreReference}
+                        className="rounded border border-slate-600 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-slate-300 transition-colors hover:border-lime-400/50 hover:text-lime-200"
+                    >
+                        Restore HLD reference
+                    </button>
+                )}
+            </div>
             </div>
         </details>
     );
