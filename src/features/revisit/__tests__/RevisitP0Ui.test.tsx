@@ -47,25 +47,24 @@ describe('REVISIT P0 presentation UI', () => {
         expect(container.textContent).toContain('576 active + 58 spare · 634 total');
     });
 
-    it('keeps model evidence collapsed behind a positive compact badge', async () => {
+    it('states the engine claims and the selected model, without a fit claim', async () => {
         const scenario = defaultScenario(Date.UTC(2026, 7, 12));
         await act(async () => root?.render(
             <ModelProvenance
-                reference={scenario.reference}
+                mode="HLD"
                 profile={referenceProfileFor(scenario.reference)}
                 fit={null}
-                isRunning={false}
-                error={null}
-                onCalibrate={() => undefined}
-                onAdoptFit={() => undefined}
             />
         ));
 
-        const details = container.querySelector('details');
-        expect(details?.open).toBe(false);
-        expect(container.textContent).toContain('Validated model');
-        expect(container.textContent).toContain('live-fleet check optional');
-        expect(container.textContent).not.toContain('not yet calibrated');
+        // Engine claims hold for every model and must always be stated.
+        expect(container.textContent).toContain('Propagation cross-checked vs NASA GMAT');
+        expect(container.textContent).toContain('WGS84 ellipsoid');
+        expect(container.textContent).toContain('OneWeb Gen1 (HLD reference)');
+
+        // No fit has been run, so nothing may imply the fleet was measured.
+        expect(container.textContent).not.toContain('Real fleet vs perfect shell');
+        expect(container.textContent).not.toContain('RMS along-track');
     });
 
     it('offers play, pause, stepping, speed and an absolute UTC timestamp', async () => {

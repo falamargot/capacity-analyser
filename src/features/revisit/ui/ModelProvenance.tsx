@@ -1,222 +1,117 @@
 /**
- * ModelProvenance — the credibility slot (UX §4.5), and the easiest to
- * underestimate.
+ * ModelProvenance — the evidence block of the constellation panel (UX §4.5).
  *
- * ENG uses this slot for the CelesTrak feed and its publication date. REVISIT
- * has no TLE of its own, so it carries the assumptions instead — and then, once
- * measured, the line that converts the mode from a simulation into evidence:
+ * ENG uses this slot for the CelesTrak feed and its publication date. REVISIT has
+ * no TLE of its own, so it carries the assumptions instead.
  *
- *     Real fleet vs perfect shell · 12 km RMS along-track
+ * ── ENGINE CLAIMS VS MODEL CLAIMS ───────────────────────────────────────────
+ * The first list describes the PROPAGATOR and holds for every model: Kepler + J2,
+ * the WGS84 altitude datum, and the NASA GMAT cross-check that covers the
+ * trajectory across the full window. The second describes the SELECTED MODEL and
+ * changes with it.
  *
- * Measuring and adopting are two separate acts, and the card says which one has
- * happened: the bottom button only ever measures, and a verdict box states
- * whether the on-screen results actually use the measured shell.
+ * Keeping them apart is deliberate. The GMAT line is an external authority over
+ * the trajectory; the OneWeb fit is a single-epoch mean-element residual that says
+ * nothing about how the model tracks the fleet over time. Collapsing the two would
+ * let the stronger claim launder the weaker one.
  *
- * The residual is stated in kilometres because that is the unit an engineer in
- * the room can sanity-check against a satellite's own dimensions and orbital
- * speed. A non-zero residual is the expected, honest outcome: a real fleet is
- * never a perfect Walker.
+ * The residual is stated in kilometres because that is the unit an engineer in the
+ * room can sanity-check against a satellite's own dimensions and orbital speed. A
+ * non-zero residual is the expected, honest outcome: a real fleet is never a
+ * perfect Walker.
  */
 
 import React from 'react';
 import type { WalkerFit } from '../calibration/fitWalker';
-import type { WalkerSpec } from '../domain/types';
-import {
-    DEFAULT_PROFILE_ID, fitMatchesReference, type ReferenceProfile,
-} from '../domain/referenceProfiles';
-import { modelBadge, REVISIT_LABEL, REVISIT_PANEL } from './revisitTheme';
+import type { ReferenceMode, ReferenceProfile } from '../domain/referenceProfiles';
+import { REVISIT_LABEL } from './revisitTheme';
 
 export interface ModelProvenanceProps {
-    reference: WalkerSpec;
-    /** Which named profile the reference came from. */
+    mode: ReferenceMode;
+    /** The named profile the current specification resolves to, when it does. */
     profile: ReferenceProfile | null;
     fit: WalkerFit | null;
-    isRunning: boolean;
-    error: string | null;
-    onCalibrate: () => void;
-    /** Adopt the fitted shell as the reference constellation. */
-    onAdoptFit: (spec: WalkerSpec) => void;
-    /**
-     * Put the reference constellation back to the HLD profile, and nothing else.
-     * Without it the only way back is `Reset scenario`, which also discards the
-     * window, target, requirement and comparison points — and re-typing the
-     * numbers by hand does NOT restore the profile, because the per-plane
-     * ladder, seam and spares cannot be re-entered through the drawer.
-     */
-    onRestoreReference?: () => void;
-    /** Dialog mode exposes the evidence immediately in its dedicated popover. */
-    variant?: 'panel' | 'dialog';
 }
 
-export const ModelProvenance: React.FC<ModelProvenanceProps> = ({
-    reference, profile, fit, isRunning, error, onCalibrate, onAdoptFit,
-    onRestoreReference, variant = 'panel',
-}) => {
-    const matchesFit = Boolean(fit && fitMatchesReference(fit.spec, reference));
-    const badge = modelBadge(profile, matchesFit);
-    const canRestoreReference = Boolean(onRestoreReference) && profile?.id !== DEFAULT_PROFILE_ID;
+/** Claims about the propagator. True for every model. */
+const ENGINE_CLAIMS = [
+    'Kepler + J2 secular · no drag',
+    // R28. Three radii, three roles — this names the two that shape a reported
+    // number. Saying only "WGS84" would hide the altitude datum, which is the
+    // part that moved and the part a reader is most likely to assume wrongly.
+    'WGS84 ellipsoid · altitude above R_eq 6378.137 km',
+    'Propagation cross-checked vs NASA GMAT · 9 km over 72 h',
+    // R29 closed this. The qualifier that stood here — "altitude datum not yet
+    // GMAT-checked" — is replaced by the measurement that removed it.
+    'Altitude datum GMAT-checked · 1200.00 km at the equator',
+] as const;
 
-    return (
-        <details
-            open={variant === 'dialog' ? true : undefined}
-            className={`${variant === 'panel' ? REVISIT_PANEL : ''} group ${variant === 'panel' ? 'px-3 py-2' : ''}`}
-        >
-            <summary className={variant === 'dialog'
-                ? 'sr-only'
-                : 'flex min-h-7 cursor-pointer list-none items-center justify-between gap-3 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300'}
-            >
-                <span className="flex items-center gap-2">
-                    <span className={`h-2 w-2 rounded-full ${badge.dot}`} aria-hidden="true" />
-                    <span className={`${REVISIT_LABEL} ${badge.text}`}>{badge.label}</span>
-                </span>
-                <span className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-500 group-open:hidden">
-                    details
-                </span>
-                <span className="hidden text-[9px] font-bold uppercase tracking-[0.08em] text-slate-500 group-open:inline">
-                    close
-                </span>
-            </summary>
-            <div className={variant === 'dialog' ? '' : 'mt-2 border-t border-slate-700/50 pt-2'}>
-            <span className={REVISIT_LABEL}>Model provenance</span>
-            <ul className="mt-1 space-y-0.5 text-[10px] leading-4 text-slate-400">
-                {/*
-                  * R29. Which constellation, and is it meant to be real. An
-                  * illustrative shell that produces plausible-looking numbers is
-                  * more dangerous than one that produces obviously fake numbers,
-                  * because nothing else on screen distinguishes them.
-                  */}
-                <li className={profile?.isAuthoritative ? 'text-sky-300' : 'text-amber-300'}>
-                    {profile ? `${profile.label} · v${profile.version}` : 'Custom constellation'}
-                    {!profile?.isAuthoritative && (
-                        <span className="block text-amber-200/70">
-                            {profile ? 'illustrative — not a real constellation' : 'not a named reference profile'}
-                        </span>
-                    )}
-                </li>
-                <li>Kepler + J2 secular · no drag</li>
-                {/*
-                  * R28. Three radii, three roles — the line names the two that
-                  * shape a reported number. Saying only "WGS84" would hide the
-                  * altitude datum, which is the part that moved and the part a
-                  * reader is most likely to assume wrongly.
-                  */}
-                <li>WGS84 ellipsoid · altitude above R_eq 6378.137 km</li>
-                {/*
-                  * The propagator's own credibility line, and distinct from the
-                  * OneWeb fit below it. This one is an external authority —
-                  * NASA GMAT, numerically integrated — and it covers the
-                  * TRAJECTORY across the full window, which is exactly what the
-                  * single-epoch fit cannot speak to. Keeping the two on
-                  * separate lines is deliberate: collapsing them would let the
-                  * stronger claim launder the weaker one.
-                  */}
-                <li>Propagation cross-checked vs NASA GMAT · 9 km over 72 h</li>
-                {/*
-                  * R29 closed this. The qualifier that stood here — "altitude
-                  * datum not yet GMAT-checked" — is replaced by the measurement
-                  * that removed it, not simply deleted. GMAT now validates BOTH
-                  * the propagator (at fixed SMA) and the altitude mapping.
-                  */}
-                <li>Altitude datum GMAT-checked · 1200.00 km at the equator</li>
-                {fit ? (
-                    // "Fit vs OneWeb TLE · N km RMS" reads as trajectory
-                    // validation. It is not: this is a mean-element fit at ONE
-                    // epoch and says nothing about how the model tracks the fleet
-                    // across the analysis window. The qualifier is part of the
-                    // claim, not decoration.
-                    <li className="text-sky-300">
-                        Real fleet vs perfect shell ·{' '}
-                        {fit.alongTrackRmsKm.toFixed(0)} km RMS along-track
+export const ModelProvenance: React.FC<ModelProvenanceProps> = ({ mode, profile, fit }) => (
+    <div>
+        <span className={REVISIT_LABEL}>Evidence</span>
+
+        <ul className="mt-1 space-y-0.5 text-[10px] leading-4 text-slate-400">
+            {ENGINE_CLAIMS.map((claim) => <li key={claim}>{claim}</li>)}
+        </ul>
+
+        <div className="mt-1.5 border-t border-slate-700/50 pt-1.5 text-[10px] leading-4">
+            {mode === 'HLD' && (
+                <p className="text-sky-300">
+                    {profile ? `${profile.label} · v${profile.version}` : 'HLD reference profile'}
+                </p>
+            )}
+
+            {mode === 'CUSTOM' && (
+                <p
+                    className="text-amber-300"
+                    title="These numbers were entered by hand. Nothing external vouches for them — the engine claims above still hold, the constellation is yours."
+                >
+                    Hand-entered · no external provenance
+                </p>
+            )}
+
+            {mode === 'MEASURED' && fit && (
+                <>
+                    {/*
+                      * "Fit vs OneWeb TLE · N km RMS" reads as trajectory
+                      * validation. It is not, and the qualifier is part of the
+                      * claim rather than decoration.
+                      */}
+                    <p className="text-sky-300">
+                        Real fleet vs perfect shell · {fit.alongTrackRmsKm.toFixed(0)} km RMS along-track
                         <span className="block text-slate-500">
                             single-epoch mean-element fit · not trajectory-validated
                         </span>
-                    </li>
-                ) : (
-                    <li className="text-slate-500">HLD reference profile · live-fleet check optional</li>
-                )}
-            </ul>
-
-            {fit && (
-                <div className="mt-1.5 border-t border-slate-700/50 pt-1.5">
-                    <p className="text-[10px] leading-4 text-slate-400">
-                        Measured against {fit.satellitesUsed} real satellites · {fit.planesDetected} planes ·{' '}
-                        <span className="font-bold text-slate-200">
-                            {fit.spec.planes} × {fit.spec.satsPerPlane} · {fit.spec.inclinationDeg.toFixed(2)}°
-                            {' · '}{Math.round(fit.spec.altitudeKm)} km
-                        </span>
                     </p>
-                    <p className="mt-0.5 text-[9px] leading-3 text-slate-500">
+                    <p className="mt-0.5 text-slate-400">
+                        {fit.satellitesUsed} real satellites · {fit.planesDetected} planes
+                    </p>
+                    <p
+                        className="mt-0.5 text-[9px] leading-3 text-slate-500"
+                        title="Root-mean-square deviation of the real fleet from the fitted shell, per axis."
+                    >
                         RAAN {fit.raanRmsDeg.toFixed(2)}° · in-plane {fit.argLatRmsDeg.toFixed(2)}°
                         {' · '}altitude {fit.altitudeRmsKm.toFixed(1)} km RMS
                     </p>
-                    {fit.notes.map((note) => (
-                        <p key={note} className="mt-0.5 text-[9px] leading-3 text-amber-200/70">{note}</p>
-                    ))}
-
-                    {/*
-                      * The demo question this answers in one glance: is the run
-                      * I am watching using these measured numbers, or not? The
-                      * verdict and the button that changes it must sit together
-                      * — a warning elsewhere on the card reads as a footnote and
-                      * gets skipped (UX charter: understood in under ten seconds).
-                      */}
-                    <div className={`mt-2 rounded border px-2 py-1.5 ${matchesFit
-                        ? 'border-lime-400/30 bg-lime-400/5'
-                        : 'border-amber-400/30 bg-amber-400/5'}`}
-                    >
-                        <p className={`text-[9px] font-black uppercase tracking-[0.1em] ${matchesFit ? 'text-lime-200' : 'text-amber-200'}`}>
-                            {matchesFit ? 'Measured shell in use' : 'Measured shell not in use'}
-                        </p>
-                        <p className="mt-0.5 text-[10px] leading-4 text-slate-300">
-                            {matchesFit
-                                ? 'The revisit results on screen are computed from these measured numbers.'
-                                : `The revisit results on screen still come from ${profile?.label ?? 'the current constellation'}`
-                                  + ` (${reference.planes} × ${reference.satsPerPlane} · ${Math.round(reference.altitudeKm)} km).`}
-                        </p>
-                        {!matchesFit && (
-                            <button
-                                type="button"
-                                onClick={() => onAdoptFit(fit.spec)}
-                                className="mt-1.5 rounded border border-sky-400/60 bg-sky-500/20 px-2 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-sky-100 hover:bg-sky-500/30"
-                            >
-                                Recompute with measured shell
-                            </button>
-                        )}
-                    </div>
-                </div>
+                    {fit.notes.length > 0 && (
+                        // Kept out of the panel body but not out of reach: these
+                        // are the caveats an engineer asks about, and a hover
+                        // tooltip would be unreadable on touch and unquotable.
+                        <details className="mt-1">
+                            <summary className="cursor-pointer text-[9px] font-black uppercase tracking-[0.08em] text-slate-500 hover:text-slate-300">
+                                Caveats ({fit.notes.length})
+                            </summary>
+                            <ul className="mt-1 space-y-0.5">
+                                {fit.notes.map((note) => (
+                                    <li key={note} className="text-[9px] leading-3 text-amber-200/70">
+                                        {note}
+                                    </li>
+                                ))}
+                            </ul>
+                        </details>
+                    )}
+                </>
             )}
-
-            {error && (
-                <p className="mt-1.5 text-[9px] leading-3 text-red-300">{error}</p>
-            )}
-
-            {/*
-              * Both secondary. The measure button only ever MEASURES — it never
-              * changes what the simulation runs. "Calibrate" implied otherwise
-              * and was read as the apply action, which is the one above.
-              */}
-            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                <button
-                    type="button"
-                    onClick={onCalibrate}
-                    disabled={isRunning}
-                    className="rounded border border-slate-600 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-slate-300 transition-colors hover:border-sky-400/50 hover:text-sky-200 disabled:opacity-50"
-                >
-                    {isRunning
-                        ? 'Fetching fleet…'
-                        : fit ? 'Measure again' : 'Measure against real OneWeb fleet'}
-                </button>
-                {canRestoreReference && (
-                    <button
-                        type="button"
-                        onClick={onRestoreReference}
-                        className="rounded border border-slate-600 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-slate-300 transition-colors hover:border-lime-400/50 hover:text-lime-200"
-                    >
-                        Restore HLD reference
-                    </button>
-                )}
-            </div>
-            </div>
-        </details>
-    );
-};
+        </div>
+    </div>
+);

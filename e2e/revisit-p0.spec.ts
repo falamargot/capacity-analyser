@@ -13,23 +13,40 @@ test.beforeEach(async ({ page }) => {
 
 test.describe('REVISIT P0 demonstration contract', () => {
   test('opens on a business result with the complete OneWeb fleet truth', async ({ page }) => {
-    await expect(page.getByText('576 active + 58 spare · 634 total')).toBeVisible();
+    // The compact-height layout hides `.revisit-context-detail` to buy back globe
+    // height (index.css, `min-width:768px and max-height:700px`). The fleet truth
+    // is still rendered and still correct there, so mirror the CSS condition
+    // rather than assert a visibility the design deliberately removes.
+    const viewport = page.viewportSize();
+    const detailLineHidden = (viewport?.width ?? 0) >= 768 && (viewport?.height ?? 0) <= 700;
+    const fleetTruth = page.getByText('576 active + 58 spare · 634 total');
+    if (detailLineHidden) {
+      await expect(fleetTruth).toBeAttached();
+    } else {
+      await expect(fleetTruth).toBeVisible();
+    }
     await expect(page.getByText('Demo story')).toHaveCount(0);
     await expect(page.getByRole('combobox', { name: 'Demo scenario' })).toHaveCount(0);
     await expect(page.getByText(/telecom workspace is preserved/i)).toHaveCount(0);
     await expect(page.getByText('Validated model')).toHaveCount(1);
     await expect(page.getByText(/not yet calibrated/i)).toHaveCount(0);
 
-    await page.getByRole('button', { name: 'Open model and validation' }).click();
-    const modelValidation = page.getByRole('dialog', { name: 'Model & validation' });
-    await expect(modelValidation.getByRole('button', { name: 'Measure against real OneWeb fleet' })).toBeVisible();
-    await expect(modelValidation).toContainText('Propagation cross-checked vs NASA GMAT');
-
-    await page.getByRole('button', { name: 'Advanced constellation settings' }).click();
+    // One panel owns the model: the chip and the settings button open the same one.
+    await page.getByRole('button', { name: 'Constellation model and settings' }).click();
     const settings = page.getByRole('dialog', { name: 'Advanced constellation settings' });
-    await expect(modelValidation).toHaveCount(0);
-    await expect(settings.getByText('Model & validation')).toHaveCount(0);
-    await expect(settings.getByRole('button', { name: 'Measure against real OneWeb fleet' })).toHaveCount(0);
+    await expect(settings.getByRole('radiogroup', { name: 'Constellation model' })).toBeVisible();
+    await expect(settings.getByRole('radio', { name: 'OneWeb' })).toHaveAttribute('aria-checked', 'true');
+    await expect(settings.getByRole('radio', { name: 'Custom' })).toHaveAttribute('aria-checked', 'false');
+    await expect(settings).toContainText('Propagation cross-checked vs NASA GMAT');
+
+    // HLD is a record of something external, so its fields are not editable.
+    await expect(settings.getByLabel('Planes P')).toBeDisabled();
+
+    // The profile detail a fitted shell cannot carry is stated, not hidden.
+    await expect(settings).toContainText('1175–1219 km');
+    await expect(settings).toContainText('58 across 12 planes');
+
+    await expect(page.getByRole('dialog', { name: 'Model & validation' })).toHaveCount(0);
     await expect(page.locator('.revisit-model-provenance')).toHaveCount(0);
   });
 

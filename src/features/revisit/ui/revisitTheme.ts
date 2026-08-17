@@ -50,6 +50,8 @@ export const REVISIT_INSET_SURFACE = 'revisit-inset-surface';
 export const REVISIT_LABEL =
     'revisit-label text-[10px] font-black uppercase tracking-[0.16em] text-slate-400';
 
+import type { ReferenceMode } from '../domain/referenceProfiles';
+
 /**
  * The model badge — one vocabulary, two surfaces (header chip and sidebar
  * summary), so they cannot drift apart.
@@ -72,11 +74,8 @@ export interface ModelBadge {
     dot: string;
 }
 
-export function modelBadge(
-    profile: { isAuthoritative: boolean } | null | undefined,
-    isMeasuredShell: boolean,
-): ModelBadge {
-    if (isMeasuredShell) {
+export function modelBadge(mode: ReferenceMode | undefined): ModelBadge {
+    if (mode === 'MEASURED') {
         return {
             label: 'Measured from live fleet',
             chip: 'border-sky-400/35 bg-sky-400/10 text-sky-200',
@@ -84,18 +83,18 @@ export function modelBadge(
             dot: 'bg-sky-400',
         };
     }
-    if (profile?.isAuthoritative) {
+    if (mode === 'CUSTOM') {
         return {
-            label: 'Validated model',
-            chip: 'border-lime-400/35 bg-lime-400/10 text-lime-200',
-            text: 'text-lime-200',
-            dot: 'bg-lime-400',
+            label: 'Custom constellation',
+            chip: 'border-amber-400/35 bg-amber-400/10 text-amber-200',
+            text: 'text-amber-200',
+            dot: 'bg-amber-400',
         };
     }
     return {
-        label: profile ? 'Illustrative model' : 'Custom constellation',
-        chip: 'border-amber-400/35 bg-amber-400/10 text-amber-200',
-        text: 'text-amber-200',
-        dot: 'bg-amber-400',
+        label: 'Validated model',
+        chip: 'border-lime-400/35 bg-lime-400/10 text-lime-200',
+        text: 'text-lime-200',
+        dot: 'bg-lime-400',
     };
 }

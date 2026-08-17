@@ -280,3 +280,129 @@ _Added and implemented 2026-08-13._
 | P2b-B1 scope qualification | Header, result context and timeline state whether values concern the reference point or area | Done |
 | P2b-B2 result layout | Context-specific sidebar, workspace submenu, point lanes and area-adapted timeline | Done |
 | P2b-B3 interface relief | Dedicated Scenario Workspace drawer, complete model persistence, context-aware PDF and demo paths | Done |
+
+# Programme 6 — REVISIT constellation model legibility
+
+_Planned and implemented 2026-08-17. D1 and D2 were validated as recommended
+and are now closed._
+
+## Problem
+
+One concept — *which constellation am I simulating, and how much do I trust it* —
+is currently spread across five surfaces:
+
+1. the header chip (verdict: `Validated model` / `Measured from live fleet` /
+   `Custom constellation`);
+2. the header detail line (the numbers: `87.9° · 1200 km · 576 active + 58 spare`);
+3. the **Constellation settings** popover (seven editable Walker fields);
+4. the **Model & validation** popover (provenance, residual, in-use verdict, and
+   the measure / apply actions);
+5. `Restore HLD reference`, which had to be placed in *both* popovers because
+   either one can be where the user is standing when they need it.
+
+No single surface answers "what am I running, and why". Worse, **the mode is
+never stored**: `referenceProfileFor(reference)` re-derives it from exact
+structural equality on the spec, so nothing in state records what the user
+intended. The label is a consequence, never a choice. That is the root of the
+illegibility — not the vocabulary, which is now correct.
+
+## Target
+
+One `CONSTELLATION` panel, three blocks:
+
+1. **Model** — a three-way segmented control, not a dropdown. All three states
+   readable without opening anything, consistent with the existing
+   `Points`/`Area` and `auto`/`manual` segmented controls.
+2. **Characteristics** — the full specification of the selected model, read-only
+   for HLD and Measured, editable for Custom.
+3. **Evidence** — engine claims first (invariant), model provenance second
+   (varies with the selection).
+
+## Decisions carried (recommendation, not closed)
+
+**D1 — availability of `Measured from live fleet`. CLOSED as recommended.** The fit only exists after a
+network fetch. Recommendation: **selecting the option triggers the fetch**, with
+a pending state on the control and a revert to the previous mode on failure.
+This does not violate UX §6: that constraint governs *mode opening* (which still
+lands on the HLD preset), not a user-initiated selection. `useOneWebCalibration`
+already guards concurrent calls via `inFlightRef`.
+
+**D2 — sticky intention vs derived state. CLOSED as recommended.** Today, editing inclination
+87.9 → 88.4 → 87.9 restores the spec exactly and the badge silently returns to
+`Validated model`. A stored mode would keep it on Custom. Recommendation: **store
+the intention** and add a derived read-only indicator *"identical to the HLD
+profile"*, so the current auto-correction is surfaced rather than lost.
+
+**D3 — `DEMO_12X8`: resolved.** Keep it in the registry and do **not** expose it
+in the selector. It is not a product option — it is the baseline fixture for
+`r28Ablation`, `r28Delta.bench` and `referenceProfiles` tests. The
+`Illustrative model` badge branch stays reachable only by hand-entry, which is
+honest.
+
+## Field visibility matrix
+
+| Field | HLD | Measured | Custom |
+| --- | --- | --- | --- |
+| `pattern`, `planes`, `satsPerPlane`, `inclinationDeg`, `altitudeKm`, `phasingF`, `fudge` | read-only | read-only | editable |
+| `raan0Deg` | n/a — spacing comes from `raanOffsetsDeg` | read-only | editable |
+| `planeAltitudesKm` (12 values, 1175–1219 km) | **read-only, shown** | not applicable | shown when it survived the edit |
+| `raanOffsetsDeg` (inter-plane spacing + seam) | **read-only, shown** | not applicable | idem |
+| `sparesPerPlane` (58 total) | **read-only, shown** | not applicable | idem |
+
+The three arrays are displayed **nowhere today**. Surfacing them is a net gain,
+and the "not applicable" cells are the clearest available explanation of why a
+measured shell is not the same object as a reference profile.
+
+## Tasks
+
+| # | Task | Note |
+| --- | --- | --- |
+| T1 | Store `referenceMode` in `RevisitApp` component state, derived on load | **Not** in `RevisitScenario`: that type is persisted, shared as versioned JSON and exported to PDF, so a field there forces a `REVISIT_SESSION_SCHEMA_VERSION` bump and a migration. Component state avoids both. |
+| T2 | Build the Characteristics block with per-mode read-only/editable rendering, including the three arrays | Reuses the drawer's existing fields and `referenceWithPatch` unchanged. |
+| T3 | Move the Evidence block in, splitting engine-invariant claims from model provenance | Kepler+J2 / WGS84 / GMAT describe the propagator and apply to all three modes; the 249 km residual applies to one. Keeping them on separate lines is a closed decision — collapsing them lets the strong claim launder the weak one. |
+| T4 | Wire the segmented control to the two existing transitions | `handleRestoreReferenceProfile` → HLD, `handleAdoptFit` → Measured. No new domain logic. |
+| T5 | Retire the redundant surfaces | The two popovers merge; both `Restore HLD reference` buttons disappear; the header chip stays as the at-a-glance verdict. |
+| T6 | Update contracts | `revisit-p0.spec.ts` asserts `Validated model` and the dialog names `Model & validation` / `Advanced constellation settings`; `RevisitP0Ui` and `RevisitP1Ui` mount the two components directly. |
+
+## Invariants
+
+- No change to engineering results. This programme is presentation plus the two
+  transitions that already exist.
+- `referenceWithPatch`'s array-dropping rule is unchanged: dropping the ladder,
+  seam and spares when planes/altitude/pattern/fudge change is correct, because
+  they are meaningless against a different plane count.
+- The scenario schema is not versioned up (see T1).
+- No new timer, no new Cesium viewer, no new worker.
+
+## Validation
+
+`typecheck`, `lint`, `test`, `test:e2e`, `build`, plus a browser walkthrough of
+all three modes **and** the D1 failure path (fetch failure must revert the
+selection, not leave the panel claiming a model it does not have).
+
+## Programme 6 completion evidence (2026-08-17)
+
+| Item | Result |
+| --- | --- |
+| T1 mode state | `ReferenceMode` in `RevisitApp` state, re-derived on reset and snapshot load. No scenario schema bump. |
+| T2 characteristics | `fieldset[disabled]` locks all seven fields outside Custom — native, so `:disabled` matches and the controls leave the tab order. The three profile arrays are surfaced for the first time. |
+| T3 evidence | `ModelProvenance` reduced to engine claims plus per-mode provenance; the five fit caveats moved into a closed `<details>` rather than a tooltip, so they stay readable on touch and quotable. |
+| T4 selector | Both prior transitions consolidated into one `applyReference`, driven by a three-way `radiogroup`. |
+| T5 surfaces | The `Model & validation` popover and both `Restore HLD reference` buttons are gone. The cartouche carries **one** button, which names the loaded model and opens the panel. |
+| T6 contracts | `revisit-p0` updated to the single access point; the `short-wide` failure it exposed was pre-existing and is fixed in the spec, not the CSS (see below). |
+
+Fixed while verifying: the RAAN summary read the seam as "the inter-plane step
+that differs from the others", which finds only floating-point noise in
+`p * 15.225`. The seam is the WRAP gap that closes the pattern, so it is
+`span − last offset` — 12.525° against an ordinary 15.225°, and
+11 × 15.225 + 12.525 = 180 exactly.
+
+Also fixed: `revisit-p0.spec.ts` asserted `.revisit-context-detail` visible at
+2048 × 560, where `index.css` (commit `c09c0c6`) sets `display: none` under
+`min-width:768px and max-height:700px` to buy back globe height. The spec now
+mirrors that condition and asserts the fleet truth is *attached* on compact
+heights. The CSS was deliberately left alone.
+
+Validation: `typecheck`, `lint`, 1985 unit tests, `revisit-p0` e2e green on all
+four viewport projects (17 passed, 3 skipped), production build, and a browser
+walkthrough of all three modes including the D2 `= HLD` indicator.

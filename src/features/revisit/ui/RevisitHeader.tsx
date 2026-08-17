@@ -35,9 +35,8 @@ import {
 import { isValidLatDeg, isValidLonDeg, type AreaTarget } from '../domain/areaTarget';
 import type { AreaAnalysis } from '../analysis/areaAnalysis';
 import { AreaPanel } from './AreaPanel';
-import { AdvancedDrawer } from './AdvancedDrawer';
-import { ModelProvenance, type ModelProvenanceProps } from './ModelProvenance';
-import { fitMatchesReference } from '../domain/referenceProfiles';
+import { AdvancedDrawer, type ConstellationModelProps } from './AdvancedDrawer';
+
 import {
     REFERENCE_POINT_ID, type RevisitAnalysisContext, type RevisitComparisonPoint,
 } from '../domain/analysisTargets';
@@ -96,7 +95,7 @@ interface RevisitHeaderProps {
     onUndoAreaVertex?: () => void;
     isAreaScenarioSettling?: boolean;
     onAdvancedScenarioChange?: (scenario: RevisitScenario) => void;
-    modelValidation?: Omit<ModelProvenanceProps, 'reference' | 'variant'>;
+    model?: ConstellationModelProps;
     /** Set when the chosen count has a better plane split than another at the same count. */
     spreadNote: string | null;
 }
@@ -356,13 +355,12 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
     onFinishAreaDrawing = () => undefined, onUndoAreaVertex = () => undefined,
     isAreaScenarioSettling = false,
     onAdvancedScenarioChange = () => undefined,
-    modelValidation,
+    model,
 }) => {
     const areaMenuRef = useRef<HTMLDivElement>(null);
     const constellationMenuRef = useRef<HTMLDivElement>(null);
     const [areaMenuOpen, setAreaMenuOpen] = useState(false);
     const [constellationMenuOpen, setConstellationMenuOpen] = useState(false);
-    const [modelValidationMenuOpen, setModelValidationMenuOpen] = useState(false);
     /** Compact viewports only; `md:` always renders the triad regardless. */
     const [mobileSetupOpen, setMobileSetupOpen] = useState(false);
     const { reference, target, payload } = scenario;
@@ -374,15 +372,21 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
         () => Math.round(swathKmForFov(reference.altitudeKm, payload)),
         [reference.altitudeKm, payload]
     );
-    // Same badge vocabulary as the Model & validation card, from one helper, so
-    // the chip and the card cannot disagree about the model's provenance.
-    const headerModelBadge = useMemo(
-        () => modelBadge(
-            modelValidation?.profile,
-            Boolean(modelValidation?.fit && fitMatchesReference(modelValidation.fit.spec, reference)),
-        ),
-        [modelValidation?.profile, modelValidation?.fit, reference]
-    );
+    // The chip reads the stored choice, not a re-derivation of the spec, so it
+    // cannot disagree with the selector inside the panel.
+    const headerModelBadge = modelBadge(model?.mode);
+    // The tooltip names what is loaded. Repeating the badge label the button
+    // already shows would say nothing, so each mode contributes the fact the
+    // label omits: the profile version, the fitted shell, or simply that the
+    // numbers are the user's own.
+    const modelSummary = model?.mode === 'MEASURED'
+        ? `shell fitted to the live fleet — ${reference.planes} × ${reference.satsPerPlane}`
+            + ` · ${displayAltitudeKm(reference.altitudeKm)} km`
+        : model?.mode === 'CUSTOM'
+            ? 'hand-entered parameters'
+            : model?.profile
+                ? `${model.profile.label} v${model.profile.version}`
+                : headerModelBadge.label;
     const sliderIndex = Math.max(0, payloadCounts.indexOf(currentPayloadCount));
     const activeSatelliteCount = reference.planes * reference.satsPerPlane;
     const spareSatelliteCount = (reference.sparesPerPlane ?? [])
@@ -397,12 +401,8 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
     useClickOutside(areaMenuRef, closeAreaMenu, areaMenuOpen && !isDrawingArea);
     const closeConstellationMenus = useCallback(() => {
         setConstellationMenuOpen(false);
-        setModelValidationMenuOpen(false);
     }, []);
-    useClickOutside(
-        constellationMenuRef, closeConstellationMenus,
-        constellationMenuOpen || modelValidationMenuOpen,
-    );
+    useClickOutside(constellationMenuRef, closeConstellationMenus, constellationMenuOpen);
     const stepPayload = (delta: number) => {
         const next = payloadCounts[Math.min(Math.max(sliderIndex + delta, 0), payloadCounts.length - 1)];
         if (next !== undefined && next !== currentPayloadCount) onPayloadCountChange(next);
@@ -479,23 +479,6 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                     {reference.pattern}
                                 </span>
                             </div>
-                            {modelValidation && (
-                                <button
-                                    type="button"
-                                    aria-label="Open model and validation"
-                                    title="Open model and validation"
-                                    aria-haspopup="dialog"
-                                    aria-expanded={modelValidationMenuOpen}
-                                    onClick={() => {
-                                        setConstellationMenuOpen(false);
-                                        setModelValidationMenuOpen((open) => !open);
-                                    }}
-                                    className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300 ${headerModelBadge.chip}`}
-                                >
-                                    <span className={`h-1.5 w-1.5 rounded-full ${headerModelBadge.dot}`} aria-hidden="true" />
-                                    {headerModelBadge.label}
-                                </button>
-                            )}
                         </div>
                         <div className="revisit-context-detail text-[11px] text-slate-400">
                             {displayInclinationDeg(reference.inclinationDeg)}° · {displayAltitudeKm(reference.altitudeKm)} km ·{' '}
@@ -503,20 +486,37 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                 ? `${activeSatelliteCount} active + ${spareSatelliteCount} spare · ${totalSatelliteCount} total`
                                 : `${activeSatelliteCount} active`}
                         </div>
+                        {/*
+                          * One way in, and it names the model it opens. A separate
+                          * status chip beside a generic "Constellation settings"
+                          * button gave the cartouche two controls for one panel and
+                          * left the button saying nothing about what is loaded.
+                          */}
                         <button
                             type="button"
-                            aria-label="Advanced constellation settings"
-                            title="Advanced constellation settings"
+                            aria-label="Constellation model and settings"
+                            title={model
+                                ? `Constellation model, characteristics and evidence. Currently: ${modelSummary}.`
+                                : 'Walker model, hosted-payload topology, instrument geometry and analysis window'}
                             aria-haspopup="dialog"
                             aria-expanded={constellationMenuOpen}
-                            onClick={() => {
-                                setModelValidationMenuOpen(false);
-                                setConstellationMenuOpen((open) => !open);
-                            }}
-                            className="mt-2 flex min-h-7 w-full items-center justify-between rounded border border-slate-700 px-2 text-[8px] font-black uppercase tracking-[0.08em] text-amber-200 hover:border-amber-400/50 hover:bg-amber-400/5"
+                            onClick={() => setConstellationMenuOpen((open) => !open)}
+                            className={`mt-2 flex min-h-7 w-full items-center justify-between gap-2 rounded border px-2 text-[8px] font-black uppercase tracking-[0.08em] transition-colors ${model
+                                ? `${headerModelBadge.chip} hover:brightness-125`
+                                : 'border-slate-700 text-amber-200 hover:border-amber-400/50 hover:bg-amber-400/5'}`}
                         >
-                            <span>Constellation settings</span>
-                            <span aria-hidden="true" className="text-sm leading-none">…</span>
+                            <span className="flex min-w-0 items-center gap-1.5">
+                                {model && (
+                                    <span
+                                        className={`h-1.5 w-1.5 shrink-0 rounded-full ${headerModelBadge.dot}`}
+                                        aria-hidden="true"
+                                    />
+                                )}
+                                <span className="truncate">
+                                    {model ? headerModelBadge.label : 'Constellation settings'}
+                                </span>
+                            </span>
+                            <span aria-hidden="true" className="shrink-0 text-sm leading-none">…</span>
                         </button>
                     </div>
                     {constellationMenuOpen && (
@@ -528,40 +528,9 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                             <AdvancedDrawer
                                 scenario={scenario}
                                 onChange={onAdvancedScenarioChange}
-                                onRestoreReference={modelValidation?.onRestoreReference}
+                                model={model}
                                 variant="menu"
                             />
-                        </div>
-                    )}
-                    {modelValidationMenuOpen && modelValidation && (
-                        <div
-                            role="dialog"
-                            aria-label="Model & validation"
-                            className={`absolute left-0 top-[calc(100%+0.35rem)] z-[80] max-h-[min(74vh,42rem)] w-[min(30rem,calc(100vw-1rem))] overflow-y-auto rounded-lg border border-lime-400/35 ${REVISIT_MENU_SURFACE} shadow-2xl`}
-                        >
-                            <section className="px-3 py-3" aria-label="Model validation evidence">
-                                <div className="mb-3 flex items-start justify-between gap-3 border-b border-slate-700/60 pb-2">
-                                    <div>
-                                        <p className="text-[9px] font-black uppercase tracking-[0.14em] text-lime-200">
-                                            Model &amp; validation
-                                        </p>
-                                        <p className="mt-0.5 text-[9px] text-slate-500">
-                                            Evidence, assumptions and calibration
-                                        </p>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        aria-label="Close model and validation"
-                                        onClick={() => setModelValidationMenuOpen(false)}
-                                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-slate-500 hover:bg-slate-800 hover:text-slate-200"
-                                    >×</button>
-                                </div>
-                                <ModelProvenance
-                                    reference={scenario.reference}
-                                    {...modelValidation}
-                                    variant="dialog"
-                                />
-                            </section>
                         </div>
                     )}
                 </div>

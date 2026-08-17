@@ -29,7 +29,9 @@ import {
     validateSelection,
 } from '../domain/subConstellation';
 import { validateWalkerSpec } from '../domain/walker';
-import { DEFAULT_PROFILE, referenceProfileFor } from '../domain/referenceProfiles';
+import {
+    DEFAULT_PROFILE, referenceModeFor, referenceProfileFor, type ReferenceMode,
+} from '../domain/referenceProfiles';
 import {
     reconcileToMeasuredBest, sameSelection, selectionStatus, type SelectionSource,
 } from '../domain/selectionReconcile';
@@ -282,6 +284,15 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     const referenceProfile = useMemo(
         () => referenceProfileFor(scenario.reference),
         [scenario.reference]
+    );
+
+    /**
+     * Which model the user chose. Component state, not scenario state — see
+     * `ReferenceMode`. Derived once from the opening scenario, then owned by the
+     * selector and re-derived only when a whole scenario is swapped in.
+     */
+    const [referenceMode, setReferenceMode] = useState<ReferenceMode>(
+        () => referenceModeFor(scenario.reference)
     );
 
     const payloadCounts = useMemo(
@@ -644,35 +655,49 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     }, [areaRun.analysis, scenario, calibration.fit]);
 
     /**
-     * Adopt the fitted shell. The selection must be repaired in the same step:
-     * the real fleet's plane count rarely matches the preset's, so the current
-     * strides may no longer divide P and S.
+     * Swap the reference constellation. The selection must be repaired in the
+     * same step: a different plane count means the current strides may no longer
+     * divide P and S.
      */
-    const handleAdoptFit = useCallback((fitted: WalkerSpec) => {
+    const applyReference = useCallback((next: WalkerSpec) => {
         setScenario((current) => ({
             ...current,
-            reference: fitted,
-            selection: reconcileSelection(fitted, current.selection),
+            reference: next,
+            selection: reconcileSelection(next, current.selection),
         }));
     }, []);
 
     /**
-     * Put the reference constellation back to the HLD profile and nothing else.
+     * The one entry point for choosing a model.
      *
-     * `Reset scenario` also discards the window, target, requirement, comparison
-     * points and clock, and re-typing 12 / 48 / 87.9 / 1200 in the drawer does
-     * NOT restore the profile: `referenceWithPatch` drops the per-plane altitude
-     * ladder, the RAAN seam and the spares as soon as planes or altitude change,
-     * and nothing in the UI can put them back. That look-alike propagates
-     * differently from the real profile, so this is the only faithful way back.
+     * HLD is the only faithful way back to the reference profile: re-typing
+     * 12 / 48 / 87.9 / 1200 does NOT restore it, because `referenceWithPatch`
+     * drops the per-plane altitude ladder, the RAAN seam and the spares as soon
+     * as planes or altitude change, and no field can put them back.
+     *
+     * MEASURED reaches the network when no fit is cached yet (D1). On failure the
+     * mode is left untouched, so the panel never claims a model it does not have;
+     * `calibration.error` carries the reason.
+     *
+     * CUSTOM only unlocks the fields — it deliberately does not touch the spec,
+     * so the current numbers become the starting point for editing.
      */
-    const handleRestoreReferenceProfile = useCallback(() => {
-        setScenario((current) => ({
-            ...current,
-            reference: DEFAULT_PROFILE.spec,
-            selection: reconcileSelection(DEFAULT_PROFILE.spec, current.selection),
-        }));
-    }, []);
+    const handleReferenceModeChange = useCallback(async (next: ReferenceMode) => {
+        if (next === 'CUSTOM') {
+            setReferenceMode('CUSTOM');
+            return;
+        }
+        if (next === 'HLD') {
+            applyReference(DEFAULT_PROFILE.spec);
+            setReferenceMode('HLD');
+            return;
+        }
+        const fit = calibration.fit ?? await calibration.calibrate();
+        if (!fit) return;
+        applyReference(fit.spec);
+        setReferenceMode('MEASURED');
+    }, [applyReference, calibration]);
+
 
     const explanation = useMemo(
         () => explainRevisit(scenario, analysis?.statistics ?? null, sweep),
@@ -689,6 +714,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     const handleResetScenario = useCallback(() => {
         const resetScenario = defaultScenario(epochRef.current);
         setScenario(resetScenario);
+        setReferenceMode(referenceModeFor(resetScenario.reference));
         setOptions(defaultDisplayOptions());
         setRequirementMs(DEFAULT_REQUIREMENT_MS);
         setSelectionSource('auto');
@@ -722,6 +748,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     const handleLoadSavedScenario = useCallback((saved: SavedRevisitScenario) => {
         const snapshot = saved.snapshot;
         setScenario(snapshot.scenario);
+        setReferenceMode(referenceModeFor(snapshot.scenario.reference));
         setOptions({ ...snapshot.options, showLabels: snapshot.options.showLabels ?? false });
         setRequirementMs(snapshot.requirementMs);
         setSelectionSource(snapshot.selectionSource);
@@ -805,14 +832,13 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                         onUndoAreaVertex={handleUndoAreaVertex}
                         isAreaScenarioSettling={isConfigurationSettling}
                         onAdvancedScenarioChange={handleAdvancedChange}
-                        modelValidation={{
+                        model={{
                             profile: referenceProfile,
+                            mode: referenceMode,
+                            onModeChange: handleReferenceModeChange,
                             fit: calibration.fit,
                             isRunning: calibration.isRunning,
                             error: calibration.error,
-                            onCalibrate: calibration.calibrate,
-                            onAdoptFit: handleAdoptFit,
-                            onRestoreReference: handleRestoreReferenceProfile,
                         }}
                     />
                 </div>

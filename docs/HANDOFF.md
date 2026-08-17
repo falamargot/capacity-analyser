@@ -1,6 +1,6 @@
 # Handoff
 
-_Last updated 2026-08-16._
+_Last updated 2026-08-17._
 
 ## 2026-08-16 — REVISIT "never in view" false positive (payload sweep warnings)
 
@@ -538,6 +538,53 @@ code) · `test:perf` 4 passed · `build` succeeds, main chunk 2,079.30 kB vs
 2,079.81 kB before. Runtime FPS/memory were not independently measured.
 
 ---
+
+## 2026-08-17 — REVISIT constellation model: one panel, one selector
+
+Programme 6 in `docs/IMPLEMENTATION_PLAN.md`. The model was legible nowhere
+because one concept sat on five surfaces (header chip, header detail line, two
+popovers, and a `Restore HLD reference` button duplicated across both), and the
+mode was never stored — `referenceProfileFor` re-derived it from exact structural
+equality, so nothing recorded what the user intended.
+
+Now: `CONSTELLATION SETTINGS` is a single panel with **Model** (three-way
+segmented control), **Characteristics** (locked outside Custom via
+`fieldset[disabled]`) and **Evidence**. The cartouche carries one button, which
+names the loaded model and opens that panel.
+
+`ReferenceMode` is deliberately component state in `RevisitApp`, NOT part of
+`RevisitScenario`: that type is persisted, shared as versioned JSON and exported
+to PDF, so a field there would force a `REVISIT_SESSION_SCHEMA_VERSION` bump and
+a migration for a UI-only fact. A reloaded snapshot therefore reads a measured
+shell back as CUSTOM — the numbers are exact, only the provenance claim is not
+restored, which is honest rather than re-asserted without re-measuring.
+
+Two behaviours worth knowing:
+
+- Selecting `Measured` reaches the network when no fit is cached. On failure the
+  mode does not move, so the panel cannot claim a model it does not have.
+- The mode is sticky intention. Editing inclination 87.9 → 88.4 → 87.9 leaves you
+  in Custom but shows a `= HLD` indicator, so the old silent auto-revert to
+  "Validated model" is surfaced instead of lost.
+
+The three arrays that distinguish the HLD profile from any look-alike — the
+1175–1219 km plane-altitude ladder, the RAAN seam, the 58 spares — are displayed
+for the first time, and read `—` for a fitted shell, which is the clearest
+available statement of why the two are not the same object.
+
+Fixed while verifying: the RAAN summary reported the seam as the inter-plane step
+that differs from the others, which is only floating-point noise in `p * 15.225`.
+The seam is the wrap gap: `span − last offset` = 12.525° against an ordinary
+15.225°, closing 180° exactly.
+
+Also fixed, in the spec and NOT the CSS: `revisit-p0` asserted
+`.revisit-context-detail` visible at 2048 × 560, where `index.css` (`c09c0c6`)
+hides it under `min-width:768px and max-height:700px` to buy back globe height.
+This was a pre-existing failure. The spec now mirrors the CSS condition.
+
+Validation: typecheck, lint, 1985 unit tests, `revisit-p0` e2e green on all four
+viewport projects (17 passed, 3 skipped), production build, and a browser
+walkthrough of all three modes.
 
 ---
 

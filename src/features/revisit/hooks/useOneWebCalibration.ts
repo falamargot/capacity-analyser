@@ -26,8 +26,12 @@ export interface UseOneWebCalibrationResult {
     fit: WalkerFit | null;
     isRunning: boolean;
     error: string | null;
-    /** Fetch the real fleet and fit the shell. Safe to call repeatedly. */
-    calibrate: () => Promise<void>;
+    /**
+     * Fetch the real fleet and fit the shell. Safe to call repeatedly.
+     * Resolves with the fit so a caller can adopt it in the same tick; `null`
+     * means the attempt failed and `error` carries why.
+     */
+    calibrate: () => Promise<WalkerFit | null>;
     reset: () => void;
 }
 
@@ -37,8 +41,8 @@ export function useOneWebCalibration(): UseOneWebCalibrationResult {
     const [error, setError] = useState<string | null>(null);
     const inFlightRef = useRef(false);
 
-    const calibrate = useCallback(async () => {
-        if (inFlightRef.current) return;
+    const calibrate = useCallback(async (): Promise<WalkerFit | null> => {
+        if (inFlightRef.current) return null;
         inFlightRef.current = true;
         setIsRunning(true);
         setError(null);
@@ -57,9 +61,12 @@ export function useOneWebCalibration(): UseOneWebCalibrationResult {
                 );
             }
 
-            setFit(fitWalker(observed));
+            const nextFit = fitWalker(observed);
+            setFit(nextFit);
+            return nextFit;
         } catch (e) {
             setError(e instanceof Error ? e.message : String(e));
+            return null;
         } finally {
             inFlightRef.current = false;
             setIsRunning(false);

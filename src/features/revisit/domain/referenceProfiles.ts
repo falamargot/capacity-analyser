@@ -235,6 +235,32 @@ export function fitMatchesReference(fit: WalkerSpec, reference: WalkerSpec): boo
     return outerPlaneShiftDeg < FIT_ANGLE_TOLERANCE_DEG;
 }
 
+/**
+ * Which model the user chose. Stored as INTENTION, not derived from the spec.
+ *
+ * `referenceProfileFor` can only ever answer "does this spec equal a named
+ * profile", which is a consequence. It cannot distinguish a shell fitted to the
+ * live fleet from one typed by hand, because a fit never reproduces a profile's
+ * per-plane ladder, seam and spares. Recording the choice removes that guess.
+ *
+ * Deliberately NOT part of `RevisitScenario`: that type is persisted, shared as
+ * versioned JSON and exported to PDF, so a field there would force a schema
+ * version bump and a migration for what is a UI-only fact.
+ */
+export type ReferenceMode = 'HLD' | 'MEASURED' | 'CUSTOM';
+
+/**
+ * The mode a loaded specification represents.
+ *
+ * A persisted snapshot carries no fit, so a measured shell necessarily reads
+ * back as CUSTOM — the numbers are preserved exactly, only the provenance claim
+ * is not, which is the honest outcome rather than a restored assertion we cannot
+ * re-verify without re-measuring.
+ */
+export function referenceModeFor(spec: WalkerSpec): ReferenceMode {
+    return walkerSpecsEqual(spec, DEFAULT_PROFILE.spec) ? 'HLD' : 'CUSTOM';
+}
+
 /** Resolve a named profile only while the complete specification still matches it. */
 export function referenceProfileFor(spec: WalkerSpec): ReferenceProfile | null {
     return Object.values(REFERENCE_PROFILES)

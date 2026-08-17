@@ -21,28 +21,26 @@ import CollapsibleSection from '../../../components/layout/CollapsibleSection';
 import {
     divisorsOf, payloadCount, reconcileSelection, validateSelection,
 } from '../domain/subConstellation';
-import type { FovSpec, RevisitScenario, WalkerPattern } from '../domain/types';
+import type { FovSpec, RevisitScenario, WalkerPattern, WalkerSpec } from '../domain/types';
 import { validateFovSpec } from '../domain/inputValidation';
 import { swathKmForFov } from '../domain/presets';
 import { MAX_STEP_SECONDS, MAX_WINDOW_HOURS } from '../analysis/accessIntervals';
 import { referenceWithPatch } from '../domain/referenceEditing';
-import { DEFAULT_PROFILE_ID, referenceProfileFor } from '../domain/referenceProfiles';
+import {
+    DEFAULT_PROFILE, walkerSpecsEqual,
+    type ReferenceMode, type ReferenceProfile,
+} from '../domain/referenceProfiles';
+import { ModelProvenance } from './ModelProvenance';
+import type { WalkerFit } from '../calibration/fitWalker';
 
 interface AdvancedDrawerProps {
     scenario: RevisitScenario;
     onChange: (next: RevisitScenario) => void;
     /**
-     * Put the reference constellation back to the HLD profile.
-     *
-     * Offered here as well as on the Model & validation card because this drawer
-     * is where the reference gets changed, so it is where the way back is looked
-     * for. Editing planes or altitude makes `referenceWithPatch` drop the
-     * per-plane altitude ladder, the RAAN seam and the spares — deliberately,
-     * since they are meaningless against a different plane count — and no field
-     * here can put them back. Re-typing 12 / 48 / 87.9 / 1200 therefore yields a
-     * look-alike that propagates differently from the real profile.
+     * The constellation model: which one is selected, how to change it, and the
+     * evidence behind it. Absent in contexts that only edit a raw specification.
      */
-    onRestoreReference?: () => void;
+    model?: ConstellationModelProps;
     /** Header popovers provide their own container and are open on demand. */
     variant?: 'panel' | 'menu';
 }
@@ -59,6 +57,110 @@ function bounded(raw: string, min: number, max: number, fallback: number): numbe
     const parsed = Number(raw);
     if (!Number.isFinite(parsed)) return fallback;
     return Math.max(min, Math.min(max, parsed));
+}
+
+/** The model choice and its evidence, owned by RevisitApp. */
+export interface ConstellationModelProps {
+    mode: ReferenceMode;
+    onModeChange: (mode: ReferenceMode) => void;
+    profile: ReferenceProfile | null;
+    fit: WalkerFit | null;
+    isRunning: boolean;
+    error: string | null;
+}
+
+const sectionLabel = 'text-[9px] font-black uppercase tracking-[0.12em] text-slate-500';
+
+/**
+ * Short labels, explanation on hover. The panel has to stay readable at a
+ * glance in a live demonstration; the detail belongs to whoever asks for it.
+ */
+const MODE_OPTIONS: Array<{ id: ReferenceMode; label: string; title: string }> = [
+    {
+        id: 'HLD',
+        label: 'OneWeb',
+        title: 'OneWeb Gen1 HLD reference profile — the published design, carrying its '
+            + 'plane-altitude ladder, RAAN seam and spare distribution.',
+    },
+    {
+        id: 'MEASURED',
+        label: 'Measured',
+        title: 'Walker shell fitted to the real OneWeb fleet from live TLE. '
+            + 'Single-epoch mean elements — not trajectory-validated.',
+    },
+    {
+        id: 'CUSTOM',
+        label: 'Custom',
+        title: 'Your own parameters. Editable below.',
+    },
+];
+
+const NO_PROFILE_DETAIL =
+    'Only a named reference profile carries this. A fitted shell is estimated from mean '
+    + 'elements at one epoch, and editing planes or altitude discards it because it cannot '
+    + 'be re-derived for a different plane count.';
+
+const DetailRow: React.FC<{ label: string; value: string; title: string }> = ({
+    label, value, title,
+}) => (
+    <div className="flex items-baseline justify-between gap-2" title={title}>
+        <span className="text-[9px] font-black uppercase tracking-[0.08em] text-slate-500">
+            {label}
+        </span>
+        <span className="text-[10px] font-bold text-slate-300">{value}</span>
+    </div>
+);
+
+/** `1175–1219 km · 12 planes`, full ladder on hover. */
+function altitudeLadderOf(values?: number[]) {
+    if (!values?.length) return null;
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    return {
+        summary: min === max ? `${min} km` : `${min}–${max} km · ${values.length} planes`,
+        full: values.map((v, i) => `plane ${i}: ${v} km`).join('\n'),
+    };
+}
+
+/**
+ * Ordinary inter-plane step plus the seam.
+ *
+ * The seam is NOT a member of `raanOffsetsDeg`: those offsets are a plain
+ * cumulative sum of the ordinary spacing, and the seam is the WRAP gap that
+ * closes the pattern — 180° for a Star, 360° for a Delta — between the last
+ * plane and plane 0. Reading it as "the step that differs from the others" finds
+ * only floating-point noise in `p * 15.225` and reports it as an engineering
+ * feature, which is worse than not showing it at all.
+ */
+function raanSpacingOf(spec: WalkerSpec) {
+    const offsets = spec.raanOffsetsDeg;
+    if (!offsets || offsets.length < 2) return null;
+    const round = (v: number) => Number(v.toFixed(3));
+    const steps = offsets.slice(1).map((v, i) => round(v - offsets[i]));
+    const uniform = steps.every((step) => step === steps[0]);
+    const spanDeg = spec.pattern === 'STAR' ? 180 : 360;
+    const seam = round(spanDeg - offsets[offsets.length - 1]);
+    return {
+        summary: uniform
+            ? `${steps[0]}° · seam ${seam}°`
+            : `${steps.length} uneven steps`,
+        full: (uniform
+            ? `${steps.length} ordinary gaps of ${steps[0]}°, wrap seam ${seam}° `
+                + `(${steps.length} × ${steps[0]} + ${seam} = ${spanDeg})`
+            : 'Non-uniform inter-plane spacing')
+            + `\n${offsets.map((v, i) => `plane ${i}: ${round(v)}°`).join('\n')}`,
+    };
+}
+
+/** `58 across 12 planes`, per-plane counts on hover. */
+function sparesOf(perPlane?: number[]) {
+    if (!perPlane?.length) return null;
+    const total = perPlane.reduce((sum, n) => sum + n, 0);
+    if (total === 0) return null;
+    return {
+        summary: `${total} across ${perPlane.length} planes`,
+        full: perPlane.map((n, i) => `plane ${i}: ${n}`).join('\n'),
+    };
 }
 
 const Field: React.FC<{ label: string; hint?: string; children: React.ReactNode }> = ({
@@ -223,11 +325,16 @@ const PayloadGeometryEditor: React.FC<AdvancedDrawerProps> = ({ scenario, onChan
 };
 
 export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
-    scenario, onChange, onRestoreReference, variant = 'panel',
+    scenario, onChange, model, variant = 'panel',
 }) => {
     const { reference, selection, window: analysisWindow } = scenario;
-    const canRestoreReference = Boolean(onRestoreReference)
-        && referenceProfileFor(reference)?.id !== DEFAULT_PROFILE_ID;
+    // Only Custom may edit. HLD and Measured are records of something external,
+    // so an editable field there would invite a value the label then denies.
+    const fieldsLocked = model ? model.mode !== 'CUSTOM' : false;
+    const matchesHldProfile = walkerSpecsEqual(reference, DEFAULT_PROFILE.spec);
+    const altitudeLadder = altitudeLadderOf(reference.planeAltitudesKm);
+    const raanSpacing = raanSpacingOf(reference);
+    const spares = sparesOf(reference.sparesPerPlane);
 
     /** Editing the constellation must leave the selection legal. */
     const setReference = (patch: Partial<typeof reference>) => {
@@ -250,21 +357,57 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
     const content = (
         <div className="space-y-3">
                 <div>
-                    <div className="mb-1.5 flex items-center justify-between gap-2">
-                        <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-500">
-                            Reference constellation
-                        </p>
-                        {canRestoreReference && (
-                            <button
-                                type="button"
-                                onClick={onRestoreReference}
-                                className="rounded border border-slate-600 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-slate-300 transition-colors hover:border-lime-400/50 hover:text-lime-200"
+                    {model && (
+                        <>
+                            <p className={sectionLabel}>Model</p>
+                            <div
+                                role="radiogroup"
+                                aria-label="Constellation model"
+                                className="mb-2 flex gap-1"
                             >
-                                Restore HLD reference
-                            </button>
+                                {MODE_OPTIONS.map((option) => {
+                                    const active = model.mode === option.id;
+                                    const busy = model.isRunning && option.id === 'MEASURED';
+                                    return (
+                                        <button
+                                            key={option.id}
+                                            type="button"
+                                            role="radio"
+                                            aria-checked={active}
+                                            title={option.title}
+                                            disabled={model.isRunning}
+                                            onClick={() => model.onModeChange(option.id)}
+                                            className={`flex-1 rounded border px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em] transition-colors disabled:opacity-60 ${active
+                                                ? 'border-amber-400/60 bg-amber-400/15 text-amber-100'
+                                                : 'border-slate-600 text-slate-400 hover:border-slate-500 hover:text-slate-200'}`}
+                                        >
+                                            {busy ? 'Measuring…' : option.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            {model.error && (
+                                <p className="mb-2 text-[9px] leading-3 text-red-300">{model.error}</p>
+                            )}
+                        </>
+                    )}
+                    <div className="mb-1.5 flex items-center justify-between gap-2">
+                        <p className={sectionLabel}>
+                            {model ? 'Characteristics' : 'Reference constellation'}
+                        </p>
+                        {matchesHldProfile && model?.mode === 'CUSTOM' && (
+                            <span
+                                title="These values are identical to the HLD reference profile, including its plane-altitude ladder, RAAN seam and spares."
+                                className="rounded border border-lime-400/40 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-lime-200"
+                            >
+                                = HLD
+                            </span>
                         )}
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
+                    <fieldset
+                        disabled={fieldsLocked}
+                        className={`m-0 grid grid-cols-3 gap-2 border-0 p-0 ${fieldsLocked ? 'opacity-70' : ''}`}
+                    >
                         <Field label="Pattern">
                             <select
                                 className={fieldClass}
@@ -347,7 +490,44 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                                 {reference.planes * reference.satsPerPlane} sats
                             </div>
                         </Field>
-                    </div>
+                    </fieldset>
+
+                    {/*
+                      * The three arrays a reference profile carries and a fitted
+                      * shell does not. Shown nowhere before this panel, yet they
+                      * are what makes the HLD profile a different object from a
+                      * look-alike with the same seven scalars. Summarised, with
+                      * the full values on hover rather than on screen.
+                      */}
+                    {model && (
+                        <div className="mt-2 space-y-0.5 border-t border-slate-700/50 pt-2">
+                            <DetailRow
+                                label="Plane altitudes"
+                                value={altitudeLadder?.summary ?? '—'}
+                                title={altitudeLadder?.full ?? NO_PROFILE_DETAIL}
+                            />
+                            <DetailRow
+                                label="RAAN spacing"
+                                value={raanSpacing?.summary ?? '—'}
+                                title={raanSpacing?.full ?? NO_PROFILE_DETAIL}
+                            />
+                            <DetailRow
+                                label="Spares"
+                                value={spares?.summary ?? '—'}
+                                title={spares?.full ?? NO_PROFILE_DETAIL}
+                            />
+                        </div>
+                    )}
+
+                    {model && (
+                        <div className="mt-2 border-t border-slate-700/50 pt-2">
+                            <ModelProvenance
+                                profile={model.profile}
+                                fit={model.fit}
+                                mode={model.mode}
+                            />
+                        </div>
+                    )}
                 </div>
 
                 <div className="border-t border-slate-700/60 pt-2.5">
