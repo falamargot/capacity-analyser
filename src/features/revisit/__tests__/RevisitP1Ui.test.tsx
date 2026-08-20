@@ -178,4 +178,72 @@ describe('REVISIT P1 functional UI', () => {
         expect(container.textContent).toContain('75% shorter worst-case');
         expect(container.textContent).toContain('+24 payloads');
     });
+
+    it('does not claim "beyond the tested payload range" while the sweep is still running', async () => {
+        const statistics: GapStatistics = {
+            maxGapMs: 3 * 3600_000,
+            meanGapMs: 2 * 3600_000,
+            p95GapMs: 2.8 * 3600_000,
+            accessCount: 12,
+            fractionInView: 0.1,
+            meanAccessDurationMs: 60_000,
+            totalInViewMs: 3600_000,
+            interiorGapCount: 10,
+            boundaryGapsDiscarded: 2,
+            coverage: 'INTERMITTENT',
+            warnings: [],
+        };
+        // The fast single-scenario analysis (`isComputing`) has already
+        // finished, but the sweep (`comparisonIsComputing`) has not — the
+        // scenario that used to produce a false "beyond the tested payload
+        // range" claim moments before the real sweep answer arrived.
+        await act(async () => root?.render(
+            <RevisitKpiPanel
+                statistics={statistics}
+                windowHours={72}
+                requirementMs={2 * 3600_000}
+                isComputing={false}
+                comparisonIsComputing={true}
+                comparison={{
+                    baselineMaxGapMs: null,
+                    currentPayloadCount: 12,
+                    targetPayloadCount: null,
+                }}
+            />
+        ));
+        expect(container.textContent).not.toContain('beyond the tested payload range');
+        expect(container.textContent).toContain('Measuring payload comparisons');
+    });
+
+    it('reports a boundary-truncated 1-payload baseline as a real answer, not a silent gap', async () => {
+        const statistics: GapStatistics = {
+            maxGapMs: 3 * 3600_000,
+            meanGapMs: 2 * 3600_000,
+            p95GapMs: 2.8 * 3600_000,
+            accessCount: 12,
+            fractionInView: 0.1,
+            meanAccessDurationMs: 60_000,
+            totalInViewMs: 3600_000,
+            interiorGapCount: 10,
+            boundaryGapsDiscarded: 2,
+            coverage: 'INTERMITTENT',
+            warnings: [],
+        };
+        await act(async () => root?.render(
+            <RevisitKpiPanel
+                statistics={statistics}
+                windowHours={72}
+                requirementMs={2 * 3600_000}
+                isComputing={false}
+                comparisonIsComputing={false}
+                comparison={{
+                    baselineMaxGapMs: null,
+                    baselineInconclusive: true,
+                    currentPayloadCount: 12,
+                    targetPayloadCount: 36,
+                }}
+            />
+        ));
+        expect(container.textContent).toContain('no worst-case in this window');
+    });
 });

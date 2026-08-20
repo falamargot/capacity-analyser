@@ -147,7 +147,15 @@ const PRESET_SWATH_RELATIVE_TOLERANCE = 0.01;
 /** Exact-match budget for the discrete fields a preset leaves at zero. */
 const PRESET_EXACT_TOLERANCE_DEG = 1e-6;
 
-/** Identify an untouched executive preset at the current reference altitude. */
+/**
+ * Identify an untouched executive preset at the current reference altitude.
+ *
+ * @param swathRelativeTolerance Gates the swath/circularity identity only
+ * (see the design note above `PRESET_SWATH_RELATIVE_TOLERANCE`). Clocking and
+ * bias are always compared against the fixed `PRESET_EXACT_TOLERANCE_DEG`
+ * budget regardless of this argument — they are fields a preset leaves at
+ * exactly zero, not part of the swath identity this tolerance protects.
+ */
 export function fovPresetNameFor(
     altitudeKm: number,
     fov: FovSpec,
@@ -160,22 +168,26 @@ export function fovPresetNameFor(
     if (Math.abs(fov.biasDeg.alongTrack) > PRESET_EXACT_TOLERANCE_DEG) return null;
     if (Math.abs(fov.biasDeg.crossTrack) > PRESET_EXACT_TOLERANCE_DEG) return null;
 
+    // Presets are circular cones. A cone widened on one axis only would
+    // otherwise match on swath while covering something quite different.
+    // These depend only on `fov`, not on which preset is being compared
+    // against, so they are computed once rather than once per preset.
+    const meanHalfAngle = (fov.halfAngle1Deg + fov.halfAngle2Deg) / 2;
+    if (meanHalfAngle <= 0) return null;
+    const circular = Math.abs(fov.halfAngle1Deg - fov.halfAngle2Deg) / meanHalfAngle
+        <= swathRelativeTolerance;
+    if (!circular) return null;
+
+    const actualSwathKm = swathKmForFov(altitudeKm, fov);
+    if (!Number.isFinite(actualSwathKm)) return null;
+
     const presets = fovPresets(altitudeKm);
     for (const name of Object.keys(presets) as FovPresetName[]) {
         const preset = presets[name];
         if (fov.shape !== preset.shape) continue;
 
-        // Presets are circular cones. A cone widened on one axis only would
-        // otherwise match on swath while covering something quite different.
-        const meanHalfAngle = (fov.halfAngle1Deg + fov.halfAngle2Deg) / 2;
-        if (meanHalfAngle <= 0) continue;
-        const circular = Math.abs(fov.halfAngle1Deg - fov.halfAngle2Deg) / meanHalfAngle
-            <= swathRelativeTolerance;
-        if (!circular) continue;
-
         const nominalSwathKm = FOV_PRESET_SWATH_KM[name];
-        const actualSwathKm = swathKmForFov(altitudeKm, fov);
-        if (!Number.isFinite(actualSwathKm) || nominalSwathKm <= 0) continue;
+        if (nominalSwathKm <= 0) continue;
         if (Math.abs(actualSwathKm - nominalSwathKm) / nominalSwathKm <= swathRelativeTolerance) {
             return name;
         }

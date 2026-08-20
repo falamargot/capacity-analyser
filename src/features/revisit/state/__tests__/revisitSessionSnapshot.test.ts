@@ -24,6 +24,7 @@ const snapshot = (): RevisitSessionSnapshotV1 => ({
   selectionSource: 'manual',
   analysisContext: 'POINTS',
   comparisonPoints: [],
+  referenceRestored: false,
 });
 
 describe('revisitSessionSnapshot', () => {

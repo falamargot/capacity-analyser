@@ -36,10 +36,32 @@ test.describe('REVISIT P1 requirement contract', () => {
     if (testInfo.project.name === 'mobile-chromium') {
       await page.getByRole('button', { name: 'Details', exact: true }).click();
     }
+    await page.locator('summary', { hasText: 'Technical details' }).click();
     await expect(page.getByRole('button', { name: /Swath 1400 km/ })).toBeVisible({ timeout: 30_000 });
 
     await expect(page.getByRole('combobox', { name: 'Demo scenario' })).toHaveCount(0);
     await expect(page.getByText(/demo (story|workflow)/i)).toHaveCount(0);
+  });
+
+  test('explains the business drivers first and keeps routine engineering checks secondary', async ({ page }, testInfo) => {
+    if (testInfo.project.name === 'mobile-chromium') {
+      await page.getByRole('button', { name: 'Details', exact: true }).click();
+    }
+    const panel = page.getByRole('region', { name: 'REVISIT analysis' });
+    await expect(panel.getByText('What drives this result', { exact: true })).toBeVisible();
+    await expect(panel.getByText('Payload distribution', { exact: true })).toBeVisible();
+    await expect(panel.getByText('Observation opportunities', { exact: true })).toBeVisible();
+    await expect(panel.getByText(/^(Main lever|Analysis pending)$/)).toBeVisible();
+
+    // The default near-polar constellation reaches 90°, so "target reachable"
+    // would be a tautology rather than useful presenter evidence.
+    await expect(panel.getByText('Target reachable', { exact: true })).toHaveCount(0);
+    const technical = panel.locator('details', { hasText: 'Technical details' });
+    await expect(technical).not.toHaveAttribute('open', '');
+    await technical.locator('summary').click();
+    await expect(technical.getByRole('button', { name: /Geometry/ })).toBeVisible();
+    await expect(technical.getByRole('button', { name: /Swath/ })).toBeVisible();
+    await expect(technical.getByRole('button', { name: /Phasing/ })).toBeVisible();
   });
 
   test('accepts bounded coordinates and reports topology changes', async ({ page }) => {
@@ -148,12 +170,13 @@ test.describe('REVISIT P1 requirement contract', () => {
     const panel = page.getByRole('region', { name: 'REVISIT analysis' });
     await expect(panel.getByText('Worst case', { exact: true })).toBeVisible();
     const comparison = panel.getByLabel('Business comparison');
-    // The target count resolves from the envelope as soon as the sweep produces a
-    // qualifying point.
-    await expect(comparison).toContainText(/To target:/);
-    // The 1-payload baseline needs the whole ladder walked, so it lands later than
-    // the default assertion budget. It is no longer narrated as "awaiting" while
-    // absent, so the wait has to be explicit here instead.
+    // Both rows are gated on the sweep's own `isSweeping` flag, not the much
+    // faster single-scenario analysis, so neither is guaranteed inside the
+    // default assertion budget: the panel correctly shows "Measuring payload
+    // comparisons…" until the sweep actually resolves each one, rather than
+    // a premature answer. The 1-payload baseline needs the whole ladder
+    // walked and so tends to land last.
+    await expect(comparison).toContainText(/To target:/, { timeout: 30_000 });
     await expect(comparison).toContainText(/Vs 1 payload:/, { timeout: 30_000 });
   });
 });

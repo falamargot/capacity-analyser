@@ -27,6 +27,19 @@ export interface RevisitSessionSnapshotV1 {
   analysisContext?: RevisitAnalysisContext;
   /** Up to two user-defined points compared with `scenario.target`. */
   comparisonPoints?: RevisitComparisonPoint[];
+  /**
+   * m4 provenance: true when `scenario.reference` came from a restored
+   * scenario rather than from someone hand-editing the Advanced drawer.
+   *
+   * Carried in the snapshot itself, not re-derived from
+   * `referenceModeFor(scenario.reference) === 'CUSTOM'` on read: this
+   * snapshot is also restored on every ordinary remount (mode switch, page
+   * reload), not only on a deliberate "Load saved scenario". Re-deriving
+   * from mode alone mislabelled hand-typed CUSTOM values as "restored" after
+   * any such remount. Missing on older snapshots — defaults to `false`
+   * (hand-entered) on read, the safer of the two guesses.
+   */
+  referenceRestored?: boolean;
 }
 
 let memorySnapshot: RevisitSessionSnapshotV1 | null = null;
@@ -58,7 +71,10 @@ export function isRevisitSessionSnapshot(value: unknown): value is RevisitSessio
     || isRevisitAnalysisContext(candidate.analysisContext);
   const comparisonValid = candidate.comparisonPoints === undefined
     || isRevisitComparisonPointList(candidate.comparisonPoints);
-  if (!structurallyValid || !areaValid || !contextValid || !comparisonValid) return false;
+  const referenceRestoredValid = candidate.referenceRestored === undefined
+    || typeof candidate.referenceRestored === 'boolean';
+  if (!structurallyValid || !areaValid || !contextValid || !comparisonValid
+    || !referenceRestoredValid) return false;
 
   try {
     return validateScenario(candidate.scenario as RevisitScenario).ok;
@@ -87,6 +103,7 @@ export function readRevisitSessionSnapshot(): RevisitSessionSnapshotV1 | null {
     copy.options.showLabels ??= false;
     copy.analysisContext ??= 'POINTS';
     copy.comparisonPoints ??= [];
+    copy.referenceRestored ??= false;
     if (copy.customArea) copy.customArea.id ??= crypto.randomUUID();
     return copy;
   }
@@ -100,6 +117,7 @@ export function readRevisitSessionSnapshot(): RevisitSessionSnapshotV1 | null {
     copy.options.showLabels ??= false;
     copy.analysisContext ??= 'POINTS';
     copy.comparisonPoints ??= [];
+    copy.referenceRestored ??= false;
     if (copy.customArea) copy.customArea.id ??= crypto.randomUUID();
     return copy;
   } catch {

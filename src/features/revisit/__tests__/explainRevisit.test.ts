@@ -5,7 +5,7 @@ import {
 } from '../analysis/explainRevisit';
 import { runRevisitScenario } from '../analysis/runScenario';
 import { runPayloadSweep } from '../analysis/payloadSweep';
-import { FOV_PRESETS } from '../domain/presets';
+import { defaultScenario, FOV_PRESETS } from '../domain/presets';
 import type { GapStatistics, RevisitScenario } from '../domain/types';
 
 const EPOCH = Date.UTC(2026, 7, 6);
@@ -57,12 +57,27 @@ describe('explainRevisit — geometry', () => {
         expect(geometry.status).toBe('BLOCKING');
         expect(result.limiting).toBe('GEOMETRY');
         expect(geometry.detail).toMatch(/No number of payloads changes this/);
+        expect(geometry.showInSummary).toBe(true);
+        expect(geometry.summaryLabel).toBe('Target not reachable');
+        expect(geometry.summaryValue).toMatch(/51\.5°N exceeds/);
+        expect(result.conclusion).toEqual(expect.objectContaining({
+            label: 'Main constraint',
+            text: expect.stringMatching(/adding payloads cannot solve it/i),
+        }));
     });
 
     it('is OK when the target is within reach', () => {
         const result = explainRevisit(scenario(), stats(), null);
         expect(result.factors.find((f) => f.id === 'GEOMETRY')!.status).toBe('OK');
         expect(result.limiting).not.toBe('GEOMETRY');
+    });
+
+    it('does not promote a tautological 90° reach check in the default OneWeb scenario', () => {
+        const result = explainRevisit(defaultScenario(EPOCH), stats(), null);
+        const geometry = result.factors.find((f) => f.id === 'GEOMETRY')!;
+        expect(geometry.status).toBe('OK');
+        expect(geometry.value).toMatch(/reach 90\.0°/);
+        expect(geometry.showInSummary).toBe(false);
     });
 
     it('counts the FOV as extending the reach past the turning latitude', () => {
@@ -110,7 +125,7 @@ describe('explainRevisit — geometry', () => {
         const geometry = result.factors.find((f) => f.id === 'GEOMETRY')!;
         expect(geometry.status).toBe('UNKNOWN');
         expect(result.limiting).toBeNull();
-        expect(result.notDeterminedReason).toMatch(/uncertainty/i);
+        expect(result.conclusion.text).toMatch(/uncertainty/i);
     });
 });
 
@@ -118,7 +133,8 @@ describe('explainRevisit — the limiting verdict is evidence-based', () => {
     it('returns no verdict, with a reason, when the ladder has not been swept', () => {
         const result = explainRevisit(scenario(), stats(), null);
         expect(result.limiting).toBeNull();
-        expect(result.notDeterminedReason).toMatch(/has not been swept/);
+        expect(result.conclusion.label).toBe('Analysis pending');
+        expect(result.conclusion.text).toMatch(/still being measured/);
     });
 
     it('never marks SWATH or PHASING as limiting — that would need runs it does not do', () => {
@@ -147,7 +163,7 @@ describe('explainRevisit — the limiting verdict is evidence-based', () => {
             expect(flagged[0].id).toBe(result.limiting);
         } else {
             expect(flagged).toHaveLength(0);
-            expect(result.notDeterminedReason).toBeTruthy();
+            expect(result.conclusion.text).toBeTruthy();
         }
     });
 
@@ -174,6 +190,8 @@ describe('explainRevisit — the limiting verdict is evidence-based', () => {
         expect(concentrated.limiting).toBe('PLANE_SPREAD');
         expect(spreadFactor.status).toBe('WARN');
         expect(spreadFactor.detail).toMatch(/% better on worst-case revisit/);
+        expect(concentrated.conclusion.label).toBe('Main lever');
+        expect(concentrated.conclusion.text).toMatch(/Redistribute the same/);
 
         // The best split at the same count must NOT be flagged.
         const spreadOut = explainRevisit(
@@ -245,6 +263,32 @@ describe('explainRevisit — rows', () => {
         expect(result.factors.map((f) => f.id)).toEqual([
             'GEOMETRY', 'SWATH', 'PLANE_SPREAD', 'PHASING', 'ACCESS_WINDOWS',
         ]);
+    });
+
+    it('keeps only business-readable drivers in the primary summary', () => {
+        const result = explainRevisit(defaultScenario(EPOCH), stats(), null);
+        const summary = result.factors.filter((factor) => factor.showInSummary);
+        expect(summary.map((factor) => factor.summaryLabel)).toEqual([
+            'Payload distribution', 'Observation opportunities',
+        ]);
+        expect(summary[0].summaryValue).toMatch(/payloads · \d+ planes × \d+\/plane/);
+        expect(summary[1].summaryValue).toBe('20 access windows · 72 h');
+    });
+
+    it('surfaces a non-integer Walker phasing factor in the summary, not just Technical details', () => {
+        const integerResult = explainRevisit(scenario({
+            reference: { ...scenario().reference, phasingF: 1 },
+        }), stats(), null);
+        const okPhasing = integerResult.factors.find((f) => f.id === 'PHASING')!;
+        expect(okPhasing.status).toBe('OK');
+        expect(okPhasing.showInSummary).toBe(false);
+
+        const warnResult = explainRevisit(scenario({
+            reference: { ...scenario().reference, phasingF: 1.5 },
+        }), stats(), null);
+        const warnPhasing = warnResult.factors.find((f) => f.id === 'PHASING')!;
+        expect(warnPhasing.status).toBe('WARN');
+        expect(warnPhasing.showInSummary).toBe(true);
     });
 
     it('reports the swath in kilometres, matching the engine', () => {

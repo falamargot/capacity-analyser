@@ -1,6 +1,6 @@
 # Implementation Status
 
-_Last updated 2026-08-16._
+_Last updated 2026-08-20._
 
 ## Current phase
 
@@ -40,6 +40,14 @@ containment for both modes, added 2026-08-12).
 
 ## Completed work
 
+- **REVISIT WhyThisRevisit / KPI panel review fixes (2026-08-20).** 8-angle
+  code review of the WhyThisRevisit + KPI panel redesign found 5 confirmed
+  correctness/dead-code defects plus 5 lower-severity issues — most notably
+  the KPI panel's "To target" row watching the fast single-scenario
+  `isComputing` flag instead of the sweep's own `isSweeping`, which could
+  flash a false "beyond the tested payload range" claim on the row a demo
+  audience reads first. All ten fixed same day. See `docs/HANDOFF.md` and
+  `docs/REVIEW_REPORT.md`.
 - **REVISIT payload-sweep warning bleed (2026-08-16).** The "target is never
   in view" banner could show while the on-screen configuration was clearly in
   view (`MISSES … `, a real gap) — `payloadSweep.ts` folded every ladder

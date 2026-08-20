@@ -220,9 +220,10 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
 
     const sessionRef = useRef({
         scenario, options, requirementMs, selectionSource, customArea,
-        analysisContext, comparisonPoints,
+        analysisContext, comparisonPoints, referenceRestored: false,
     });
     sessionRef.current = {
+        ...sessionRef.current,
         scenario, options, requirementMs, selectionSource, customArea,
         analysisContext, comparisonPoints,
     };
@@ -303,10 +304,18 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
      * so a measured shell cannot re-assert its provenance without re-measuring.
      * The numbers are exact, but calling them "hand-entered" would be a second,
      * different falsehood — so the evidence line distinguishes the two.
+     *
+     * Initialised from the session snapshot's OWN `referenceRestored` flag, not
+     * re-derived from `referenceModeFor(...) === 'CUSTOM'`: that snapshot is
+     * also restored on every ordinary remount (switching app modes, reloading
+     * the page), not only on a deliberate "Load saved scenario", and mode alone
+     * cannot tell a restored CUSTOM spec from a hand-typed one — both read back
+     * as CUSTOM. Falls back to `false` for snapshots predating this field.
      */
     const [referenceRestored, setReferenceRestored] = useState(
-        () => referenceModeFor(scenario.reference) === 'CUSTOM'
+        () => restoredSession?.referenceRestored ?? false
     );
+    sessionRef.current.referenceRestored = referenceRestored;
 
     const payloadCounts = useMemo(
         () => ladderPayloadCounts(scenario.reference.planes, scenario.reference.satsPerPlane),
@@ -536,19 +545,27 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     const businessComparison = useMemo(() => {
         /*
          * The 1-payload point is the business baseline, and it can legitimately
-         * have no max gap: depending on the epoch and the target, one satellite
-         * may never see the target across the whole window. That is not a missing
-         * measurement — it is the strongest argument for buying payloads — so the
-         * reason is carried to the panel rather than collapsed into a null (m2).
+         * have no max gap for two distinct reasons, both real answers rather than
+         * a wait: the single satellite may never see the target across the whole
+         * window (NEVER_IN_VIEW), or it may see the target but every resulting
+         * gap touches a window boundary and gets discarded (INTERMITTENT with a
+         * null maxGapMs) — undercounting neither collapses the reason into a null
+         * (m2, and its follow-up: a boundary-truncated baseline was previously
+         * indistinguishable from "the sweep hasn't finished yet").
          */
         const baselinePoint = sweep?.points.find((point) => point.payloadCount === 1);
         const baselineMaxGapMs = baselinePoint?.maxGapMs ?? null;
-        const baselineNeverInView =
-            baselinePoint?.best.statistics.coverage === 'NEVER_IN_VIEW';
+        const baselineCoverage = baselinePoint?.best.statistics.coverage ?? null;
+        const baselineNeverInView = baselineCoverage === 'NEVER_IN_VIEW';
+        const baselineInconclusive =
+            baselinePoint !== undefined && baselineMaxGapMs === null && !baselineNeverInView;
         const targetPayloadCount = executiveEnvelope
             .find((point) => point.maxGapMs !== null && point.maxGapMs <= requirementMs)
             ?.payloadCount ?? null;
-        return { baselineMaxGapMs, baselineNeverInView, currentPayloadCount, targetPayloadCount };
+        return {
+            baselineMaxGapMs, baselineNeverInView, baselineInconclusive,
+            currentPayloadCount, targetPayloadCount,
+        };
     }, [sweep, executiveEnvelope, requirementMs, currentPayloadCount]);
 
     const calibration = useOneWebCalibration();
@@ -1109,6 +1126,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                                     windowHours={scenario.window.durationHours}
                                     requirementMs={requirementMs}
                                     isComputing={isComputing}
+                                    comparisonIsComputing={isSweeping}
                                     comparison={businessComparison}
                                 />
                             )}

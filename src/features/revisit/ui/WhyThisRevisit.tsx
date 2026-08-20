@@ -1,10 +1,9 @@
 /**
- * WhyThisRevisit — the `WHY THIS REVISIT` checklist (UX §4.5).
+ * WhyThisRevisit — a business-readable explanation with expert backup.
  *
- * Transposes ENG's `WHY THIS RESULT` exactly: same row grammar, same expand
- * chevrons, same decisive-factor emphasis. The row marked *limiting* answers
- * "what is holding me back" in a vocabulary the audience already reads
- * elsewhere in the product.
+ * The primary level answers what drives the displayed result. Engineering
+ * qualifiers remain available under Technical details without competing with
+ * the presenter narrative.
  *
  * All judgement lives in `explainRevisit`; this file only renders it. When the
  * engine reaches no verdict it says so rather than emphasising a row anyway —
@@ -20,7 +19,9 @@ interface WhyThisRevisitProps {
 }
 
 const STATUS_DOT: Record<FactorStatus, string> = {
-    OK: 'bg-lime-400/70',
+    // Blue is informational. Green looked like "meets the 2 h requirement",
+    // which is not what an OK factor means.
+    OK: 'bg-sky-400/70',
     WARN: 'bg-amber-400',
     BLOCKING: 'bg-red-400',
     UNKNOWN: 'bg-slate-600',
@@ -28,63 +29,88 @@ const STATUS_DOT: Record<FactorStatus, string> = {
 
 export const WhyThisRevisit: React.FC<WhyThisRevisitProps> = ({ explanation }) => {
     const [expanded, setExpanded] = useState<string | null>(null);
+    const summaryFactors = explanation.factors.filter((factor) => factor.showInSummary);
+    const technicalFactors = explanation.factors.filter((factor) => !factor.showInSummary);
+
+    const factorRow = (factor: RevisitExplanation['factors'][number], summary: boolean) => {
+        const isOpen = expanded === factor.id;
+        return (
+            <li key={factor.id}>
+                <button
+                    type="button"
+                    onClick={() => setExpanded(isOpen ? null : factor.id)}
+                    aria-expanded={isOpen}
+                    className="flex w-full items-center gap-2 py-1.5 text-left"
+                >
+                    <span aria-hidden="true"
+                        className={`h-1.5 w-1.5 shrink-0 rounded-full ${STATUS_DOT[factor.status]}`}
+                    />
+                    <span className="min-w-0 flex-1">
+                        <span className={[
+                            'block text-[10px] font-black uppercase tracking-[0.12em]',
+                            factor.isLimiting ? 'text-amber-300' : 'text-slate-400',
+                        ].join(' ')}>
+                            {summary ? factor.summaryLabel : factor.label}
+                        </span>
+                        {summary && (
+                            <span className="mt-0.5 block text-[10px] leading-4 text-slate-200">
+                                {factor.summaryValue}
+                            </span>
+                        )}
+                    </span>
+                    {!summary && (
+                        <span className={[
+                            'text-[11px] font-bold tabular-nums',
+                            factor.isLimiting ? 'text-amber-300' : 'text-slate-200',
+                        ].join(' ')}>
+                            {factor.value}
+                        </span>
+                    )}
+                    {factor.isLimiting && (
+                        <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-amber-200">
+                            limiting
+                        </span>
+                    )}
+                    <span aria-hidden="true"
+                        className={`text-[9px] text-slate-600 transition-transform ${isOpen ? 'rotate-90' : ''}`}>
+                        ›
+                    </span>
+                </button>
+                {isOpen && (
+                    <p className="pb-2 pl-3.5 pr-1 text-[10px] leading-4 text-slate-400">
+                        {factor.detail}
+                    </p>
+                )}
+            </li>
+        );
+    };
 
     return (
         <div className={`${REVISIT_PANEL} px-3 py-2.5`}>
-            <span className={REVISIT_LABEL}>Why this revisit</span>
+            <span className={REVISIT_LABEL}>What drives this result</span>
 
             <ul className="mt-1.5 divide-y divide-slate-700/40">
-                {explanation.factors.map((factor) => {
-                    const isOpen = expanded === factor.id;
-                    return (
-                        <li key={factor.id}>
-                            <button
-                                type="button"
-                                onClick={() => setExpanded(isOpen ? null : factor.id)}
-                                aria-expanded={isOpen}
-                                className="flex w-full items-center gap-2 py-1.5 text-left"
-                            >
-                                <span
-                                    aria-hidden="true"
-                                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${STATUS_DOT[factor.status]}`}
-                                />
-                                <span className={[
-                                    'flex-1 text-[10px] font-black uppercase tracking-[0.12em]',
-                                    factor.isLimiting ? 'text-amber-300' : 'text-slate-400',
-                                ].join(' ')}>
-                                    {factor.label}
-                                </span>
-                                <span className={[
-                                    'text-[11px] font-bold tabular-nums',
-                                    factor.isLimiting ? 'text-amber-300' : 'text-slate-200',
-                                ].join(' ')}>
-                                    {factor.value}
-                                </span>
-                                {factor.isLimiting && (
-                                    <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-amber-200">
-                                        limiting
-                                    </span>
-                                )}
-                                <span aria-hidden="true"
-                                    className={`text-[9px] text-slate-600 transition-transform ${isOpen ? 'rotate-90' : ''}`}>
-                                    ›
-                                </span>
-                            </button>
-                            {isOpen && (
-                                <p className="pb-2 pl-3.5 pr-1 text-[10px] leading-4 text-slate-400">
-                                    {factor.detail}
-                                </p>
-                            )}
-                        </li>
-                    );
-                })}
+                {summaryFactors.map((factor) => factorRow(factor, true))}
             </ul>
 
-            {explanation.notDeterminedReason && (
-                <p className="mt-1.5 border-t border-slate-700/40 pt-1.5 text-[10px] leading-4 text-slate-500">
-                    <span className="font-bold text-slate-400">No single limiting factor. </span>
-                    {explanation.notDeterminedReason}
+            <div className="mt-1.5 border-t border-slate-700/40 pt-2">
+                <span className="text-[9px] font-black uppercase tracking-[0.12em] text-amber-300">
+                    {explanation.conclusion.label}
+                </span>
+                <p className="mt-0.5 text-[10px] leading-4 text-slate-300">
+                    {explanation.conclusion.text}
                 </p>
+            </div>
+
+            {technicalFactors.length > 0 && (
+                <details className="mt-2 border-t border-slate-700/40 pt-1.5">
+                    <summary className="cursor-pointer list-none text-[9px] font-black uppercase tracking-[0.1em] text-slate-500 hover:text-slate-300">
+                        Technical details <span aria-hidden="true">›</span>
+                    </summary>
+                    <ul className="mt-1 divide-y divide-slate-700/40">
+                        {technicalFactors.map((factor) => factorRow(factor, false))}
+                    </ul>
+                </details>
             )}
         </div>
     );

@@ -1,6 +1,75 @@
 # Handoff
 
-_Last updated 2026-08-17._
+_Last updated 2026-08-20._
+
+## 2026-08-20 — 8-angle code review of the WhyThisRevisit/KPI redesign, all findings fixed
+
+Full findings write-up: `docs/REVIEW_REPORT.md` § "REVISIT WhyThisRevisit / KPI
+panel redesign — 2026-08-20". Summary of fixes, all verified with
+`tsc --noEmit`, `eslint`, the full unit suite (1994 passed), and the REVISIT
+e2e specs:
+
+1. **`RevisitKpiPanel`'s "To target" row watched the wrong loading flag.**
+   Added a dedicated `comparisonIsComputing` prop, wired to `isSweeping`
+   (`useRevisitSweep`) at the `RevisitApp.tsx` call site, instead of reusing
+   `isComputing` (`useRevisitAnalysis`, which finishes far sooner). The panel
+   no longer flashes "beyond the tested payload range" while the sweep that
+   would have answered it is still running.
+2. **`baselineNeverInView` missed the `INTERMITTENT` + null-`maxGapMs` case**
+   (every gap boundary-truncated). Added `comparison.baselineInconclusive`,
+   computed in `businessComparison` (`RevisitApp.tsx`) and rendered as
+   "no worst-case in this window" instead of silently vanishing.
+3. **`referenceRestored` conflated ordinary session auto-resume with a
+   deliberate scenario restore.** The flag is now itself persisted in
+   `RevisitSessionSnapshotV1.referenceRestored` and read back verbatim on
+   remount, rather than re-derived from `referenceModeFor(...) === 'CUSTOM'`
+   — which could not distinguish a restored spec from a hand-typed one after
+   an ordinary tab-switch/reload. Older snapshots default to `false`.
+4. **PHASING's WARN status had no visible cue.** `showInSummary` is now
+   `!integerF` instead of a hardcoded `false`, so a non-integer Walker
+   phasing factor surfaces in the primary summary the same way GEOMETRY's
+   dynamic visibility already worked. Default scenario (`phasingF: 1`,
+   integer) is unaffected.
+5. **`notDeterminedReason` was dead code.** Removed from `RevisitExplanation`
+   and `explainRevisit` entirely — `WhyThisRevisit.tsx` had already fully
+   switched to `conclusion.text`/`conclusion.label`; tests updated to assert
+   against `conclusion` instead.
+6. **The "Business comparison" region could vanish entirely for ~30 s during
+   sweep computation with no loading signal.** Now renders an
+   `aria-busy`-flagged placeholder ("Measuring payload comparisons…") while
+   `comparisonIsComputing` and nothing has resolved yet, instead of omitting
+   the landmark.
+7. **`latitudeLabel` was a third reimplementation of the abs/toFixed/
+   hemisphere-suffix pattern.** Extracted `formatLatitude` in
+   `src/utils/formatters.ts`; both `formatCoordinates` and
+   `explainRevisit.ts`'s `latitudeLabel` now call it.
+8. **`fovPresetNameFor` recomputed loop-invariant swath/circularity checks**
+   on every one of its 3 preset iterations. Hoisted above the loop — no
+   behavior change, confirmed all 3 presets share the same `ELLIPSE` shape.
+9. **`fovPresetNameFor`'s tolerance parameter's narrowed scope** (only gates
+   swath/circularity, not clocking/bias) is intentional per the design note
+   above `PRESET_SWATH_RELATIVE_TOLERANCE`; documented explicitly in the
+   function's JSDoc rather than changed, since no caller is affected and
+   reverting would reintroduce the brittleness that design was written to fix.
+10. **`docs/IMPLEMENTATION_STATUS.md`/`REVIEW_REPORT.md` had fallen behind
+    `HANDOFF.md`.** Both updated as part of this pass.
+
+New/changed public surface: `RevisitKpiPanel` gained `comparisonIsComputing`
+(optional, defaults `false`) and `comparison.baselineInconclusive` (optional);
+`RevisitSessionSnapshotV1` gained `referenceRestored` (optional, defaults
+`false` on read — back-compatible with pre-existing sessionStorage snapshots).
+
+**e2e fallout from fix 1, fixed too:** `e2e/revisit-p1.spec.ts`'s "retains
+worst-case while adding the business comparison" asserted `/To target:/`
+appeared within the default 5 s budget. That assertion was unknowingly
+relying on the bug: the wrong-flag fallback used to populate a "To target:"
+labelled item almost immediately, even though it was a false answer. Once
+gated on the correct `isSweeping` flag it can legitimately take longer, so
+the assertion now gets the same 30 s budget already given to the adjacent
+"Vs 1 payload:" line for the identical reason. Confirmed both specs green
+end-to-end after the fix: `npx playwright test e2e/revisit-p1.spec.ts
+e2e/revisit-advanced.spec.ts` — 32 passed, 24 skipped (other viewport
+projects), 0 failed.
 
 ## 2026-08-16 — REVISIT "never in view" false positive (payload sweep warnings)
 

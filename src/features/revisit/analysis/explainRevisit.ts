@@ -22,11 +22,12 @@
  *
  * SWATH and PHASING are reported but never claimed as limiting: establishing
  * that would need engine runs this module does not perform (widen the FOV, vary
- * f, re-measure). Saying so is the honest position — see `notDeterminedReason`.
+ * f, re-measure). Saying so is the honest position — see `conclusion`.
  */
 
 import { WGS84_A_KM, WGS84_F, orbitalRadiusKm } from '../../../utils/wgs84Geometry';
 import { toDeg, toRad } from '../../../utils/sphericalGeometry';
+import { formatLatitude } from '../../../utils/formatters';
 import type { GapStatistics, RevisitScenario } from '../domain/types';
 import { computeFootprint, groundArcRad } from '../fov/footprint';
 import { prepareFov } from '../fov/containment';
@@ -49,14 +50,25 @@ export interface RevisitFactor {
     detail: string;
     status: FactorStatus;
     isLimiting: boolean;
+    /** Business-facing wording used by WHAT DRIVES THIS RESULT. */
+    summaryLabel: string;
+    summaryValue: string;
+    /** False for expert-only context or a tautological global-reach check. */
+    showInSummary: boolean;
 }
 
 export interface RevisitExplanation {
     factors: RevisitFactor[];
     /** The limiting factor, or null when the evidence does not support one. */
     limiting: RevisitFactorId | null;
-    /** Set when `limiting` is null: why no verdict was reached. */
-    notDeterminedReason: string | null;
+    conclusion: {
+        label: 'Main lever' | 'Main constraint' | 'Analysis limitation' | 'Needs confirmation' | 'Analysis pending';
+        text: string;
+    };
+}
+
+function latitudeLabel(latitudeDeg: number): string {
+    return formatLatitude(latitudeDeg, 1);
 }
 
 /** How much better a different split must measure before we call spread limiting. */
@@ -276,6 +288,19 @@ export function explainRevisit(
               + `tracks converge.`,
         status: unreachable ? 'BLOCKING' : reachUncertain ? 'UNKNOWN' : 'OK',
         isLimiting: false,
+        summaryLabel: unreachable
+            ? 'Target not reachable'
+            : reachUncertain
+                ? 'Target reach uncertain'
+                : 'Target reachable',
+        summaryValue: unreachable
+            ? `${latitudeLabel(target.latDeg)} exceeds the ${reachUpperBound.toFixed(1)}° latitude limit`
+            : reachUncertain
+                ? `${latitudeLabel(target.latDeg)} is near the ${reach.toFixed(1)}–${reachUpperBound.toFixed(1)}° latitude limit`
+                : `${latitudeLabel(target.latDeg)} is within the ${reach.toFixed(1)}° latitude limit`,
+        // When reach is 90°, every valid terrestrial latitude passes this check;
+        // showing it as a green success would be tautological and misleading.
+        showInSummary: unreachable || reachUncertain || reach < 89.95,
     };
 
     // ── SWATH ───────────────────────────────────────────────────────────────
@@ -294,6 +319,9 @@ export function explainRevisit(
             + `atmospheric path — which is why adding payloads usually beats widening.`,
         status: 'OK',
         isLimiting: false,
+        summaryLabel: 'Instrument swath',
+        summaryValue: `${Math.round(swathKm)} km`,
+        showInSummary: false,
     };
 
     // ── PLANE SPREAD ────────────────────────────────────────────────────────
@@ -319,6 +347,9 @@ export function explainRevisit(
                   : ' No alternative split exists at this payload count.'),
         status: betterSplitExists ? 'WARN' : 'OK',
         isLimiting: false,
+        summaryLabel: 'Payload distribution',
+        summaryValue: `${payloads} payloads · ${selectedPlanes} planes × ${perPlane}/plane`,
+        showInSummary: true,
     };
 
     // ── PHASING ─────────────────────────────────────────────────────────────
@@ -336,6 +367,12 @@ export function explainRevisit(
               + `in i: T/P/F notation.`,
         status: integerF ? 'OK' : 'WARN',
         isLimiting: false,
+        summaryLabel: 'Walker phasing',
+        summaryValue: `f = ${reference.phasingF}`,
+        // Expert-only when the phasing is standard; surfaced when it is not,
+        // so the WARN status carries a visible cue instead of sitting silently
+        // inside the collapsed Technical details.
+        showInSummary: !integerF,
     };
 
     // ── ACCESS WINDOWS ──────────────────────────────────────────────────────
@@ -358,32 +395,57 @@ export function explainRevisit(
                 : 'Not yet computed.',
         status: windowTooShort ? 'WARN' : statistics ? 'OK' : 'UNKNOWN',
         isLimiting: false,
+        summaryLabel: 'Observation opportunities',
+        summaryValue: statistics
+            ? `${statistics.accessCount} access windows · ${scenario.window.durationHours} h`
+            : 'Computing access windows…',
+        showInSummary: true,
     };
 
     const factors = [geometry, swath, planeSpread, phasing, accessWindows];
 
     // ── The verdict, in priority order, from evidence only ──────────────────
     let limiting: RevisitFactorId | null = null;
-    let notDeterminedReason: string | null = null;
+    let conclusion: RevisitExplanation['conclusion'];
 
     if (geometry.status === 'BLOCKING') {
         limiting = 'GEOMETRY';
+        conclusion = {
+            label: 'Main constraint',
+            text: 'The target is outside the constellation latitude reach. Change inclination or instrument geometry; adding payloads cannot solve it.',
+        };
     } else if (geometry.status === 'UNKNOWN') {
-        notDeterminedReason = 'The target lies within the conservative geometry-reach uncertainty '
-            + 'band, so no limiting factor is asserted.';
+        conclusion = {
+            label: 'Needs confirmation',
+            text: 'The target lies inside the geometry-reach uncertainty band, so no limiting factor is asserted.',
+        };
     } else if (windowTooShort) {
         limiting = 'ACCESS_WINDOWS';
+        conclusion = {
+            label: 'Analysis limitation',
+            text: `Extend the analysis window to at least ${MIN_RELIABLE_WINDOW_HOURS} h before using this result.`,
+        };
     } else if (betterSplitExists) {
         limiting = 'PLANE_SPREAD';
+        conclusion = {
+            label: 'Main lever',
+            text: here
+                ? `Redistribute the same ${payloads} payloads across ${here.best.selectedPlanes} planes; this measured ${Math.round((here.spreadAdvantage ?? 0) * 100)}% better on worst-case revisit.`
+                : 'Redistribute the hosted payloads across more suitable planes.',
+        };
     } else {
-        notDeterminedReason = sweep
-            ? 'This is the best configuration measured at this payload count, and the target '
-              + 'is within reach. Adding payloads is the remaining lever — see the value curve.'
-            : 'The configuration ladder has not been swept yet, so no factor can be shown to '
-              + 'be limiting.';
+        conclusion = sweep
+            ? {
+                label: 'Main lever',
+                text: 'The best measured payload distribution is already selected at this count. Use the value curve to choose a tested payload count that meets the requirement.',
+            }
+            : {
+                label: 'Analysis pending',
+                text: 'The payload ladder is still being measured; no performance lever is asserted yet.',
+            };
     }
 
     for (const factor of factors) factor.isLimiting = factor.id === limiting;
 
-    return { factors, limiting, notDeterminedReason };
+    return { factors, limiting, conclusion };
 }

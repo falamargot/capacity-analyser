@@ -21,10 +21,25 @@ interface RevisitKpiPanelProps {
     /** Customer requirement, ms. The verdict badge compares against it. */
     requirementMs: number | null;
     isComputing: boolean;
+    /**
+     * True while the payload sweep — the source of `comparison` — is still
+     * running. Distinct from `isComputing`, which tracks the much faster
+     * single-scenario statistics: gating the comparison row on `isComputing`
+     * let it flash a false "beyond the tested payload range" while the sweep
+     * that would have answered it was still in flight.
+     */
+    comparisonIsComputing?: boolean;
     comparison?: {
         baselineMaxGapMs: number | null;
         /** The 1-payload configuration never sees the target over the window. */
         baselineNeverInView?: boolean;
+        /**
+         * The 1-payload baseline was measured, but every gap in the window
+         * touched a boundary and was discarded, so no worst-case figure can
+         * be stated for it — a real answer, distinct from `null` meaning the
+         * sweep has not reached it yet.
+         */
+        baselineInconclusive?: boolean;
         currentPayloadCount: number;
         targetPayloadCount: number | null;
     };
@@ -51,7 +66,7 @@ function Metric({ label, value, tone = 'secondary' }: {
 }
 
 export const RevisitKpiPanel: React.FC<RevisitKpiPanelProps> = ({
-    statistics, windowHours, requirementMs, isComputing, comparison,
+    statistics, windowHours, requirementMs, isComputing, comparisonIsComputing = false, comparison,
 }) => {
     const maxGapMs = statistics?.maxGapMs ?? null;
     const meets = requirementMs !== null && maxGapMs !== null && maxGapMs <= requirementMs;
@@ -109,12 +124,16 @@ export const RevisitKpiPanel: React.FC<RevisitKpiPanelProps> = ({
      * 1-payload baseline", "not reached in tested configurations" — which is
      * engineering shorthand in the one place a customer reads first.
      *
-     * The nulls are not interchangeable, and there are three cases, not two:
-     * the baseline resolves (a percentage), or the 1-payload configuration never
+     * The nulls are not interchangeable, and there are four cases, not two:
+     * the baseline resolves (a percentage), the 1-payload configuration never
      * sees the target at all across the window (epoch- and target-dependent, and
-     * the strongest argument in the pitch — so it is stated), or the sweep simply
-     * has not finished (omitted, because there is genuinely nothing to say). A
-     * missing target count is likewise a real answer rather than a wait.
+     * the strongest argument in the pitch — so it is stated), every gap it did
+     * see touched a window boundary and was discarded (a real answer too — see
+     * `baselineInconclusive`), or the sweep simply has not finished (omitted,
+     * because there is genuinely nothing to say). A missing target count is
+     * likewise a real answer rather than a wait — gated on `comparisonIsComputing`,
+     * the sweep's own flag, not `isComputing`, which tracks the much faster
+     * single-scenario statistics and finishes well before the sweep does.
      */
     const comparisonItems: Array<{ label: string; value: string }> = [];
     if (gainVsOne !== null) {
@@ -127,6 +146,8 @@ export const RevisitKpiPanel: React.FC<RevisitKpiPanelProps> = ({
         // described a wait when the sweep had in fact already answered: a single
         // payload has no revisit figure to report because it never gets a look.
         comparisonItems.push({ label: 'Vs 1 payload', value: 'never sees this target' });
+    } else if (comparison?.baselineInconclusive) {
+        comparisonItems.push({ label: 'Vs 1 payload', value: 'no worst-case in this window' });
     }
     if (additionalPayloads !== null) {
         comparisonItems.push({
@@ -135,9 +156,10 @@ export const RevisitKpiPanel: React.FC<RevisitKpiPanelProps> = ({
                 ? 'met by this configuration'
                 : `+${additionalPayloads} payloads`,
         });
-    } else if (!isComputing) {
+    } else if (comparison && !comparisonIsComputing) {
         comparisonItems.push({ label: 'To target', value: 'beyond the tested payload range' });
     }
+    const comparisonPending = Boolean(comparison) && comparisonItems.length === 0 && comparisonIsComputing;
 
     return (
         <div className={`${REVISIT_PANEL} revisit-kpi-panel px-4 py-3 ${isComputing ? 'opacity-60' : ''}`}>
@@ -168,12 +190,15 @@ export const RevisitKpiPanel: React.FC<RevisitKpiPanelProps> = ({
                 {isComputing && ' · recomputing…'}
             </p>
 
-            {comparison && comparisonItems.length > 0 && (
+            {comparison && (comparisonItems.length > 0 || comparisonPending) && (
                 <div
                     className="mt-2 flex flex-wrap gap-x-3 gap-y-1 border-t border-slate-700/50 pt-2 text-[10px] leading-4 text-slate-400"
                     aria-label="Business comparison"
+                    aria-busy={comparisonPending || undefined}
                 >
-                    {comparisonItems.map((item) => (
+                    {comparisonPending ? (
+                        <span className="italic text-slate-500">Measuring payload comparisons…</span>
+                    ) : comparisonItems.map((item) => (
                         <span key={item.label}>
                             <strong className="text-slate-200">{item.label}:</strong>{' '}
                             {item.value}

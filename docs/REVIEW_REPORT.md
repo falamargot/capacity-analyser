@@ -1,6 +1,74 @@
 # Review Report
 
-_Last updated 2026-08-16._
+_Last updated 2026-08-20._
+
+## REVISIT WhyThisRevisit / KPI panel redesign — 2026-08-20
+
+8-angle code review of the working-tree diff under `src/features/revisit/`
+(the WhyThisRevisit + RevisitKpiPanel UI redesign, M3/m2/m4 audit fixes).
+Confirmed findings, most severe first:
+
+1. **RevisitKpiPanel "To target" row watches the wrong loading flag**
+   (`RevisitApp.tsx:1111`). It receives `isComputing` from the fast
+   single-scenario hook (`useRevisitAnalysis`) instead of `isSweeping` from
+   `useRevisitSweep`, which is what actually produces
+   `comparison.targetPayloadCount`. The sibling `ValueCurve` in the same file
+   correctly uses `isSweeping`. Result: on any scenario change, the KPI panel
+   can flash "beyond the tested payload range" for several seconds before the
+   real sweep answer (e.g. "+3 payloads") arrives — a false claim on the
+   first thing a demo audience reads.
+
+2. **`baselineNeverInView` misses the `INTERMITTENT` + null-`maxGapMs`
+   case** (`RevisitApp.tsx:544-551`, consumed by
+   `RevisitKpiPanel.tsx:119-130`). It only checks
+   `coverage === 'NEVER_IN_VIEW'`, but `gapStatistics.ts` also produces
+   `coverage: 'INTERMITTENT'` with `maxGapMs: null` when every gap in the
+   window is boundary-truncated. In that state neither branch matches, and
+   the "Vs 1 payload" row silently disappears — indistinguishable from "sweep
+   still running," which is exactly the ambiguity the m2 fix (see comment at
+   `RevisitKpiPanel.tsx:112`, "three cases, not two") was written to
+   eliminate. There is a fourth case, and it's dropped.
+
+3. **`referenceRestored` conflates ordinary session auto-resume with
+   deliberate scenario restore** (`RevisitApp.tsx:307-309`). Its initial
+   value is derived from whatever `readRevisitSessionSnapshot()` loaded on
+   mount — which fires on every remount (mode switch, page reload), not just
+   the "Load saved scenario" library action. A user who hand-types a CUSTOM
+   reference, then tabs away and back, sees `ModelProvenance` mislabel their
+   input "Restored specification · provenance not recorded" instead of
+   "Hand-entered."
+
+4. **PHASING factor's WARN status has no visible cue** (`explainRevisit.ts:373`).
+   `showInSummary` is hardcoded `false` regardless of `status`, so a
+   non-integer Walker phasing factor (a real caveat, `status: 'WARN'`) is
+   silently moved into the collapsed "Technical details" disclosure with no
+   aggregate warning indicator on the collapsed summary.
+
+5. **`notDeterminedReason` is dead** (`explainRevisit.ts:407-451`). Still
+   computed, returned, and asserted by `explainRevisit.test.ts`, but
+   `WhyThisRevisit.tsx` was fully switched to a new `conclusion.text` /
+   `conclusion.label` pair and no longer reads it. Confirmed independently by
+   three of the eight review passes. Risk: it reads as the canonical field
+   (has the descriptive doc comment); a future wording edit will likely
+   target it, pass its still-green tests, and silently diverge from what's
+   actually displayed.
+
+Lower-confidence / minor, not yet acted on: the "Business comparison" region
+in `RevisitKpiPanel.tsx` can be entirely absent from the DOM for ~30s during
+sweep computation with no `aria-busy`/loading text; `latitudeLabel`
+(`explainRevisit.ts:71-73`) is a third independent reimplementation of the
+abs/toFixed/hemisphere-suffix pattern already in `utils/formatters.ts`;
+`fovPresetNameFor` (`presets.ts:176-181`) recomputes loop-invariant
+swath/circularity trig on every one of its 3 iterations instead of hoisting
+above the loop; and its third parameter's semantics silently narrowed (now
+only gates the swath check, not clocking/bias) with no current caller
+affected.
+
+**All ten findings fixed same day** (findings 1–5 above plus the five
+lower-confidence/minor items). Verified with `tsc --noEmit`, `eslint`, the
+full unit suite (1994 tests passed), and the REVISIT e2e specs. Full
+before/after detail in `docs/HANDOFF.md` § "2026-08-20 — 8-angle code review
+of the WhyThisRevisit/KPI redesign, all findings fixed".
 
 ## REVISIT false "never in view" warning — 2026-08-16
 
