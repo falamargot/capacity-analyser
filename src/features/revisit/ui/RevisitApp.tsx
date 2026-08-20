@@ -295,6 +295,19 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         () => referenceModeFor(scenario.reference)
     );
 
+    /**
+     * m4. True while the current CUSTOM specification came from a restored
+     * scenario rather than from someone editing the fields.
+     *
+     * A restored snapshot always reads back as CUSTOM: the fit is not persisted,
+     * so a measured shell cannot re-assert its provenance without re-measuring.
+     * The numbers are exact, but calling them "hand-entered" would be a second,
+     * different falsehood — so the evidence line distinguishes the two.
+     */
+    const [referenceRestored, setReferenceRestored] = useState(
+        () => referenceModeFor(scenario.reference) === 'CUSTOM'
+    );
+
     const payloadCounts = useMemo(
         () => ladderPayloadCounts(scenario.reference.planes, scenario.reference.satsPerPlane),
         [scenario.reference.planes, scenario.reference.satsPerPlane]
@@ -356,6 +369,9 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     const handleAdvancedChange = useCallback((next: RevisitScenario) => {
         setScenario((current) => {
             if (!sameSelection(current.selection, next.selection)) setSelectionSource('manual');
+            // Once the reference itself is touched, the values are hand-entered
+            // whatever they were restored from (m4).
+            if (current.reference !== next.reference) setReferenceRestored(false);
             return next;
         });
     }, []);
@@ -518,12 +534,21 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         [sweep]
     );
     const businessComparison = useMemo(() => {
-        const baselineMaxGapMs = sweep?.points
-            .find((point) => point.payloadCount === 1)?.maxGapMs ?? null;
+        /*
+         * The 1-payload point is the business baseline, and it can legitimately
+         * have no max gap: depending on the epoch and the target, one satellite
+         * may never see the target across the whole window. That is not a missing
+         * measurement — it is the strongest argument for buying payloads — so the
+         * reason is carried to the panel rather than collapsed into a null (m2).
+         */
+        const baselinePoint = sweep?.points.find((point) => point.payloadCount === 1);
+        const baselineMaxGapMs = baselinePoint?.maxGapMs ?? null;
+        const baselineNeverInView =
+            baselinePoint?.best.statistics.coverage === 'NEVER_IN_VIEW';
         const targetPayloadCount = executiveEnvelope
             .find((point) => point.maxGapMs !== null && point.maxGapMs <= requirementMs)
             ?.payloadCount ?? null;
-        return { baselineMaxGapMs, currentPayloadCount, targetPayloadCount };
+        return { baselineMaxGapMs, baselineNeverInView, currentPayloadCount, targetPayloadCount };
     }, [sweep, executiveEnvelope, requirementMs, currentPayloadCount]);
 
     const calibration = useOneWebCalibration();
@@ -683,6 +708,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
      * so the current numbers become the starting point for editing.
      */
     const handleReferenceModeChange = useCallback(async (next: ReferenceMode) => {
+        setReferenceRestored(false);
         if (next === 'CUSTOM') {
             setReferenceMode('CUSTOM');
             return;
@@ -715,6 +741,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         const resetScenario = defaultScenario(epochRef.current);
         setScenario(resetScenario);
         setReferenceMode(referenceModeFor(resetScenario.reference));
+        setReferenceRestored(false);
         setOptions(defaultDisplayOptions());
         setRequirementMs(DEFAULT_REQUIREMENT_MS);
         setSelectionSource('auto');
@@ -749,6 +776,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         const snapshot = saved.snapshot;
         setScenario(snapshot.scenario);
         setReferenceMode(referenceModeFor(snapshot.scenario.reference));
+        setReferenceRestored(referenceModeFor(snapshot.scenario.reference) === 'CUSTOM');
         setOptions({ ...snapshot.options, showLabels: snapshot.options.showLabels ?? false });
         setRequirementMs(snapshot.requirementMs);
         setSelectionSource(snapshot.selectionSource);
@@ -835,6 +863,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                         model={{
                             profile: referenceProfile,
                             mode: referenceMode,
+                            isRestored: referenceRestored,
                             onModeChange: handleReferenceModeChange,
                             fit: calibration.fit,
                             isRunning: calibration.isRunning,

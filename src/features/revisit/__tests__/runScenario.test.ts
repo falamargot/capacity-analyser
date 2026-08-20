@@ -219,6 +219,27 @@ describe('presets — the entry moment', () => {
             ...FOV_PRESETS.STANDARD,
             biasDeg: { alongTrack: 2, crossTrack: 0 },
         })).toBeNull();
+        // Clocking, an elevation mask and a non-circular cone must all defeat the
+        // match too — a swath-based test would otherwise accept them.
+        expect(fovPresetNameFor(DEFAULT_REFERENCE.altitudeKm, {
+            ...FOV_PRESETS.STANDARD, clockingDeg: 15,
+        })).toBeNull();
+        expect(fovPresetNameFor(DEFAULT_REFERENCE.altitudeKm, {
+            ...FOV_PRESETS.STANDARD, minElevationDeg: 10,
+        })).toBeNull();
+        expect(fovPresetNameFor(DEFAULT_REFERENCE.altitudeKm, {
+            ...FOV_PRESETS.STANDARD,
+            halfAngle2Deg: FOV_PRESETS.STANDARD.halfAngle2Deg * 1.5,
+        })).toBeNull();
+    });
+
+    it('keeps the preset identity across the measured shell, and drops it on a real move', () => {
+        // M3. Selecting the measured OneWeb shell moves 1200 km → 1199 km. The
+        // preset must survive that: the swath shifts 0.6 km, and reporting
+        // "Custom FOV" there implied the presenter had edited the instrument.
+        expect(fovPresetNameFor(1199, FOV_PRESETS.STANDARD)).toBe('STANDARD');
+        // A deliberate altitude change is a different matter and must report Custom.
+        expect(fovPresetNameFor(1180, FOV_PRESETS.STANDARD)).toBeNull();
     });
 });
 

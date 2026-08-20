@@ -6,17 +6,19 @@
  * on a preset, already computed, already animating, with a number on screen.
  *
  * ── DECISION 1: the reference constellation ────────────────────────────────
- * `12 × 8 · 87.9° · 1200 km`, Walker Star.
+ * The complete OneWeb Gen1 HLD reference profile — `12 × 48 · 87.9° · 1200 km`,
+ * Walker Star, 576 payload-capable hosts plus 58 non-payload spares — carrying
+ * its plane-altitude ladder (1175–1219 km) and its Walker Star seam. See
+ * `DEFAULT_REFERENCE` below and `referenceProfiles.ts`.
  *
- * The inclination and altitude are the REAL OneWeb Gen1 shell (matching
- * `LEO_ALTITUDE_KM = 1200` in `config/oneweb.ts`), and 12 is OneWeb's real
- * plane count. Only the per-plane population is scaled down — OneWeb flies ~49
- * per plane, which would put 588 satellites on screen and make the payload
- * subset illegible at any zoom.
+ * R29 REPLACED THE EARLIER `12 × 8` SHELL. That shell was described as the real
+ * OneWeb geometry with the per-plane population scaled down for legibility, and
+ * the description was the problem: a scaled fleet produces revisit numbers for a
+ * constellation that does not exist, and nothing on screen said so.
  *
- * That choice is deliberate: the calibration against the real loaded TLEs is
- * what converts this from a simulation into evidence, and it only means
- * something if the parametric shell is the shell those TLEs actually occupy.
+ * Fidelity is the point: the calibration against the real loaded TLEs is what
+ * converts this from a simulation into evidence, and it only means something if
+ * the parametric shell is the shell those TLEs actually occupy.
  *
  * ── DECISION 2: the IR instrument presets ──────────────────────────────────
  * Defined by GROUND SWATH, not by off-nadir angle, and the half-angle is
@@ -115,27 +117,72 @@ export function fovPresets(altitudeKm: number): Record<FovPresetName, FovSpec> {
     };
 }
 
+/**
+ * Relative tolerance on the identified swath. 1 % of the narrowest preset is
+ * 3.5 km.
+ *
+ * A preset IS "the circular cone that yields this swath", so the swath is what
+ * identifies it — not the off-nadir angle, which is merely how that swath is
+ * achieved at one altitude. Matching angles at 1e-6° was an exact-equality test
+ * and made the identity brittle against the altitude: selecting the measured
+ * OneWeb shell moves the reference from 1200 km to 1199 km, which shifts the
+ * angle far more than 1e-6° while shifting the swath by 0.3 km, so the label
+ * dropped to "Custom FOV" and implied the presenter had edited the instrument.
+ *
+ * Presets are a factor 2 apart (350 / 700 / 1400 km), so 1 % cannot make two of
+ * them ambiguous. A deliberate, large altitude change still drifts the swath past
+ * the tolerance and correctly reports Custom — 1200 km → 1180 km already does.
+ *
+ * CONSEQUENCE, ACCEPTED: because the label is derived from the CURRENT swath and
+ * the altitude a FOV was built for is not stored, a large altitude change can
+ * re-identify a cone as a DIFFERENT preset — the 700 km cone from 1200 km yields
+ * 348.5 km at 600 km, so it reads as NARROW. That is truthful about what the
+ * instrument now does, and every option label carries its swath, so the readout
+ * stays self-consistent. The alternative is the old behaviour: fall to Custom on
+ * ANY altitude change, including the 1 km one that selecting the measured shell
+ * causes. Re-identification is the better of the two.
+ */
+const PRESET_SWATH_RELATIVE_TOLERANCE = 0.01;
+
+/** Exact-match budget for the discrete fields a preset leaves at zero. */
+const PRESET_EXACT_TOLERANCE_DEG = 1e-6;
+
 /** Identify an untouched executive preset at the current reference altitude. */
 export function fovPresetNameFor(
     altitudeKm: number,
     fov: FovSpec,
-    toleranceDeg: number = 1e-6
+    swathRelativeTolerance: number = PRESET_SWATH_RELATIVE_TOLERANCE
 ): FovPresetName | null {
+    // Anything the user can deliberately set is still compared exactly: a
+    // clocked or biased cone is NOT the preset, however wide it happens to be.
+    if (fov.minElevationDeg !== undefined) return null;
+    if (Math.abs(fov.clockingDeg) > PRESET_EXACT_TOLERANCE_DEG) return null;
+    if (Math.abs(fov.biasDeg.alongTrack) > PRESET_EXACT_TOLERANCE_DEG) return null;
+    if (Math.abs(fov.biasDeg.crossTrack) > PRESET_EXACT_TOLERANCE_DEG) return null;
+
     const presets = fovPresets(altitudeKm);
     for (const name of Object.keys(presets) as FovPresetName[]) {
         const preset = presets[name];
-        if (
-            fov.shape === preset.shape
-            && Math.abs(fov.halfAngle1Deg - preset.halfAngle1Deg) <= toleranceDeg
-            && Math.abs(fov.halfAngle2Deg - preset.halfAngle2Deg) <= toleranceDeg
-            && Math.abs(fov.clockingDeg - preset.clockingDeg) <= toleranceDeg
-            && Math.abs(fov.biasDeg.alongTrack - preset.biasDeg.alongTrack) <= toleranceDeg
-            && Math.abs(fov.biasDeg.crossTrack - preset.biasDeg.crossTrack) <= toleranceDeg
-            && fov.minElevationDeg === undefined
-        ) return name;
+        if (fov.shape !== preset.shape) continue;
+
+        // Presets are circular cones. A cone widened on one axis only would
+        // otherwise match on swath while covering something quite different.
+        const meanHalfAngle = (fov.halfAngle1Deg + fov.halfAngle2Deg) / 2;
+        if (meanHalfAngle <= 0) continue;
+        const circular = Math.abs(fov.halfAngle1Deg - fov.halfAngle2Deg) / meanHalfAngle
+            <= swathRelativeTolerance;
+        if (!circular) continue;
+
+        const nominalSwathKm = FOV_PRESET_SWATH_KM[name];
+        const actualSwathKm = swathKmForFov(altitudeKm, fov);
+        if (!Number.isFinite(actualSwathKm) || nominalSwathKm <= 0) continue;
+        if (Math.abs(actualSwathKm - nominalSwathKm) / nominalSwathKm <= swathRelativeTolerance) {
+            return name;
+        }
     }
     return null;
 }
+
 
 /** Presets at the default altitude — the common case. */
 export const FOV_PRESETS = fovPresets(DEFAULT_REFERENCE.altitudeKm);

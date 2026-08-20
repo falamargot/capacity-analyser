@@ -62,6 +62,12 @@ function bounded(raw: string, min: number, max: number, fallback: number): numbe
 /** The model choice and its evidence, owned by RevisitApp. */
 export interface ConstellationModelProps {
     mode: ReferenceMode;
+    /**
+     * True when a CUSTOM specification came from a restored scenario rather than
+     * from someone editing the fields — the evidence line must not call those
+     * numbers hand-entered (m4).
+     */
+    isRestored?: boolean;
     onModeChange: (mode: ReferenceMode) => void;
     profile: ReferenceProfile | null;
     fit: WalkerFit | null;
@@ -395,6 +401,14 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                         <p className={sectionLabel}>
                             {model ? 'Characteristics' : 'Reference constellation'}
                         </p>
+                        {fieldsLocked && (
+                            <span
+                                title="The HLD reference and the measured shell are records of something external, so their values are shown as they are. Choose Custom to edit them."
+                                className="text-[9px] font-black uppercase tracking-[0.08em] text-slate-500"
+                            >
+                                Custom to edit
+                            </span>
+                        )}
                         {matchesHldProfile && model?.mode === 'CUSTOM' && (
                             <span
                                 title="These values are identical to the HLD reference profile, including its plane-altitude ladder, RAAN seam and spares."
@@ -525,6 +539,7 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                                 profile={model.profile}
                                 fit={model.fit}
                                 mode={model.mode}
+                                isRestored={model.isRestored}
                             />
                         </div>
                     )}

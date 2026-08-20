@@ -31,6 +31,8 @@ export interface ModelProvenanceProps {
     /** The named profile the current specification resolves to, when it does. */
     profile: ReferenceProfile | null;
     fit: WalkerFit | null;
+    /** CUSTOM reached by restoring a saved scenario, not by editing (m4). */
+    isRestored?: boolean;
 }
 
 /** Claims about the propagator. True for every model. */
@@ -46,7 +48,9 @@ const ENGINE_CLAIMS = [
     'Altitude datum GMAT-checked · 1200.00 km at the equator',
 ] as const;
 
-export const ModelProvenance: React.FC<ModelProvenanceProps> = ({ mode, profile, fit }) => (
+export const ModelProvenance: React.FC<ModelProvenanceProps> = ({
+    mode, profile, fit, isRestored = false,
+}) => (
     <div>
         <span className={REVISIT_LABEL}>Evidence</span>
 
@@ -62,12 +66,27 @@ export const ModelProvenance: React.FC<ModelProvenanceProps> = ({ mode, profile,
             )}
 
             {mode === 'CUSTOM' && (
-                <p
-                    className="text-amber-300"
-                    title="These numbers were entered by hand. Nothing external vouches for them — the engine claims above still hold, the constellation is yours."
-                >
-                    Hand-entered · no external provenance
-                </p>
+                /*
+                 * m4. A restored scenario always reads back as CUSTOM, because the
+                 * fit is not persisted and its provenance cannot be re-asserted
+                 * without re-measuring. Saying "hand-entered" there would replace
+                 * one lost fact with a false one, so the two cases are separated.
+                 */
+                isRestored ? (
+                    <p
+                        className="text-amber-300"
+                        title="The specification was restored exactly as saved. Whether it was measured from the live fleet or entered by hand is not recorded in a saved scenario — re-measure to re-establish that."
+                    >
+                        Restored specification · provenance not recorded
+                    </p>
+                ) : (
+                    <p
+                        className="text-amber-300"
+                        title="These numbers were entered by hand. Nothing external vouches for them — the engine claims above still hold, the constellation is yours."
+                    >
+                        Hand-entered · no external provenance
+                    </p>
+                )
             )}
 
             {mode === 'MEASURED' && fit && (

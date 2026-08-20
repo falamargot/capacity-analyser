@@ -29,7 +29,7 @@ test.describe('REVISIT P1 requirement contract', () => {
   test('exposes truthful instrument presets without a demo workflow', async ({ page }, testInfo) => {
     const instrument = page.getByRole('combobox', { name: 'Instrument preset' });
     await expect(instrument).toHaveValue('STANDARD');
-    await expect(page.getByText('Illustrative EO/IR preset · not an instrument datasheet')).toBeVisible();
+    await expect(page.getByText('Illustrative IR preset · not an instrument datasheet')).toBeVisible();
 
     await instrument.selectOption('WIDE');
     await expect(instrument).toHaveValue('WIDE');
@@ -79,7 +79,7 @@ test.describe('REVISIT P1 requirement contract', () => {
 
   test('stages complete advanced geometry before one recomputation', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'mobile-chromium', 'Mobile header menu gives deterministic access to advanced inputs');
-    await page.getByRole('button', { name: 'Advanced constellation settings' }).click();
+    await page.getByRole('button', { name: 'Constellation model and settings' }).click();
     await expect(page.getByRole('dialog', { name: 'Advanced constellation settings' })).toBeVisible();
 
     await page.getByRole('combobox', { name: 'FOV shape' }).selectOption('RECTANGLE');
@@ -147,7 +147,13 @@ test.describe('REVISIT P1 requirement contract', () => {
   test('retains worst-case while adding the business comparison', async ({ page }) => {
     const panel = page.getByRole('region', { name: 'REVISIT analysis' });
     await expect(panel.getByText('Worst case', { exact: true })).toBeVisible();
-    await expect(panel.getByLabel('Business comparison')).toContainText(/Vs 1 payload:/);
-    await expect(panel.getByLabel('Business comparison')).toContainText(/To target:/);
+    const comparison = panel.getByLabel('Business comparison');
+    // The target count resolves from the envelope as soon as the sweep produces a
+    // qualifying point.
+    await expect(comparison).toContainText(/To target:/);
+    // The 1-payload baseline needs the whole ladder walked, so it lands later than
+    // the default assertion budget. It is no longer narrated as "awaiting" while
+    // absent, so the wait has to be explicit here instead.
+    await expect(comparison).toContainText(/Vs 1 payload:/, { timeout: 30_000 });
   });
 });

@@ -23,6 +23,8 @@ interface RevisitKpiPanelProps {
     isComputing: boolean;
     comparison?: {
         baselineMaxGapMs: number | null;
+        /** The 1-payload configuration never sees the target over the window. */
+        baselineNeverInView?: boolean;
         currentPayloadCount: number;
         targetPayloadCount: number | null;
     };
@@ -101,6 +103,42 @@ export const RevisitKpiPanel: React.FC<RevisitKpiPanelProps> = ({
         ? null
         : Math.max(0, comparison.targetPayloadCount - comparison.currentPayloadCount);
 
+    /*
+     * m2. This row is the business case, and it is on screen the moment the mode
+     * opens. It used to narrate its own unresolved state — "awaiting measured
+     * 1-payload baseline", "not reached in tested configurations" — which is
+     * engineering shorthand in the one place a customer reads first.
+     *
+     * The nulls are not interchangeable, and there are three cases, not two:
+     * the baseline resolves (a percentage), or the 1-payload configuration never
+     * sees the target at all across the window (epoch- and target-dependent, and
+     * the strongest argument in the pitch — so it is stated), or the sweep simply
+     * has not finished (omitted, because there is genuinely nothing to say). A
+     * missing target count is likewise a real answer rather than a wait.
+     */
+    const comparisonItems: Array<{ label: string; value: string }> = [];
+    if (gainVsOne !== null) {
+        comparisonItems.push({
+            label: 'Vs 1 payload',
+            value: `${Math.round(gainVsOne * 100)}% shorter worst-case`,
+        });
+    } else if (comparison?.baselineNeverInView) {
+        // Previously hidden behind "awaiting measured 1-payload baseline", which
+        // described a wait when the sweep had in fact already answered: a single
+        // payload has no revisit figure to report because it never gets a look.
+        comparisonItems.push({ label: 'Vs 1 payload', value: 'never sees this target' });
+    }
+    if (additionalPayloads !== null) {
+        comparisonItems.push({
+            label: 'To target',
+            value: additionalPayloads === 0
+                ? 'met by this configuration'
+                : `+${additionalPayloads} payloads`,
+        });
+    } else if (!isComputing) {
+        comparisonItems.push({ label: 'To target', value: 'beyond the tested payload range' });
+    }
+
     return (
         <div className={`${REVISIT_PANEL} revisit-kpi-panel px-4 py-3 ${isComputing ? 'opacity-60' : ''}`}>
             <span
@@ -130,25 +168,17 @@ export const RevisitKpiPanel: React.FC<RevisitKpiPanelProps> = ({
                 {isComputing && ' · recomputing…'}
             </p>
 
-            {comparison && (
+            {comparison && comparisonItems.length > 0 && (
                 <div
                     className="mt-2 flex flex-wrap gap-x-3 gap-y-1 border-t border-slate-700/50 pt-2 text-[10px] leading-4 text-slate-400"
                     aria-label="Business comparison"
                 >
-                    <span>
-                        <strong className="text-slate-200">Vs 1 payload:</strong>{' '}
-                        {gainVsOne === null
-                            ? 'awaiting measured 1-payload baseline'
-                            : `${Math.round(gainVsOne * 100)}% shorter worst-case`}
-                    </span>
-                    <span>
-                        <strong className="text-slate-200">To target:</strong>{' '}
-                        {additionalPayloads === null
-                            ? 'not reached in tested configurations'
-                            : additionalPayloads === 0
-                                ? 'current configuration meets it'
-                                : `+${additionalPayloads} payloads`}
-                    </span>
+                    {comparisonItems.map((item) => (
+                        <span key={item.label}>
+                            <strong className="text-slate-200">{item.label}:</strong>{' '}
+                            {item.value}
+                        </span>
+                    ))}
                 </div>
             )}
 

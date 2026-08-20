@@ -3,9 +3,15 @@ import { expect, test } from '@playwright/test';
 const openAdvanced = async (page: import('@playwright/test').Page) => {
   await page.goto('/?mode=revisit');
   await expect(page.getByRole('region', { name: 'REVISIT analysis' })).toBeVisible({ timeout: 30_000 });
-  await page.getByRole('button', { name: 'Advanced constellation settings' }).click();
-  await expect(page.getByRole('dialog', { name: 'Advanced constellation settings' })).toBeVisible();
+  await page.getByRole('button', { name: 'Constellation model and settings' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Advanced constellation settings' });
+  await expect(dialog).toBeVisible();
   await expect(page.getByRole('spinbutton', { name: 'Planes P' })).toBeVisible();
+  // The characteristics are read-only for the HLD reference and the measured
+  // shell — they are records of something external. Editing is a Custom-mode
+  // act, so every advanced test has to say so first.
+  await dialog.getByRole('radio', { name: 'Custom' }).click();
+  await expect(page.getByRole('spinbutton', { name: 'Planes P' })).toBeEnabled();
 };
 
 test.describe('REVISIT Advanced stabilization', () => {

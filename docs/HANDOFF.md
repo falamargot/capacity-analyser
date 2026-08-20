@@ -586,6 +586,87 @@ Validation: typecheck, lint, 1985 unit tests, `revisit-p0` e2e green on all four
 viewport projects (17 passed, 3 skipped), production build, and a browser
 walkthrough of all three modes.
 
+## 2026-08-17 — REVISIT audit C1/M1/M2: IR framing, and two stale-doc traps closed
+
+Findings and remaining items in `docs/REVISIT_AUDIT_2026-08-17.md`. These three
+were labels and comments only — **no executable line and no reported number
+changed**.
+
+**C1. The interface said EO/IR; the engine is IR-only.** Four customer-facing
+sites claimed `EO/IR` (header swath label, preset qualifier, and the exported
+result sheet twice) while the engine's documented reason for applying *no*
+solar-illumination gating is that the payload is thermal infrared
+(`containment.ts`, `csvExport.ts`, `presets.ts`, `revisitTheme.ts`). Read as IR
+every figure is sound; read as EO — which is what a customer does when the label
+says EO — about half the reported passes are unusable and the worst-case gap is
+optimistic by up to ~2×.
+
+Now labelled IR throughout, and the swath label carries a tooltip stating the
+imager works day and night *and that this is why* no illumination gate is
+applied. The assumption is a selling point on the surface instead of a comment in
+the engine. A daylight gate was deliberately NOT added: it would move every
+access interval, gap statistic, sweep point and golden.
+
+**M1. Stale spherical-Earth claims contradicted the code — in two places.** The
+plan's closed-decision list still said "Spherical Earth geometry, R = 6371 km.
+Not WGS84", and `keplerJ2.ts` contradicted *itself*: its header said the sphere
+"stands" while `geodeticToEcef` in the same file said WGS84 is AUTHORITATIVE and
+sets every access interval. The header was the more dangerous, being what anyone
+reads before touching the physics, and its parenthetical was inverted — it
+claimed derived periods differ from textbook values on the equatorial datum when
+the test shows they match it.
+
+Both now record WGS84 as authoritative and cite the evidence against restoring
+the sphere (periods 94.62 / 96.69 / 98.77 min at 500 / 600 / 700 km, plus horizon
+angles and swath widths — three independent quantities agreeing). The J₂
+reference radius is recorded as a **separate** decision that was already
+equatorial before R28. The one legitimate surviving use of the 6371 km sphere —
+the camera standoff in `useRevisitScene.ts`, read by nothing downstream — is
+called out explicitly so it is not "cleaned up" later.
+
+**M2. `presets.ts` argued both sides.** Its header documented the default
+reference as the `12 × 8` shell with "only the per-plane population scaled down",
+thirty lines above `DEFAULT_REFERENCE` = the full 12 × 48 HLD profile. DECISION 1
+now describes the HLD profile and records why R29 replaced the scaled shell.
+
+Validation: typecheck, lint, 1985 unit tests, `revisit-p1` e2e 20 passed / 6
+skipped, production build. Two test contracts were realigned to the IR wording.
+
+**M3, m2 and m4 followed the same day.**
+
+*M3.* `fovPresetNameFor` identified a preset by its half-angles at 1e-6° — an
+exact-equality test — so ANY altitude change dropped the label to "Custom FOV",
+including the 1 km move that selecting the measured shell causes. It now
+identifies by **swath within 1 %**, which is what actually defines a preset, while
+clocking, biases, an elevation mask and a non-circular cone still defeat the match
+exactly. No FOV changed, so no reported number changed.
+
+Accepted and documented: because the label is derived from the current swath, a
+*large* altitude change can re-identify a cone as a different preset (the 700 km
+cone from 1200 km yields 348.5 km at 600 km, so it reads Narrow). Truthful about
+what the instrument now does, and every option label carries its swath. 1200 →
+1180 km already reports Custom, so deliberate moves are still caught.
+
+*m2.* The business-comparison row narrated its own unresolved state on the surface
+a customer reads first. The two nulls were not equivalent: a missing 1-payload
+baseline is an async transient and is now omitted rather than described, while a
+missing target count is a real answer and is stated as `beyond the tested payload
+range` once the sweep has finished looking. The row renders only with at least one
+resolved fact.
+
+*m4.* A restored scenario always reads back as CUSTOM — the fit is not persisted
+and cannot be re-asserted without re-measuring. The evidence line claimed
+`Hand-entered · no external provenance`, replacing one lost fact with a false one.
+It now reads `Restored specification · provenance not recorded` after a restore,
+and reverts to `Hand-entered` the moment the reference is edited.
+
+Verified in the browser on every path: IR labels, preset surviving the measured
+shell, the comparison row, and both provenance states.
+
+Still open from the audit, none urgent: **F1** (a resolution figure — the one
+addition worth making), **m1** (asymmetric access-duration convention; fix it
+before promoting look duration), **m3** (inert badge branch), **F2**/**F3**.
+
 ---
 
 ## Restart instructions

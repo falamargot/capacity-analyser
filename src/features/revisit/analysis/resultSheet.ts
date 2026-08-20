@@ -28,7 +28,7 @@ export function buildRevisitResultSheet(
     const payloadCount = analysis.payloadCount;
     const planes = scenario.reference.planes / scenario.selection.planeStride;
     const perPlane = scenario.reference.satsPerPlane / scenario.selection.satStride;
-    const swathQualifier = 'Illustrative EO/IR geometry — not an instrument datasheet';
+    const swathQualifier = 'Illustrative thermal-IR geometry — not an instrument datasheet';
     return {
         title: 'REVISIT mission result sheet',
         generatedAtIso: generatedAt.toISOString(),
@@ -106,7 +106,7 @@ export function buildAreaResultSheet(
             `${analysis.neverInViewCount} never-observed and ${analysis.unmeasuredCount} unmeasured cells in the analysis window.`,
             'Regular latitude/longitude grid; the mean is over cells and is not area-weighted.',
             'Parametric mission-analysis model; not an operational scheduling or tasking tool.',
-            'Illustrative EO/IR geometry — not an instrument datasheet.',
+            'Illustrative thermal-IR geometry — not an instrument datasheet.',
         ],
     };
 }

@@ -24,10 +24,26 @@ Closed decisions that must not be relitigated:
 
 - Analytic Kepler + J2 secular. No `satellite.js`, no `satrec`, no SGP4 inside
   `src/features/revisit/`.
-- Spherical Earth **geometry**, R = 6371 km (`EARTH_RADIUS_KM`). Not WGS84.
-  This does not extend to the J₂ term, which must use the equatorial radius
-  `J2_REFERENCE_RADIUS_KM` = 6378.1363 km — that radius is part of J₂'s
-  definition, and substituting 6371 km was a units error R4 found and fixed.
+- **WGS84 ellipsoid** for coverage geometry and the altitude datum, altitude
+  being height above the equatorial radius 6378.137 km. `geodeticToEcef` in
+  `propagation/keplerJ2.ts` is the authoritative ground position and sets every
+  reported access interval and revisit KPI.
+
+  This line previously recorded the opposite — "spherical Earth geometry,
+  R = 6371 km, not WGS84" — which **R28 superseded**. Do not restore the sphere:
+  on the equatorial datum the derived orbital periods land on the published
+  figures (94.62 / 96.69 / 98.77 min at 500 / 600 / 700 km), and with the horizon
+  angles and swath widths that is three independent quantities from one source
+  table agreeing. `docs/SPATIAL_PHYSICS_AUDIT.md` corrects the earlier R1 finding
+  that recorded the opposite.
+
+  The 6371 km sphere (`EARTH_RADIUS_KM`) legitimately survives in exactly one
+  place: the camera standoff distance in `render/useRevisitScene.ts`, which
+  nothing downstream reads.
+- The J₂ term uses the equatorial radius `J2_REFERENCE_RADIUS_KM` = 6378.1363 km.
+  That radius is part of J₂'s definition — substituting 6371 km was a units error
+  R4 found and fixed — so it is a decision separate from the geometry datum above,
+  and it was already equatorial before R28.
 - Headline metric is **maximum gap**, boundary-truncated gaps discarded,
   default window 72 h.
 - Isolated slice under `src/features/revisit/`, mounted from a root shell.

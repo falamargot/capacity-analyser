@@ -550,8 +550,11 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                     </div>
                     {onInstrumentPresetChange && (
                         <label className="flex min-w-[160px] flex-col gap-0.5 md:min-w-[190px]">
-                            <span className="text-[8px] font-black uppercase tracking-[0.12em] text-amber-200/70">
-                                EO/IR swath
+                            <span
+                                className="text-[8px] font-black uppercase tracking-[0.12em] text-amber-200/70"
+                                title="Thermal-infrared imager. It images day and night, which is why no solar-illumination gating is applied to the access windows."
+                            >
+                                IR swath
                             </span>
                             <select
                                 aria-label="Instrument preset"
@@ -588,7 +591,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                     {spreadNote}
                 </div>
                 <div className="text-[8px] leading-3 text-amber-200/70">
-                    {presetName ? 'Illustrative EO/IR preset · not an instrument datasheet' : `Custom FOV · approx. ${swathKm} km swath`}
+                    {presetName ? 'Illustrative IR preset · not an instrument datasheet' : `Custom FOV · approx. ${swathKm} km swath`}
                 </div>
             </Panel>
 

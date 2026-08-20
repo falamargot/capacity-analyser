@@ -17,10 +17,22 @@
  * degrades Walker geometry over days. `satellite.js` must never be imported
  * anywhere under `src/features/revisit/`.
  *
- * Earth is a sphere at R = 6371 km (ADR-001 §2), consistent with the rest of
- * this codebase's coverage geometry. Note this makes derived figures such as
- * orbital period differ by ~0.15 % from textbook values computed with the WGS84
- * equatorial radius — see `__tests__/keplerJ2.test.ts`.
+ * EARTH SHAPE — R28 SUPERSEDES ADR-001 §2. Coverage geometry and the altitude
+ * datum are the WGS84 ellipsoid, altitude being height above the equatorial
+ * radius 6378.137 km. `geodeticToEcef` below is the authoritative ground
+ * position and sets every reported access interval and revisit KPI.
+ *
+ * ADR-001 §2's spherical R = 6371 km no longer applies here. Do not restore it:
+ * on the equatorial datum the derived orbital periods land on the published
+ * figures (94.62 / 96.69 / 98.77 min at 500 / 600 / 700 km), and together with
+ * the horizon angles and swath widths that is three independent quantities from
+ * one source table agreeing — the 6371 km model was the outlier. See
+ * `__tests__/keplerJ2.test.ts` and `docs/SPATIAL_PHYSICS_AUDIT.md`, which
+ * corrects the earlier R1 finding that recorded the opposite.
+ *
+ * The 6371 km sphere survives in this module for exactly one thing — the camera
+ * standoff distance in `render/useRevisitScene.ts`, which nothing downstream
+ * reads. That use is deliberate and may stay.
  *
  * `propagate()` is the interface boundary: a real-ephemeris propagator can be
  * added later behind the same signature without touching callers.
@@ -44,12 +56,15 @@ export const J2 = 1.08262668e-3;
 /**
  * Reference radius of the J₂ term, km — the *equatorial* radius, not the mean.
  *
- * ADR-001 §2 fixes the coverage **geometry** sphere at `EARTH_RADIUS_KM` =
- * 6371 km, and that decision stands. It does not extend to here: J₂ is defined
- * by the geopotential expansion Σ Jₙ(R_eq/r)ⁿ Pₙ, so R_eq is part of the
- * constant's definition. Substituting 6371 scales every J₂-driven rate by
- * (6371/6378.1363)² = 0.99776 — 0.22 % low — which is a units error, not a
- * modelling choice.
+ * This value is required by J₂'s own definition, independently of whatever
+ * radius the coverage geometry uses: J₂ comes from the geopotential expansion
+ * Σ Jₙ(R_eq/r)ⁿ Pₙ, so R_eq is part of the constant. Substituting 6371 scales
+ * every J₂-driven rate by (6371/6378.1363)² = 0.99776 — 0.22 % low — which is a
+ * units error, not a modelling choice.
+ *
+ * So this radius was already equatorial before R28 made the coverage geometry
+ * equatorial too (R4 fixed it here first). The two are now consistent, but they
+ * are separate decisions and neither one licenses changing the other.
  *
  * Cross-checked against NASA GMAT R2026a (JGM2), which uses this same value.
  * See `src/utils/__tests__/revisitGmatCrossCheck.test.ts` and R4 in
