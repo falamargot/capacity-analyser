@@ -22,7 +22,8 @@
  */
 
 import type { PayloadSweepResult } from '../analysis/payloadSweep';
-import type { SubConstellationSpec } from './types';
+import { enumerateLadder } from './subConstellation';
+import type { SubConstellationSpec, WalkerSpec } from './types';
 
 /**
  * Where the current selection came from.
@@ -31,6 +32,45 @@ import type { SubConstellationSpec } from './types';
  * `manual` — set explicitly in the Advanced drawer.
  */
 export type SelectionSource = 'auto' | 'manual';
+
+/**
+ * The selection to adopt at a given payload count.
+ *
+ * Takes the configuration the sweep MEASURED as best at that count, not the
+ * ladder's default ordering: `enumerateLadder` breaks ties by descending plane
+ * count, which is a deterministic default and NOT a claim that spread always
+ * wins — measurement says otherwise. The ladder is the fallback only while the
+ * sweep is still in flight.
+ *
+ * `planeShift` is a separate engineering choice and is carried across
+ * unchanged; it is not part of what a payload count determines.
+ *
+ * Lives here, beside `reconcileToMeasuredBest`, because the payload slider and
+ * `Apply recommended configuration` must not drift from each other or from the
+ * reconciliation: a control that moved the count while keeping an arbitrary
+ * topology would let the card promise a number the headline does not deliver
+ * (plan, Programme 7A).
+ *
+ * Returns `null` when the count is not on the ladder at all.
+ */
+export function selectionForPayloadCount(
+    current: SubConstellationSpec,
+    reference: Pick<WalkerSpec, 'planes' | 'satsPerPlane'>,
+    payloadCount: number,
+    sweep: PayloadSweepResult | null,
+): SubConstellationSpec | null {
+    const measured = sweep?.points.find((point) => point.payloadCount === payloadCount);
+    if (measured) return { ...measured.best.selection, planeShift: current.planeShift };
+
+    const rung = enumerateLadder(reference.planes, reference.satsPerPlane)
+        .find((entry) => entry.payloadCount === payloadCount);
+    if (!rung) return null;
+    return {
+        planeStride: rung.planeStride,
+        satStride: rung.satStride,
+        planeShift: current.planeShift,
+    };
+}
 
 export function sameSelection(
     a: SubConstellationSpec, b: SubConstellationSpec

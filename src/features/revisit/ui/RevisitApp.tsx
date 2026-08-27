@@ -19,30 +19,33 @@ import {
 } from '../../../contexts/SimulationClockContext';
 import { RevisitGlobe } from '../render/RevisitGlobe';
 import { useRevisitAnalysis } from '../hooks/useRevisitAnalysis';
-import { useRevisitSweep } from '../hooks/useRevisitSweep';
+import {
+    useRevisitSweep,
+} from '../hooks/useRevisitSweep';
 import { explainRevisit } from '../analysis/explainRevisit';
 import { ValueCurve } from './ValueCurve';
 import { WhyThisRevisit } from './WhyThisRevisit';
-import { constellationFor } from '../analysis/runScenario';
+import { constellationFor, type RevisitAnalysis } from '../analysis/runScenario';
 import {
-    enumerateLadder, ladderPayloadCounts, reconcileSelection, selectedSatelliteIds,
-    validateSelection,
+    ladderPayloadCounts, reconcileSelection, selectedSatelliteIds, validateSelection,
 } from '../domain/subConstellation';
 import { validateWalkerSpec } from '../domain/walker';
 import {
-    DEFAULT_PROFILE, referenceModeFor, referenceProfileFor, type ReferenceMode,
+    DEFAULT_PROFILE, fleetSubject, referenceModeFor, referenceProfileFor,
+    type ReferenceMode,
 } from '../domain/referenceProfiles';
 import {
-    reconcileToMeasuredBest, sameSelection, selectionStatus, type SelectionSource,
+    reconcileToMeasuredBest, sameSelection, selectionForPayloadCount, selectionStatus,
+    type SelectionSource,
 } from '../domain/selectionReconcile';
 import { useOneWebCalibration } from '../hooks/useOneWebCalibration';
 import { useAreaAnalysis } from '../hooks/useAreaAnalysis';
 import {
-    MAX_AREA_VERTICES, recommendedAreaGridSpacing, validateArea, type AreaTarget,
+    areaAnalysisKey, MAX_AREA_VERTICES, recommendedAreaGridSpacing, validateArea, type AreaTarget,
 } from '../domain/areaTarget';
 import {
-    MAX_SECONDARY_TARGETS, REFERENCE_POINT_ID,
-    type RevisitAnalysisContext, type RevisitComparisonPoint,
+    AREA_TARGET_ID, MAX_SECONDARY_TARGETS, REFERENCE_POINT_ID,
+    type RevisitAnalysisContext, type RevisitAreaTargetRole, type RevisitComparisonPoint,
 } from '../domain/analysisTargets';
 import {
     accessIntervalsCsv, areaAnalysisCsv, csvFilename, payloadSweepCsv,
@@ -50,17 +53,22 @@ import {
 import { downloadCsv } from './downloadCsv';
 import { AreaDistributionPanel, AreaResultSummary } from './AreaResultsPanels';
 import {
-    TARGET_PRESETS, defaultScenario, fovPresets, type FovPresetName,
+    TARGET_PRESETS, defaultScenario, fovPresets, swathKmForFov, type FovPresetName,
 } from '../domain/presets';
 import { executiveEnvelopePoints } from '../analysis/executiveEnvelope';
 import type { PointTarget, RevisitScenario, WalkerSpec } from '../domain/types';
 import type { RevisitSceneOptions } from '../render/useRevisitScene';
 import { RevisitHeader } from './RevisitHeader';
 import { RevisitKpiPanel } from './RevisitKpiPanel';
-import { TargetComparisonTable } from './TargetComparisonTable';
+import { CustomerResultCard, type CustomerSizing } from './CustomerResultCard';
+import { StageControls } from './StageControls';
+import {
+    PresentationNotice, PresentationReadiness,
+    type NoticeSeverity, type ReadinessSignal,
+} from './PresentationSafety';
 import { ScenarioWorkspace } from './ScenarioWorkspace';
 import { ScenarioWorkspaceDrawer } from './ScenarioWorkspaceDrawer';
-import { CoverageRibbon } from './CoverageRibbon';
+import { CoverageRibbon, type CoverageRibbonTarget } from './CoverageRibbon';
 import { MobileResultStrip } from './MobileResultStrip';
 import { REVISIT_PANEL } from './revisitTheme';
 import { formatGap } from '../analysis/gapStatistics';
@@ -76,6 +84,7 @@ import type { SavedRevisitScenario } from '../state/revisitSavedScenarios';
 import { useTargetComparison } from '../hooks/useTargetComparison';
 import { buildAreaResultSheet, buildRevisitResultSheet } from '../analysis/resultSheet';
 import { downloadRevisitResultSheet } from './downloadResultSheet';
+import { recommendationContextKey } from '../state/recommendationUndo';
 
 /** The customer requirement the verdict badge and the value curve compare against. */
 const DEFAULT_REQUIREMENT_MS = 2 * 3600_000;
@@ -86,17 +95,35 @@ const REQUIREMENT_CHOICES_H = [0.5, 1, 2, 3, 6, 12, 24];
 /** Scene layers plus the camera behaviour the user can switch. */
 interface DisplayOptions extends RevisitSceneOptions, RevisitDisplayOptions {}
 
-type MobileAnalysisPanel = 'summary' | 'curve' | 'details';
+/**
+ * The one panel that is open, if any (Programme 7B).
+ *
+ * ── WHY THIS IS ONE STATE AND NOT FOUR BOOLEANS ─────────────────────────────
+ * It used to be four, and two of them lived in different components:
+ * `mobileSetupOpen` inside `RevisitHeader`, `mobileSheet`, `stageMenuOpen` and
+ * `scenarioWorkspaceOpen` here. Nothing could enforce exclusivity across that
+ * boundary, so on a phone the setup triad, the analysis sheet, the stage menu
+ * and the workspace drawer could all be open at once, stacked over a globe
+ * reduced to nothing — mid-demonstration, in front of a customer, with no
+ * single control that returned to the globe.
+ *
+ * One authority makes exclusivity structural rather than a rule to remember,
+ * and `none` is always the way back to the globe.
+ *
+ * It is deliberately NOT branched on viewport. Above `md` the setup triad, the
+ * stage toolbar and the analysis column are laid out in normal flow and forced
+ * visible by CSS (`md:flex`, `md:static`), so the value is simply ignored
+ * there; only the workspace drawer reads it at every size, and it is modal at
+ * every size. Branching in JS would mean two behaviours to keep in step.
+ */
+type CompactPanel = 'none' | 'setup' | 'analysis' | 'workspace';
 
 /**
- * The analysis column is a sheet on compact viewports.
- *
- * `closed` is the default: the strip above the ribbon still carries the verdict
- * and the worst-case gap, so closing the sheet costs no answer — it buys back
- * the globe, which was otherwise reduced to a 73 px band no one could rotate
- * (mobile UX plan §2).
+ * How tall the analysis sheet is when it is the open panel. Orthogonal to
+ * WHICH panel is open, which is why it is not folded into `CompactPanel`:
+ * collapsing to `half` must not close the sheet.
  */
-type MobileSheetState = 'closed' | 'half' | 'full';
+type AnalysisSheetSize = 'half' | 'full';
 
 const TOGGLES: Array<{ key: keyof DisplayOptions; label: string; hint?: string }> = [
     { key: 'showOrbits', label: 'Orbits' },
@@ -157,6 +184,21 @@ function formatCoordinate(latDeg: number, lonDeg: number): string {
     return `${lat} ${lon}`;
 }
 
+/**
+ * What `Return to previous configuration` restores.
+ *
+ * The payload count is not stored: it is derived from the selection
+ * (`selectedSatelliteIds(...).size`), so restoring the selection restores the
+ * count by construction and the two can never disagree. Component state, not
+ * scenario state — a restored session offers no undo, which is correct.
+ */
+interface PreviousConfiguration {
+    selection: RevisitScenario['selection'];
+    selectionSource: SelectionSource;
+    /** Business question for which the recommendation was applied. */
+    contextKey: string;
+}
+
 interface RevisitAppProps {
     /**
      * Return to the main application. REVISIT unmounts `<App/>` entirely, so the
@@ -187,29 +229,73 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     const [options, setOptions] = useState<DisplayOptions>(
         () => restoredSession?.options ?? defaultDisplayOptions()
     );
-    const [presenterMode, setPresenterMode] = useState(true);
     const [resetRevision, setResetRevision] = useState(0);
-    const [mobileAnalysisPanel, setMobileAnalysisPanel] = useState<MobileAnalysisPanel>('summary');
-    const [mobileSheet, setMobileSheet] = useState<MobileSheetState>('closed');
-    /** Compact viewports collapse the stage toolbar behind one button. */
-    const [stageMenuOpen, setStageMenuOpen] = useState(false);
+    /*
+     * `none` is the default: the strip above the ribbon still carries the
+     * verdict and the worst-case gap, so opening no panel costs no answer — it
+     * buys back the globe, which was otherwise reduced to a 73 px band no one
+     * could rotate (mobile UX plan §2).
+     */
+    const [compactPanel, setCompactPanel] = useState<CompactPanel>('none');
+    const [analysisSheetSize, setAnalysisSheetSize] = useState<AnalysisSheetSize>('half');
+    /** Open one panel, which closes whichever other one was open. */
+    const showPanel = useCallback((panel: CompactPanel) => setCompactPanel(panel), []);
+    /** Toggle a panel, falling back to the globe. */
+    const togglePanel = useCallback(
+        (panel: CompactPanel) => setCompactPanel((current) => current === panel ? 'none' : panel),
+        []
+    );
     const [exportError, setExportError] = useState<string | null>(null);
-    const [customArea, setCustomArea] = useState<AreaTarget | null>(
-        () => restoredSession?.customArea ?? null
+    // A REVISIT entry starts as an explicit question-building state. The
+    // engine still needs its fallback point inside `scenario`, but that point
+    // is not presented as a selected customer target until the user adds or
+    // places one. Saved scenarios can restore their targets explicitly through
+    // the workspace after launch.
+    /*
+     * Restored, not reset. The flag was written into the session snapshot and
+     * never read back, so a REVISIT → Engineering → REVISIT round trip silently
+     * dropped the analysis: the scenario, comparison points and area all came
+     * back, but the module reopened on "no target selected" as if nothing had
+     * been chosen. Older snapshots have no flag and default to `false`, which
+     * is the honest reading of a session that predates it.
+     */
+    const [hasReferenceTarget, setHasReferenceTarget] = useState(
+        restoredSession?.hasReferenceTarget ?? false
     );
+    const [areaTargetRole, setAreaTargetRole] = useState<RevisitAreaTargetRole>(
+        'REFERENCE'
+    );
+    const [areaTargets, setAreaTargets] = useState<Record<RevisitAreaTargetRole, AreaTarget | null>>(
+        { REFERENCE: null, COMPARISON: null }
+    );
+    const customArea = areaTargets[areaTargetRole];
+    const referenceArea = areaTargets.REFERENCE;
+    const comparisonArea = areaTargets.COMPARISON;
+    const setCustomArea = useCallback<React.Dispatch<React.SetStateAction<AreaTarget | null>>>((next) => {
+        setAreaTargets((current) => {
+            const value = typeof next === 'function' ? next(current[areaTargetRole]) : next;
+            return { ...current, [areaTargetRole]: value };
+        });
+    }, [areaTargetRole]);
     const [isDrawingArea, setIsDrawingArea] = useState(false);
+    const areaBeforeDrawingRef = useRef<AreaTarget | null>(null);
     const [analysisContext, setAnalysisContext] = useState<RevisitAnalysisContext>(
-        () => restoredSession?.analysisContext ?? 'POINTS'
+        'POINTS'
     );
-    const [comparisonPoints, setComparisonPoints] = useState<RevisitComparisonPoint[]>(
-        () => restoredSession?.comparisonPoints ?? []
-    );
+    const [comparisonPoints, setComparisonPoints] = useState<RevisitComparisonPoint[]>([]);
     const [pendingComparisonPointIds, setPendingComparisonPointIds] = useState<string[]>([]);
-    const [selectedPointId, setSelectedPointId] = useState<typeof REFERENCE_POINT_ID | string>(REFERENCE_POINT_ID);
-    const [scenarioWorkspaceOpen, setScenarioWorkspaceOpen] = useState(false);
+    const [secondaryTargetOrder, setSecondaryTargetOrder] = useState<string[]>([]);
+    const [selectedPointId, setSelectedPointId] = useState<typeof REFERENCE_POINT_ID | string>(
+        REFERENCE_POINT_ID
+    );
     const analysisColumnRef = useRef<HTMLElement | null>(null);
 
     const [requirementMs, setRequirementMs] = useState(restoredSession?.requirementMs ?? DEFAULT_REQUIREMENT_MS);
+    const persistedSelectedPointId = selectedPointId === REFERENCE_POINT_ID
+        || (secondaryTargetOrder.includes(selectedPointId)
+            && comparisonPoints.some((point) => point.id === selectedPointId))
+        ? selectedPointId
+        : REFERENCE_POINT_ID;
     /**
      * Where the current selection came from. The preset counts as `auto`, so the
      * opening scenario reconciles to the measured best as soon as the sweep
@@ -217,15 +303,33 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
      * different constellations.
      */
     const [selectionSource, setSelectionSource] = useState<SelectionSource>(restoredSession?.selectionSource ?? 'auto');
+    /**
+     * Set by `Apply recommended configuration`, and dropped as soon as the
+     * configuration moves by any other path — so undo can never resurrect a
+     * configuration from several interactions back, which would be worse than
+     * having no undo at all in front of a customer.
+     */
+    const [previousConfiguration, setPreviousConfiguration] = useState<PreviousConfiguration | null>(null);
+    /**
+     * P7E: who the scenario is for. Free text, persisted in the session
+     * snapshot and printed on the customer summary, so a salesperson types it
+     * once rather than renaming the PDF afterwards.
+     */
+    const [opportunity, setOpportunity] = useState(restoredSession?.opportunity ?? '');
 
     const sessionRef = useRef({
-        scenario, options, requirementMs, selectionSource, customArea,
-        analysisContext, comparisonPoints, referenceRestored: false,
+        scenario, options, requirementMs, selectionSource, hasReferenceTarget,
+        customArea, referenceArea, comparisonArea, areaTargetRole,
+        analysisContext, comparisonPoints, secondaryTargetOrder,
+        selectedPointId: persistedSelectedPointId, referenceRestored: false,
+        opportunity,
     });
     sessionRef.current = {
         ...sessionRef.current,
-        scenario, options, requirementMs, selectionSource, customArea,
-        analysisContext, comparisonPoints,
+        scenario, options, requirementMs, selectionSource, hasReferenceTarget,
+        customArea, referenceArea, comparisonArea, areaTargetRole,
+        analysisContext, comparisonPoints, secondaryTargetOrder,
+        selectedPointId: persistedSelectedPointId, opportunity,
     };
     useEffect(() => () => {
         writeRevisitSessionSnapshot({
@@ -236,33 +340,99 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
 
     const { analysis, isComputing, error, isMainThreadFallback } = useRevisitAnalysis(scenario);
     // Its own worker, and keyed so the payload slider never re-triggers it.
-    const { sweep, isComputing: isSweeping, error: sweepError } = useRevisitSweep(scenario);
+    const {
+        sweep: referenceSweep,
+        isComputing: isReferenceSweeping,
+        error: referenceSweepError,
+        isMainThreadFallback: isReferenceSweepFallback,
+        retry: retryReferenceSweep,
+    } = useRevisitSweep(scenario, hasReferenceTarget && !referenceArea, 'Reference target');
+    const orderedComparisonPoints = useMemo(() => secondaryTargetOrder
+        .filter((id) => id !== AREA_TARGET_ID)
+        .map((id) => comparisonPoints.find((point) => point.id === id))
+        .filter((point): point is RevisitComparisonPoint => Boolean(point)),
+    [secondaryTargetOrder, comparisonPoints]);
     const comparisonTargets = useMemo(
-        () => [scenario.target, ...comparisonPoints.map((point) => point.target)],
-        [scenario.target, comparisonPoints]
+        () => hasReferenceTarget
+            ? [scenario.target, ...orderedComparisonPoints.map((point) => point.target)]
+            : [],
+        [hasReferenceTarget, scenario.target, orderedComparisonPoints]
     );
     const targetComparison = useTargetComparison(
         scenario, comparisonTargets,
-        analysisContext === 'POINTS' && comparisonPoints.length > 0,
+        orderedComparisonPoints.length > 0,
     );
-    const pointTimelineLanes = useMemo(() => [{
-        id: REFERENCE_POINT_ID,
-        label: `Reference · ${scenario.target.name}`,
-        name: scenario.target.name,
-        intervals: analysis?.intervals ?? [],
-        statistics: analysis?.statistics ?? null,
-        selected: selectedPointId === REFERENCE_POINT_ID,
-    }, ...comparisonPoints.map((point, index) => {
-        const row = targetComparison.rows?.[index + 1];
+
+    /**
+     * Reference and inspected point are deliberately independent. The former
+     * remains the comparison benchmark; the latter owns the sidebar, curve and
+     * exports. A pending row has no target and therefore no publishable result.
+     */
+    const selectedComparisonPoint = selectedPointId === REFERENCE_POINT_ID
+        ? null
+        : orderedComparisonPoints.find((point) => point.id === selectedPointId) ?? null;
+    const inspectedPoint = selectedPointId === REFERENCE_POINT_ID
+        ? hasReferenceTarget && !referenceArea ? scenario.target : null
+        : selectedComparisonPoint?.target ?? null;
+    const inspectedPointRole = selectedPointId === REFERENCE_POINT_ID
+        ? 'Reference target'
+        : 'Comparison target';
+    const inspectedScenario = useMemo<RevisitScenario>(
+        () => inspectedPoint ? { ...scenario, target: inspectedPoint } : scenario,
+        [scenario, inspectedPoint]
+    );
+    const selectedComparisonRow = selectedComparisonPoint
+        ? targetComparison.rows?.[orderedComparisonPoints.findIndex((point) => point.id === selectedComparisonPoint.id) + 1] ?? null
+        : null;
+    const inspectedAnalysis = useMemo<RevisitAnalysis | null>(() => {
+        if (selectedPointId === REFERENCE_POINT_ID) return inspectedPoint ? analysis : null;
+        if (!selectedComparisonRow || !inspectedPoint) return null;
         return {
-            id: point.id,
-            label: `Compare ${index + 1} · ${point.target.name}`,
-            name: point.target.name,
-            intervals: row?.intervals ?? [],
-            statistics: row?.statistics ?? null,
-            selected: selectedPointId === point.id,
+            scenario: inspectedScenario,
+            payloadCount: selectedComparisonRow.payloadCount,
+            // The topology is common to every compared target. Reuse this
+            // bounded id list instead of cloning satellite state per point.
+            selectedIds: analysis?.selectedIds ?? [],
+            intervals: selectedComparisonRow.intervals,
+            statistics: selectedComparisonRow.statistics,
+            warnings: selectedComparisonRow.warnings,
         };
-    })], [scenario.target.name, analysis, comparisonPoints, targetComparison.rows, selectedPointId]);
+    }, [selectedPointId, analysis, selectedComparisonRow, inspectedPoint, inspectedScenario]);
+    const inspectedIsComputing = selectedPointId === REFERENCE_POINT_ID
+        ? Boolean(inspectedPoint) && isComputing
+        : Boolean(inspectedPoint) && (targetComparison.isComputing || !selectedComparisonRow);
+    const inspectedError = selectedPointId === REFERENCE_POINT_ID
+        ? error
+        : targetComparison.error;
+
+    // Comparison curves are lazy: selecting the point subscribes to one sweep.
+    // Both instances now read the same scheduler, so a comparison target at the
+    // reference's coordinates is served from the curve already measured rather
+    // than starting a second identical run. The reference sweep stays a separate
+    // subscription because it owns automatic topology reconciliation.
+    const secondarySweepState = useRevisitSweep(
+        inspectedScenario,
+        analysisContext === 'POINTS'
+            && selectedPointId !== REFERENCE_POINT_ID
+            && Boolean(inspectedPoint),
+        'Comparison target',
+    );
+    const sweep = selectedPointId === REFERENCE_POINT_ID
+        ? inspectedPoint ? referenceSweep : null
+        : inspectedPoint ? secondarySweepState.sweep : null;
+    const isSweeping = selectedPointId === REFERENCE_POINT_ID
+        ? Boolean(inspectedPoint) && isReferenceSweeping
+        : inspectedPoint ? secondarySweepState.isComputing : false;
+    const sweepError = selectedPointId === REFERENCE_POINT_ID
+        ? inspectedPoint ? referenceSweepError : null
+        : inspectedPoint ? secondarySweepState.error : null;
+    const retrySweep = selectedPointId === REFERENCE_POINT_ID
+        ? retryReferenceSweep
+        : secondarySweepState.retry;
+    const pointMainThreadFallback = isMainThreadFallback
+        || isReferenceSweepFallback
+        || targetComparison.isMainThreadFallback
+        || secondarySweepState.isMainThreadFallback;
 
     const renderValidation = useMemo(() => {
         const walker = validateWalkerSpec(scenario.reference);
@@ -324,48 +494,28 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     const currentPayloadCount = selectedIds.size;
 
     /**
-     * Move the slider: take the configuration the sweep MEASURED as best at the
-     * requested payload count.
-     *
-     * Not the ladder's default ordering. `enumerateLadder` breaks ties by
-     * descending plane count, which is a deterministic default and NOT a claim
-     * that spread always wins — measurement says otherwise. At i = 87.9° with
-     * London well below the turning latitude, 4 planes beat 1 by ~69%; at
-     * i = 55°, with London just under the turning latitude of 55°, one plane
-     * with dense in-plane spacing beat two planes by the same order.
-     *
-     * Using the heuristic here while the value curve plots the measured best
-     * would let the chart promise a number the headline does not deliver — the
-     * kind of disagreement that ends a demo. Falls back to the ladder only while
-     * the sweep is still in flight.
+     * The sweep the slider and `Apply recommended configuration` read to adopt a
+     * MEASURED topology rather than the ladder's default ordering — see
+     * `selectionForPayloadCount`, which both go through. Held in a ref so a
+     * landing sweep does not re-create either callback: they are passed into the
+     * header and the value curve, which are expensive to reconcile.
      */
-    const sweepRef = useRef(sweep);
-    sweepRef.current = sweep;
+    const activeSweepRef = useRef(sweep);
+    activeSweepRef.current = sweep;
+    const selectedPointIdRef = useRef(selectedPointId);
+    selectedPointIdRef.current = selectedPointId;
 
     const handlePayloadCountChange = useCallback((count: number) => {
-        setSelectionSource('auto');
+        // Choosing a topology from a secondary target's curve is an explicit
+        // optimisation choice. Mark it manual so the reference sweep does not
+        // immediately reconcile it back to the reference target's winner.
+        setSelectionSource(selectedPointIdRef.current === REFERENCE_POINT_ID ? 'auto' : 'manual');
+        setPreviousConfiguration(null);
         setScenario((current) => {
-            const measured = sweepRef.current?.points.find((p) => p.payloadCount === count);
-            if (measured) {
-                return {
-                    ...current,
-                    selection: {
-                        ...measured.best.selection,
-                        planeShift: current.selection.planeShift,
-                    },
-                };
-            }
-            const rung = enumerateLadder(current.reference.planes, current.reference.satsPerPlane)
-                .find((e) => e.payloadCount === count);
-            if (!rung) return current;
-            return {
-                ...current,
-                selection: {
-                    planeStride: rung.planeStride,
-                    satStride: rung.satStride,
-                    planeShift: current.selection.planeShift,
-                },
-            };
+            const selection = selectionForPayloadCount(
+                current.selection, current.reference, count, activeSweepRef.current
+            );
+            return selection ? { ...current, selection } : current;
         });
     }, []);
 
@@ -377,7 +527,10 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
      */
     const handleAdvancedChange = useCallback((next: RevisitScenario) => {
         setScenario((current) => {
-            if (!sameSelection(current.selection, next.selection)) setSelectionSource('manual');
+            if (!sameSelection(current.selection, next.selection)) {
+                setSelectionSource('manual');
+                setPreviousConfiguration(null);
+            }
             // Once the reference itself is touched, the values are hand-entered
             // whatever they were restored from (m4).
             if (current.reference !== next.reference) setReferenceRestored(false);
@@ -388,6 +541,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     const handleTargetChange = useCallback((name: string) => {
         const target = TARGET_PRESETS.find((t) => t.name === name);
         if (target) {
+            setHasReferenceTarget(true);
             setScenario((current) => ({ ...current, target }));
             setAnalysisContext('POINTS');
             setSelectedPointId(REFERENCE_POINT_ID);
@@ -401,6 +555,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
      * the value curve's sentence and in the CSV filename like any other target.
      */
     const handlePickTarget = useCallback((latDeg: number, lonDeg: number, name?: string) => {
+        setHasReferenceTarget(true);
         setScenario((current) => ({
             ...current,
             target: {
@@ -424,33 +579,75 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         setComparisonPoints((current) => {
             const exists = current.some((point) => point.id === id);
             if (exists) return current.map((point) => point.id === id ? { ...point, target } : point);
-            return current.length < MAX_SECONDARY_TARGETS ? [...current, { id, target }] : current;
+            return secondaryTargetOrder.includes(id) || secondaryTargetOrder.length < MAX_SECONDARY_TARGETS
+                ? [...current, { id, target }]
+                : current;
         });
         setPendingComparisonPointIds((current) => current.filter((candidate) => candidate !== id));
         setSelectedPointId(id);
         setAnalysisContext('POINTS');
-    }, []);
+    }, [secondaryTargetOrder]);
 
     const handleAddComparisonPoint = useCallback((latDeg: number, lonDeg: number) => {
-        if (comparisonPoints.length + pendingComparisonPointIds.length >= MAX_SECONDARY_TARGETS) return;
+        if (!hasReferenceTarget) return;
+        // Shift-click is both creation and repositioning. Once the comparison
+        // point exists, subsequent Shift-clicks move that same target instead
+        // of silently doing nothing at the one-comparison limit.
+        const existingPointId = secondaryTargetOrder.find((id) => id !== AREA_TARGET_ID);
+        if (existingPointId) {
+            upsertComparisonPoint(existingPointId, {
+                kind: 'POINT',
+                name: formatCoordinate(latDeg, lonDeg),
+                latDeg,
+                lonDeg,
+            });
+            return;
+        }
+        if (secondaryTargetOrder.length >= MAX_SECONDARY_TARGETS && pendingComparisonPointIds.length === 0) return;
         const id = pendingComparisonPointIds[0] ?? crypto.randomUUID();
+        setSecondaryTargetOrder((current) => current.includes(id) || current.length >= MAX_SECONDARY_TARGETS
+            ? current
+            : [...current, id]);
         upsertComparisonPoint(id, {
             kind: 'POINT',
             name: formatCoordinate(latDeg, lonDeg),
             latDeg,
             lonDeg,
         });
-    }, [comparisonPoints.length, pendingComparisonPointIds, upsertComparisonPoint]);
+    }, [hasReferenceTarget, secondaryTargetOrder, pendingComparisonPointIds, upsertComparisonPoint]);
 
     /** The explicit control creates an editable row immediately without
      * inventing a location or launching comparison work before it is set. */
     const handleCreateComparisonPoint = useCallback(() => {
-        if (comparisonPoints.length + pendingComparisonPointIds.length >= MAX_SECONDARY_TARGETS) return;
+        if (!hasReferenceTarget) return;
+        if (secondaryTargetOrder.length >= MAX_SECONDARY_TARGETS) return;
         const id = crypto.randomUUID();
         setPendingComparisonPointIds((current) => [...current, id]);
+        setSecondaryTargetOrder((current) => [...current, id]);
         setSelectedPointId(id);
         setAnalysisContext('POINTS');
-    }, [comparisonPoints.length, pendingComparisonPointIds.length]);
+    }, [hasReferenceTarget, secondaryTargetOrder.length]);
+
+    const handleCreateReferencePoint = useCallback(() => {
+        setHasReferenceTarget(true);
+        setAreaTargets((current) => ({ ...current, REFERENCE: null }));
+        setAreaTargetRole('REFERENCE');
+        setAnalysisContext('POINTS');
+        setSelectedPointId(REFERENCE_POINT_ID);
+    }, []);
+
+    const handleRemoveReferenceTarget = useCallback(() => {
+        setHasReferenceTarget(false);
+        setAreaTargets({ REFERENCE: null, COMPARISON: null });
+        setAreaTargetRole('REFERENCE');
+        setIsDrawingArea(false);
+        setComparisonPoints([]);
+        setPendingComparisonPointIds([]);
+        setSecondaryTargetOrder([]);
+        setAnalysisContext('POINTS');
+        setSelectedPointId(REFERENCE_POINT_ID);
+        setPreviousConfiguration(null);
+    }, []);
 
     const handleSecondaryPointTargetChange = useCallback((id: string, name: string) => {
         const target = TARGET_PRESETS.find((candidate) => candidate.name === name);
@@ -472,8 +669,22 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     const handleRemoveSecondaryPoint = useCallback((id: string) => {
         setComparisonPoints((current) => current.filter((point) => point.id !== id));
         setPendingComparisonPointIds((current) => current.filter((candidate) => candidate !== id));
+        setSecondaryTargetOrder((current) => current.filter((candidate) => candidate !== id));
         setSelectedPointId((current) => current === id ? REFERENCE_POINT_ID : current);
     }, []);
+
+    const handleSelectedPointChange = useCallback((id: string) => {
+        setSelectedPointId(id);
+        setAnalysisContext('POINTS');
+    }, []);
+
+    const handleSelectedTargetChange = useCallback((id: string) => {
+        if (id === AREA_TARGET_ID) {
+            setAnalysisContext('AREA');
+            return;
+        }
+        handleSelectedPointChange(id);
+    }, [handleSelectedPointChange]);
 
     const targetOptions = useMemo(() => {
         const names = TARGET_PRESETS.map((t) => t.name);
@@ -488,11 +699,18 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         () => selectionStatus(scenario.selection, currentPayloadCount, sweep),
         [scenario.selection, currentPayloadCount, sweep]
     );
+    const referenceStatus = useMemo(
+        () => selectionStatus(scenario.selection, currentPayloadCount, referenceSweep),
+        [scenario.selection, currentPayloadCount, referenceSweep]
+    );
     // Same condition `reconcileToMeasuredBest` uses internally to decide
     // whether a reconciliation is pending — derived from the already-memoized
     // `status` rather than re-running `selectionStatus` a second time.
-    const isConfigurationSettling = isSweeping || (
-        selectionSource !== 'manual' && Boolean(sweep) && !status.isBest && status.bestSelection !== null
+    const isConfigurationSettling = isReferenceSweeping || (
+        selectionSource !== 'manual'
+        && Boolean(referenceSweep)
+        && !referenceStatus.isBest
+        && referenceStatus.bestSelection !== null
     );
 
     /**
@@ -507,11 +725,12 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
      * comparison is reported instead.
      */
     useEffect(() => {
+        if (!hasReferenceTarget || referenceArea) return;
         const better = reconcileToMeasuredBest(
-            scenario.selection, currentPayloadCount, sweep, selectionSource
+            scenario.selection, currentPayloadCount, referenceSweep, selectionSource
         );
         if (better) setScenario((current) => ({ ...current, selection: better }));
-    }, [sweep, scenario.selection, currentPayloadCount, selectionSource]);
+    }, [hasReferenceTarget, referenceArea, referenceSweep, scenario.selection, currentPayloadCount, selectionSource]);
 
     /**
      * The header's sub-label. Only ever states what the sweep measured — while it
@@ -520,23 +739,23 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     const spreadNote = useMemo(() => {
         const currentTopology = `${scenario.reference.planes / scenario.selection.planeStride} planes × `
             + `${scenario.reference.satsPerPlane / scenario.selection.satStride} per plane`;
-        if (!sweep) {
-            return isSweeping
+        if (!referenceSweep) {
+            return isReferenceSweeping
                 ? `${currentTopology} · comparing exact-count splits…`
                 : currentTopology;
         }
-        if (status.configurationCount < 2 || !status.bestSplit) return currentTopology;
+        if (referenceStatus.configurationCount < 2 || !referenceStatus.bestSplit) return currentTopology;
 
-        if (status.isBest) {
-            return `${status.bestSplit.planes} planes × ${status.bestSplit.perPlane} per plane`
-                + ` — measured best of ${status.configurationCount} splits at this count`;
+        if (referenceStatus.isBest) {
+            return `${referenceStatus.bestSplit.planes} planes × ${referenceStatus.bestSplit.perPlane} per plane`
+                + ` — measured best of ${referenceStatus.configurationCount} splits at this count`;
         }
-        const gain = status.improvementAvailable !== null
-            ? ` (${Math.round(status.improvementAvailable * 100)}% better)`
+        const gain = referenceStatus.improvementAvailable !== null
+            ? ` (${Math.round(referenceStatus.improvementAvailable * 100)}% better)`
             : '';
-        return `manual split — ${status.bestSplit.planes} planes × ${status.bestSplit.perPlane}`
+        return `manual split — ${referenceStatus.bestSplit.planes} planes × ${referenceStatus.bestSplit.perPlane}`
             + ` measured better${gain}`;
-    }, [sweep, isSweeping, status, scenario.reference, scenario.selection]);
+    }, [referenceSweep, isReferenceSweeping, referenceStatus, scenario.reference, scenario.selection]);
 
     const executiveEnvelope = useMemo(
         () => sweep ? executiveEnvelopePoints(sweep) : [],
@@ -569,11 +788,334 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     }, [sweep, executiveEnvelope, requirementMs, currentPayloadCount]);
 
     const calibration = useOneWebCalibration();
-    const areaRun = useAreaAnalysis(scenario);
+    // The DEFINED area is part of the result's freshness key: redrawing or
+    // re-pasting the polygon must not leave the previous area's worst cell and
+    // heat map on screen under the new area's name (Programme 7C).
+    const areaRun = useAreaAnalysis(scenario, customArea);
+    const displayedAreaAnalysis = useMemo(() => {
+        if (!areaRun.analysis || !customArea || areaRun.analysis.area.name === customArea.name) {
+            return areaRun.analysis;
+        }
+        // The name is presentation metadata, not a physical input. Keep the
+        // computed cells and update only the label used by cards and exports.
+        return {
+            ...areaRun.analysis,
+            area: { ...areaRun.analysis.area, name: customArea.name },
+        };
+    }, [areaRun.analysis, customArea]);
+    const activeMainThreadFallback = pointMainThreadFallback || areaRun.isMainThreadFallback;
+
+    /*
+     * ── THE COMMERCIAL ANSWER (Programme 7A) ────────────────────────────────
+     * Everything below feeds `CustomerResultCard`. It derives from results that
+     * already exist — no new computation, no new worker — and its only job is to
+     * put the answer and the action ahead of the verdict.
+     */
+
+    const assumedSwathKm = useMemo(
+        () => Math.round(swathKmForFov(scenario.reference.altitudeKm, scenario.payload)),
+        [scenario.reference.altitudeKm, scenario.payload]
+    );
+
+    /** The question, phrased so it can be read out loud verbatim. */
+    const customerQuestion = useMemo(() => {
+        const every = `at least every ${formatGap(requirementMs)}`;
+        const assumption = `with an assumed ${assumedSwathKm} km IR swath`;
+        if (analysisContext === 'AREA') {
+            return `Can every analysed cell in ${customArea?.name || 'the customer area'}`
+                + ` be observed ${every}, ${assumption}?`;
+        }
+        const name = inspectedPoint?.name ?? scenario.target.name;
+        // The subject follows the model selector. Naming Eutelsat's fleet while
+        // the user is running hand-edited Walker parameters would be a false
+        // claim in the one sentence a salesperson reads out loud.
+        return `Can ${fleetSubject(referenceMode)} observe ${name} ${every}, ${assumption}?`;
+    }, [
+        analysisContext, customArea, inspectedPoint, scenario.target.name,
+        requirementMs, assumedSwathKm, referenceMode,
+    ]);
+
+    /** States the basis out loud once more than one target is in the set. */
+    const customerComparisonNote = useMemo(() => {
+        // Empty editable rows are not customer targets yet. Count only located
+        // points and a geometrically defined Area.
+        const hasComparison = comparisonPoints.length > 0
+            || Boolean(comparisonArea && comparisonArea.boundary.length >= 3);
+        const targetCount = 1 + (hasComparison ? 1 : 0);
+        return targetCount > 1
+            ? `Comparing ${targetCount} customer targets against the same fleet configuration.`
+            : null;
+    }, [comparisonPoints.length, comparisonArea]);
+
+    const customerMaxGapMs = analysisContext === 'AREA'
+        ? displayedAreaAnalysis?.worstCell?.statistics.maxGapMs ?? null
+        : inspectedAnalysis?.statistics.maxGapMs ?? null;
+    const customerIsComputing = analysisContext === 'AREA'
+        ? areaRun.isRunning
+        : inspectedIsComputing;
+
+    const customerUnavailableReason = useMemo(() => {
+        if (customerMaxGapMs !== null) return null;
+        if (analysisContext === 'AREA') {
+            if (!customArea || customArea.boundary.length < 3) return 'Define an area to analyse.';
+            if (!displayedAreaAnalysis) return 'This area has not been analysed yet.';
+            return displayedAreaAnalysis.neverInViewCount > 0
+                ? 'Part of this area is never in view over the analysis window.'
+                : 'No interior gap was measured over this window.';
+        }
+        // `ALWAYS_IN_VIEW` needs no branch here: `gapStatistics` reports it as
+        // a maximum gap of ZERO, not as a missing one ("the maximum gap is
+        // zero, not unmeasured"), so it never reaches this function — and it
+        // reads as `Requirement covered`, which is what it is.
+        const coverage = inspectedAnalysis?.statistics.coverage ?? null;
+        if (coverage === 'NEVER_IN_VIEW') return 'This target is never in view over the analysis window.';
+        if (!inspectedAnalysis) return null;
+        return 'Every gap in this window touches a boundary and is discarded.';
+    }, [customerMaxGapMs, analysisContext, customArea, displayedAreaAnalysis, inspectedAnalysis]);
+
+    /**
+     * The sizing outcome.
+     *
+     * `COMPUTING` is a wait and `BEYOND_RANGE` is an answer; conflating them is
+     * what made the old `To target: beyond the tested payload range` appear
+     * while the sweep that would have contradicted it was still running.
+     *
+     * An Area never yields a payload figure: it is judged on its least-covered
+     * cell and no area-wide sizing sweep exists (Programme 5b guardrail).
+     */
+    const customerSizing = useMemo<CustomerSizing>(() => {
+        const covered = customerMaxGapMs !== null && customerMaxGapMs <= requirementMs;
+        if (covered) return { kind: 'COVERED' };
+        if (analysisContext === 'AREA') {
+            return displayedAreaAnalysis ? { kind: 'AREA_NOT_SIZED' } : { kind: 'UNAVAILABLE' };
+        }
+        if (!inspectedPoint) return { kind: 'UNAVAILABLE' };
+        // A failed sweep is a sizing state, not a presentation-wide failure.
+        if (sweepError) return { kind: 'FAILED' };
+        const recommended = businessComparison.targetPayloadCount;
+        if (recommended === null) {
+            // No answer yet is not the same as no answer at all.
+            return isSweeping || !sweep ? { kind: 'COMPUTING' } : { kind: 'BEYOND_RANGE' };
+        }
+        const additionalPayloads = recommended - currentPayloadCount;
+        if (additionalPayloads > 0) {
+            return { kind: 'RECOMMENDED', payloadCount: recommended, additionalPayloads };
+        }
+        /*
+         * The measured best at the CURRENT count already meets the requirement
+         * while the current topology does not — `reconcileToMeasuredBest` has
+         * not adopted it yet. Announcing "no additional payloads required" in
+         * that window contradicts the verdict printed directly above it: the
+         * card showed `Additional payloads required` over a 3 h 10 min gap
+         * against a 2 h requirement, and `Met by the current configuration` in
+         * the same frame. The reconcile is milliseconds away; say it is still
+         * being computed rather than say two opposite things at once.
+         */
+        if (!covered && isConfigurationSettling) return { kind: 'COMPUTING' };
+        return { kind: 'COVERED' };
+    }, [
+        customerMaxGapMs, requirementMs, analysisContext, displayedAreaAnalysis, inspectedPoint,
+        businessComparison.targetPayloadCount, isSweeping, sweep, currentPayloadCount, sweepError,
+        isConfigurationSettling,
+    ]);
+
+    const undoContextKey = useMemo(() => recommendationContextKey(
+        scenario, requirementMs, analysisContext, selectedPointId,
+        comparisonPoints, secondaryTargetOrder, customArea,
+    ), [
+        scenario, requirementMs, analysisContext, selectedPointId,
+        comparisonPoints, secondaryTargetOrder, customArea,
+    ]);
+    const canUndoRecommendation = previousConfiguration?.contextKey === undoContextKey;
+
+    useEffect(() => {
+        setPreviousConfiguration((current) => current && current.contextKey !== undoContextKey
+            ? null
+            : current);
+    }, [undoContextKey]);
+
+    /**
+     * Apply the recommendation.
+     *
+     * Two things make this more than a slider move:
+     *
+     * 1. it adopts the topology the sweep MEASURED at that count, through the
+     *    same helper the slider uses — never the count alone;
+     * 2. it sets the provenance the way the existing reconciliation expects.
+     *    From the sizing target, `auto` hands the topology back to
+     *    `reconcileToMeasuredBest` for the rest of the session. From a secondary
+     *    target, applying is a deliberate optimisation FOR that target, so it is
+     *    `manual` — otherwise the reference sweep reconciles the choice away on
+     *    its next landing and the button would appear to do nothing.
+     */
+    const handleApplyRecommendation = useCallback(() => {
+        if (customerSizing.kind !== 'RECOMMENDED') return;
+        const count = customerSizing.payloadCount;
+        setPreviousConfiguration({
+            selection: scenario.selection,
+            selectionSource,
+            contextKey: undoContextKey,
+        });
+        setSelectionSource(selectedPointId === REFERENCE_POINT_ID ? 'auto' : 'manual');
+        setScenario((current) => {
+            const selection = selectionForPayloadCount(
+                current.selection, current.reference, count, activeSweepRef.current
+            );
+            return selection ? { ...current, selection } : current;
+        });
+    }, [customerSizing, scenario.selection, selectionSource, selectedPointId, undoContextKey]);
+
+    const handleUndoRecommendation = useCallback(() => {
+        if (!previousConfiguration || previousConfiguration.contextKey !== undoContextKey) return;
+        setScenario((current) => ({ ...current, selection: previousConfiguration.selection }));
+        setSelectionSource(previousConfiguration.selectionSource);
+        setPreviousConfiguration(null);
+    }, [previousConfiguration, undoContextKey]);
+
+    /*
+     * ── PRESENTATION SAFETY (Programme 7B) ──────────────────────────────────
+     * Every signal below already existed. What was missing was a place to read
+     * them together, and a voice that does not alarm a room.
+     */
+
+    const activeResultError = analysisContext === 'AREA' ? areaRun.error : inspectedError;
+    const activeResult = analysisContext === 'AREA' ? displayedAreaAnalysis : inspectedAnalysis;
+    const activeResultIsComputing = analysisContext === 'AREA'
+        ? areaRun.isRunning
+        : inspectedIsComputing;
+    const activeSizingError = analysisContext === 'POINTS' ? sweepError : null;
+    /*
+     * ── WHAT MAY STOP THE DEMONSTRATION, AND WHAT MAY NOT ───────────────────
+     * Only the failure of the result currently on screen is blocking. This used
+     * to read `activeResultError ?? activeSizingError ?? backgroundComparisonError`,
+     * which meant a failed sweep on a SECONDARY target covered the whole screen
+     * with a red alert while the analysis it interrupted was on screen, correct
+     * and complete.
+     *
+     * The other two failures are reported where they happened and nowhere else:
+     * the sizing failure inside `Recommended configuration`, which is the block
+     * it would have filled, and the comparison failure inside the comparison
+     * table, which already renders its own. Both remain visible in the
+     * readiness check. Neither adds a banner.
+     */
+    const presentationFailure = activeResultError;
+
+    /**
+     * The single client-facing notice.
+     *
+     * Ordered by what stops the demonstration: an unanalysable scenario first,
+     * a failed computation second, and the Worker fallback last — which is a
+     * DEGRADED mode, not an error, and was previously shown in red as
+     * "Running on the main thread — Worker unavailable".
+     */
+    const presentationNotice = useMemo<{
+        severity: NoticeSeverity; headline: string;
+        guidance: string | null; technicalDetail: string | null;
+    } | null>(() => {
+        if (!renderValidation.ok) {
+            return {
+                severity: 'BLOCKING',
+                headline: 'This configuration cannot be analysed.',
+                guidance: 'Adjust the constellation or the analysis target, or reset the scenario.',
+                technicalDetail: renderValidation.errors.join('\n'),
+            };
+        }
+        if (presentationFailure) {
+            return {
+                severity: 'BLOCKING',
+                headline: 'The analysis could not be completed.',
+                guidance: 'Change an input to run it again, or reset the scenario.',
+                technicalDetail: presentationFailure,
+            };
+        }
+        if (activeMainThreadFallback) {
+            return {
+                severity: 'DEGRADED',
+                headline: 'Running in reduced performance mode.',
+                guidance: 'Results are identical; the interface may pause while they are computed.',
+                technicalDetail: 'This browser could not create a module Worker, so the analysis '
+                    + 'engine runs on the main thread. The engine is the same pure function in '
+                    + 'both paths, so no number changes — only responsiveness.',
+            };
+        }
+        return null;
+    }, [renderValidation, presentationFailure, activeMainThreadFallback]);
+
+    /** The pre-meeting check. Reads the same signals the notice does. */
+    const readinessSignals = useMemo<ReadinessSignal[]>(() => {
+        const modelNeedsNetwork = referenceMode === 'MEASURED';
+        return [
+            {
+                label: 'Orbital model',
+                state: modelNeedsNetwork && !calibration.fit ? 'PENDING' : 'READY',
+                detail: modelNeedsNetwork
+                    ? calibration.fit
+                        ? 'Measured from the live fleet — already fetched.'
+                        : 'Measured from the live fleet — needs the network.'
+                    : 'Validated reference profile — no network needed.',
+            },
+            {
+                label: 'Scenario',
+                state: renderValidation.ok ? 'READY' : 'BLOCKED',
+                detail: renderValidation.ok
+                    ? 'Valid and ready to analyse.'
+                    : renderValidation.errors.join('; '),
+            },
+            {
+                label: 'Background computation',
+                state: activeMainThreadFallback ? 'DEGRADED' : 'READY',
+                detail: activeMainThreadFallback
+                    ? 'No Worker available — the interface pauses during analysis.'
+                    : 'Workers available; the interface stays responsive.',
+            },
+            {
+                label: 'Current result',
+                state: activeResultError ? 'BLOCKED' : activeResult ? 'READY' : 'PENDING',
+                detail: activeResultError
+                    ? `The selected ${analysisContext === 'AREA' ? 'Area' : 'target'} analysis failed.`
+                    : activeResult
+                        ? 'Computed and on screen.'
+                        : activeResultIsComputing ? 'Still computing.' : 'Not computed yet.',
+            },
+            {
+                label: 'Fleet sizing',
+                /*
+                 * DEGRADED, not BLOCKED: a failed sweep leaves the result on
+                 * screen usable, so the demonstration can still be given — with
+                 * a limitation the presenter should know about before walking
+                 * into the room, which is exactly what this check is for.
+                 *
+                 * `isConfigurationSettling` is part of PENDING because the sweep
+                 * landing is not the end of the work: `reconcileToMeasuredBest`
+                 * then moves the selection to the measured-best topology and the
+                 * analysis recomputes. Without it this chip announced "Ready to
+                 * present" while the headline gap was still the pre-reconcile
+                 * figure — 5 h 49 min against a settled 3 h 26 min in the case
+                 * that found this.
+                 */
+                state: analysisContext === 'AREA'
+                    ? 'READY'
+                    : sweepError
+                        ? 'DEGRADED'
+                        : sweep && !isSweeping && !isConfigurationSettling ? 'READY' : 'PENDING',
+                detail: analysisContext === 'AREA'
+                    ? 'Not applicable — Area results are evaluated cell by cell; no Area-wide payload sizing is claimed.'
+                    : sweepError
+                        ? 'The payload sweep failed — the result is still valid, but no payload count is proposed.'
+                        : sweep && !isSweeping && !isConfigurationSettling
+                            ? 'Measured — the recommendation is one click away.'
+                            : 'Measuring; the recommendation is not ready yet.',
+            },
+        ];
+    }, [
+        referenceMode, calibration.fit, renderValidation, activeMainThreadFallback,
+        activeResultError, activeResult, activeResultIsComputing, analysisContext,
+        sweepError, sweep, isSweeping, isConfigurationSettling,
+    ]);
     const runAreaAnalysis = areaRun.run;
     const lastAutoAreaRunKeyRef = useRef<string | null>(null);
     const autoAreaRunKey = useMemo(() => customArea ? JSON.stringify([
-        customArea,
+        areaAnalysisKey(customArea),
         scenario.reference,
         scenario.selection,
         scenario.payload,
@@ -608,13 +1150,122 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         autoAreaRunKey, scenario.reference, scenario.payload, runAreaAnalysis,
     ]);
     const warnings = useMemo(() => analysisContext === 'AREA' ? [] : [...new Set([
-        ...(analysis?.warnings ?? []), ...(sweep?.warnings ?? []),
-    ])], [analysisContext, analysis, sweep]);
+        ...(inspectedAnalysis?.warnings ?? []), ...(sweep?.warnings ?? []),
+    ])], [analysisContext, inspectedAnalysis, sweep]);
+    const targetSetTimelineLanes = useMemo<CoverageRibbonTarget[]>(() => {
+        if (!hasReferenceTarget) return [];
+        const referenceAreaAnalysis = referenceArea && areaTargetRole === 'REFERENCE'
+            ? displayedAreaAnalysis
+            : null;
+        const rows: CoverageRibbonTarget[] = referenceArea ? [{
+            id: AREA_TARGET_ID,
+            kind: 'AREA',
+            roleLabel: 'Reference',
+            basisLabel: 'Least-covered cell',
+            label: `Reference · ${referenceArea.name} · least-covered cell`,
+            name: referenceArea.name,
+            intervals: referenceAreaAnalysis?.worstCellIntervals ?? [],
+            statistics: referenceAreaAnalysis?.worstCell?.statistics ?? null,
+            statusLabel: areaRun.isRunning ? 'Computing…' : referenceArea.boundary.length < 3 ? 'Define polygon' : null,
+            unbounded: Boolean(referenceAreaAnalysis?.neverInViewCount),
+            selected: analysisContext === 'AREA',
+        }] : [{
+            id: REFERENCE_POINT_ID,
+            kind: 'POINT',
+            roleLabel: 'Reference',
+            basisLabel: 'Point',
+            label: `Reference · ${scenario.target.name}`,
+            name: scenario.target.name,
+            intervals: analysis?.intervals ?? [],
+            statistics: analysis?.statistics ?? null,
+            statusLabel: isComputing && !analysis ? 'Computing…' : null,
+            unbounded: analysis?.statistics.coverage === 'NEVER_IN_VIEW',
+            selected: analysisContext === 'POINTS' && selectedPointId === REFERENCE_POINT_ID,
+        }];
+
+        let pointResultIndex = 1;
+        secondaryTargetOrder.forEach((id) => {
+            const roleLabel = 'Comparison';
+            if (id === AREA_TARGET_ID) {
+                const area = areaTargetRole === 'COMPARISON' ? displayedAreaAnalysis : null;
+                rows.push({
+                    id,
+                    kind: 'AREA',
+                    roleLabel,
+                    basisLabel: 'Least-covered cell',
+                    label: `${roleLabel} · ${comparisonArea?.name ?? 'Area'} · least-covered cell`,
+                    name: comparisonArea?.name ?? 'Area',
+                    intervals: area?.worstCellIntervals ?? [],
+                    statistics: area?.worstCell?.statistics ?? null,
+                    statusLabel: areaRun.isRunning
+                        ? 'Computing…'
+                        : !comparisonArea || comparisonArea.boundary.length < 3
+                            ? 'Define area'
+                            : !area ? analysisContext === 'AREA' ? 'Preparing…' : 'Select to analyse' : null,
+                    unbounded: Boolean(area?.neverInViewCount),
+                    selected: analysisContext === 'AREA',
+                });
+                return;
+            }
+
+            const point = comparisonPoints.find((candidate) => candidate.id === id);
+            const comparisonRow = point ? targetComparison.rows?.[pointResultIndex] ?? null : null;
+            if (point) pointResultIndex += 1;
+            rows.push({
+                id,
+                kind: 'POINT',
+                roleLabel,
+                basisLabel: 'Point',
+                label: `${roleLabel} · ${point?.target.name ?? 'Location required'}`,
+                name: point?.target.name ?? 'Location required',
+                intervals: comparisonRow?.intervals ?? [],
+                statistics: comparisonRow?.statistics ?? null,
+                statusLabel: !point
+                    ? 'Location required'
+                    : targetComparison.isComputing && !comparisonRow
+                        ? 'Computing…'
+                        : !comparisonRow ? 'Select to analyse' : null,
+                unbounded: comparisonRow?.statistics.coverage === 'NEVER_IN_VIEW',
+                selected: analysisContext === 'POINTS' && selectedPointId === id,
+            });
+        });
+        return rows;
+    }, [
+        hasReferenceTarget, scenario.target.name, analysis, isComputing, analysisContext, selectedPointId,
+        secondaryTargetOrder, referenceArea, comparisonArea, areaTargetRole, displayedAreaAnalysis, areaRun.isRunning,
+        comparisonPoints, targetComparison.rows, targetComparison.isComputing,
+    ]);
     useEffect(() => {
         if (analysisColumnRef.current) analysisColumnRef.current.scrollTop = 0;
     }, [analysisContext, areaRun.isRunning, areaRun.analysis]);
 
+    /** Reserve the single Area slot before opening its editor. The empty draft
+     * is intentional: it gives the new row a stable identity without starting
+     * any worker until a valid polygon has been defined. */
+    const handleCreateAreaTarget = useCallback((role: RevisitAreaTargetRole = 'COMPARISON') => {
+        if (role === 'COMPARISON' && !hasReferenceTarget) return;
+        if (role === 'COMPARISON' && secondaryTargetOrder.length >= MAX_SECONDARY_TARGETS) return;
+        if (role === 'REFERENCE') setHasReferenceTarget(true);
+        areaRun.clear();
+        setAreaTargetRole(role);
+        setAreaTargets((current) => ({
+            ...current,
+            [role]: current[role] ?? {
+                kind: 'AREA',
+                id: crypto.randomUUID(),
+                name: role === 'REFERENCE' ? 'Reference area' : 'Comparison area',
+                boundary: [],
+                gridSpacingDeg: recommendedAreaGridSpacing(scenario.reference, scenario.payload),
+            },
+        }));
+        setSecondaryTargetOrder((current) => role === 'REFERENCE'
+            ? current.filter((id) => id !== AREA_TARGET_ID)
+            : current.includes(AREA_TARGET_ID) ? current : [...current, AREA_TARGET_ID]);
+        setAnalysisContext('AREA');
+    }, [areaRun, hasReferenceTarget, secondaryTargetOrder.length, scenario.reference, scenario.payload]);
+
     const handleStartAreaDrawing = useCallback(() => {
+        areaBeforeDrawingRef.current = customArea;
         areaRun.clear();
         setCustomArea((current) => ({
             kind: 'AREA',
@@ -628,9 +1279,16 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                 ?? recommendedAreaGridSpacing(scenario.reference, scenario.payload),
         }));
         setIsDrawingArea(true);
+        setSecondaryTargetOrder((current) => areaTargetRole === 'REFERENCE'
+            ? current.filter((id) => id !== AREA_TARGET_ID)
+            : current.includes(AREA_TARGET_ID)
+                ? current
+                : current.length < MAX_SECONDARY_TARGETS ? [...current, AREA_TARGET_ID] : current);
         setAnalysisContext('AREA');
-        setScenarioWorkspaceOpen(false);
-    }, [areaRun, scenario.reference, scenario.payload]);
+        // Drawing happens on the globe: on a compact viewport nothing may stand
+        // between the user and it.
+        setCompactPanel('none');
+    }, [areaRun, areaTargetRole, customArea, scenario.reference, scenario.payload, setCustomArea]);
 
     const handleDrawAreaVertex = useCallback((latDeg: number, lonDeg: number) => {
         setCustomArea((current) => {
@@ -640,28 +1298,116 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                 boundary: [...current.boundary, { latDeg, lonDeg }],
             };
         });
-    }, []);
+    }, [setCustomArea]);
 
     const handleUndoAreaVertex = useCallback(() => {
         setCustomArea((current) => current ? {
             ...current,
             boundary: current.boundary.slice(0, -1),
         } : current);
-    }, []);
+    }, [setCustomArea]);
+
+    const areaDrawingCanFinish = useMemo(
+        () => Boolean(customArea && validateArea(customArea, scenario.reference, scenario.payload).ok),
+        [customArea, scenario.reference, scenario.payload]
+    );
+
+    const handleFinishAreaDrawing = useCallback(() => {
+        if (!areaDrawingCanFinish) return;
+        areaBeforeDrawingRef.current = null;
+        setIsDrawingArea(false);
+    }, [areaDrawingCanFinish]);
+
+    const handleCancelAreaDrawing = useCallback(() => {
+        const previous = areaBeforeDrawingRef.current;
+        areaBeforeDrawingRef.current = null;
+        setCustomArea(previous);
+        setIsDrawingArea(false);
+        if (!previous) {
+            if (areaTargetRole === 'COMPARISON') {
+                setSecondaryTargetOrder((current) => current.filter((id) => id !== AREA_TARGET_ID));
+            }
+            setAnalysisContext('POINTS');
+            setSelectedPointId(REFERENCE_POINT_ID);
+        }
+    }, [areaTargetRole, setCustomArea]);
+
+    // The floating draw bar remains available after the configuration menu is
+    // dismissed. Keyboard actions make longer polygons quick without requiring
+    // repeated trips between the globe and header.
+    useEffect(() => {
+        if (!isDrawingArea) return;
+        const handleKeyDown = (event: KeyboardEvent) => {
+            const target = event.target as HTMLElement | null;
+            if (target?.matches('input, textarea, select, [contenteditable="true"]')) return;
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                handleCancelAreaDrawing();
+            } else if (event.key === 'Enter' && areaDrawingCanFinish) {
+                event.preventDefault();
+                handleFinishAreaDrawing();
+            } else if (event.key === 'Backspace' || ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z')) {
+                event.preventDefault();
+                handleUndoAreaVertex();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [
+        isDrawingArea, areaDrawingCanFinish, handleCancelAreaDrawing,
+        handleFinishAreaDrawing, handleUndoAreaVertex,
+    ]);
 
     const handleCustomAreaChange = useCallback((area: AreaTarget | null) => {
-        // Geometry/name/grid edits invalidate the rendered heat map and KPI.
-        // Keeping the previous run here would make a stale result look current.
-        areaRun.clear();
+        // Only physical inputs invalidate the heat map. The name is metadata:
+        // clearing here would turn each keystroke into a full grid recompute.
+        if (areaAnalysisKey(area) !== areaAnalysisKey(customArea)) areaRun.clear();
         setCustomArea(area);
         if (!area) {
             setIsDrawingArea(false);
             lastAutoAreaRunKeyRef.current = null;
+            if (areaTargetRole === 'COMPARISON') {
+                setSecondaryTargetOrder((current) => current.filter((id) => id !== AREA_TARGET_ID));
+            }
+            setAnalysisContext('POINTS');
+            setSelectedPointId(REFERENCE_POINT_ID);
         }
         if (area) {
+            setSecondaryTargetOrder((current) => areaTargetRole === 'REFERENCE'
+                ? current.filter((id) => id !== AREA_TARGET_ID)
+                : current.includes(AREA_TARGET_ID)
+                    ? current
+                    : current.length < MAX_SECONDARY_TARGETS ? [...current, AREA_TARGET_ID] : current);
             setAnalysisContext('AREA');
         }
+    }, [areaRun, areaTargetRole, customArea, setCustomArea]);
+
+    const handleAreaTargetRoleChange = useCallback((role: RevisitAreaTargetRole) => {
+        if (role !== areaTargetRole) areaRun.clear();
+        setAreaTargetRole(role);
+    }, [areaRun, areaTargetRole]);
+
+    const handleRemoveAreaTarget = useCallback((role: RevisitAreaTargetRole) => {
+        areaRun.clear();
+        setAreaTargets((current) => ({ ...current, [role]: null }));
+        if (role === 'COMPARISON') {
+            setSecondaryTargetOrder((current) => current.filter((id) => id !== AREA_TARGET_ID));
+        }
+        setAnalysisContext('POINTS');
+        setSelectedPointId(REFERENCE_POINT_ID);
     }, [areaRun]);
+
+    const handleRemoveComparisonTarget = useCallback(() => {
+        areaRun.clear();
+        setAreaTargets((current) => ({ ...current, COMPARISON: null }));
+        setComparisonPoints([]);
+        setPendingComparisonPointIds([]);
+        setSecondaryTargetOrder([]);
+        setAreaTargetRole('REFERENCE');
+        setAnalysisContext(referenceArea ? 'AREA' : 'POINTS');
+        setSelectedPointId(REFERENCE_POINT_ID);
+        setPreviousConfiguration(null);
+    }, [areaRun, referenceArea]);
 
     const handleInstrumentPresetChange = useCallback((name: FovPresetName) => {
         setScenario((current) => ({
@@ -672,29 +1418,29 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
 
     /** Exports carry the calibration when one has been run — see csvExport. */
     const handleExportAccessCsv = useCallback(() => {
-        if (!analysis) return;
+        if (!inspectedAnalysis) return;
         downloadCsv(
-            csvFilename('access', scenario),
-            accessIntervalsCsv(analysis, calibration.fit)
+            csvFilename('access', inspectedScenario),
+            accessIntervalsCsv(inspectedAnalysis, calibration.fit)
         );
-    }, [analysis, scenario, calibration.fit]);
+    }, [inspectedAnalysis, inspectedScenario, calibration.fit]);
 
     const handleExportSweepCsv = useCallback(() => {
         if (!sweep) return;
         downloadCsv(
-            csvFilename('sweep', scenario),
-            payloadSweepCsv(scenario, sweep, calibration.fit)
+            csvFilename('sweep', inspectedScenario),
+            payloadSweepCsv(inspectedScenario, sweep, calibration.fit)
         );
-    }, [sweep, scenario, calibration.fit]);
+    }, [sweep, inspectedScenario, calibration.fit]);
 
     const handleExportAreaCsv = useCallback(() => {
-        if (!areaRun.analysis) return;
+        if (!displayedAreaAnalysis) return;
         const { target: _dropped, ...rest } = scenario;
         downloadCsv(
-            csvFilename('area', scenario).replace('area-', `area-${areaRun.analysis.area.name.toLowerCase().replace(/\s+/g, '-')}-`),
-            areaAnalysisCsv(rest, areaRun.analysis, calibration.fit)
+            csvFilename('area', scenario).replace('area-', `area-${displayedAreaAnalysis.area.name.toLowerCase().replace(/\s+/g, '-')}-`),
+            areaAnalysisCsv(rest, displayedAreaAnalysis, calibration.fit)
         );
-    }, [areaRun.analysis, scenario, calibration.fit]);
+    }, [displayedAreaAnalysis, scenario, calibration.fit]);
 
     /**
      * Swap the reference constellation. The selection must be repaired in the
@@ -743,8 +1489,8 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
 
 
     const explanation = useMemo(
-        () => explainRevisit(scenario, analysis?.statistics ?? null, sweep),
-        [scenario, analysis, sweep]
+        () => explainRevisit(inspectedScenario, inspectedAnalysis?.statistics ?? null, sweep),
+        [inspectedScenario, inspectedAnalysis, sweep]
     );
 
     const getTimeMs = useCallback(() => clock.getTimeMs(), [clock]);
@@ -762,16 +1508,20 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         setOptions(defaultDisplayOptions());
         setRequirementMs(DEFAULT_REQUIREMENT_MS);
         setSelectionSource('auto');
-        setMobileAnalysisPanel('summary');
-        setPresenterMode(true);
+        setPreviousConfiguration(null);
+        setOpportunity('');
         setExportError(null);
-        setCustomArea(null);
+        setHasReferenceTarget(false);
+        setAreaTargets({ REFERENCE: null, COMPARISON: null });
+        setAreaTargetRole('REFERENCE');
         setIsDrawingArea(false);
         setAnalysisContext('POINTS');
         setComparisonPoints([]);
         setPendingComparisonPointIds([]);
+        setSecondaryTargetOrder([]);
         setSelectedPointId(REFERENCE_POINT_ID);
-        setScenarioWorkspaceOpen(false);
+        setCompactPanel('none');
+        setAnalysisSheetSize('half');
         setResetRevision((revision) => revision + 1);
         lastAutoAreaRunKeyRef.current = null;
         areaRun.clear();
@@ -784,10 +1534,21 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         options,
         requirementMs,
         selectionSource,
+        hasReferenceTarget,
         customArea,
+        referenceArea,
+        comparisonArea,
+        areaTargetRole,
         analysisContext,
         comparisonPoints,
-    }), [scenario, options, requirementMs, selectionSource, customArea, analysisContext, comparisonPoints]);
+        secondaryTargetOrder,
+        selectedPointId: persistedSelectedPointId,
+        opportunity,
+    }), [
+        scenario, options, requirementMs, selectionSource, hasReferenceTarget, customArea, referenceArea, comparisonArea, areaTargetRole,
+        analysisContext, comparisonPoints, secondaryTargetOrder, persistedSelectedPointId,
+        opportunity,
+    ]);
 
     const handleLoadSavedScenario = useCallback((saved: SavedRevisitScenario) => {
         const snapshot = saved.snapshot;
@@ -797,15 +1558,38 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         setOptions({ ...snapshot.options, showLabels: snapshot.options.showLabels ?? false });
         setRequirementMs(snapshot.requirementMs);
         setSelectionSource(snapshot.selectionSource);
-        setMobileAnalysisPanel('summary');
+        const loadedHasReferenceTarget = snapshot.hasReferenceTarget ?? true;
+        setHasReferenceTarget(loadedHasReferenceTarget);
+        setPreviousConfiguration(null);
+        setOpportunity(snapshot.opportunity ?? '');
         setExportError(null);
-        setCustomArea(snapshot.customArea ?? null);
+        const loadedAreaRole = snapshot.areaTargetRole ?? 'COMPARISON';
+        setAreaTargetRole(loadedAreaRole);
+        setAreaTargets({
+            REFERENCE: loadedHasReferenceTarget
+                ? snapshot.referenceArea
+                    ?? (loadedAreaRole === 'REFERENCE' ? snapshot.customArea ?? null : null)
+                : null,
+            COMPARISON: loadedHasReferenceTarget
+                ? snapshot.comparisonArea
+                    ?? (loadedAreaRole === 'COMPARISON' ? snapshot.customArea ?? null : null)
+                : null,
+        });
         setIsDrawingArea(false);
         setAnalysisContext(snapshot.analysisContext ?? 'POINTS');
-        setComparisonPoints(snapshot.comparisonPoints ?? []);
+        setComparisonPoints(loadedHasReferenceTarget ? snapshot.comparisonPoints ?? [] : []);
         setPendingComparisonPointIds([]);
-        setSelectedPointId(REFERENCE_POINT_ID);
-        setScenarioWorkspaceOpen(false);
+        setSecondaryTargetOrder(loadedHasReferenceTarget ? snapshot.secondaryTargetOrder ?? [
+            ...(snapshot.comparisonPoints ?? []).map((point) => point.id),
+            ...((snapshot.comparisonArea
+                ?? ((snapshot.areaTargetRole ?? 'COMPARISON') === 'COMPARISON' ? snapshot.customArea : null))
+                ? [AREA_TARGET_ID]
+                : []),
+        ].slice(0, MAX_SECONDARY_TARGETS) : []);
+        setSelectedPointId(snapshot.selectedPointId ?? REFERENCE_POINT_ID);
+        // Loading a scenario from the workspace closes it: the point of loading
+        // is to look at the globe, not at the drawer that loaded it.
+        setCompactPanel('none');
         lastAutoAreaRunKeyRef.current = null;
         areaRun.clear();
         clock.setDateTime(snapshot.scenario.window.startMs);
@@ -814,19 +1598,42 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     const handleExportResultSheet = useCallback(() => {
         setExportError(null);
         const model = analysisContext === 'AREA'
-            ? areaRun.analysis
-                ? buildAreaResultSheet(scenario, areaRun.analysis, requirementMs)
+            ? displayedAreaAnalysis
+                ? buildAreaResultSheet(
+                    scenario, displayedAreaAnalysis, requirementMs, new Date(),
+                    { opportunity, assumedSwathKm, referenceMode },
+                )
                 : null
-            : analysis
+            : inspectedAnalysis
                 ? buildRevisitResultSheet(
-                    scenario, analysis, requirementMs, targetComparison.rows ?? []
+                    inspectedScenario, inspectedAnalysis,
+                    requirementMs, targetComparison.rows ?? [], new Date(),
+                    {
+                        opportunity,
+                        assumedSwathKm,
+                        referenceMode,
+                        // The same measured figure the card offers to apply, so
+                        // the document and the screen cannot disagree.
+                        recommendedPayloadCount: businessComparison.targetPayloadCount,
+                        // And the same distinction the card makes between "no
+                        // answer yet" and "no answer exists" — exporting mid
+                        // sweep must not print an impossibility as fact.
+                        sizingStatus: sweepError
+                            ? 'FAILED'
+                            : isSweeping || !sweep ? 'PENDING' : 'MEASURED',
+                    },
                 )
                 : null;
         if (!model) return;
         void downloadRevisitResultSheet(model).catch((cause) => {
             setExportError(cause instanceof Error ? cause.message : String(cause));
         });
-    }, [analysisContext, areaRun.analysis, analysis, scenario, requirementMs, targetComparison.rows]);
+    }, [
+        analysisContext, displayedAreaAnalysis, inspectedAnalysis,
+        inspectedScenario, scenario, requirementMs, targetComparison.rows,
+        opportunity, assumedSwathKm, businessComparison.targetPayloadCount, referenceMode,
+        sweepError, isSweeping, sweep,
+    ]);
 
     const toggle = useCallback((key: keyof DisplayOptions) => {
         setOptions((current) => ({ ...current, [key]: !current[key] }));
@@ -835,59 +1642,92 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     return (
         <div className="revisit-shell relative isolate flex h-dvh w-screen flex-col overflow-hidden bg-[#05070D] text-slate-100 transition-colors light:bg-slate-100 light:text-slate-950">
             <GlobalAppHeader className="revisit-global-header">
-                <div className="revisit-context-rail px-2 py-2 sm:px-3 lg:px-4">
-                    <RevisitHeader
-                        scenario={scenario}
-                        payloadCounts={payloadCounts}
-                        currentPayloadCount={currentPayloadCount}
-                        onPayloadCountChange={handlePayloadCountChange}
-                        targetNames={targetOptions}
-                        onTargetChange={handleTargetChange}
-                        onTargetCoordinatesChange={handlePickTarget}
-                        onInstrumentPresetChange={handleInstrumentPresetChange}
-                        spreadNote={spreadNote}
-                        analysisContext={analysisContext}
-                        onAnalysisContextChange={(context) => {
-                            setAnalysisContext(context);
-                            setMobileAnalysisPanel('summary');
-                            if (context === 'AREA') setSelectedPointId(REFERENCE_POINT_ID);
-                        }}
-                        comparisonPoints={comparisonPoints}
-                        pendingComparisonPointIds={pendingComparisonPointIds}
-                        selectedPointId={selectedPointId}
-                        onSelectedPointChange={setSelectedPointId}
-                        onSecondaryPointChange={handleSecondaryPointChange}
-                        onSecondaryPointTargetChange={handleSecondaryPointTargetChange}
-                        onRemoveSecondaryPoint={handleRemoveSecondaryPoint}
-                        onAddComparisonPoint={handleCreateComparisonPoint}
-                        customArea={customArea ?? areaRun.analysis?.area ?? null}
-                        customAreaCellCount={areaRun.analysis?.cells.length ?? null}
-                        areaAnalysis={areaRun.analysis}
-                        areaIsRunning={areaRun.isRunning}
-                        areaError={areaRun.error}
-                        areaProgress={areaRun.progress}
-                        areaRequirementMs={requirementMs}
-                        onClearArea={areaRun.clear}
-                        onCancelArea={areaRun.clear}
-                        onExportAreaCsv={handleExportAreaCsv}
-                        isDrawingArea={isDrawingArea}
-                        onCustomAreaChange={handleCustomAreaChange}
-                        onStartAreaDrawing={handleStartAreaDrawing}
-                        onFinishAreaDrawing={() => setIsDrawingArea(false)}
-                        onUndoAreaVertex={handleUndoAreaVertex}
-                        isAreaScenarioSettling={isConfigurationSettling}
-                        onAdvancedScenarioChange={handleAdvancedChange}
-                        model={{
-                            profile: referenceProfile,
-                            mode: referenceMode,
-                            isRestored: referenceRestored,
-                            onModeChange: handleReferenceModeChange,
-                            fit: calibration.fit,
-                            isRunning: calibration.isRunning,
-                            error: calibration.error,
-                        }}
-                    />
-                </div>
+                <nav aria-label="REVISIT navigation and scenarios"
+                    className="revisit-context-rail flex min-w-0 items-start gap-2 px-2 py-2 sm:px-3 lg:px-4">
+                    {onExit && (
+                        <button type="button" onClick={onExit}
+                            aria-label={`Back to ${returnMode === 'commercial' ? 'Commercial' : 'Engineering'}`}
+                            title={`Back to ${returnMode === 'commercial' ? 'Commercial' : 'Engineering'}`}
+                            className={`${REVISIT_PANEL} revisit-origin-return flex min-h-11 w-11 shrink-0 items-center justify-center px-2 text-[11px] font-black uppercase tracking-[0.1em] text-slate-400 hover:border-slate-500 hover:text-slate-100`}>
+                            <span aria-hidden="true" className="text-base">‹</span>
+                        </button>
+                    )}
+                    <div className="min-w-0 flex-1">
+                        <RevisitHeader
+                            scenario={scenario}
+                            payloadCounts={payloadCounts}
+                            currentPayloadCount={currentPayloadCount}
+                            onPayloadCountChange={handlePayloadCountChange}
+                            targetNames={targetOptions}
+                            onTargetChange={handleTargetChange}
+                            onTargetCoordinatesChange={handlePickTarget}
+                            onInstrumentPresetChange={handleInstrumentPresetChange}
+                            spreadNote={spreadNote}
+                            setupOpen={compactPanel === 'setup'}
+                            onToggleSetup={() => togglePanel('setup')}
+                            analysisContext={analysisContext}
+                            hasReferenceTarget={hasReferenceTarget}
+                            onAnalysisContextChange={(context) => {
+                                setAnalysisContext(context);
+                            }}
+                            comparisonPoints={comparisonPoints}
+                            pendingComparisonPointIds={pendingComparisonPointIds}
+                            secondaryTargetOrder={secondaryTargetOrder}
+                            selectedPointId={selectedPointId}
+                            onSelectedPointChange={handleSelectedPointChange}
+                            onSecondaryPointChange={handleSecondaryPointChange}
+                            onSecondaryPointTargetChange={handleSecondaryPointTargetChange}
+                            onRemoveSecondaryPoint={handleRemoveSecondaryPoint}
+                            onAddComparisonPoint={handleCreateComparisonPoint}
+                            onAddReferencePoint={handleCreateReferencePoint}
+                            onRemoveReferenceTarget={handleRemoveReferenceTarget}
+                            onAddAreaTarget={handleCreateAreaTarget}
+                            areaTargetRole={areaTargetRole}
+                            referenceArea={referenceArea}
+                            comparisonArea={comparisonArea}
+                            onAreaTargetRoleChange={handleAreaTargetRoleChange}
+                            onRemoveAreaTarget={handleRemoveAreaTarget}
+                            customArea={customArea ?? displayedAreaAnalysis?.area ?? null}
+                            customAreaCellCount={displayedAreaAnalysis?.cells.length ?? null}
+                            areaAnalysis={displayedAreaAnalysis}
+                            areaIsRunning={areaRun.isRunning}
+                            areaError={areaRun.error}
+                            areaProgress={areaRun.progress}
+                            areaRequirementMs={requirementMs}
+                            onClearArea={areaRun.clear}
+                            onCancelArea={areaRun.clear}
+                            isDrawingArea={isDrawingArea}
+                            onCustomAreaChange={handleCustomAreaChange}
+                            onStartAreaDrawing={handleStartAreaDrawing}
+                            onFinishAreaDrawing={handleFinishAreaDrawing}
+                            onUndoAreaVertex={handleUndoAreaVertex}
+                            isAreaScenarioSettling={isConfigurationSettling}
+                            onAdvancedScenarioChange={handleAdvancedChange}
+                            model={{
+                                profile: referenceProfile,
+                                mode: referenceMode,
+                                isRestored: referenceRestored,
+                                onModeChange: handleReferenceModeChange,
+                                fit: calibration.fit,
+                                isRunning: calibration.isRunning,
+                                error: calibration.error,
+                            }}
+                        />
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => togglePanel('workspace')}
+                        aria-label="Scenario workspace"
+                        title="Scenario workspace"
+                        aria-expanded={compactPanel === 'workspace'}
+                        aria-controls="revisit-scenario-workspace-drawer"
+                        className={`${REVISIT_PANEL} flex min-h-11 w-11 shrink-0 items-center justify-center px-2 text-[11px] font-black uppercase tracking-[0.1em] ${compactPanel === 'workspace'
+                            ? 'border-sky-400/50 bg-sky-500/15 text-sky-200'
+                            : 'border-slate-700 text-slate-400 hover:border-sky-400/40 hover:text-sky-200'}`}
+                    >
+                        <span aria-hidden="true" className="text-base">▤</span>
+                    </button>
+                </nav>
             </GlobalAppHeader>
 
             <div className="revisit-stage pointer-events-none relative z-10 min-h-0 flex-1 overflow-hidden">
@@ -901,19 +1741,73 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                     selectedIds={selectedIds}
                     options={options}
                     getTimeMs={getTimeMs}
-                    areaAnalysis={areaRun.analysis}
+                    areaAnalysis={displayedAreaAnalysis}
                     areaDraft={customArea}
                     isDrawingArea={isDrawingArea}
                     analysisContext={analysisContext}
-                    comparisonPoints={comparisonPoints}
+                    hasReferenceTarget={hasReferenceTarget}
+                    areaTargetRole={areaTargetRole}
+                    referenceIsArea={Boolean(referenceArea)}
+                    comparisonPoints={orderedComparisonPoints}
+                    secondaryTargetOrder={secondaryTargetOrder}
                     selectedPointId={selectedPointId}
                     requirementMs={requirementMs}
                     autoRotate={options.autoRotate && !isDrawingArea}
                     onPickTarget={handlePickTarget}
                     onDrawAreaVertex={handleDrawAreaVertex}
                     onAddComparisonPoint={handleAddComparisonPoint}
+                    onClearTargets={handleRemoveReferenceTarget}
+                    onRemoveComparisonTarget={handleRemoveComparisonTarget}
                 />
               </div>
+
+              {isDrawingArea && (
+                <div
+                    role="toolbar"
+                    aria-label="Polygon drawing controls"
+                    className={`pointer-events-auto absolute left-1/2 top-2 z-[85] flex w-[min(38rem,calc(100vw-1rem))] -translate-x-1/2 flex-wrap items-center gap-2 border-sky-400/50 bg-slate-950/95 px-3 py-2 shadow-2xl ${REVISIT_PANEL}`}
+                >
+                    <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-sky-400/20 px-1.5 text-[11px] font-black text-sky-200">
+                                {customArea?.boundary.length ?? 0}
+                            </span>
+                            <span className="text-[12px] font-black uppercase tracking-[0.08em] text-sky-100">
+                                Draw {areaTargetRole === 'REFERENCE' ? 'reference' : 'comparison'} polygon
+                            </span>
+                        </div>
+                        <p className="mt-0.5 text-[11px] text-slate-400">
+                            Click boundary corners in order · the last edge closes automatically
+                            <span className="hidden sm:inline"> · Enter finish · Esc cancel</span>
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={handleUndoAreaVertex}
+                        disabled={!customArea?.boundary.length}
+                        title="Undo last vertex (Backspace or ⌘Z)"
+                        className="min-h-10 rounded border border-slate-700 px-3 text-[11px] font-bold text-slate-200 disabled:opacity-30"
+                    >
+                        Undo
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleCancelAreaDrawing}
+                        className="min-h-10 rounded px-3 text-[11px] font-bold text-slate-400 hover:text-rose-200"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleFinishAreaDrawing}
+                        disabled={!areaDrawingCanFinish}
+                        title={areaDrawingCanFinish ? 'Finish polygon (Enter)' : 'Add at least three valid vertices'}
+                        className="min-h-10 rounded bg-sky-400/20 px-3 text-[11px] font-black text-sky-100 disabled:cursor-not-allowed disabled:opacity-35"
+                    >
+                        Finish polygon
+                    </button>
+                </div>
+              )}
 
             {/* One flex column owns the whole overlay. Absolute offsets between
                 panels were fragile: the header grows when a spread note appears
@@ -928,96 +1822,26 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                   {/* `items-start` so each panel sizes to its own content rather
                       than stretching to the width of the widest sibling. */}
                   <div className="pointer-events-none absolute left-0 top-0 z-40 flex flex-col items-start justify-between md:static md:z-20">
-                    {/* Display toggles — the slot ENG uses for REG / 5G / CONN / LOAD */}
-                    {/* On a phone this toolbar is a five-button band lying across
-                        the top of the globe. Collapsed behind one button it
-                        stops competing with the scene; `md:` keeps the band. */}
-                    <button
-                        type="button"
-                        onClick={() => setStageMenuOpen((open) => !open)}
-                        aria-expanded={stageMenuOpen}
-                        aria-controls="revisit-stage-controls"
-                        aria-label="Globe and scenario controls"
-                        className={`pointer-events-auto ${REVISIT_PANEL} flex h-11 w-11 items-center justify-center text-base text-amber-200 md:hidden`}
-                    >
-                        <span aria-hidden="true">{stageMenuOpen ? '×' : '☰'}</span>
-                    </button>
-                    <div
-                        id="revisit-stage-controls"
-                        data-revisit-stage-controls
-                        className={`pointer-events-auto ${REVISIT_PANEL} ${stageMenuOpen ? 'mt-1 flex' : 'hidden'} max-w-[calc(100vw-1rem)] flex-col gap-1 p-1.5 md:mt-0 md:flex md:max-w-none`}
-                    >
-                        {onExit && (
-                            <button
-                                type="button"
-                                onClick={onExit}
-                                className="revisit-origin-return min-h-11 rounded-md border border-slate-700/60 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-slate-400 transition-colors hover:text-slate-100 md:mb-0.5 md:min-h-0 md:border-x-0 md:border-t-0"
-                            >
-                                <span className="sm:hidden">‹ Back</span>
-                                <span className="hidden sm:inline">
-                                    ‹ Back to {returnMode === 'commercial' ? 'Commercial' : 'Engineering'}
-                                </span>
-                            </button>
-                        )}
-                        <button
-                            type="button"
-                            onClick={() => setPresenterMode((active) => !active)}
-                            aria-pressed={presenterMode}
-                            className="min-h-11 rounded-md border border-sky-400/30 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-sky-200 transition-colors hover:border-sky-300 md:min-h-0"
-                        >
-                            <span className="sm:hidden">{presenterMode ? 'Explore' : 'Present'}</span>
-                            <span className="hidden sm:inline">
-                                {presenterMode ? 'Explore controls' : 'Presenter view'}
-                            </span>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setScenarioWorkspaceOpen((open) => !open)}
-                            aria-expanded={scenarioWorkspaceOpen}
-                            aria-controls="revisit-scenario-workspace-drawer"
-                            className={`min-h-11 rounded-md px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] transition-colors md:min-h-0 ${scenarioWorkspaceOpen ? 'bg-sky-500/15 text-sky-200' : 'text-slate-400 hover:text-sky-200'}`}
-                        >
-                            <span className="sm:hidden">Scenarios</span>
-                            <span className="hidden sm:inline">Scenario workspace</span>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={handleResetScenario}
-                            className="min-h-11 rounded-md px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-slate-400 transition-colors hover:text-amber-200 md:min-h-0"
-                        >
-                            <span className="sm:hidden">Reset</span>
-                            <span className="hidden sm:inline">Reset scenario</span>
-                        </button>
-                        {!presenterMode && TOGGLES.map(({ key, label, hint }) => (
-                            <button
-                                key={key}
-                                type="button"
-                                onClick={() => toggle(key)}
-                                aria-pressed={options[key]}
-                                title={hint}
-                                className={[
-                                    'min-h-11 rounded-md px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] transition-colors md:min-h-0',
-                                    options[key]
-                                        ? 'bg-amber-500/20 text-amber-200'
-                                        : 'text-slate-500 hover:text-slate-300',
-                                ].join(' ')}
-                            >
-                                {label}
-                            </button>
-                            ))}
-                    </div>
+                    <StageControls
+                        toggles={TOGGLES}
+                        toggleState={options}
+                        onToggle={toggle}
+                    />
+                    {/* A status, beside the toolbar rather than inside it. */}
+                    <PresentationReadiness signals={readinessSignals} />
 
                   </div>
 
-                    {(!renderValidation.ok || error || sweepError || isMainThreadFallback) && (
-                        <div className={`pointer-events-auto absolute left-12 right-0 top-0 z-30 ${REVISIT_PANEL} self-start border-red-400/40 md:left-0 px-3 py-1.5 text-[11px] text-red-200 md:static`}>
-                            {renderValidation.errors.join('; ') || error || sweepError
-                                || 'Running on the main thread — Worker unavailable'}
+                    {/* One neutral notice instead of a red technical banner
+                        across the top of the globe (Programme 7B). */}
+                    {presentationNotice && (
+                        <div className="pointer-events-auto absolute left-12 right-0 top-0 z-30 self-start md:static md:left-0">
+                            <PresentationNotice {...presentationNotice} />
                         </div>
                     )}
 
                     {warnings.length > 0 && (
-                        <div className={`pointer-events-none absolute left-12 right-0 top-14 z-30 max-w-sm md:pointer-events-auto ${REVISIT_PANEL} self-start border-amber-400/40 md:left-0 md:top-28 px-3 py-1.5 text-[10px] leading-4 text-amber-200 md:static`}>
+                        <div className={`pointer-events-none absolute left-12 right-0 top-14 z-30 max-w-sm md:pointer-events-auto ${REVISIT_PANEL} self-start border-amber-400/40 md:left-0 md:top-28 px-3 py-1.5 text-[12px] leading-4 text-amber-200 md:static`}>
                             {warnings.map((warning) => <p key={warning}>{warning}</p>)}
                         </div>
                     )}
@@ -1027,10 +1851,10 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                     <section
                         ref={analysisColumnRef}
                         id="revisit-analysis-sheet"
-                        data-revisit-sheet-state={mobileSheet}
-                        className={`pointer-events-auto absolute inset-x-0 bottom-0 z-10 w-full shrink-0 flex-col gap-2 overflow-y-auto rounded-t-2xl md:static md:flex md:max-h-none md:w-[400px] md:rounded-none [&>*]:shrink-0 ${mobileSheet === 'closed'
+                        data-revisit-sheet-state={compactPanel === 'analysis' ? analysisSheetSize : 'closed'}
+                        className={`pointer-events-auto absolute inset-x-0 bottom-0 z-10 w-full shrink-0 flex-col gap-2 overflow-y-auto rounded-t-2xl md:static md:flex md:max-h-none md:w-[400px] md:rounded-none [&>*]:shrink-0 ${compactPanel !== 'analysis'
                             ? 'hidden'
-                            : mobileSheet === 'full'
+                            : analysisSheetSize === 'full'
                                 ? 'flex max-h-[min(82dvh,100%)]'
                                 : 'flex max-h-[min(48dvh,100%)]'}`}
                         data-revisit-analysis-panel
@@ -1040,15 +1864,17 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                         <div className={`${REVISIT_PANEL} sticky top-0 z-20 flex items-center px-1 md:hidden`}>
                             <button
                                 type="button"
-                                onClick={() => setMobileSheet(mobileSheet === 'full' ? 'half' : 'full')}
-                                aria-label={mobileSheet === 'full' ? 'Shrink analysis sheet' : 'Expand analysis sheet'}
+                                onClick={() => setAnalysisSheetSize(
+                                    (size) => size === 'full' ? 'half' : 'full'
+                                )}
+                                aria-label={analysisSheetSize === 'full' ? 'Shrink analysis sheet' : 'Expand analysis sheet'}
                                 className="flex h-8 flex-1 items-center justify-center"
                             >
                                 <span aria-hidden="true" className="h-1 w-10 rounded-full bg-slate-600" />
                             </button>
                             <button
                                 type="button"
-                                onClick={() => setMobileSheet('closed')}
+                                onClick={() => showPanel('none')}
                                 aria-label="Close analysis sheet and show the globe"
                                 className="h-8 w-9 text-base font-black text-slate-400"
                             >
@@ -1056,49 +1882,30 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                             </button>
                         </div>
 
-                        <nav className={`${REVISIT_PANEL} sticky top-8 z-20 grid gap-1 p-1 md:hidden ${analysisContext === 'AREA' ? 'grid-cols-2' : 'grid-cols-3'}`} aria-label="REVISIT analysis sections">
-                            {((analysisContext === 'AREA' ? [
-                                ['summary', 'Result'], ['curve', 'Cells'],
-                            ] : [
-                                ['summary', 'Summary'], ['curve', 'Curve'], ['details', 'Details'],
-                            ]) as Array<[MobileAnalysisPanel, string]>).map(([panel, label]) => (
-                                <button
-                                    key={panel}
-                                    type="button"
-                                    onClick={() => setMobileAnalysisPanel(panel)}
-                                    aria-pressed={mobileAnalysisPanel === panel}
-                                    className={`min-h-11 rounded-lg px-1 text-[10px] font-black uppercase tracking-wide ${mobileAnalysisPanel === panel ? 'bg-amber-500/20 text-amber-200' : 'text-slate-400'}`}
-                                >
-                                    {label}
-                                </button>
-                            ))}
-                        </nav>
-
                         <div
                             aria-label="Active result context"
-                            className={`${REVISIT_PANEL} sticky top-[5.25rem] z-[19] grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-l-4 px-3 py-2 md:top-0 ${analysisContext === 'AREA'
+                            className={`${REVISIT_PANEL} sticky top-8 z-[19] grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-l-4 px-3 py-2 md:top-0 ${analysisContext === 'AREA' || selectedPointId !== REFERENCE_POINT_ID
                                 ? 'border-l-sky-400'
                                 : 'border-l-amber-400'}`}
                         >
                             <div className="min-w-0">
-                                <div className={`text-[9px] font-black uppercase tracking-[0.12em] ${analysisContext === 'AREA' ? 'text-sky-700 dark:text-sky-300' : 'text-amber-300'}`}>
-                                    {analysisContext === 'AREA' ? 'Area analysis' : comparisonPoints.length > 0 ? 'Multi-point analysis' : 'Point analysis'}
+                                <div className={`truncate text-[11px] font-black uppercase tracking-[0.12em] ${analysisContext === 'AREA' || selectedPointId !== REFERENCE_POINT_ID ? 'text-sky-700 dark:text-sky-300' : 'text-amber-300'}`}>
+                                    {!hasReferenceTarget
+                                        ? 'No target selected'
+                                        : analysisContext === 'AREA'
+                                        ? `Area result · ${displayedAreaAnalysis?.area.name ?? customArea?.name ?? 'No area selected'}`
+                                        : `Point result · ${inspectedPointRole} · ${inspectedPoint?.name ?? 'Location required'}`}
                                 </div>
-                                <p className="mt-0.5 truncate text-[9px] leading-3 text-slate-400">
-                                    {analysisContext === 'AREA'
-                                        ? `${areaRun.analysis?.area.name ?? customArea?.name ?? 'No area selected'} · worst-cell contractual view`
-                                        : `${scenario.target.name} is the reference${comparisonPoints.length ? ` · ${comparisonPoints.length} comparison point${comparisonPoints.length > 1 ? 's' : ''}` : ''}${pendingComparisonPointIds.length ? ` · ${pendingComparisonPointIds.length} awaiting location` : ''}.`}
-                                </p>
                             </div>
                             <label className="flex shrink-0 flex-col gap-0.5">
-                                <span className="text-[8px] font-black uppercase tracking-[0.1em] text-slate-400">
+                                <span className="text-[11px] font-black uppercase tracking-[0.1em] text-slate-400">
                                     Revisit requirement
                                 </span>
                                 <select
                                     aria-label="Revisit requirement"
                                     value={requirementMs}
                                     onChange={(event) => setRequirementMs(Number(event.target.value))}
-                                    className="min-h-7 rounded border border-amber-400/35 bg-slate-950/85 px-2 text-[11px] font-black text-amber-200 outline-none"
+                                    className="min-h-11 md:min-h-7 rounded border border-amber-400/35 bg-slate-950/85 px-2 text-[12px] font-black text-amber-200 outline-none"
                                     title="Maximum acceptable gap between two observations"
                                 >
                                     {REQUIREMENT_CHOICES_H.map((hours) => (
@@ -1110,100 +1917,107 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                             </label>
                         </div>
 
-                        <div className={`${mobileAnalysisPanel === 'summary' ? 'block' : 'hidden'} md:contents`} aria-live="polite">
-                            {analysisContext === 'AREA' ? (
-                                <AreaResultSummary
-                                    analysis={areaRun.analysis}
-                                    isRunning={areaRun.isRunning}
-                                    progress={areaRun.progress}
-                                    error={areaRun.error}
-                                    requirementMs={requirementMs}
-                                    onExportCsv={handleExportAreaCsv}
-                                />
-                            ) : (
-                                <RevisitKpiPanel
-                                    statistics={analysis?.statistics ?? null}
-                                    windowHours={scenario.window.durationHours}
-                                    requirementMs={requirementMs}
-                                    isComputing={isComputing}
-                                    comparisonIsComputing={isSweeping}
-                                    comparison={businessComparison}
-                                />
-                            )}
-                        </div>
-                        <div className={`${mobileAnalysisPanel === 'curve' ? 'block' : 'hidden'} md:contents`}>
-                            {analysisContext === 'AREA' ? (
-                                <AreaDistributionPanel analysis={areaRun.analysis} requirementMs={requirementMs} onExportCsv={handleExportAreaCsv} />
-                            ) : (
-                                <ValueCurve
-                                    key={resetRevision}
-                                    sweep={sweep}
-                                    isComputing={isSweeping}
-                                    requirementMs={requirementMs}
+                        <div className="space-y-2" aria-live="polite">
+                            {/* One answer card owns the headline and its
+                                operational proof. The old standalone KPI/Area
+                                cards repeated the same maximum gap and verdict. */}
+                            {(analysisContext === 'AREA' || inspectedPoint) && (
+                                <CustomerResultCard
+                                    question={customerQuestion}
+                                    comparisonNote={customerComparisonNote}
                                     currentPayloadCount={currentPayloadCount}
-                                    currentMaxGapMs={analysis?.statistics.maxGapMs ?? null}
-                                    currentIsMeasuredBest={status.isBest}
-                                    targetName={scenario.target.name}
-                                    onSelectPayloadCount={handlePayloadCountChange}
+                                    fleetSize={scenario.reference.planes * scenario.reference.satsPerPlane}
+                                    currentMaxGapMs={customerMaxGapMs}
+                                    currentIsComputing={customerIsComputing}
+                                    currentUnavailableReason={customerUnavailableReason}
+                                    currentMetricLabel={analysisContext === 'AREA'
+                                        ? 'Maximum revisit gap · least-covered cell'
+                                        : 'Maximum revisit gap'}
+                                    requirementMs={requirementMs}
+                                    sizing={customerSizing}
+                                    applyNote={selectedPointId === REFERENCE_POINT_ID
+                                        ? null
+                                        : 'Optimises the shared topology for the comparison target, so the reference target stops driving it.'}
+                                    onApply={handleApplyRecommendation}
+                                    onUndo={canUndoRecommendation ? handleUndoRecommendation : undefined}
+                                    onRetrySizing={activeSizingError ? retrySweep : undefined}
+                                    supportingMetrics={analysisContext === 'AREA' ? (
+                                        <AreaResultSummary
+                                            analysis={displayedAreaAnalysis}
+                                            draftArea={customArea}
+                                            isRunning={areaRun.isRunning}
+                                            progress={areaRun.progress}
+                                            error={areaRun.error}
+                                            requirementMs={requirementMs}
+                                            embedded
+                                        />
+                                    ) : (
+                                        <RevisitKpiPanel
+                                            statistics={inspectedAnalysis?.statistics ?? null}
+                                            windowHours={scenario.window.durationHours}
+                                            requirementMs={requirementMs}
+                                            isComputing={inspectedIsComputing}
+                                            comparisonIsComputing={isSweeping}
+                                            comparison={businessComparison}
+                                            embedded
+                                        />
+                                    )}
+                                    recommendedConfigurationDetail={analysisContext === 'POINTS' && inspectedPoint ? (
+                                        <ValueCurve
+                                            key={resetRevision}
+                                            sweep={sweep}
+                                            isComputing={isSweeping}
+                                            requirementMs={requirementMs}
+                                            currentPayloadCount={currentPayloadCount}
+                                            currentMaxGapMs={inspectedAnalysis?.statistics.maxGapMs ?? null}
+                                            currentIsMeasuredBest={status.isBest}
+                                            alternativeTopologyLabel={selectedPointId === REFERENCE_POINT_ID
+                                                ? undefined
+                                                : 'Current shared topology'}
+                                            targetName={inspectedPoint.name}
+                                            onSelectPayloadCount={handlePayloadCountChange}
+                                            embedded
+                                        />
+                                    ) : null}
                                 />
                             )}
-                        </div>
-                        <div className={`${mobileAnalysisPanel === 'details' ? 'space-y-2' : 'hidden'} md:contents`}>
-                            {analysisContext === 'POINTS' && (
-                                <>
-                                    <WhyThisRevisit explanation={explanation} />
-                                    <div className="lg:hidden">
-                                        <TargetComparisonTable
-                                            rows={targetComparison.rows}
-                                            requirementMs={requirementMs}
-                                            enabled={comparisonPoints.length > 0}
-                                            isComputing={targetComparison.isComputing}
-                                            error={targetComparison.error}
-                                            targets={comparisonTargets}
-                                            pendingCount={pendingComparisonPointIds.length}
-                                        />
-                                    </div>
-                                </>
+                            {analysisContext === 'AREA' && (
+                                <AreaDistributionPanel analysis={displayedAreaAnalysis} requirementMs={requirementMs} />
                             )}
-                        </div>
-                        <div className={`${analysisContext === 'AREA'
-                            ? mobileAnalysisPanel === 'curve' ? 'space-y-2' : 'hidden'
-                            : mobileAnalysisPanel === 'details' ? 'space-y-2' : 'hidden'} md:contents`}>
-                          <div className={`${REVISIT_PANEL} flex items-center gap-2 px-3 py-2`}>
-                            <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">
-                                Export
-                            </span>
-                            {analysisContext === 'AREA' ? (
-                                <button type="button" onClick={handleExportAreaCsv} disabled={!areaRun.analysis}
-                                    className="rounded border border-slate-600 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-slate-300 hover:border-sky-400/50 hover:text-sky-200 disabled:opacity-40">
-                                    Area grid
-                                </button>
-                            ) : <>
-                                <button type="button" onClick={handleExportAccessCsv} disabled={!analysis}
-                                    className="rounded border border-slate-600 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-slate-300 hover:border-sky-400/50 hover:text-sky-200 disabled:opacity-40">
-                                    Accesses
-                                </button>
-                                <button type="button" onClick={handleExportSweepCsv} disabled={!sweep}
-                                    className="rounded border border-slate-600 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-slate-300 hover:border-sky-400/50 hover:text-sky-200 disabled:opacity-40">
-                                    Sweep
-                                </button>
-                            </>}
-                          </div>
+                            {analysisContext === 'POINTS' && inspectedPoint && (
+                                <WhyThisRevisit explanation={explanation} />
+                            )}
+                            {analysisContext === 'POINTS' && !inspectedPoint && (
+                                <div className={`${REVISIT_PANEL} px-4 py-4`}>
+                                    <div className="text-[12px] font-black uppercase tracking-[0.12em] text-sky-300">
+                                        {hasReferenceTarget ? 'Comparison target location required' : 'No analysis target'}
+                                    </div>
+                                    <p className="mt-1 text-[12px] leading-4 text-slate-400">
+                                        {hasReferenceTarget
+                                            ? 'Choose a site, enter coordinates, or place this point on the globe. No reference-target result is substituted while this row is incomplete.'
+                                            : 'Add a reference point or polygon in the header, or click the globe to create a reference point.'}
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     </section>
                 </div>
 
-                <div className="pointer-events-auto md:hidden">
+                {compactPanel !== 'analysis' && <div className="pointer-events-auto md:hidden">
                     <MobileResultStrip
                         analysisContext={analysisContext}
-                        statistics={analysis?.statistics ?? null}
-                        areaAnalysis={areaRun.analysis}
+                        statistics={inspectedAnalysis?.statistics ?? null}
+                        areaAnalysis={displayedAreaAnalysis}
+                        areaIsDefined={Boolean(customArea && customArea.boundary.length >= 3)}
                         requirementMs={requirementMs}
-                        isComputing={analysisContext === 'AREA' ? areaRun.isRunning : isComputing}
-                        expanded={mobileSheet !== 'closed'}
-                        onToggle={() => setMobileSheet((state) => state === 'closed' ? 'half' : 'closed')}
+                        isComputing={analysisContext === 'AREA' ? areaRun.isRunning : inspectedIsComputing}
+                        pointIsPending={hasReferenceTarget && analysisContext === 'POINTS' && !inspectedPoint}
+                        noTarget={!hasReferenceTarget}
+                        pointResultLabel={hasReferenceTarget && analysisContext === 'POINTS' ? inspectedPointRole : undefined}
+                        expanded={false}
+                        onToggle={() => togglePanel('analysis')}
                     />
-                </div>
+                </div>}
 
                 <div className="pointer-events-auto">
                     <ClockedCoverageRibbon
@@ -1215,30 +2029,40 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                         onSeek={handleSeek}
                         analysisContext={analysisContext}
                         referenceTargetName={scenario.target.name}
-                        areaName={areaRun.analysis?.area.name ?? customArea?.name ?? null}
-                        pointLanes={pointTimelineLanes}
-                        areaAnalysis={areaRun.analysis}
+                        areaName={displayedAreaAnalysis?.area.name ?? customArea?.name ?? null}
+                        targetLanes={targetSetTimelineLanes}
+                        areaAnalysis={displayedAreaAnalysis}
                         requirementMs={requirementMs}
                         comparisonIsComputing={targetComparison.isComputing}
                         comparisonError={targetComparison.error}
-                        onSelectPoint={setSelectedPointId}
+                        onSelectPoint={handleSelectedPointChange}
+                        onSelectTarget={handleSelectedTargetChange}
                     />
                 </div>
               </div>
             </div>
-            {scenarioWorkspaceOpen && (
-                <ScenarioWorkspaceDrawer onClose={() => setScenarioWorkspaceOpen(false)}>
+            {compactPanel === 'workspace' && (
+                <ScenarioWorkspaceDrawer onClose={() => showPanel('none')}>
                     <ScenarioWorkspace
                         snapshot={currentSnapshot}
                         onLoad={handleLoadSavedScenario}
+                        opportunity={opportunity}
+                        onOpportunityChange={setOpportunity}
+                        onResetScenario={handleResetScenario}
                         onExportResult={handleExportResultSheet}
                         canExportResult={analysisContext === 'AREA'
-                            ? Boolean(areaRun.analysis) && !areaRun.isRunning
-                            : Boolean(analysis) && !isComputing}
+                            ? Boolean(displayedAreaAnalysis) && !areaRun.isRunning
+                            : Boolean(inspectedAnalysis) && !inspectedIsComputing}
                         analysisContext={analysisContext}
+                        onExportAccessCsv={handleExportAccessCsv}
+                        canExportAccessCsv={Boolean(inspectedAnalysis)}
+                        onExportSweepCsv={handleExportSweepCsv}
+                        canExportSweepCsv={Boolean(sweep)}
+                        onExportAreaCsv={handleExportAreaCsv}
+                        canExportAreaCsv={Boolean(displayedAreaAnalysis)}
                     />
                     {exportError && (
-                        <p role="alert" className="mt-2 rounded border border-red-400/30 bg-red-950/80 px-2 py-1 text-[10px] text-red-200">
+                        <p role="alert" className="mt-2 rounded border border-red-400/30 bg-red-950/80 px-2 py-1 text-[12px] text-red-200">
                             {exportError}
                         </p>
                     )}

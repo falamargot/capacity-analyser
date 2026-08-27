@@ -250,6 +250,31 @@ export function fitMatchesReference(fit: WalkerSpec, reference: WalkerSpec): boo
 export type ReferenceMode = 'HLD' | 'MEASURED' | 'CUSTOM';
 
 /**
+ * The subject of the customer question — WHOSE fleet the answer is about.
+ *
+ * The question used to hardcode "the Eutelsat LEO fleet" whatever the
+ * model selector said. On `HLD` that is exactly right. On `CUSTOM` it is a
+ * false claim, and a serious one: the seven Walker fields are free, so the user
+ * can be simulating a 6 × 20 shell at 550 km while the sentence — and the
+ * exported customer summary — puts Eutelsat's name on it.
+ *
+ * `MEASURED` keeps the name because it is fitted from the live OneWeb fleet,
+ * but says so: it is a single-epoch mean-element fit, not the published design,
+ * and `isAuthoritative` on the profile records the same distinction for
+ * anything else that needs to decide what may be quoted.
+ */
+export function fleetSubject(mode: ReferenceMode): string {
+    switch (mode) {
+        case 'HLD':
+            return 'the Eutelsat LEO fleet';
+        case 'MEASURED':
+            return 'the Eutelsat LEO fleet, as currently measured,';
+        case 'CUSTOM':
+            return 'this custom constellation';
+    }
+}
+
+/**
  * The mode a loaded specification represents.
  *
  * A persisted snapshot carries no fit, so a measured shell necessarily reads

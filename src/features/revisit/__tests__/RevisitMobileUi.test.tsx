@@ -83,9 +83,47 @@ describe('REVISIT compact viewport', () => {
         await act(async () => fewer.click());
         expect(onPayloadCountChange).toHaveBeenCalledWith(6);
 
+        /*
+         * Since Programme 7B the header does not own this panel's open state:
+         * it is one of five mutually exclusive panels and `RevisitApp` is the
+         * single authority. The header's contract is therefore to REQUEST the
+         * toggle and to render whatever `setupOpen` says — asserting that it
+         * opens itself would assert the bug exclusivity exists to prevent.
+         */
+        const onToggleSetup = vi.fn();
+        await act(async () => root?.render(
+            <RevisitHeader
+                scenario={scenario}
+                payloadCounts={[6, 12, 24]}
+                currentPayloadCount={12}
+                onPayloadCountChange={onPayloadCountChange}
+                targetNames={['London']}
+                onTargetChange={() => undefined}
+                spreadNote={null}
+                setupOpen={false}
+                onToggleSetup={onToggleSetup}
+            />
+        ));
         const disclosure = container
             .querySelector('[aria-controls="revisit-mobile-setup"]') as HTMLButtonElement;
         await act(async () => disclosure.click());
+        expect(onToggleSetup).toHaveBeenCalledTimes(1);
+        expect((container.querySelector('#revisit-mobile-setup') as HTMLDivElement).className)
+            .toContain('hidden');
+
+        await act(async () => root?.render(
+            <RevisitHeader
+                scenario={scenario}
+                payloadCounts={[6, 12, 24]}
+                currentPayloadCount={12}
+                onPayloadCountChange={onPayloadCountChange}
+                targetNames={['London']}
+                onTargetChange={() => undefined}
+                spreadNote={null}
+                setupOpen
+                onToggleSetup={onToggleSetup}
+            />
+        ));
         expect((container.querySelector('#revisit-mobile-setup') as HTMLDivElement).className)
             .not.toContain('hidden');
     });
@@ -106,7 +144,7 @@ describe('REVISIT compact viewport', () => {
 
         expect(container.textContent).toContain('Misses');
         expect(container.textContent).toContain('3 h');
-        expect(container.textContent).toContain('Worst case vs 2 h');
+        expect(container.textContent).toContain('Maximum gap vs 2 h');
 
         const strip = container.querySelector('[data-revisit-result-strip]') as HTMLButtonElement;
         expect(strip.getAttribute('aria-expanded')).toBe('false');
@@ -140,5 +178,23 @@ describe('REVISIT compact viewport', () => {
             />
         ));
         expect(container.textContent).toContain('Never in view');
+    });
+
+    it('does not substitute the reference result for an incomplete comparison point', async () => {
+        await act(async () => root?.render(
+            <MobileResultStrip
+                analysisContext="POINTS"
+                statistics={statistics(3 * 3600_000)}
+                areaAnalysis={null}
+                requirementMs={2 * 3600_000}
+                isComputing={false}
+                pointIsPending
+                expanded={false}
+                onToggle={() => undefined}
+            />
+        ));
+        expect(container.textContent).toContain('Location required');
+        expect(container.textContent).toContain('Set point');
+        expect(container.textContent).not.toContain('3 h');
     });
 });

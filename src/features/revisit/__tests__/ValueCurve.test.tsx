@@ -151,6 +151,30 @@ describe('ValueCurve current-selection coherence', () => {
         expect(container.textContent).toContain('Show exact topology points');
     });
 
+    it('uses evidence-only labels when embedded under the canonical recommendation', async () => {
+        await act(async () => root?.render(
+            <ValueCurve
+                sweep={sweep}
+                isComputing={false}
+                requirementMs={2 * 3600_000}
+                currentPayloadCount={4}
+                currentMaxGapMs={2 * 3600_000}
+                currentIsMeasuredBest
+                targetName="London"
+                onSelectPayloadCount={() => undefined}
+                embedded
+            />
+        ));
+
+        expect(container.textContent).toContain('Sizing evidence');
+        expect(container.textContent).toContain('Current');
+        expect(container.textContent).toContain('Recommended');
+        expect(container.textContent).toContain('Requirement');
+        expect(container.textContent).not.toContain('Minimum tested balanced configuration');
+        expect(container.textContent).not.toContain('Current configuration:');
+        expect(container.textContent).not.toContain('requirement 2 h');
+    });
+
     it('keeps exact topology measurements available on demand', async () => {
         await act(async () => root?.render(
             <ValueCurve

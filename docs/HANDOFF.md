@@ -1,6 +1,508 @@
 # Handoff
 
-_Last updated 2026-08-20._
+_Last updated 2026-08-27._
+
+## 2026-08-26 — Programme 8: one sweep at a time
+
+Implemented in full. New files: `domain/revisitFailure.ts`,
+`workers/sweepScheduler.ts`. `useRevisitSweep` no longer owns a Worker; it is
+the React face of a subscription to the scheduler.
+
+What changed, in the order it was built:
+
+1. **Failures name themselves.** `RevisitFailure` = operation + target + path +
+   kind + message. All four hooks (`useRevisitAnalysis`, `useRevisitSweep`,
+   `useTargetComparison`, `useAreaAnalysis`) now expose `failure` alongside
+   `error`, and `error` is the LABELLED text, never the bare message — a Worker
+   `error` event can carry an empty string, and an empty string is falsy, so
+   every `if (error)` in the module would have missed a real failure.
+2. **Only the selected result blocks.** `presentationFailure` is
+   `activeResultError` alone. A failed sizing renders as `CustomerSizing.FAILED`
+   inside `Recommended configuration` with an inline `Retry`; a failed
+   comparison stays in the comparison table, which already rendered its own.
+   Net UI change is negative: one full-width red banner removed, one sentence
+   and one text link added.
+3. **Retry** rebuilds the Worker through `restartSweepWorker` and a `retryToken`
+   in the effect deps — deliberately NOT by toggling `enabled`, which is the
+   cancel/restart path.
+4. **Shared cache, physical keys.** `physicalSweepKey` excludes the display
+   name. A comparison target at the reference's coordinates is served from the
+   curve already measured.
+5. **One queue.** One sweep at a time; identical requests join; queued requests
+   nobody is waiting for are dropped; running requests are never cancelled.
+
+Also fixed here, found while stabilising the visual gate: the readiness chip's
+`Fleet sizing` signal now includes `isConfigurationSettling`, so it no longer
+says "Ready to present" while `reconcileToMeasuredBest` is still moving the
+selection. A failed sizing reports `DEGRADED` there, not `BLOCKED`.
+
+Measured in the browser: comparison at the same coordinates resolves in under
+3 s (was a second ~25 s sweep); four targets at 1 s intervals resolve in under
+30 s (was ~60 s).
+
+### Validation as of 2026-08-27 — all gates green
+
+| Gate | Result |
+| --- | --- |
+| `npm test` | 2095 passed, 5 skipped |
+| `npx tsc --noEmit` | clean |
+| `npx eslint src/ e2e/` | clean |
+| `npx playwright test` (4 projects) | **137 passed, 0 failed**, 71 skipped (43 min) |
+| `revisit-visual.spec.ts` | 18/18, stable across consecutive runs |
+
+**It took three full e2e rounds to converge — 6 failures, then 4, then 1 — and
+that is the finding, not an inconvenience.** Each defect blocked the tests
+before they could reach the next one: fixing the mobile collision let
+`revisit-p0` run far enough to expose the missing seek slider after a reset, and
+fixing that let `revisit-p7a` run far enough to expose the card contradicting
+itself. A single green-after-one-fix run would have proved much less than it
+appeared to. Budget for convergence when this suite is red.
+
+The last of those, the self-contradicting result card, was a genuine product
+defect and is written up in `REVIEW_REPORT.md`; the other five in that round
+were stale test expectations, corrected against the current contracts.
+
+### Mobile stage controls collapsed below `md` (2026-08-27)
+
+The first full four-project e2e run surfaced six failures, all on
+`mobile-chromium`. Three causes:
+
+**1. The globe display column collided with the footer controls (real defect).**
+`StageControls` rendered five 44 px toggles expanded on every viewport — ~250 px
+of opaque panel on an 844 px screen. With the setup panels open it came to rest
+over the simulation controls and `Pause` was completely hidden behind
+`Auto-rotate globe`, so a presenter could not stop the simulation; and the
+unobstructed globe band was 260 px against the 360 px the mobile UX plan §2
+gate requires.
+
+Resolved on the user's decision: collapse **below `md` only**. The column is now
+a `<details>` seeded from `matchMedia('(min-width: 768px)')` at mount — the same
+pattern `RecommendedEvidenceDisclosure` uses — with a 44 px `Display n/5`
+summary that is `md:hidden`. Measured after: toolbar 58 px, clear band 420 px,
+`Pause` hit-testable as itself even with the panel open. Desktop verified
+byte-for-byte unchanged in behaviour: `open: true`, summary `display: none`,
+240 × 160, same five buttons.
+
+**Second round: four more mobile failures, all consequences of the collapse.**
+Three specs (`revisit-p0`, `revisit-p7b`, `revisit-p7e`) asserted the display
+controls were ALWAYS expanded — the contract that just changed. They go through
+one helper, so `openRevisitDisplayControls` now opens the disclosure when it is
+closed (a no-op at `md` and above) and the two test titles claiming
+"always-expanded" were corrected to what both viewports actually owe: every
+layer control reachable without leaving the globe.
+
+The fourth was hiding behind the first. `revisit-p0`'s clock test performs a
+`Reset scenario` midway, which returns REVISIT to its no-target opening state —
+so there is no access lane, and therefore no `Seek within the … analysis window`
+slider to press. Correct behaviour; the test had simply never reached that line,
+because the `Pause` interception blocked it earlier. It re-seeds a target before
+seeking, since seeking on the timeline is the contract it exists to assert.
+
+**2–3. Three stale tests, corrected rather than the code.**
+`revisit-p2a` and `revisit-p2b-b3` looked for a `Scenarios` button inside the
+stage controls; scenario management moved to the application header, where
+`Scenario workspace` serves every viewport. `revisit-p2c-c` (mobile) expected
+three timeline lanes and clicked a `Comparison · Singapore` lane — both
+leftovers from the two-comparison target set; its comparison is the AREA
+`Customer AOI` and the set yields two lanes, which its desktop twin already
+asserted.
+
+### The dark visual baselines are much weaker than the light ones
+
+Worth knowing before trusting a green gate: the collapse changed ~15 % of the
+phone viewport's pixels, and **only the two LIGHT phone baselines failed**. In
+the dark theme the panel (`bg-slate-950/80`) sits on a near-black starfield, so
+removing it changes almost nothing outside the glyphs and the diff stays under
+`maxDiffPixelRatio: 0.01`. A dark-only regression of this size can pass. Treat
+the light captures as the load-bearing half of the matrix.
+
+### Post-review fixes (2026-08-26)
+
+A `/code-review high` pass over the working tree found five real defects; all
+five are fixed with a regression test each.
+
+1. **`MAX_SECONDARY_TARGETS` 2 → 1 discarded whole sessions.** Persisted data
+   was validated against the CURRENT UI bound, so a snapshot written by the
+   previous build (two comparison points) failed validation and
+   `readRevisitSessionSnapshot` returned null — losing the scenario,
+   requirement, options and opportunity name, making saved scenarios vanish from
+   the workspace and their exported JSON unimportable. Stored data is now
+   validated against `MAX_PERSISTED_SECONDARY_TARGETS` and TRIMMED on read by
+   `normaliseRevisitSessionSnapshot`, which `revisitSavedScenarios` also applies.
+   *(My first version of that normaliser filtered points by the display order
+   and so deleted the user's only comparison target when the order was empty —
+   the same class of bug. It trims by count now, keeping whichever the order put
+   first.)*
+2. **The exported PDF asserted a false negative.** `recommendedPayloadCount:
+   null` meant "none exists", "none yet" and "sizing failed" at once, and the
+   document printed the first in all three cases — so exporting during the
+   ~25 s sweep stated that nothing meets the requirement, seconds before the
+   screen recommended a configuration that does. `ResultSheetContext.sizingStatus`
+   now separates them.
+3. **A failed target comparison had no render site.** Moving it out of the
+   blocking notice was right, but the local site it was moved to
+   (`TargetComparisonTable`) is not mounted anywhere. `CoverageRibbon` gained
+   `comparisonError`, rendered in the two header slots it already has — the
+   status word becomes `Unavailable` and the subtitle explains — so no row is
+   added.
+4. **`retry()` was too broad.** It rebuilt the Worker for every failure kind,
+   which requeues and restarts every other sweep in flight. Now gated on
+   `needsWorkerRestart(failure)`: an `engine error` leaves the Worker healthy.
+5. **The reduced-performance warning arrived after the freeze it announces.**
+   `primeSweepWorker()` constructs the Worker as soon as a sweep is wanted, and
+   the flag is mirrored into state so it actually triggers a render.
+
+**`TargetComparisonTable.tsx` deleted.** It was unwired by the P2c work (its
+`lg:hidden` table replaced by the ribbon's compact comparison disclosure) but
+still maintained — 101 lines of the current diff went into dead code. Its two
+unique behaviours have replacements: the comparison error is item 3 above, and
+its "location required" states are the `Comparison target location required`
+panel in `RevisitApp`. The `Target comparison` aria-label the e2e specs use
+belongs to `CoverageRibbon`'s own section, so no test referenced the deleted
+file. The historical audit bullet further down this document mentions it; that
+record stands as written — the file is simply gone now.
+
+### Incident — uncommitted work overwritten and recovered
+
+While converting `useRevisitAnalysis` I ran `git checkout --` on it to undo a
+bad scripted edit. That file carried UNCOMMITTED Programme 7C work (the
+`analysisIdentityKey` / `completed` freshness contract), which the checkout
+destroyed: the index matched HEAD, so there was nothing to restore from. It was
+recovered from the session transcript, which held the edit script that had
+produced it, and verified by its own test
+(`useRevisitAnalysis.test.tsx` — "rejects target A when its response lands
+during target B debounce").
+
+**The tree is still entirely uncommitted.** Nothing above is protected against a
+repeat. Commit before the next session.
+
+## 2026-08-26 — Programme 7 validation recovery
+
+The original Programme 7 visual evidence was invalid. `revisit-visual.spec.ts`
+masked the viewport-sized Cesium canvas; Playwright applies a locator mask by
+bounding box above the composited page, so all 18 references were solid magenta
+and dark/light pairs were byte-identical. The repeated 2026-08-25 claims below
+that those baselines validated layout are therefore historical record, **not
+valid evidence**.
+
+The gate now leaves the canvas in layout and sets only its pixels transparent.
+Before recapture, the existing baseline failed on 98% of pixels, proving the
+HTML overlays were observable. All 18 references were then regenerated and
+visually inspected across nine viewports and both themes. They contain the real
+header, result column, controls and access ribbon; dark/light are distinct.
+
+### Visual gate closed — stable across two consecutive runs
+
+Recapture alone was not enough. The first verification run failed on
+`phone-390x844 light`: the capture recorded a 5 h 49 min worst-case gap where
+the baseline holds the settled 3 h 26 min. The failure snapshot, taken moments
+later, already showed 3 h 26 min — so the page was still converging when
+Playwright shot it.
+
+Cause: `reconcileToMeasuredBest` moves the selection to the measured-best
+topology AFTER the fleet sizing lands, and the readiness chip already reports
+"Ready to present" during that window. **The readiness attribute is a necessary
+but not a sufficient settle signal.** The visual captures freeze the clock, so
+`waitForRevisitResultSettled` (in `e2e/revisitCompact.ts`) now also requires two
+identical `document.body.innerText` samples one second apart before capturing.
+
+With that wait the gate passed 18/18 twice in a row with no recapture between
+runs. This is the first time the visual evidence for REVISIT is both real and
+reproducible.
+
+Note for the implementation review: a readiness indicator that reports
+"Ready to present" while a recomputation is still pending is a product defect,
+not only a test problem. A presenter reads that chip the way this test did.
+
+The same recovery fixed four Programme 7 correctness gaps: a late primary
+analysis can no longer commit under a new target identity; recommendation Undo
+is bound to the business question that produced it; readiness and notices
+follow the active Point/Area result and every REVISIT Worker; Area renaming no
+longer launches a grid analysis; and the presentation profile restores the
+exact previous display flags.
+
+## 2026-08-25 — The customer question must not name a fleet the model is not
+
+**`fleetSubject(mode)` in `domain/referenceProfiles.ts` is the single source for
+the subject of the customer question**, used by `CustomerResultCard` and by the
+exported summary. Do not hardcode a fleet name in either.
+
+The sentence used to say "the Eutelsat ‡LEO fleet" whatever the model
+selector said. On `Custom` — seven freely editable Walker fields — that put
+Eutelsat's name on an arbitrary constellation, on screen and in a PDF that
+leaves the room. `Measured` keeps the name and adds "as currently measured",
+because it is fitted from live TLE but is not the published design.
+`ResultSheetContext.referenceMode` defaults to `CUSTOM`: forgetting to pass it
+must not invent a claim.
+
+Three number inconsistencies were fixed with it, all visible on one screenshot
+and none catchable by a gate:
+
+- the swath dropdown printed the preset's **nominal constant** while the
+  question printed the **computed** swath — 700 vs 699 once the altitude leaves
+  1200 km. The dropdown now rebuilds the presets at the current altitude;
+- the Characteristics summary interpolated raw floats
+  (`87.90084999999999°`) where the header rounds. `displayAltitudeKm` and
+  `displayInclinationDeg` moved into `revisitTheme` and both call sites use
+  them;
+- the Evidence datum line now says it is an **engine claim at 1200 km**, not
+  the model's altitude — it sat above a Characteristics line reading 1198.87 km.
+
+**The method lesson.** Type checking, Axe and the visual baselines all passed on
+the defective render — the baselines had been recaptured from it. A hardcoded
+claim is only visible by reading the sentence against the state that produced
+it. The model-dependent wording now has an e2e test that flips the selector and
+asserts the subject follows.
+
+## 2026-08-25 — Programme 7E implemented; Programme 7 complete
+
+The Constellation panel opens on **Model → Characteristics (one sentence) →
+Evidence**, with the seven Walker fields, the profile arrays, the strides, the
+instrument geometry and the analysis window behind one closed `Expert settings`
+disclosure. Nothing left the panel: this is disclosure inside Programme 6's
+unified panel, not the re-split decision 5 rejects. Every e2e test that edits
+Walker or FOV values now opens that disclosure first.
+
+The Scenario Workspace leads with `Customer / opportunity`, which is persisted
+in the session snapshot and printed on the exported summary. JSON export/import
+moved into a closed `Technical sharing` disclosure. `Duplicate` copies the
+**stored** snapshot of the selected scenario, never the live session — the point
+is to branch from a reference without carrying whatever was edited since it was
+loaded.
+
+The customer summary now follows the conversation: opportunity, the customer's
+question, verdict, metrics, recommended configuration, assumptions, comparisons,
+caveats. Screen and document share `customerVerdict` so they cannot drift.
+**No map**: capturing the globe needs `preserveDrawingBuffer`, which would cost
+performance on every frame of every session to serve one export, and a blank
+rectangle in a customer document is worse than none.
+
+### Two theming traps, both pre-existing, both worth knowing
+
+1. **A portalled surface leaves the theming scope — and the surface must follow
+   its content.** `ScenarioWorkspaceDrawer` portals to `document.body`, so
+   `.light .revisit-shell …` never reached it and the whole workspace had always
+   used dark-stage text colours whatever the theme said. Adding `revisit-shell`
+   to the portal container fixed the text and **broke the contrast**: the panel
+   was a hard-coded `#070c18` in both themes, so light foreground tokens landed
+   on a dark surface — 2.56:1, 129 nodes rejected by the Axe gate. The panel now
+   uses the shared `revisit-menu-surface` token. **If you portal anything else
+   out of the shell, scope it AND give it a themed surface.**
+2. **Never substring-match a colour class.** `[class*="text-amber-200"]` also
+   matches `hover:text-amber-200` and paints the hover colour at rest. The amber
+   family now uses exact selectors with its opacity variants listed, like the
+   sky family did after 7B. The note above that block in `index.css` had already
+   recorded this trap once; 7E walked into it anyway.
+
+## 2026-08-25 — Programme 7D implemented (typography and vocabulary)
+
+One campaign, as the plan required — doing this gradually produces inconsistent
+densities and a stream of overflow regressions.
+
+**Type scale: four sizes, 11 px floor.** Six sizes became `11 / 12 / 13 / 32`,
+mapped `8,9 → 11`, `10,11 → 12`, `12,13 → 13` so no hierarchy inverted. 104 of
+~190 occurrences had been at 8 or 9 px, which is legible on a laptop at arm's
+length and not on a projector. The scale is documented above `REVISIT_LABEL` in
+`revisitTheme.ts` and stays inline Tailwind: a token object nothing imports is
+dead weight.
+
+**Vocabulary names the function, not the rank.** `Sizing target` and
+`Compared target N`, because per Programme 5b the sizing target is what drives
+the payload sweep — the hierarchy is functional. Internal identifiers
+(`secondaryTargetOrder`, `handleSecondaryPointChange`, persisted ids) are
+deliberately unchanged: they are session-compatibility surface, not user-facing.
+Also `Worst case → Maximum revisit gap`, `Mean → Average revisit`,
+`Worst cell → Least-covered cell`, `IR swath → Assumed sensor swath`,
+`Point/Area PDF → Export customer summary`. The result sheet followed: a
+document titled "customer summary" cannot lead with `Worst-case revisit`.
+
+**Touch targets** are 44 px on compact viewports through `min-h-11 md:min-h-N`,
+leaving desktop density untouched. The timeline lane rows are a recorded
+exception at 17 px — they are sized to the chart, and the same selection exists
+at 44 px in the Analysis target panel.
+
+**Historical note — evidence withdrawn 2026-08-26.** These references were
+recaptured after the text changes, but the canvas mask hid every overlay. See
+the validation-recovery entry above for the first trustworthy recapture.
+
+### The e2e suite now collects 200 tests instead of 336
+
+`test.skip(project.name !== …)` runs inside the test body, so `beforeEach` had
+already paid a navigation and a full Cesium boot before the skip fired.
+`playwright.config.ts` declares, per project, the spec files that project ran
+zero tests for. Which tests actually run is unchanged and the in-test skips stay
+as the source of truth.
+
+**If you add a test to a file listed in `PROJECT_TEST_IGNORE`, give it a project
+skip or widen the list.** `projectCoverage.test.ts` fails in both directions and
+names the file. Broadening its parser to any indentation immediately found two
+more desktop-only files the first version had missed — it caught its own blind
+spot, which is the main reason to keep it.
+
+## 2026-08-25 — Programme 7C implemented (freshness contract)
+
+**The rule: a block shows a result matching its own current inputs, or its own
+loading state — never the previous scenario's value.** Not a global curtain and
+not a global counter; both were considered and rejected in the Programme 7
+decisions, for reasons that are still load-bearing.
+
+Four of the five computations were already correct. Two fixes:
+
+1. **`useRevisitAnalysis` now keys its retained result on
+   `analysisIdentityKey`** (target · reference · window). Retention across a
+   CONTINUOUS change — payload slider, swath preset — is deliberate and must
+   stay: dropping the number on every cran strobes the headline. Retention
+   across a change of SUBJECT was the defect. `selection` and `payload` are
+   absent from the identity key on purpose; do not "tidy" them in.
+2. **`useAreaAnalysis` now takes the defined `area` as a second argument** and
+   folds it into its freshness key. The polygon is passed to `run`, so it could
+   never appear in the scenario key, and re-pasting a coordinate list left the
+   previous area's worst cell and heat map under the new area's name.
+
+Verified by negative control: reverting fix 1 makes `revisit-p7c.spec.ts` fail
+with Singapore's question over London's 6 h 2 min. Do that again before
+trusting any change to these keys.
+
+`revisit-p7c.spec.ts` records every rendered frame of the customer result card
+through a `MutationObserver` rather than asserting once at the end — a single
+end-of-interaction assertion cannot see a stale frame. It also guards the
+opposite failure: the requirement must produce **no** loading state, and a
+continuous change must never blank the headline.
+
+### The intermittent Axe failure is fixed, and was never a violation
+
+Three lots saw the accessibility gate fail intermittently in modes they had not
+touched. The cause: `AxeBuilder.analyze()` evaluates in every frame, Cesium
+tears transient frames down, and under load Playwright throws "Execution
+context was destroyed". `analyzeAccessibility` in `e2e/accessibility.spec.ts`
+now retries that one error once. Keep the retry narrow — widening it would let
+a real violation hide behind a second attempt.
+
+### Practical warning
+
+Do not stack Playwright runs in the background. At 24 concurrent processes the
+whole suite timed out in `beforeEach` and reported four false failures, one run
+taking 1.2 h for four tests that pass in 1.6 min on a quiet machine. Check
+`uptime` before believing a Playwright failure, and run one invocation at a
+time.
+
+## 2026-08-24 — Programme 7B implemented (presentation safety)
+
+**One rule now governs the compact layout: exactly one panel is open, ever.**
+`CompactPanel` in `RevisitApp` (`'none' | 'setup' | 'analysis' | 'stage' |
+'workspace'`) is the single authority. Before this, four booleans did the job
+and two of them lived in different components — `mobileSetupOpen` inside
+`RevisitHeader` — so exclusivity was structurally impossible and a phone could
+end up with the setup triad, the analysis sheet, the stage menu and the
+workspace drawer all stacked over a globe reduced to nothing, mid-demo.
+
+Deliberately **not** branched on viewport: above `md` the triad, stage toolbar
+and analysis column are forced visible by CSS (`md:flex`, `md:static`), so the
+value is simply ignored there. Do not add a `matchMedia` branch — that is two
+behaviours to keep in step.
+
+`analysisSheetSize` (`'half' | 'full'`) is separate on purpose: collapsing the
+sheet must not close it.
+
+### The rest of 7B
+
+- `PresentationSafety.tsx` — `PresentationNotice` (neutral headline, guidance,
+  engineering text behind a closed `<details>`) and `PresentationReadiness`
+  (five pre-existing signals, worst-state-wins summary, plus the fixed
+  `Reduced globe load` profile). Neither computes anything.
+- The Worker fallback is now a `DEGRADED` `role="status"` notice saying
+  "Results are identical", not a red `Running on the main thread — Worker
+  unavailable`. The inline fallback itself is unchanged: `useRevisitSweep`
+  documents why it exists and that decision stands.
+- Light theme: `text-sky-200`/`text-sky-300` had overrides only on their
+  `hover:` variants, so three controls were invisible at rest in the light
+  theme. Fixed in `index.css` with **exact** class selectors — the substring
+  form would repaint hover colours at rest, which is the bug the note above
+  that block already records.
+
+### Two things that will bite the next lot
+
+1. **The Axe gate cannot see these light-theme defects.** Both found in
+   Programme 7 were outside what it decides (translucent backdrops; and 7A's
+   control does not exist until ~30 s after the scan). A manual browser pass in
+   both themes is a required step for any lot adding a coloured surface. 7D
+   inherits this.
+2. **Writing e2e against exclusive panels has three traps**, all hit during
+   this lot. Playwright role/label locators need the element in the
+   accessibility tree and `display: none` removes it, so `toHaveAttribute` and
+   `toHaveValue` do *not* keep working against a closed panel. An open panel
+   covers the control that opens another — the setup triad is in the `z-100`
+   header, over the result strip — so `closeRevisitPanels` returns to the globe
+   first and every `openRevisit*` goes through it. And a popover inside a panel
+   does not survive a switch, because a switch is a click outside it; use
+   `openAreaEditor` to get the area editor back. `openRevisitSurfaces` no
+   longer opens the analysis sheet.
+
+## 2026-08-24 — Programme 7 planned, Programme 7A implemented
+
+**Read `docs/IMPLEMENTATION_PLAN.md` § "Programme 7 — REVISIT commercial
+demonstration pass" before touching REVISIT UI.** It carries eleven closed
+decisions from a two-round ergonomics audit, four of which REVERSE proposals
+that sound reasonable and would undo earlier programmes. In particular, do not:
+re-split the Constellation panel (reverses Programme 6), flatten the
+Primary/Secondary hierarchy (reverses Programme 5b — the primary IS the sizing
+driver), add a global result-generation counter (it would invalidate the sweep
+that `reconcileToMeasuredBest` just consumed, a recompute loop), or add a
+reactive level-of-detail controller.
+
+### What shipped (7A — commercial result framing)
+
+`CustomerResultCard.tsx` (new) leads the analysis column with the customer's
+question, the current configuration against the requirement, and the recommended
+configuration with a control that applies it. The recommendation was already
+computed — `payloadsRequiredFor` had exactly one caller and it was
+presentational — so this programme is presentation plus one transition built
+from transitions that already existed. No physics, worker, schema or export
+numerics changed.
+
+The two mechanisms worth knowing before extending it:
+
+1. **`selectionForPayloadCount` moved into `domain/selectionReconcile.ts`**, out
+   of `RevisitApp`. The payload slider and `Apply recommended configuration`
+   both go through it, so neither can adopt a payload count while keeping an
+   arbitrary topology. It sits beside `reconcileToMeasuredBest` deliberately:
+   the three must agree.
+2. **Apply sets provenance, not just the count.** From the sizing target it sets
+   `selectionSource = 'auto'`, so `reconcileToMeasuredBest` keeps owning the
+   topology. From a secondary target it sets `'manual'` — the rule
+   `handlePayloadCountChange` already used — because otherwise the reference
+   sweep reconciles the choice away on its next landing and the button appears
+   to do nothing. This is the trap in the feature; do not "simplify" it.
+
+`previousConfiguration` (component state, never persisted) backs
+`Return to previous configuration` and is dropped on any other configuration
+change, on reset and on scenario load, so undo can never resurrect a
+configuration from several interactions back.
+
+`RevisitKpiPanel` kept only the exceptional verdicts. The `MEETS`/`MISSES` pair
+and `To target: +N payloads` are the card's now; `Vs 1 payload` stayed, because
+it is a value argument about the fleet rather than a verdict about the
+requirement. Contracts updated accordingly in `revisit-p1.spec.ts` and
+`RevisitP1Ui.test.tsx`.
+
+### Known red gate — CLOSED 2026-08-26
+
+`e2e/revisit-visual.spec.ts` was red on all 18 references against baselines from
+`75d4cf3` (2026-08-16). Recaptured and now stable; see "Visual gate closed"
+above. Every other gate is green.
+
+### Next (superseded — 7B has since shipped, see above)
+
+7B (presentation safety) is the next lot and is smaller than the audit assumed:
+`useOneWebCalibration` has zero `useEffect`, so the HLD model already has no
+network dependency at start-up — that item is an invariant to test, not work to
+do. What remains real: one `activePanel` controller lifted into `RevisitApp`
+(today `mobileSetupOpen` lives in `RevisitHeader` while `mobileSheet`,
+`scenarioWorkspaceOpen` and `stageMenuOpen` live in `RevisitApp`, so nothing
+enforces exclusivity), neutral client-facing error handling, a readiness check
+built from signals that already exist, and a light-theme audit — 7A already
+found one real light-theme contrast defect that the Axe gate structurally
+cannot catch, because the control appears ~30 s after the scan.
 
 ## 2026-08-20 — 8-angle code review of the WhyThisRevisit/KPI redesign, all findings fixed
 
@@ -735,6 +1237,50 @@ shell, the comparison row, and both provenance states.
 Still open from the audit, none urgent: **F1** (a resolution figure — the one
 addition worth making), **m1** (asymmetric access-duration convention; fix it
 before promoting look duration), **m3** (inert badge branch), **F2**/**F3**.
+
+---
+
+## 2026-08-27 — ENG/COMM globe rendered flat blue on Vercel (production-only)
+
+**Symptom:** on the live Vercel deployment only (never in `npm run dev`), the
+ENG/COMM globe (`CesiumGlobe.tsx`) rendered as a plain blue sphere with zero
+imagery — no basemap, no coastlines. REVISIT's globe was unaffected (it uses a
+fixed offline basemap with no ion/network dependency).
+
+**Root cause, confirmed against the live deployment (`capacity-analyser.vercel.app`)
+with Playwright, network intercepts, and bundle inspection — not guessed:**
+`vite-plugin-cesium` externalizes the bare `'cesium'` specifier to a global
+`window.Cesium` in production builds only (it stays bundled in dev), backed by
+the `<script src="/cesium/Cesium.js">` tag the plugin injects. `main.tsx` sets
+`Ion.defaultAccessToken` through that same `'cesium'` import, so every other
+Cesium import in the app shares its ion token and its (correctly
+self-resolving) `CESIUM_BASE_URL` — except `CesiumGlobe.tsx`, which imported
+`createDefaultImageryProviderViewModels` from a deep
+`@cesium/widgets/Source/BaseLayerPicker/...` path (worked around a real
+upstream typings gap — the JS export exists, the `.d.ts` omits it). That deep
+import bundled a **second, separate copy** of `@cesium/engine`/`@cesium/widgets`
+directly into the app chunk, with its own never-configured `Ion` singleton
+(stuck on Cesium's built-in demo token → 401 on Bing Aerial) and its own
+auto-detected base URL (resolved to `/assets/`, where the app chunk itself is
+served from, instead of `/cesium/` → 404 on the Natural Earth II fallback
+tiles too). Both the primary basemap and its fallback failed for two
+independent reasons rooted in the same duplicate-module split, leaving
+`imageryLayers.length === 0` — Cesium's flat default blue.
+
+**Fix:** import `createDefaultImageryProviderViewModels` from `'cesium'`
+itself (same specifier as everything else, `@ts-expect-error` kept for the
+same typings gap) instead of the deep `@cesium/widgets` path —
+[CesiumGlobe.tsx:37-48](../src/components/CesiumGlobe.tsx#L37-L48). This
+collapses the app back to one Cesium module instance. Verified: production
+build's main chunk shrank ~2.13 MB → ~1.75 MB (the duplicate module tree is
+gone); rebuilt-and-served bundle now requests
+`api.cesium.com/.../endpoint?access_token=<the real ion token>` → 200 (was
+401 with the demo token), applies "Bing Aerial", and screenshots the
+fully-textured globe. `tsc --noEmit` clean.
+
+No env var was missing — `VITE_CESIUM_ION_ACCESS_TOKEN` was already correctly
+configured in Vercel's project environment and correctly baked into the build;
+the token was simply never reaching the module instance that mattered.
 
 ---
 

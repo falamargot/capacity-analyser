@@ -1,11 +1,19 @@
 import { expect, test } from '@playwright/test';
+import { addSecondaryArea, seedReferenceTarget } from './revisitCompact';
 
 const openAdvanced = async (page: import('@playwright/test').Page) => {
   await page.goto('/?mode=revisit');
   await expect(page.getByRole('region', { name: 'REVISIT analysis' })).toBeVisible({ timeout: 30_000 });
+  // REVISIT opens with no target; these tests describe engine behaviour that
+  // only runs once one exists.
+  await seedReferenceTarget(page);
   await page.getByRole('button', { name: 'Constellation model and settings' }).click();
   const dialog = page.getByRole('dialog', { name: 'Advanced constellation settings' });
   await expect(dialog).toBeVisible();
+  // Since Programme 7E the panel opens on Model + Evidence; the Walker fields,
+  // strides, instrument geometry and window are behind `Expert settings`, which
+  // is what every test in this file is about.
+  await dialog.locator('.revisit-expert-settings summary').click();
   await expect(page.getByRole('spinbutton', { name: 'Planes P' })).toBeVisible();
   // The characteristics are read-only for the HLD reference and the measured
   // shell — they are records of something external. Editing is a Custom-mode
@@ -88,8 +96,9 @@ test.describe('REVISIT Advanced stabilization', () => {
   test('offers real cancellation while the first area grid is running', async ({ page }) => {
     await page.goto('/?mode=revisit');
     await expect(page.getByRole('region', { name: 'REVISIT analysis' })).toBeVisible({ timeout: 30_000 });
-    await page.getByRole('tab', { name: 'Area' }).click();
-    await page.getByRole('button', { name: 'Define area target' }).click();
+    // A comparison target can only be added once a reference target exists.
+    await seedReferenceTarget(page);
+    await addSecondaryArea(page);
     const areaPanel = page.getByRole('region', { name: 'Area coverage' });
     await areaPanel.getByLabel('Custom area grid spacing').fill('0.5');
     await areaPanel.getByText('Paste coordinate list', { exact: true }).click();

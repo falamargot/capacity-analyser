@@ -134,6 +134,13 @@ body {
   background: var(--revisit-inset-bg) !important;
 }
 
+/* The shared location control carries a deliberately dark surface in ENG and
+   COMM. Inside REVISIT's light theme its label is remapped to dark ink, so the
+   surface must follow the theme as well. */
+.light .revisit-shell .inline-location-search {
+  background: rgba(255, 255, 255, 0.94) !important;
+}
+
 /* These match the class TOKEN, not a substring of the class attribute. A
    substring match also caught `hover:text-slate-200` and `dark:text-slate-300`,
    so a hover-only or dark-only colour was painted at rest in the light theme —
@@ -151,6 +158,22 @@ body {
 /* sky-700 resolves to #0069a8, which is 4.27:1 on the translucent light panel —
    below AA for the 8-9px labels REVISIT uses it on. */
 .light .revisit-shell :is(.text-sky-700, .text-sky-600) {
+  color: #075985 !important;
+}
+
+/* sky-200 and sky-300 are the REVISIT accent for secondary/comparison text —
+   near-white by design on the dark stage, and invisible on the light panel.
+   Only their `hover:` variants were overridden (below), so at REST they were
+   unreadable in the light theme on: the `Explore controls` presenter toggle,
+   the timeline's absolute UTC clock, and `Show exact topology points` on the
+   value curve — three controls squarely on the demonstration path.
+   Programme 7B; found in the browser, not by the Axe gate, which does not fail
+   on text it can resolve against a translucent backdrop.
+
+   EXACT class selectors, deliberately: the substring form would also catch
+   `hover:text-sky-200` and repaint a hover colour at rest, which is the bug the
+   note above this block records. */
+.light .revisit-shell :is(.text-sky-200, .text-sky-300, .text-sky-200\/70) {
   color: #075985 !important;
 }
 
@@ -175,9 +198,28 @@ body {
   color: #9f1239 !important;
 }
 
-.light .revisit-shell [class*="text-amber-200"],
-.light .revisit-shell [class*="text-amber-300"] {
+/* EXACT class selectors, including the opacity variants actually used. The
+   substring form `[class*="text-amber-200"]` also matched `hover:text-amber-200`
+   and painted the hover colour at rest — which is precisely the defect the note
+   above this block records, and which Programme 7E's new disclosure summaries
+   walked straight into. Their hover state is restated below as a :hover rule. */
+.light .revisit-shell :is(
+  .text-amber-100,
+  .text-amber-200, .text-amber-200\/60, .text-amber-200\/70, .text-amber-200\/80,
+  .text-amber-300
+) {
   color: #92400e !important;
+}
+
+/* The primary commercial action (Programme 7A). `text-amber-100` is nearly
+   white, which is right on the dark stage and unreadable on the light panel's
+   translucent amber — and the family overrides above deliberately stop at
+   amber-200. Axe did not catch it: the button only appears once the payload
+   sweep lands, ~30 s after the accessibility scan runs. */
+.light .revisit-shell .revisit-apply-recommended {
+  color: #78350f !important;
+  background: rgba(245, 158, 11, 0.28) !important;
+  border-color: rgba(180, 83, 9, 0.7) !important;
 }
 
 .light .revisit-shell [class*="text-red-200"],
@@ -1598,6 +1640,16 @@ h1, h2, h3, h4 {
   .revisit-stage [aria-label='REVISIT analysis'] {
     max-height: 100%;
     overflow-y: auto;
+  }
+
+  /* The customer result card is the headline on a 320 px-tall stage, so it
+     stays — but its qualifiers are the first thing to give up the pixels. */
+  .revisit-customer-result {
+    padding: 0.5rem;
+  }
+
+  .revisit-customer-secondary {
+    display: none;
   }
 
   .revisit-kpi-panel {

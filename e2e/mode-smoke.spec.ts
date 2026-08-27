@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import {
-  openRevisitStageControls, openRevisitSurfaces, waitForRevisitReady,
+  openRevisitStageControls, openRevisitSurfaces, seedReferenceTarget,
+  waitForRevisitReady,
 } from './revisitCompact';
 
 const waitForTelecomShell = async (page: import('@playwright/test').Page) => {
@@ -64,6 +65,9 @@ test.describe('application mode shell', () => {
   test('restores an independent REVISIT scenario', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop-chromium', 'State persistence is viewport-independent');
     await page.goto('/?mode=revisit');
+    // REVISIT opens with no target; the target selector appears once one exists.
+    await waitForRevisitReady(page);
+    await seedReferenceTarget(page);
     await expect(page.getByRole('combobox', { name: 'Target' })).toBeVisible({ timeout: 30_000 });
     await page.getByRole('combobox', { name: 'Target' }).selectOption({ label: 'Singapore' });
     await page.getByRole('button', { name: 'Back to Engineering', exact: false }).click();
@@ -184,9 +188,7 @@ test.describe('responsive REVISIT shell', () => {
     const stage = await page.evaluate(() => {
       const canvas = document.querySelector<HTMLCanvasElement>('.revisit-stage canvas')!;
       const strip = document.querySelector<HTMLElement>('[data-revisit-result-strip]')!;
-      const toolbar = document.querySelector<HTMLElement>(
-        'button[aria-controls="revisit-stage-controls"]'
-      )!;
+      const toolbar = document.querySelector<HTMLElement>('#revisit-stage-controls')!;
       const canvasRect = canvas.getBoundingClientRect();
       const clearTop = Math.max(canvasRect.top, toolbar.getBoundingClientRect().bottom);
       const centreX = Math.round(canvasRect.left + canvasRect.width / 2);

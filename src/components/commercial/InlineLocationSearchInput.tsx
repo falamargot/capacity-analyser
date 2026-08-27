@@ -20,7 +20,7 @@ const InlineLocationSearchInput = forwardRef<HTMLInputElement, InlineLocationSea
   ref,
 ) {
   return (
-    <div className="inline-flex h-6 min-w-0 items-center gap-1.5 rounded-md border border-sky-300/60 bg-slate-950/90 px-2 text-left shadow-[0_0_0_1px_rgba(56,189,248,0.12)]">
+    <div className="inline-location-search inline-flex h-6 min-w-0 items-center gap-1.5 rounded-md border border-sky-300/60 bg-slate-950/90 px-2 text-left shadow-[0_0_0_1px_rgba(56,189,248,0.12)]">
       <Search className="h-3.5 w-3.5 shrink-0 text-sky-300" aria-hidden="true" />
       <label className="shrink-0 text-[11px] font-semibold leading-none text-slate-400" htmlFor={`scenario-${roleLabel.toLowerCase()}-search`}>
         {roleLabel}:

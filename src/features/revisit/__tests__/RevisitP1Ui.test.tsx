@@ -36,6 +36,61 @@ function change(element: HTMLInputElement | HTMLSelectElement, value: string): v
 }
 
 describe('REVISIT P1 functional UI', () => {
+    it('starts an empty target set with the same Point or Polygon choice used for comparison', async () => {
+        const scenario = defaultScenario(Date.UTC(2026, 7, 12));
+        const onAddReferencePoint = vi.fn();
+        const onAddAreaTarget = vi.fn();
+        await act(async () => root?.render(
+            <RevisitHeader
+                scenario={scenario}
+                payloadCounts={[12]}
+                currentPayloadCount={12}
+                onPayloadCountChange={() => undefined}
+                targetNames={['London']}
+                onTargetChange={() => undefined}
+                hasReferenceTarget={false}
+                onAddReferencePoint={onAddReferencePoint}
+                onAddAreaTarget={onAddAreaTarget}
+                spreadNote={null}
+            />
+        ));
+
+        expect(container.querySelector('[aria-label="Add comparison target"]')).toBeNull();
+        expect(container.textContent).not.toContain('Reference geometry');
+        await act(async () => (
+            container.querySelector('[aria-label="Add reference target"]') as HTMLButtonElement
+        ).click());
+        expect(container.querySelector('[aria-label="Choose reference target type"]')).not.toBeNull();
+
+        await act(async () => (
+            container.querySelector('[aria-label="Add point reference target"]') as HTMLButtonElement
+        ).click());
+        expect(onAddReferencePoint).toHaveBeenCalledOnce();
+    });
+
+    it('allows the reference target to be removed as a complete target-set reset', async () => {
+        const scenario = defaultScenario(Date.UTC(2026, 7, 12));
+        const onRemoveReferenceTarget = vi.fn();
+        await act(async () => root?.render(
+            <RevisitHeader
+                scenario={scenario}
+                payloadCounts={[12]}
+                currentPayloadCount={12}
+                onPayloadCountChange={() => undefined}
+                targetNames={['London']}
+                onTargetChange={() => undefined}
+                onRemoveReferenceTarget={onRemoveReferenceTarget}
+                spreadNote={null}
+            />
+        ));
+
+        expect(container.querySelector('[aria-label="Add comparison target"]')).not.toBeNull();
+        await act(async () => (
+            container.querySelector('[aria-label="Remove reference target"]') as HTMLButtonElement
+        ).click());
+        expect(onRemoveReferenceTarget).toHaveBeenCalledOnce();
+    });
+
     it('exposes the illustrative swath presets and bounded coordinate entry', async () => {
         const scenario = defaultScenario(Date.UTC(2026, 7, 12));
         const onInstrumentPresetChange = vi.fn();
@@ -59,7 +114,7 @@ describe('REVISIT P1 functional UI', () => {
         await act(async () => change(preset, 'WIDE'));
         expect(onInstrumentPresetChange).toHaveBeenCalledWith('WIDE');
 
-        const locationButton = container.querySelector('[aria-label="Set reference location"]') as HTMLButtonElement;
+        const locationButton = container.querySelector('[aria-label="Set reference target location"]') as HTMLButtonElement;
         await act(async () => locationButton.click());
         const latitude = container.querySelector('[aria-label="Target latitude"]') as HTMLInputElement;
         const longitude = container.querySelector('[aria-label="Target longitude"]') as HTMLInputElement;
@@ -99,14 +154,14 @@ describe('REVISIT P1 functional UI', () => {
         expect(container.textContent).not.toContain('Click: move reference');
         const locationButtons = [...container.querySelectorAll('[aria-haspopup="dialog"][aria-label$="location"]')];
         expect(locationButtons.map((button) => button.getAttribute('aria-label'))).toEqual([
-            'Set reference location',
-            'Set comparison 1 location',
+            'Set reference target location',
+            'Set comparison target location',
         ]);
 
         await act(async () => (locationButtons[1] as HTMLButtonElement).click());
         const openMenu = container.querySelector('[role="dialog"]')!;
-        const latitude = openMenu.querySelector('[aria-label="Comparison 1 latitude"]') as HTMLInputElement;
-        const longitude = openMenu.querySelector('[aria-label="Comparison 1 longitude"]') as HTMLInputElement;
+        const latitude = openMenu.querySelector('[aria-label="Comparison target latitude"]') as HTMLInputElement;
+        const longitude = openMenu.querySelector('[aria-label="Comparison target longitude"]') as HTMLInputElement;
         await act(async () => {
             change(latitude, '41.5');
             change(longitude, '6.25');
@@ -116,9 +171,122 @@ describe('REVISIT P1 functional UI', () => {
         await act(async () => apply.click());
         expect(onSecondaryPointChange).toHaveBeenCalledWith('comparison-1', 41.5, 6.25, undefined);
 
-        const targetPreset = container.querySelector('[aria-label="Comparison 1 target"]') as HTMLSelectElement;
+        const targetPreset = container.querySelector('[aria-label="Comparison target"]') as HTMLSelectElement;
+        expect(targetPreset.selectedOptions[0]?.textContent).toBe('Custom point');
         await act(async () => change(targetPreset, 'Singapore'));
         expect(onSecondaryPointTargetChange).toHaveBeenCalledWith('comparison-1', 'Singapore');
+    });
+
+    it('presents point and area targets in one selectable list', async () => {
+        const scenario = defaultScenario(Date.UTC(2026, 7, 12));
+        const onAnalysisContextChange = vi.fn();
+        await act(async () => root?.render(
+            <RevisitHeader
+                scenario={scenario}
+                payloadCounts={[12]}
+                currentPayloadCount={12}
+                onPayloadCountChange={() => undefined}
+                targetNames={['London']}
+                onTargetChange={() => undefined}
+                customArea={{
+                    kind: 'AREA', id: 'area-1', name: 'Custom area', gridSpacingDeg: 2,
+                    boundary: [
+                        { latDeg: 10, lonDeg: 10 },
+                        { latDeg: 12, lonDeg: 10 },
+                        { latDeg: 11, lonDeg: 12 },
+                    ],
+                }}
+                customAreaCellCount={7}
+                secondaryTargetOrder={['AREA_TARGET']}
+                onAnalysisContextChange={onAnalysisContextChange}
+                spreadNote={null}
+            />
+        ));
+
+        expect(container.querySelector('[role="tablist"]')).toBeNull();
+        expect(container.textContent).toContain('Reference target');
+        expect(container.textContent).toContain('Comparison target');
+        expect(container.textContent).toContain('Polygon · Custom area');
+        expect(container.textContent).not.toContain('Primary drives configuration');
+
+        await act(async () => (
+            container.querySelector('[aria-label="Select comparison target polygon"]') as HTMLButtonElement
+        ).click());
+        expect(onAnalysisContextChange).toHaveBeenCalledWith('AREA');
+    });
+
+    it('offers Point or Area only after Add compared target is opened', async () => {
+        const scenario = defaultScenario(Date.UTC(2026, 7, 12));
+        await act(async () => root?.render(
+            <RevisitHeader
+                scenario={scenario}
+                payloadCounts={[12]}
+                currentPayloadCount={12}
+                onPayloadCountChange={() => undefined}
+                targetNames={['London']}
+                onTargetChange={() => undefined}
+                secondaryTargetOrder={[]}
+                spreadNote={null}
+            />
+        ));
+
+        expect(container.textContent).not.toContain('Area ·');
+        await act(async () => (
+            container.querySelector('[aria-label="Add comparison target"]') as HTMLButtonElement
+        ).click());
+        expect(container.querySelector('[aria-label="Choose comparison target type"]')).not.toBeNull();
+        expect(container.querySelector('[aria-label="Add point comparison target"]')).not.toBeNull();
+        expect(container.querySelector('[aria-label="Add polygon comparison target"]')).not.toBeNull();
+    });
+
+    it('does not render a redundant geometry switch for an existing reference', async () => {
+        const scenario = defaultScenario(Date.UTC(2026, 7, 12));
+        await act(async () => root?.render(
+            <RevisitHeader
+                scenario={scenario}
+                payloadCounts={[12]}
+                currentPayloadCount={12}
+                onPayloadCountChange={() => undefined}
+                targetNames={['London']}
+                onTargetChange={() => undefined}
+                spreadNote={null}
+            />
+        ));
+
+        expect(container.textContent).not.toContain('Reference geometry');
+        expect(container.querySelector('[aria-label="Reference target geometry"]')).toBeNull();
+    });
+
+    it('renders independent reference and comparison polygons without adding a third slot', async () => {
+        const scenario = defaultScenario(Date.UTC(2026, 7, 12));
+        const polygon = (id: string, name: string) => ({
+            kind: 'AREA' as const, id, name, gridSpacingDeg: 1,
+            boundary: [
+                { latDeg: 10, lonDeg: 10 },
+                { latDeg: 12, lonDeg: 10 },
+                { latDeg: 11, lonDeg: 12 },
+            ],
+        });
+        await act(async () => root?.render(
+            <RevisitHeader
+                scenario={scenario}
+                payloadCounts={[12]}
+                currentPayloadCount={12}
+                onPayloadCountChange={() => undefined}
+                targetNames={['London']}
+                onTargetChange={() => undefined}
+                referenceArea={polygon('reference-area', 'Reference AOI')}
+                comparisonArea={polygon('comparison-area', 'Comparison AOI')}
+                areaTargetRole="REFERENCE"
+                customArea={polygon('reference-area', 'Reference AOI')}
+                secondaryTargetOrder={['AREA_TARGET']}
+                spreadNote={null}
+            />
+        ));
+
+        expect(container.textContent).toContain('Polygon · Reference AOI');
+        expect(container.textContent).toContain('Polygon · Comparison AOI');
+        expect(container.querySelector('[aria-label="Add comparison target"]')).toBeNull();
     });
 
     it('stages complete FOV geometry and applies it once', async () => {
@@ -167,16 +335,15 @@ describe('REVISIT P1 functional UI', () => {
                 windowHours={72}
                 requirementMs={2 * 3600_000}
                 isComputing={false}
-                comparison={{
-                    baselineMaxGapMs: 12 * 3600_000,
-                    currentPayloadCount: 12,
-                    targetPayloadCount: 36,
-                }}
+                comparison={{ baselineMaxGapMs: 12 * 3600_000 }}
             />
         ));
-        expect(container.textContent).toContain('Worst case');
+        expect(container.textContent).toContain('Maximum revisit gap');
         expect(container.textContent).toContain('75% shorter worst-case');
-        expect(container.textContent).toContain('+24 payloads');
+        // `+24 payloads` is now `CustomerResultCard`'s, beside the control that
+        // applies it (Programme 7A); repeating it here put the recommendation
+        // back in a 10 px grey line.
+        expect(container.textContent).not.toContain('payloads');
     });
 
     it('does not claim "beyond the tested payload range" while the sweep is still running', async () => {
@@ -204,11 +371,7 @@ describe('REVISIT P1 functional UI', () => {
                 requirementMs={2 * 3600_000}
                 isComputing={false}
                 comparisonIsComputing={true}
-                comparison={{
-                    baselineMaxGapMs: null,
-                    currentPayloadCount: 12,
-                    targetPayloadCount: null,
-                }}
+                comparison={{ baselineMaxGapMs: null }}
             />
         ));
         expect(container.textContent).not.toContain('beyond the tested payload range');
@@ -236,12 +399,7 @@ describe('REVISIT P1 functional UI', () => {
                 requirementMs={2 * 3600_000}
                 isComputing={false}
                 comparisonIsComputing={false}
-                comparison={{
-                    baselineMaxGapMs: null,
-                    baselineInconclusive: true,
-                    currentPayloadCount: 12,
-                    targetPayloadCount: 36,
-                }}
+                comparison={{ baselineMaxGapMs: null, baselineInconclusive: true }}
             />
         ));
         expect(container.textContent).toContain('no worst-case in this window');

@@ -47,37 +47,37 @@ export const WhyThisRevisit: React.FC<WhyThisRevisitProps> = ({ explanation }) =
                     />
                     <span className="min-w-0 flex-1">
                         <span className={[
-                            'block text-[10px] font-black uppercase tracking-[0.12em]',
+                            'block text-[12px] font-black uppercase tracking-[0.12em]',
                             factor.isLimiting ? 'text-amber-300' : 'text-slate-400',
                         ].join(' ')}>
                             {summary ? factor.summaryLabel : factor.label}
                         </span>
                         {summary && (
-                            <span className="mt-0.5 block text-[10px] leading-4 text-slate-200">
+                            <span className="mt-0.5 block text-[12px] leading-4 text-slate-200">
                                 {factor.summaryValue}
                             </span>
                         )}
                     </span>
                     {!summary && (
                         <span className={[
-                            'text-[11px] font-bold tabular-nums',
+                            'text-[12px] font-bold tabular-nums',
                             factor.isLimiting ? 'text-amber-300' : 'text-slate-200',
                         ].join(' ')}>
                             {factor.value}
                         </span>
                     )}
                     {factor.isLimiting && (
-                        <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-amber-200">
+                        <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[11px] font-black uppercase tracking-[0.1em] text-amber-200">
                             limiting
                         </span>
                     )}
                     <span aria-hidden="true"
-                        className={`text-[9px] text-slate-600 transition-transform ${isOpen ? 'rotate-90' : ''}`}>
+                        className={`text-[11px] text-slate-600 transition-transform ${isOpen ? 'rotate-90' : ''}`}>
                         ›
                     </span>
                 </button>
                 {isOpen && (
-                    <p className="pb-2 pl-3.5 pr-1 text-[10px] leading-4 text-slate-400">
+                    <p className="pb-2 pl-3.5 pr-1 text-[12px] leading-4 text-slate-400">
                         {factor.detail}
                     </p>
                 )}
@@ -86,7 +86,11 @@ export const WhyThisRevisit: React.FC<WhyThisRevisitProps> = ({ explanation }) =
     };
 
     return (
-        <div className={`${REVISIT_PANEL} px-3 py-2.5`}>
+        <details className={`${REVISIT_PANEL} group px-3 py-2.5`}>
+            <summary className="flex min-h-9 cursor-pointer list-none items-center justify-between gap-3 text-left">
+                <span className={REVISIT_LABEL}>Result drivers</span>
+                <span aria-hidden="true" className="text-slate-500 transition-transform group-open:rotate-90">›</span>
+            </summary>
             <span className={REVISIT_LABEL}>What drives this result</span>
 
             <ul className="mt-1.5 divide-y divide-slate-700/40">
@@ -94,17 +98,17 @@ export const WhyThisRevisit: React.FC<WhyThisRevisitProps> = ({ explanation }) =
             </ul>
 
             <div className="mt-1.5 border-t border-slate-700/40 pt-2">
-                <span className="text-[9px] font-black uppercase tracking-[0.12em] text-amber-300">
+                <span className="text-[11px] font-black uppercase tracking-[0.12em] text-amber-300">
                     {explanation.conclusion.label}
                 </span>
-                <p className="mt-0.5 text-[10px] leading-4 text-slate-300">
+                <p className="mt-0.5 text-[12px] leading-4 text-slate-300">
                     {explanation.conclusion.text}
                 </p>
             </div>
 
             {technicalFactors.length > 0 && (
                 <details className="mt-2 border-t border-slate-700/40 pt-1.5">
-                    <summary className="cursor-pointer list-none text-[9px] font-black uppercase tracking-[0.1em] text-slate-500 hover:text-slate-300">
+                    <summary className="cursor-pointer list-none text-[11px] font-black uppercase tracking-[0.1em] text-slate-500 hover:text-slate-300">
                         Technical details <span aria-hidden="true">›</span>
                     </summary>
                     <ul className="mt-1 divide-y divide-slate-700/40">
@@ -112,6 +116,6 @@ export const WhyThisRevisit: React.FC<WhyThisRevisitProps> = ({ explanation }) =
                     </ul>
                 </details>
             )}
-        </div>
+        </details>
     );
 };

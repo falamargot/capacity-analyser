@@ -32,7 +32,8 @@ import { heatColorFor } from './heatMapColors';
 import type { AreaAnalysis } from '../analysis/areaAnalysis';
 import type { AreaTarget } from '../domain/areaTarget';
 import {
-    REFERENCE_POINT_ID, type RevisitAnalysisContext, type RevisitComparisonPoint,
+    REFERENCE_POINT_ID, type RevisitAnalysisContext, type RevisitAreaTargetRole,
+    type RevisitComparisonPoint,
 } from '../domain/analysisTargets';
 
 interface RevisitGlobeProps {
@@ -47,20 +48,33 @@ interface RevisitGlobeProps {
     areaDraft: AreaTarget | null;
     isDrawingArea: boolean;
     analysisContext: RevisitAnalysisContext;
+    hasReferenceTarget: boolean;
+    areaTargetRole: RevisitAreaTargetRole;
+    referenceIsArea: boolean;
     comparisonPoints: RevisitComparisonPoint[];
+    secondaryTargetOrder: string[];
     selectedPointId: typeof REFERENCE_POINT_ID | string;
     /** The requirement the heat scale is anchored to. */
     requirementMs: number;
     /** Slow automatic rotation. */
     autoRotate: boolean;
-    /** Called when the user clicks a point on the globe. */
+    /** Plain click places or moves the reference point. */
     onPickTarget: (latDeg: number, lonDeg: number) => void;
     onDrawAreaVertex: (latDeg: number, lonDeg: number) => void;
     onAddComparisonPoint: (latDeg: number, lonDeg: number) => void;
+    /** Plain click on space outside the Earth clears reference + comparison. */
+    onClearTargets: () => void;
+    /** Shift-click on space outside the Earth clears only the comparison. */
+    onRemoveComparisonTarget: () => void;
 }
 
-/** Static screen-space reticle: crisp at any zoom and free of per-frame work. */
+let targetReticleCanvas: HTMLCanvasElement | null = null;
+let comparisonSelectionHaloCanvas: HTMLCanvasElement | null = null;
+
+/** Static screen-space reticle: crisp at any zoom and free of per-frame work.
+ * The canvas is shared across entity rebuilds so Cesium can reuse its texture. */
 function createTargetReticle(): HTMLCanvasElement {
+    if (targetReticleCanvas) return targetReticleCanvas;
     const canvas = document.createElement('canvas');
     canvas.width = 64;
     canvas.height = 64;
@@ -71,7 +85,7 @@ function createTargetReticle(): HTMLCanvasElement {
     context.strokeStyle = REVISIT_COLORS.target;
     context.fillStyle = REVISIT_COLORS.target;
     context.lineWidth = 1.5;
-    context.shadowColor = 'rgba(255, 255, 255, 0.45)';
+    context.shadowColor = 'rgba(251, 191, 36, 0.6)';
     context.shadowBlur = 4;
 
     for (const radius of [12, 23]) {
@@ -91,14 +105,52 @@ function createTargetReticle(): HTMLCanvasElement {
     context.beginPath();
     context.arc(centre, centre, 2.5, 0, Math.PI * 2);
     context.fill();
-    return canvas;
+    targetReticleCanvas = canvas;
+    return targetReticleCanvas;
+}
+
+/** Sky-blue diamond for Comparison, deliberately different from the Reference
+ * crosshair while using the same role colour as the header and timeline. */
+function createComparisonSelectionHalo(): HTMLCanvasElement {
+    if (comparisonSelectionHaloCanvas) return comparisonSelectionHaloCanvas;
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    const context = canvas.getContext('2d');
+    if (!context) return canvas;
+
+    context.strokeStyle = REVISIT_COLORS.comparison;
+    context.fillStyle = REVISIT_COLORS.comparison;
+    context.lineWidth = 2;
+    context.shadowColor = 'rgba(56, 189, 248, 0.55)';
+    context.shadowBlur = 5;
+    context.beginPath();
+    context.moveTo(32, 5);
+    context.lineTo(59, 32);
+    context.lineTo(32, 59);
+    context.lineTo(5, 32);
+    context.closePath();
+    context.stroke();
+    context.beginPath();
+    context.moveTo(32, 19);
+    context.lineTo(45, 32);
+    context.lineTo(32, 45);
+    context.lineTo(19, 32);
+    context.closePath();
+    context.stroke();
+    context.beginPath();
+    context.arc(32, 32, 3, 0, Math.PI * 2);
+    context.fill();
+    comparisonSelectionHaloCanvas = canvas;
+    return comparisonSelectionHaloCanvas;
 }
 
 export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
     scenario, fleet, selectedIds, options, getTimeMs, areaAnalysis, areaDraft,
-    isDrawingArea, analysisContext, comparisonPoints, selectedPointId,
+    isDrawingArea, analysisContext, hasReferenceTarget, areaTargetRole, referenceIsArea,
+    comparisonPoints, secondaryTargetOrder, selectedPointId,
     requirementMs, autoRotate, onPickTarget,
-    onDrawAreaVertex, onAddComparisonPoint,
+    onDrawAreaVertex, onAddComparisonPoint, onClearTargets, onRemoveComparisonTarget,
 }) => {
     const viewerRef = useRef<CesiumViewer | null>(null);
     const frameForCurrentLayoutRef = useRef<(() => void) | null>(null);
@@ -303,24 +355,37 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
 
         handler.setInputAction((event: { position: Cartesian2 }) => {
             const point = pointAt(event);
-            if (!point) return;
+            if (isDrawingArea) {
+                if (point) onDrawAreaVertex(point.latDeg, point.lonDeg);
+                return;
+            }
+            if (!point) {
+                onClearTargets();
+                return;
+            }
             const { latDeg, lonDeg } = point;
-            if (isDrawingArea) onDrawAreaVertex(latDeg, lonDeg);
-            else if (analysisContext === 'POINTS') {
+            if (analysisContext === 'POINTS' && !referenceIsArea) {
                 onPickTarget(latDeg, lonDeg);
             }
         }, ScreenSpaceEventType.LEFT_CLICK);
 
         handler.setInputAction((event: { position: Cartesian2 }) => {
-            if (isDrawingArea || analysisContext !== 'POINTS') return;
+            if (isDrawingArea) return;
             const point = pointAt(event);
-            if (point) onAddComparisonPoint(point.latDeg, point.lonDeg);
+            if (!point) {
+                onRemoveComparisonTarget();
+                return;
+            }
+            if (hasReferenceTarget && analysisContext === 'POINTS') {
+                onAddComparisonPoint(point.latDeg, point.lonDeg);
+            }
         }, ScreenSpaceEventType.LEFT_CLICK, KeyboardEventModifier.SHIFT);
 
         return () => handler.destroy();
     }, [
-        viewer, isDrawingArea, analysisContext,
-        onAddComparisonPoint, onDrawAreaVertex, onPickTarget,
+        viewer, hasReferenceTarget, isDrawingArea, analysisContext, referenceIsArea,
+        onAddComparisonPoint, onClearTargets, onDrawAreaVertex, onPickTarget,
+        onRemoveComparisonTarget,
     ]);
 
     useEffect(() => {
@@ -337,33 +402,33 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
     // and the per-entity cost the fleet must avoid is irrelevant at n = 1.
     const pointTarget = scenario.target;
     useEffect(() => {
-        if (!viewer || viewer.isDestroyed?.()) return;
+        if (!viewer || viewer.isDestroyed?.() || !hasReferenceTarget || referenceIsArea) return;
         const target = pointTarget;
-        const pointContextActive = analysisContext === 'POINTS';
+        const selected = analysisContext === 'POINTS' && selectedPointId === REFERENCE_POINT_ID;
         const entity = viewer.entities.add({
             position: Cartesian3.fromDegrees(target.lonDeg, target.latDeg, 0),
             billboard: {
                 image: createTargetReticle(),
-                color: Color.WHITE.withAlpha(pointContextActive ? 1 : 0.25),
-                width: 64,
-                height: 64,
+                color: Color.WHITE.withAlpha(selected ? 1 : 0.62),
+                width: selected ? 68 : 52,
+                height: selected ? 68 : 52,
                 // Draw the reticle in front of coincident ground overlays while
                 // retaining normal globe occlusion on the far side of Earth.
                 eyeOffset: new Cartesian3(0, 0, -1_000),
             },
             label: {
-                text: target.name.toUpperCase(),
+                text: `REFERENCE · ${target.name}`.toUpperCase(),
                 // Concrete families only. Cesium rasterises label glyphs to a
                 // canvas atlas, and the CSS-level `system-ui` keyword does not
                 // resolve there reliably — it measured the full string but drew
                 // almost none of it, which showed up as a picked coordinate
                 // label rendering as a single stray character.
-                font: '600 13px Helvetica, Arial, sans-serif',
-                fillColor: Color.fromCssColorString(REVISIT_COLORS.target).withAlpha(pointContextActive ? 1 : 0.3),
+                font: `${selected ? 700 : 600} ${selected ? 14 : 12}px Helvetica, Arial, sans-serif`,
+                fillColor: Color.fromCssColorString(REVISIT_COLORS.target).withAlpha(selected ? 1 : 0.58),
                 outlineColor: Color.fromCssColorString('#05070D'),
                 outlineWidth: 3,
                 showBackground: true,
-                backgroundColor: Color.fromCssColorString('#05070D').withAlpha(0.86),
+                backgroundColor: Color.fromCssColorString('#05070D').withAlpha(selected ? 0.94 : 0.7),
                 backgroundPadding: new Cartesian2(7, 4),
                 pixelOffset: new Cartesian2(0, -48),
                 eyeOffset: new Cartesian3(0, 0, -1_000),
@@ -374,34 +439,34 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
             if (viewer.isDestroyed?.()) return;
             viewer.entities.remove(entity);
         };
-    }, [viewer, pointTarget, analysisContext]);
+    }, [viewer, pointTarget, selectedPointId, analysisContext, hasReferenceTarget, referenceIsArea]);
 
-    // Secondary comparison points are deliberately static and bounded to two.
+    // The comparison point is deliberately static and bounded to one.
     // They use simple entities rather than joining the fleet's hot primitive loop.
     useEffect(() => {
         if (!viewer || viewer.isDestroyed?.() || comparisonPoints.length === 0) return;
-        const pointContextActive = analysisContext === 'POINTS';
-        const added = comparisonPoints.map((point, index) => {
-            const selected = selectedPointId === point.id;
-            const color = Color.fromCssColorString('#38BDF8').withAlpha(pointContextActive ? 1 : 0.25);
+        const added = comparisonPoints.map((point) => {
+            const selected = analysisContext === 'POINTS' && selectedPointId === point.id;
+            const color = Color.fromCssColorString(REVISIT_COLORS.comparison).withAlpha(selected ? 1 : 0.68);
             return viewer.entities.add({
                 position: Cartesian3.fromDegrees(point.target.lonDeg, point.target.latDeg, 0),
-                point: {
-                    pixelSize: selected ? 15 : 11,
-                    color,
-                    outlineColor: Color.fromCssColorString('#05070D'),
-                    outlineWidth: 3,
+                billboard: {
+                    image: createComparisonSelectionHalo(),
+                    color: Color.WHITE.withAlpha(selected ? 1 : 0.68),
+                    width: selected ? 54 : 40,
+                    height: selected ? 54 : 40,
+                    eyeOffset: new Cartesian3(0, 0, -900),
                 },
                 label: {
-                    text: `COMPARE ${index + 1} · ${point.target.name}`.toUpperCase(),
-                    font: '600 11px Helvetica, Arial, sans-serif',
+                    text: `COMPARISON · ${point.target.name}`.toUpperCase(),
+                    font: `${selected ? 700 : 600} ${selected ? 12 : 11}px Helvetica, Arial, sans-serif`,
                     fillColor: color,
                     outlineColor: Color.fromCssColorString('#05070D'),
                     outlineWidth: 3,
                     showBackground: true,
-                    backgroundColor: Color.fromCssColorString('#05070D').withAlpha(0.82),
+                    backgroundColor: Color.fromCssColorString('#05070D').withAlpha(selected ? 0.94 : 0.7),
                     backgroundPadding: new Cartesian2(5, 3),
-                    pixelOffset: new Cartesian2(0, -22),
+                    pixelOffset: new Cartesian2(0, selected ? -38 : -31),
                 },
             });
         });
@@ -411,7 +476,7 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
             for (const entity of added) viewer.entities.remove(entity);
             viewer.scene.requestRender();
         };
-    }, [viewer, comparisonPoints, selectedPointId, analysisContext]);
+    }, [viewer, comparisonPoints, secondaryTargetOrder, selectedPointId, analysisContext]);
 
     // ── P2b-A polygon preview ───────────────────────────────────────────────
     // Entities are rebuilt on every vertex, but the point PRIMITIVE COLLECTION
@@ -446,8 +511,10 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
         const positions = areaDraft.boundary.map((point) => (
             Cartesian3.fromDegrees(point.lonDeg, point.latDeg, 250)
         ));
-        const areaContextActive = analysisContext === 'AREA';
-        const pointColor = Color.fromCssColorString('#38BDF8').withAlpha(areaContextActive ? 1 : 0.28);
+        const areaSelected = analysisContext === 'AREA';
+        const pointColor = Color.fromCssColorString(
+            areaTargetRole === 'REFERENCE' ? REVISIT_COLORS.target : REVISIT_COLORS.comparison
+        );
         handles.points.removeAll();
         for (const position of positions) {
             handles.points.add({
@@ -463,14 +530,14 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
         const outline = positions.length >= 2 ? viewer.entities.add({
             polyline: {
                 positions: outlinePositions,
-                width: 2.5,
-                material: pointColor.withAlpha(areaContextActive ? 0.95 : 0.24),
+                width: areaSelected ? 3.5 : 2.5,
+                material: pointColor.withAlpha(0.95),
             },
         }) : null;
         const fill = positions.length >= 3 ? viewer.entities.add({
             polygon: {
                 hierarchy: new PolygonHierarchy(positions),
-                material: pointColor.withAlpha(areaContextActive ? 0.12 : 0.035),
+                material: pointColor.withAlpha(0.12),
                 height: 0,
             },
         }) : null;
@@ -482,7 +549,7 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
             if (fill) viewer.entities.remove(fill);
             viewer.scene.requestRender();
         };
-    }, [viewer, areaDraft, areaAnalysis, isDrawingArea, analysisContext]);
+    }, [viewer, areaDraft, areaAnalysis, isDrawingArea, analysisContext, areaTargetRole]);
 
     // The persisted point collection above outlives any single effect run —
     // release it only when the viewer itself goes away.
@@ -511,7 +578,7 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
                         cell.target.lonDeg - half, cell.target.latDeg - half,
                         cell.target.lonDeg + half, cell.target.latDeg + half,
                     ),
-                    material: new Color(rgb[0], rgb[1], rgb[2], analysisContext === 'AREA' ? 0.55 : 0.14),
+                    material: new Color(rgb[0], rgb[1], rgb[2], 0.55),
                     height: 0,
                 },
             });
@@ -523,7 +590,7 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
             for (const entity of added) viewer.entities.remove(entity);
             viewer.scene.requestRender();
         };
-    }, [viewer, areaAnalysis, requirementMs, analysisContext]);
+    }, [viewer, areaAnalysis, requirementMs]);
 
     return (
         <ResiumViewer

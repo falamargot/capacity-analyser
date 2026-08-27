@@ -1,8 +1,83 @@
 # Implementation Status
 
-_Last updated 2026-08-20._
+_Last updated 2026-08-27._
 
 ## Current phase
+
+**Programme 8 (one sweep at a time) is implemented and unit-validated, on top of
+Programme 7.** The payload sweep no longer runs once per hook instance: a single
+module scheduler owns one Worker, one bounded cache keyed on PHYSICAL inputs
+(the display name excluded) and one queue that serialises heavy runs, joins
+identical requests, drops queued work nobody waits for, and never cancels a run
+already in flight. Failures now carry their operation, target, execution path
+and kind, so `Technical detail` reads
+`Comparison target · Fleet sizing · Worker runtime error` instead of an empty
+line. Only the SELECTED result can raise a blocking notice; a failed fleet
+sizing is stated inside `Recommended configuration` with an inline retry, and a
+failed comparison inside the comparison table. Measured: a comparison target at
+the reference's coordinates resolves in under 3 s where it previously needed a
+second ~25 s sweep. Details in the plan under "Programme 8".
+
+**Validated 2026-08-27, all gates green:** 2095 unit tests, clean `tsc` and
+`eslint`, and the full four-project Playwright suite at 137 passed / 0 failed
+(71 skipped). Reaching that took three full e2e rounds — 6 failures, then 4,
+then 1 — because each defect blocked the tests before they could reach the next.
+The last one was a real product defect (the result card announced
+`Additional payloads required` and `Met by the current configuration` in the same
+frame, during the window between the sweep landing and
+`reconcileToMeasuredBest` adopting its answer); the rest were stale test
+expectations. `TargetComparisonTable.tsx` was deleted as dead code, and the
+mobile globe display controls now collapse below `md` — they were hiding `Pause`
+behind `Auto-rotate globe`.
+
+
+**Programme 7 is complete: 7A (commercial result framing), 7B (presentation
+safety), 7C (freshness contract), 7D (typography and vocabulary) and 7E
+(commercial progressive disclosure) are all implemented and validated. P2c
+(unified target set) is implemented in the working tree and is their baseline.**
+
+REVISIT now leads with the commercial answer rather than the verdict. The
+analysis column opens on `CustomerResultCard`: the customer's question, the
+current configuration against the requirement, and the recommended
+configuration with `Apply recommended configuration` beside it. The
+recommendation was already measured — it was rendered as a 10 px grey fragment
+and could not be acted on. Applying adopts the topology the sweep measured, not
+the payload count alone, and `Return to previous configuration` restores the
+exact prior selection and its provenance.
+
+7B made the compact layout safe to demonstrate: exactly one panel can be open
+at a time, client-facing failures are stated in plain language with the
+engineering text one disclosure away, the Worker fallback reads as a caveat
+rather than an error, and a `Presentation readiness check` lets a presenter
+verify all of it before the meeting rather than discover it during.
+
+7C closed the last way the tool could contradict itself on screen: every block
+now shows a result matching its own inputs or its own loading state. Four of the
+five computations already did; the primary analysis retained across a change of
+target or constellation, and an area result was tied to its scenario but not to
+its polygon.
+
+7D raised the whole module onto a four-size type scale with an 11 px floor —
+104 of ~190 text occurrences had been at 8 or 9 px — renamed the targets after
+their function (`Sizing target` / `Compared target N`), took the KPI vocabulary
+out of engineering, brought every touch target to 44 px on a phone, and
+recaptured all 18 visual baselines in both themes. **Validation correction,
+2026-08-26:** that original visual evidence was blind because the viewport-sized
+Cesium mask covered every HTML overlay. The gate has since been repaired,
+proved against the old references, and all 18 real references were regenerated
+and inspected. It also cut the e2e suite
+from 336 collected tests to 200 by no longer booting the app for tests that
+were going to skip.
+
+7E put the engineering behind progressive disclosure without moving it: the
+Constellation panel opens on the model and its evidence, the Scenario Workspace
+leads with the customer or opportunity, JSON sits under `Technical sharing`, the
+exported summary follows the customer conversation, and the presenter's crib
+sheet is closed by default and only in Explore.
+
+Programme 7 is therefore complete. The eleven closed decisions in
+`docs/IMPLEMENTATION_PLAN.md` § Programme 7 remain binding on anything that
+touches these surfaces.
 
 **REVISIT engine and Programme 2 complete and validated. P2a and P2b-A/B1/B2/B3 implemented.**
 

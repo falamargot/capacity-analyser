@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { REVISIT_MENU_SURFACE } from './revisitTheme';
 
 interface ScenarioWorkspaceDrawerProps {
     onClose: () => void;
@@ -53,7 +54,19 @@ export const ScenarioWorkspaceDrawer: React.FC<ScenarioWorkspaceDrawerProps> = (
 
     if (typeof document === 'undefined') return null;
     return createPortal(
-        <div className="fixed inset-0 z-[100]" data-testid="scenario-workspace-drawer">
+        /*
+         * `revisit-shell` is the theming scope, and this drawer is portalled to
+         * `document.body` — outside the shell element. Without the class none of
+         * the light-theme overrides in `index.css` reached it, so the workspace
+         * rendered dark-stage text colours whatever the theme said.
+         *
+         * The surface has to follow, or the fix is worse than the defect: light
+         * foreground tokens on a hard-coded dark panel measured 2.56:1 and the
+         * Axe gate rejected 129 nodes. So the panel uses the shared
+         * `revisit-menu-surface` token rather than a fixed `#070c18`
+         * (Programme 7E).
+         */
+        <div className="revisit-shell fixed inset-0 z-[100]" data-testid="scenario-workspace-drawer">
             <button
                 type="button"
                 aria-label="Dismiss scenario workspace"
@@ -66,15 +79,15 @@ export const ScenarioWorkspaceDrawer: React.FC<ScenarioWorkspaceDrawerProps> = (
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="revisit-scenario-workspace-title"
-                className="absolute inset-y-0 left-0 flex w-full max-w-[27rem] flex-col border-r border-sky-400/25 bg-[#070c18]/98 text-slate-100 shadow-[18px_0_50px_rgba(0,0,0,0.5)] light:bg-slate-950"
+                className={`absolute inset-y-0 left-0 flex w-full max-w-[27rem] flex-col border-r border-sky-400/25 text-slate-100 shadow-[18px_0_50px_rgba(0,0,0,0.5)] ${REVISIT_MENU_SURFACE}`}
             >
                 <header className="flex items-start justify-between gap-4 border-b border-slate-700/70 px-4 py-4">
                     <div>
-                        <p className="text-[9px] font-black uppercase tracking-[0.18em] text-sky-300">REVISIT</p>
+                        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-sky-300">REVISIT</p>
                         <h2 id="revisit-scenario-workspace-title" className="mt-1 text-base font-black uppercase tracking-[0.08em]">
                             Scenario workspace
                         </h2>
-                        <p className="mt-1 text-[10px] leading-4 text-slate-400">
+                        <p className="mt-1 text-[12px] leading-4 text-slate-400">
                             Save, restore and share complete Points or Area demonstrations.
                         </p>
                     </div>

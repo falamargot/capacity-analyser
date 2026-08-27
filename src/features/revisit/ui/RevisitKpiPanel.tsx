@@ -8,6 +8,19 @@
  * bright amber. Both max and mean are always shown, labelled — showing mean
  * alone invites the accusation of cherry-picking, showing max alone hides the
  * typical experience (ADR-001 §3).
+ *
+ * ── WHAT THIS PANEL NO LONGER SAYS (Programme 7A) ───────────────────────────
+ * The `MEETS` / `MISSES <requirement>` pair moved to `CustomerResultCard`,
+ * which states it as a status beside the recommendation that answers it. This
+ * panel kept only the EXCEPTIONAL verdicts — no result, still analysing, never
+ * in view, no target — because those are not commercial statuses and have no
+ * recommendation to sit next to. Repeating the pass/fail here put a red badge
+ * directly under the card that had just framed the same fact as an
+ * opportunity, which is the impression the programme exists to remove.
+ *
+ * `To target: +N payloads` moved for the same reason: it is the recommendation,
+ * and it belongs with the control that applies it. `Vs 1 payload` stays — it is
+ * a value argument about the fleet, not a verdict about the requirement.
  */
 
 import React from 'react';
@@ -40,9 +53,9 @@ interface RevisitKpiPanelProps {
          * sweep has not reached it yet.
          */
         baselineInconclusive?: boolean;
-        currentPayloadCount: number;
-        targetPayloadCount: number | null;
     };
+    /** Integrate the supporting KPIs into CustomerResultCard. */
+    embedded?: boolean;
 }
 
 function Metric({ label, value, tone = 'secondary' }: {
@@ -66,14 +79,13 @@ function Metric({ label, value, tone = 'secondary' }: {
 }
 
 export const RevisitKpiPanel: React.FC<RevisitKpiPanelProps> = ({
-    statistics, windowHours, requirementMs, isComputing, comparisonIsComputing = false, comparison,
+    statistics, windowHours, requirementMs, isComputing, comparisonIsComputing = false,
+    comparison, embedded = false,
 }) => {
     const maxGapMs = statistics?.maxGapMs ?? null;
-    const meets = requirementMs !== null && maxGapMs !== null && maxGapMs <= requirementMs;
 
-    // The verdict, in the grammar ENG already uses for
-    // `Service blocked — uplink link budget failed`.
-    let verdict: { text: string; className: string };
+    // Exceptional states only — the pass/fail pair is the card's (see header).
+    let verdict: { text: string; className: string } | null = null;
     if (!statistics) {
         verdict = isComputing
             ? {
@@ -94,16 +106,6 @@ export const RevisitKpiPanel: React.FC<RevisitKpiPanelProps> = ({
             text: 'NO TARGET SET',
             className: 'border-slate-500/40 bg-slate-500/15 text-slate-300',
         };
-    } else if (meets) {
-        verdict = {
-            text: `MEETS ${formatGap(requirementMs).toUpperCase()} REQUIREMENT`,
-            className: 'border-lime-400/40 bg-lime-500/15 text-lime-200',
-        };
-    } else {
-        verdict = {
-            text: `MISSES ${formatGap(requirementMs).toUpperCase()} REQUIREMENT`,
-            className: 'border-red-400/40 bg-red-500/15 text-red-200',
-        };
     }
 
     const passesPerDay = statistics
@@ -114,10 +116,6 @@ export const RevisitKpiPanel: React.FC<RevisitKpiPanelProps> = ({
         && comparison.baselineMaxGapMs > 0
         ? Math.max(0, 1 - maxGapMs / comparison.baselineMaxGapMs)
         : null;
-    const additionalPayloads = comparison?.targetPayloadCount == null
-        ? null
-        : Math.max(0, comparison.targetPayloadCount - comparison.currentPayloadCount);
-
     /*
      * m2. This row is the business case, and it is on screen the moment the mode
      * opens. It used to narrate its own unresolved state — "awaiting measured
@@ -149,33 +147,29 @@ export const RevisitKpiPanel: React.FC<RevisitKpiPanelProps> = ({
     } else if (comparison?.baselineInconclusive) {
         comparisonItems.push({ label: 'Vs 1 payload', value: 'no worst-case in this window' });
     }
-    if (additionalPayloads !== null) {
-        comparisonItems.push({
-            label: 'To target',
-            value: additionalPayloads === 0
-                ? 'met by this configuration'
-                : `+${additionalPayloads} payloads`,
-        });
-    } else if (comparison && !comparisonIsComputing) {
-        comparisonItems.push({ label: 'To target', value: 'beyond the tested payload range' });
-    }
     const comparisonPending = Boolean(comparison) && comparisonItems.length === 0 && comparisonIsComputing;
 
     return (
-        <div className={`${REVISIT_PANEL} revisit-kpi-panel px-4 py-3 ${isComputing ? 'opacity-60' : ''}`}>
-            <span
-                className={`revisit-kpi-verdict inline-flex rounded-md border px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em] ${verdict.className}`}
-            >
-                {verdict.text}
-            </span>
+        <div className={`${embedded
+            ? 'revisit-kpi-panel mt-3 border-t border-slate-700/50 pt-2.5'
+            : `${REVISIT_PANEL} revisit-kpi-panel px-4 py-3`} ${isComputing ? 'opacity-60' : ''}`}>
+            {!embedded && verdict && (
+                <span
+                    className={`revisit-kpi-verdict inline-flex rounded-md border px-2 py-0.5 text-[12px] font-black uppercase tracking-[0.14em] ${verdict.className}`}
+                >
+                    {verdict.text}
+                </span>
+            )}
 
             {/* WORST CASE is given its own row so it stays roughly twice the size
                 of the rest and never competes for width with them (UX §4.2). */}
-            <div className="revisit-kpi-headline mt-3">
-                <Metric label="Worst case" value={formatGap(maxGapMs)} tone="headline" />
-            </div>
-            <div className="revisit-kpi-secondary mt-3 flex items-end gap-5 border-t border-slate-700/50 pt-2.5">
-                <Metric label="Mean" value={formatGap(statistics?.meanGapMs ?? null)} />
+            {!embedded && (
+                <div className={`revisit-kpi-headline ${verdict ? 'mt-3' : ''}`}>
+                    <Metric label="Maximum revisit gap" value={formatGap(maxGapMs)} tone="headline" />
+                </div>
+            )}
+            <div className={`revisit-kpi-secondary flex items-end gap-5 ${embedded ? '' : 'mt-3 border-t border-slate-700/50 pt-2.5'}`}>
+                <Metric label="Average revisit" value={formatGap(statistics?.meanGapMs ?? null)} />
                 <Metric label="Passes / day" value={statistics ? passesPerDay : '—'} />
                 <Metric
                     label="In view"
@@ -185,14 +179,14 @@ export const RevisitKpiPanel: React.FC<RevisitKpiPanelProps> = ({
 
             {/* The qualification line. The boundary-gap convention is stated here
                 because it materially changes the headline number. */}
-            <p className="revisit-kpi-qualification mt-2 text-[10px] leading-4 text-slate-500">
+            <p className="revisit-kpi-qualification mt-2 text-[12px] leading-4 text-slate-500">
                 {windowHours} h window · max-gap definition · boundary gaps discarded
                 {isComputing && ' · recomputing…'}
             </p>
 
             {comparison && (comparisonItems.length > 0 || comparisonPending) && (
                 <div
-                    className="mt-2 flex flex-wrap gap-x-3 gap-y-1 border-t border-slate-700/50 pt-2 text-[10px] leading-4 text-slate-400"
+                    className="mt-2 flex flex-wrap gap-x-3 gap-y-1 border-t border-slate-700/50 pt-2 text-[12px] leading-4 text-slate-400"
                     aria-label="Business comparison"
                     aria-busy={comparisonPending || undefined}
                 >

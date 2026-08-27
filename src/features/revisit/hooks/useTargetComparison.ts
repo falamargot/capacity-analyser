@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSimulationClock } from '../../../contexts/SimulationClockContext';
 import { compareRevisitTargets } from '../analysis/targetComparison';
+import {
+    inlineFailureCause, revisitFailure, revisitFailureDetail, type RevisitFailure,
+} from '../domain/revisitFailure';
 import type { PointTarget, RevisitScenario } from '../domain/types';
 import {
     isCurrentResponse, type RevisitTargetComparisonRow,
@@ -13,8 +16,12 @@ const COMPARISON_DEBOUNCE_MS = 500;
 export interface UseTargetComparisonResult {
     rows: RevisitTargetComparisonRow[] | null;
     isComputing: boolean;
+    /** The failure as one block of text, label first. Never an empty string. */
     error: string | null;
+    /** The same failure with its operation, target, path and kind. */
+    failure: RevisitFailure | null;
     computeMs: number | null;
+    isMainThreadFallback: boolean;
 }
 
 export function useTargetComparison(
@@ -25,8 +32,9 @@ export function useTargetComparison(
     const clock = useSimulationClock();
     const [completed, setCompleted] = useState<{ key: string; rows: RevisitTargetComparisonRow[] } | null>(null);
     const [isComputing, setIsComputing] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [failure, setFailure] = useState<RevisitFailure | null>(null);
     const [computeMs, setComputeMs] = useState<number | null>(null);
+    const [isMainThreadFallback, setIsMainThreadFallback] = useState(false);
     const workerRef = useRef<Worker | null>(null);
     const requestIdRef = useRef(0);
     const pendingRef = useRef<{ requestId: number; timelineRevision: number; key: string } | null>(null);
@@ -48,11 +56,18 @@ export function useTargetComparison(
     }, []);
 
     useEffect(() => {
-        if (!enabled) return;
+        if (!enabled) {
+            pendingRef.current = null;
+            setIsComputing(false);
+            setIsMainThreadFallback(false);
+            return;
+        }
         let worker: Worker | null = null;
         try {
             worker = new Worker(new URL('../workers/revisitWorker.ts', import.meta.url), { type: 'module' });
+            setIsMainThreadFallback(false);
         } catch {
+            setIsMainThreadFallback(true);
             // Inline fallback is handled by the dispatch effect.
         }
         worker?.addEventListener('message', (event: MessageEvent<RevisitWorkerOutput>) => {
@@ -65,10 +80,13 @@ export function useTargetComparison(
             setComputeMs(response.computeMs);
             if (response.ok) {
                 setCompleted({ key: pending.key, rows: response.rows });
-                setError(null);
+                setFailure(null);
             } else {
                 setCompleted(null);
-                setError(response.error);
+                setFailure(revisitFailure(
+                    { path: 'Worker', kind: 'engine error', message: response.error },
+                    'Target comparison', 'Comparison set',
+                ));
             }
         });
         worker?.addEventListener('error', (event) => {
@@ -76,7 +94,10 @@ export function useTargetComparison(
             pendingRef.current = null;
             setIsComputing(false);
             setCompleted(null);
-            setError(event.message || 'Target comparison worker failed');
+            setFailure(revisitFailure(
+                { path: 'Worker', kind: 'runtime error', message: event.message || '' },
+                'Target comparison', 'Comparison set',
+            ));
         });
         workerRef.current = worker;
         return () => {
@@ -89,7 +110,7 @@ export function useTargetComparison(
     useEffect(() => {
         if (!enabled) return;
         setIsComputing(true);
-        setError(null);
+        setFailure(null);
         pendingRef.current = null;
         const timer = window.setTimeout(() => {
             const requestId = ++requestIdRef.current;
@@ -108,12 +129,15 @@ export function useTargetComparison(
                 const fallbackRows = compareRevisitTargets(stable.scenario, stable.targets);
                 if (mountedRef.current) {
                     setCompleted({ key, rows: fallbackRows });
-                    setError(null);
+                    setFailure(null);
                 }
             } catch (cause) {
                 if (mountedRef.current) {
                     setCompleted(null);
-                    setError(cause instanceof Error ? cause.message : String(cause));
+                    setFailure(revisitFailure(
+                        inlineFailureCause(cause),
+                        'Target comparison', 'Comparison set',
+                    ));
                 }
             } finally {
                 if (mountedRef.current) {
@@ -126,5 +150,9 @@ export function useTargetComparison(
         return () => window.clearTimeout(timer);
     }, [enabled, key, stable, clock]);
 
-    return { rows, isComputing, error, computeMs };
+    return {
+        rows, isComputing, computeMs, isMainThreadFallback,
+        error: failure ? revisitFailureDetail(failure) : null,
+        failure,
+    };
 }

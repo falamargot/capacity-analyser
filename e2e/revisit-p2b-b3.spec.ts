@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
-import { openRevisitStageControls, openRevisitSurfaces } from './revisitCompact';
+import { addSecondaryArea, openRevisitSurfaces,
+  seedReferenceTarget,
+} from './revisitCompact';
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
@@ -10,19 +12,21 @@ test.beforeEach(async ({ page }) => {
   });
   await page.goto('/?mode=revisit');
   await openRevisitSurfaces(page);
+  // REVISIT opens with no target selected; these specs describe the state
+  // after one has been chosen.
+  await seedReferenceTarget(page);
 });
 
 test.describe('REVISIT P2b-B3 scenario workspace', () => {
   test('uses an accessible drawer and restores the complete Area configuration without stale results', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop-chromium', 'Persistence and PDF contract is viewport-independent');
-    await page.getByRole('tab', { name: 'Area' }).click();
-    await page.getByRole('button', { name: 'Define area target' }).click();
+    await addSecondaryArea(page);
     const areaPanel = page.getByRole('region', { name: 'Area coverage' });
     await areaPanel.getByLabel('Custom area name').fill('North Sea');
     await areaPanel.getByText('Paste coordinate list', { exact: true }).click();
     await areaPanel.getByLabel('Custom area coordinate list').fill('51, -2\n51, 9\n61, 9\n61, -2');
     await areaPanel.getByRole('button', { name: 'Apply list' }).click();
-    await expect(page.getByRole('region', { name: 'Area result summary' })).toContainText('North Sea', { timeout: 60_000 });
+    await expect(page.getByLabel('Active result context')).toContainText('North Sea', { timeout: 60_000 });
 
     const launcher = page.getByRole('button', { name: 'Scenario workspace' });
     await launcher.click();
@@ -35,7 +39,7 @@ test.describe('REVISIT P2b-B3 scenario workspace', () => {
     await workspace.getByRole('button', { name: 'Save', exact: true }).click();
 
     const downloadPromise = page.waitForEvent('download');
-    await workspace.getByRole('button', { name: 'Area PDF' }).click();
+    await workspace.getByRole('button', { name: 'Export customer summary' }).click();
     const download = await downloadPromise;
     const path = await download.path();
     expect(path).not.toBeNull();
@@ -44,20 +48,22 @@ test.describe('REVISIT P2b-B3 scenario workspace', () => {
     await page.getByRole('button', { name: 'Close scenario workspace' }).press('Escape');
     await expect(drawer).toHaveCount(0);
     await expect(launcher).toBeFocused();
-    await page.getByRole('tab', { name: /Points/ }).click();
+    await page.getByRole('button', { name: /Reference target/ }).click();
     await launcher.click();
     await page.getByRole('region', { name: 'Saved scenario workspace' }).getByRole('button', { name: 'Load', exact: true }).click();
 
-    await expect(page.getByRole('tab', { name: 'Area' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('button', { name: /Select comparison target polygon/ })).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('[data-revisit-context-panel="analysis-target"]')).toContainText('North Sea');
-    await expect(page.getByRole('region', { name: 'Area result summary' })).toContainText('North Sea', { timeout: 60_000 });
-    await expect(page.getByRole('region', { name: 'Coverage timeline' })).toContainText('Worst-cell access timeline');
+    await expect(page.getByLabel('Active result context')).toContainText('North Sea', { timeout: 60_000 });
+    await expect(page.getByRole('region', { name: 'Coverage timeline' })).toContainText('Observation schedule comparison');
+    await expect(page.getByRole('region', { name: 'Coverage timeline' })).toContainText('Area worst-cell lane');
   });
 
   test('fills the mobile viewport without horizontal overflow', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'mobile-chromium', 'Dedicated mobile drawer contract');
-    await openRevisitStageControls(page);
-    await page.getByRole('button', { name: 'Scenarios' }).click();
+    // Scenario management lives in the application header now, not in the
+    // stage controls, which carry globe display toggles only.
+    await page.getByRole('button', { name: 'Scenario workspace' }).click();
     await expect(page.getByRole('dialog', { name: 'Scenario workspace' })).toBeVisible();
     const dimensions = await page.evaluate(() => ({
       drawerWidth: document.querySelector('[data-testid="scenario-workspace-drawer"] aside')?.getBoundingClientRect().width,

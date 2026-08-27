@@ -1,5 +1,6 @@
 import {
-    isRevisitSessionSnapshot, type RevisitSessionSnapshotV1,
+    isRevisitSessionSnapshot, normaliseRevisitSessionSnapshot,
+    type RevisitSessionSnapshotV1,
 } from './revisitSessionSnapshot';
 
 export const REVISIT_SAVED_SCENARIOS_SCHEMA_VERSION = 1 as const;
@@ -40,7 +41,16 @@ function readRaw(): SavedRevisitScenario[] {
     try {
         const parsed: unknown = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]');
         if (!Array.isArray(parsed)) return [];
-        return parsed.filter(isSavedScenario).slice(0, MAX_SAVED_REVISIT_SCENARIOS).map(clone);
+        return parsed.filter(isSavedScenario)
+            .slice(0, MAX_SAVED_REVISIT_SCENARIOS)
+            .map(clone)
+            // A scenario saved by an earlier build may hold more comparison
+            // targets than this one can show. Normalising here means it loads,
+            // trimmed, instead of disappearing from the workspace list.
+            .map((saved) => ({
+                ...saved,
+                snapshot: normaliseRevisitSessionSnapshot(saved.snapshot),
+            }));
     } catch {
         return [];
     }

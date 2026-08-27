@@ -45,7 +45,12 @@ const ENGINE_CLAIMS = [
     'Propagation cross-checked vs NASA GMAT · 9 km over 72 h',
     // R29 closed this. The qualifier that stood here — "altitude datum not yet
     // GMAT-checked" — is replaced by the measurement that removed it.
-    'Altitude datum GMAT-checked · 1200.00 km at the equator',
+    //
+    // "at 1200 km" now says WHERE the check was made, because the sentence sat
+    // directly above a Characteristics line reading 1198.87 km for a measured
+    // shell: three altitudes on one screen, one of them a datum validation and
+    // not the fleet's altitude at all.
+    'Altitude datum GMAT-checked at 1200 km · engine claim, not this model’s altitude',
 ] as const;
 
 export const ModelProvenance: React.FC<ModelProvenanceProps> = ({
@@ -54,11 +59,11 @@ export const ModelProvenance: React.FC<ModelProvenanceProps> = ({
     <div>
         <span className={REVISIT_LABEL}>Evidence</span>
 
-        <ul className="mt-1 space-y-0.5 text-[10px] leading-4 text-slate-400">
+        <ul className="mt-1 space-y-0.5 text-[12px] leading-4 text-slate-400">
             {ENGINE_CLAIMS.map((claim) => <li key={claim}>{claim}</li>)}
         </ul>
 
-        <div className="mt-1.5 border-t border-slate-700/50 pt-1.5 text-[10px] leading-4">
+        <div className="mt-1.5 border-t border-slate-700/50 pt-1.5 text-[12px] leading-4">
             {mode === 'HLD' && (
                 <p className="text-sky-300">
                     {profile ? `${profile.label} · v${profile.version}` : 'HLD reference profile'}
@@ -106,7 +111,7 @@ export const ModelProvenance: React.FC<ModelProvenanceProps> = ({
                         {fit.satellitesUsed} real satellites · {fit.planesDetected} planes
                     </p>
                     <p
-                        className="mt-0.5 text-[9px] leading-3 text-slate-500"
+                        className="mt-0.5 text-[11px] leading-3 text-slate-500"
                         title="Root-mean-square deviation of the real fleet from the fitted shell, per axis."
                     >
                         RAAN {fit.raanRmsDeg.toFixed(2)}° · in-plane {fit.argLatRmsDeg.toFixed(2)}°
@@ -117,12 +122,12 @@ export const ModelProvenance: React.FC<ModelProvenanceProps> = ({
                         // are the caveats an engineer asks about, and a hover
                         // tooltip would be unreadable on touch and unquotable.
                         <details className="mt-1">
-                            <summary className="cursor-pointer text-[9px] font-black uppercase tracking-[0.08em] text-slate-500 hover:text-slate-300">
+                            <summary className="cursor-pointer text-[11px] font-black uppercase tracking-[0.08em] text-slate-500 hover:text-slate-300">
                                 Caveats ({fit.notes.length})
                             </summary>
                             <ul className="mt-1 space-y-0.5">
                                 {fit.notes.map((note) => (
-                                    <li key={note} className="text-[9px] leading-3 text-amber-200/70">
+                                    <li key={note} className="text-[11px] leading-3 text-amber-200/70">
                                         {note}
                                     </li>
                                 ))}

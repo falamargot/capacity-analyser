@@ -84,7 +84,10 @@ describe('REVISIT P0 presentation UI', () => {
             />
         ));
 
-        expect(container.textContent).toContain('2026-08-12 12:00:00 UTC');
+        const dateTime = container.querySelector('[aria-label="Simulation date and time UTC"]') as HTMLInputElement;
+        expect(dateTime.value).toBe('2026-08-12T12:00');
+        expect(dateTime.min).toBe('2026-08-12T12:00:00');
+        expect(dateTime.max).toBe('2026-08-15T12:00:00');
         const buttons = [...container.querySelectorAll('button')];
         await act(async () => buttons.find((button) => button.textContent === 'Play')!.click());
         expect(onSetSpeed).toHaveBeenCalledWith(1);
@@ -95,6 +98,11 @@ describe('REVISIT P0 presentation UI', () => {
         speed.value = '100';
         await act(async () => speed.dispatchEvent(new Event('change', { bubbles: true })));
         expect(onSetSpeed).toHaveBeenCalledWith(100);
+
+        dateTime.value = '2026-08-13T06:30:00';
+        await act(async () => dateTime.dispatchEvent(new Event('change', { bubbles: true })));
+        expect(onSetSpeed).toHaveBeenCalledWith(0);
+        expect(onSeek).toHaveBeenCalledWith(Date.UTC(2026, 7, 13, 6, 30));
     });
 
     /**
@@ -136,5 +144,160 @@ describe('REVISIT P0 presentation UI', () => {
             .toEqual(expect.arrayContaining(['Reference · London', 'Compare 1 · Singapore']));
         // Nothing may hide the slider from assistive technology.
         expect(slider.closest('[aria-hidden="true"]')).toBeNull();
+    });
+
+    it('carries the selected point emphasis across the timeline and comparison sidecar', async () => {
+        const startMs = Date.UTC(2026, 7, 12, 12);
+        const onSelectPoint = vi.fn();
+        await act(async () => root?.render(
+            <CoverageRibbon
+                intervals={[]}
+                statistics={null}
+                pointLanes={[
+                    {
+                        id: 'REFERENCE', label: 'Reference · London', name: 'London',
+                        intervals: [], statistics: null,
+                    },
+                    {
+                        id: 'comparison-1', label: 'Compare 1 · Singapore', name: 'Singapore',
+                        intervals: [], statistics: null, selected: true,
+                    },
+                ]}
+                windowStartMs={startMs}
+                windowHours={72}
+                getTimeMs={() => startMs}
+                onSeek={() => undefined}
+                speed={0}
+                onSetSpeed={() => undefined}
+                onSelectPoint={onSelectPoint}
+            />
+        ));
+
+        const selectedTimeline = container.querySelector('[data-revisit-timeline-lane="comparison-1"]')!;
+        const selectedSidecar = container.querySelector('[data-revisit-comparison-row="comparison-1"]')!;
+        expect(selectedTimeline.className).toContain('border-sky-300/60');
+        expect(selectedSidecar.className).toContain('border-sky-300/60');
+        expect(selectedTimeline.querySelector('svg')?.getAttribute('class')).toContain('opacity-100');
+        expect(container.querySelector('[data-revisit-timeline-lane="REFERENCE"] svg')?.getAttribute('class'))
+            .toContain('opacity-75');
+
+        // Any comparison cell, not only its target-name button, selects the row.
+        await act(async () => (selectedSidecar.lastElementChild as HTMLElement).click());
+        expect(onSelectPoint).toHaveBeenCalledWith('comparison-1');
+    });
+
+    /*
+     * A failed target comparison used to raise the presentation-wide blocking
+     * notice, stopping the demonstration over a background calculation. It is
+     * stated here instead — and it must be stated SOMEWHERE: when the notice
+     * stopped carrying it, the only other render site was a table that is no
+     * longer mounted anywhere, so the failure became invisible.
+     */
+    it('states a failed comparison in the comparison block without a banner', async () => {
+        const startMs = Date.UTC(2026, 7, 12, 12);
+        await act(async () => root?.render(
+            <CoverageRibbon
+                intervals={[]}
+                statistics={null}
+                targetLanes={[
+                    {
+                        id: 'REFERENCE', kind: 'POINT', roleLabel: 'Reference', basisLabel: 'Point',
+                        label: 'Reference · London', name: 'London', intervals: [], statistics: null,
+                    },
+                    {
+                        id: 'comparison-1', kind: 'POINT', roleLabel: 'Comparison', basisLabel: 'Point',
+                        label: 'Comparison · Singapore', name: 'Singapore', intervals: [], statistics: null,
+                    },
+                ]}
+                windowStartMs={startMs}
+                windowHours={72}
+                getTimeMs={() => startMs}
+                onSeek={() => undefined}
+                speed={0}
+                onSetSpeed={() => undefined}
+                comparisonError={'Comparison set · Target comparison · Worker runtime error'}
+            />
+        ));
+
+        expect(container.textContent).toContain('Unavailable');
+        expect(container.textContent).toContain('Comparison unavailable');
+        // Stated in place, not as an alert over the whole screen.
+        expect(container.querySelector('[role="alert"]')).toBeNull();
+        // The engineering text stays reachable without occupying a row.
+        expect(container.querySelector('[title*="Worker runtime error"]')).not.toBeNull();
+    });
+
+    it('shows the computing state when the comparison has not failed', async () => {
+        const startMs = Date.UTC(2026, 7, 12, 12);
+        await act(async () => root?.render(
+            <CoverageRibbon
+                intervals={[]}
+                statistics={null}
+                targetLanes={[
+                    {
+                        id: 'REFERENCE', kind: 'POINT', roleLabel: 'Reference', basisLabel: 'Point',
+                        label: 'Reference · London', name: 'London', intervals: [], statistics: null,
+                    },
+                    {
+                        id: 'comparison-1', kind: 'POINT', roleLabel: 'Comparison', basisLabel: 'Point',
+                        label: 'Comparison · Singapore', name: 'Singapore', intervals: [], statistics: null,
+                    },
+                ]}
+                windowStartMs={startMs}
+                windowHours={72}
+                getTimeMs={() => startMs}
+                onSeek={() => undefined}
+                speed={0}
+                onSetSpeed={() => undefined}
+                comparisonIsComputing
+            />
+        ));
+
+        expect(container.textContent).toContain('Computing…');
+        expect(container.textContent).not.toContain('Unavailable');
+        expect(container.textContent).toContain('Same topology, FOV and requirement');
+    });
+
+    it('compares Point and Area on the shared contractual gap without mixing means', async () => {
+        const startMs = Date.UTC(2026, 7, 12, 12);
+        const onSelectTarget = vi.fn();
+        await act(async () => root?.render(
+            <CoverageRibbon
+                intervals={[]}
+                statistics={null}
+                targetLanes={[
+                    {
+                        id: 'REFERENCE', kind: 'POINT', roleLabel: 'Primary', basisLabel: 'Point',
+                        label: 'Primary · London', name: 'London', intervals: [], statistics: null,
+                    },
+                    {
+                        id: 'AREA_TARGET', kind: 'AREA', roleLabel: 'Secondary 1', basisLabel: 'Least-covered cell',
+                        label: 'Secondary 1 · North Sea · worst cell', name: 'North Sea',
+                        intervals: [], statistics: null, statusLabel: 'Select to analyse', selected: true,
+                    },
+                ]}
+                windowStartMs={startMs}
+                windowHours={72}
+                getTimeMs={() => startMs}
+                onSeek={() => undefined}
+                speed={0}
+                onSetSpeed={() => undefined}
+                onSelectTarget={onSelectTarget}
+            />
+        ));
+
+        expect(container.textContent).toContain('Point lanes + Area worst-cell lane');
+        expect(container.textContent).toContain('Maximum gap');
+        expect(container.textContent).toContain('Least-covered cell');
+        expect(container.textContent).not.toContain('Mean');
+        const compactComparison = [...container.querySelectorAll('details')]
+            .find((details) => details.textContent?.includes('Compare targets')) as HTMLDetailsElement;
+        expect(compactComparison).not.toBeNull();
+        expect(compactComparison.open).toBe(false);
+        expect(compactComparison.className).toContain('lg:hidden');
+        const areaRow = container.querySelector('[data-revisit-comparison-row="AREA_TARGET"]') as HTMLElement;
+        expect(areaRow.className).toContain('border-sky-300/60');
+        await act(async () => areaRow.click());
+        expect(onSelectTarget).toHaveBeenCalledWith('AREA_TARGET');
     });
 });

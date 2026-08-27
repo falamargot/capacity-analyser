@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
-import { waitForRevisitReady } from './revisitCompact';
+import { waitForRevisitReady,
+  seedReferenceTarget, closeRevisitPanels, waitForRevisitResultSettled,
+} from './revisitCompact';
 
 const viewports = [
   { name: 'phone-390x844', width: 390, height: 844 },
@@ -28,11 +30,38 @@ test.describe('REVISIT visual baselines', () => {
         // Phone widths open globe-first: the analysis column is a closed sheet
         // and the result strip is the ready signal (mobile UX plan §5).
         await waitForRevisitReady(page);
+        // REVISIT opens with no target selected, so nothing is computed until
+        // one is chosen. Seeding it is what makes these baselines show a real
+        // result; closing the panels afterwards restores the globe-first
+        // opening state the compact captures are meant to record.
+        await seedReferenceTarget(page);
+        await closeRevisitPanels(page);
         // Capture only after the asynchronous payload sweep has settled. At
         // wide resolutions it could previously land between Playwright's two
         // stability screenshots and make snapshot regeneration time out.
         await expect(page.getByText('best achieved with up to X payloads')).toHaveCount(1, { timeout: 60_000 });
+        /*
+         * The sweep landing is not the end of it: `reconcileToMeasuredBest`
+         * then moves the selection to the measured-best topology and the
+         * analysis recomputes, so a capture taken in between records a
+         * worst-case figure that the next run will not reproduce — 21 746
+         * differing pixels in the result strip, which is what made this gate
+         * unstable. The readiness chip is necessary but not sufficient: it
+         * already reads "Ready to present" while the reconcile is pending, so
+         * the helper also waits for the rendered text to stop changing.
+         */
+        await waitForRevisitResultSettled(page);
         await expect(page.locator('.cesium-widget canvas')).toHaveCount(1);
+
+        // Cesium animates continuously, but masking its canvas is not safe: the
+        // canvas fills the viewport and Playwright paints masks by bounding box,
+        // above every HTML overlay. That used to turn every baseline into one
+        // solid magenta rectangle and made the visual gate blind. Making only
+        // the pixels transparent keeps Cesium's real box in layout while the
+        // header, sidebar, footer and mobile sheets remain observable.
+        await page.addStyleTag({
+          content: '.cesium-widget canvas { opacity: 0 !important; }',
+        });
 
         // The shell fills the viewport. A page screenshot avoids locator-stability
         // retries caused by Cesium's continuously moving canvas while preserving
@@ -42,7 +71,7 @@ test.describe('REVISIT visual baselines', () => {
           {
             animations: 'disabled',
             timeout: 30_000,
-            mask: [page.locator('.cesium-widget canvas'), page.locator('.cesium-credit-logoContainer')],
+            mask: [page.locator('.cesium-credit-logoContainer')],
             maxDiffPixelRatio: 0.01,
           },
         );

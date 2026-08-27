@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-    reconcileToMeasuredBest, sameSelection, selectionStatus,
+    reconcileToMeasuredBest, sameSelection, selectionForPayloadCount, selectionStatus,
 } from '../domain/selectionReconcile';
 import { runPayloadSweep } from '../analysis/payloadSweep';
 import { DEFAULT_REFERENCE, DEFAULT_SELECTION, FOV_PRESETS, TARGET_PRESETS } from '../domain/presets';
@@ -22,6 +22,44 @@ describe('sameSelection', () => {
         expect(sameSelection(a, { ...a, planeStride: 1 })).toBe(false);
         expect(sameSelection(a, { ...a, satStride: 1 })).toBe(false);
         expect(sameSelection(a, { ...a, planeShift: 2 })).toBe(false);
+    });
+});
+
+/*
+ * The payload slider and `Apply recommended configuration` both go through this
+ * function (Programme 7A). If it ever returned the ladder's default while a
+ * sweep was available, the card would promise a worst-case gap the headline
+ * does not deliver.
+ */
+describe('selectionForPayloadCount', () => {
+    const current: SubConstellationSpec = { planeStride: 3, satStride: 4, planeShift: 2 };
+
+    it('adopts the MEASURED best at that count, not the ladder default', () => {
+        const measuredBest = selectionStatus(DEFAULT_SELECTION, defaultCount, sweep).bestSelection!;
+        const chosen = selectionForPayloadCount(current, DEFAULT_REFERENCE, defaultCount, sweep)!;
+
+        expect(chosen.planeStride).toBe(measuredBest.planeStride);
+        expect(chosen.satStride).toBe(measuredBest.satStride);
+        expect(payloadCount(DEFAULT_REFERENCE, chosen)).toBe(defaultCount);
+    });
+
+    it('carries the plane shift across — it is not part of a payload count', () => {
+        const chosen = selectionForPayloadCount(current, DEFAULT_REFERENCE, defaultCount, sweep)!;
+        expect(chosen.planeShift).toBe(2);
+
+        const fallback = selectionForPayloadCount(current, DEFAULT_REFERENCE, defaultCount, null)!;
+        expect(fallback.planeShift).toBe(2);
+    });
+
+    it('falls back to the ladder only while no sweep is available', () => {
+        const fallback = selectionForPayloadCount(current, DEFAULT_REFERENCE, defaultCount, null);
+        expect(fallback).not.toBeNull();
+        expect(payloadCount(DEFAULT_REFERENCE, fallback!)).toBe(defaultCount);
+    });
+
+    it('returns null for a count that is not on the ladder', () => {
+        expect(selectionForPayloadCount(current, DEFAULT_REFERENCE, 7, sweep)).toBeNull();
+        expect(selectionForPayloadCount(current, DEFAULT_REFERENCE, 7, null)).toBeNull();
     });
 });
 

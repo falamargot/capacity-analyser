@@ -25,8 +25,15 @@ export interface MobileResultStripProps {
     analysisContext: RevisitAnalysisContext;
     statistics: GapStatistics | null;
     areaAnalysis: AreaAnalysis | null;
+    areaIsDefined?: boolean;
     requirementMs: number;
     isComputing: boolean;
+    /** Selected comparison row exists but has no analysable location yet. */
+    pointIsPending?: boolean;
+    /** The target set is intentionally empty, rather than an incomplete comparison row. */
+    noTarget?: boolean;
+    /** Reference or Comparison N — keeps the collapsed result attributable. */
+    pointResultLabel?: string;
     /** Sheet state, so the chevron and the aria state stay truthful. */
     expanded: boolean;
     onToggle: () => void;
@@ -51,12 +58,14 @@ function pointVerdict(
 }
 
 function areaVerdict(
-    analysis: AreaAnalysis | null, requirementMs: number, isComputing: boolean,
+    analysis: AreaAnalysis | null, requirementMs: number, isComputing: boolean, areaIsDefined: boolean,
 ): Verdict {
     if (!analysis) {
         return isComputing
             ? { text: 'Analysing', className: 'border-slate-500/40 bg-slate-500/15 text-slate-300' }
-            : { text: 'No area', className: 'border-slate-500/40 bg-slate-500/15 text-slate-300' };
+            : areaIsDefined
+                ? { text: 'Ready', className: 'border-sky-400/40 bg-sky-500/15 text-sky-200' }
+                : { text: 'Area incomplete', className: 'border-slate-500/40 bg-slate-500/15 text-slate-300' };
     }
     const misses = analysis.neverInViewCount > 0
         || analysis.unmeasuredCount > 0
@@ -67,11 +76,16 @@ function areaVerdict(
 }
 
 export const MobileResultStrip: React.FC<MobileResultStripProps> = ({
-    analysisContext, statistics, areaAnalysis, requirementMs, isComputing, expanded, onToggle,
+    analysisContext, statistics, areaAnalysis, areaIsDefined = false, requirementMs, isComputing,
+    pointIsPending = false, noTarget = false, pointResultLabel, expanded, onToggle,
 }) => {
     const isArea = analysisContext === 'AREA';
-    const verdict = isArea
-        ? areaVerdict(areaAnalysis, requirementMs, isComputing)
+    const verdict = noTarget
+        ? { text: 'No target', className: 'border-slate-500/40 bg-slate-500/15 text-slate-300' }
+        : !isArea && pointIsPending
+        ? { text: 'Location required', className: 'border-sky-400/40 bg-sky-500/15 text-sky-200' }
+        : isArea
+        ? areaVerdict(areaAnalysis, requirementMs, isComputing, areaIsDefined)
         : pointVerdict(statistics, requirementMs, isComputing);
     const unbounded = isArea && (areaAnalysis?.neverInViewCount ?? 0) > 0;
     const headlineMs = isArea ? areaAnalysis?.worstCell?.maxGapMs ?? null : statistics?.maxGapMs ?? null;
@@ -88,19 +102,32 @@ export const MobileResultStrip: React.FC<MobileResultStripProps> = ({
         >
             <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-2">
-                    <span className={`inline-flex shrink-0 rounded border px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] ${verdict.className}`}>
+                    <span className={`inline-flex shrink-0 rounded border px-1.5 py-0.5 text-[11px] font-black uppercase tracking-[0.12em] ${verdict.className}`}>
                         {verdict.text}
                     </span>
-                    <span className="truncate text-[9px] font-black uppercase tracking-[0.12em] text-slate-500">
-                        {isArea ? 'Worst cell' : 'Worst case'} vs {formatGap(requirementMs)}
+                    <span className="truncate text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
+                        {isArea
+                            ? 'Least-covered cell'
+                            : pointResultLabel
+                                ? `${pointResultLabel} · max gap`
+                                : 'Maximum gap'}{' '}
+                        vs {formatGap(requirementMs)}
                     </span>
                 </span>
                 <span className="mt-0.5 flex items-baseline gap-2">
                     <span className="text-2xl font-black leading-none text-amber-300 tabular-nums">
-                        {unbounded ? 'Never seen' : formatGap(headlineMs)}
+                        {noTarget
+                            ? 'Add target'
+                            : pointIsPending
+                            ? 'Set point'
+                            : isArea && !areaAnalysis && areaIsDefined
+                                ? 'Pending'
+                                : unbounded ? 'Never seen' : formatGap(headlineMs)}
                     </span>
-                    <span className="truncate text-[10px] font-bold text-slate-400 tabular-nums">
-                        {isArea ? 'mean cell' : 'mean'} {formatGap(secondaryMs)}
+                    <span className="truncate text-[12px] font-bold text-slate-400 tabular-nums">
+                        {isArea && !areaAnalysis && areaIsDefined
+                            ? 'least-covered cell'
+                            : `${isArea ? 'mean cell' : 'mean'} ${formatGap(secondaryMs)}`}
                     </span>
                 </span>
             </span>

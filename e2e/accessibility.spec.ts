@@ -1,5 +1,53 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+import { addSecondaryArea,
+  seedReferenceTarget,
+} from './revisitCompact';
+
+const WCAG = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
+
+/**
+ * Run Axe, retrying once on a harness race rather than a product defect.
+ *
+ * `AxeBuilder.analyze()` injects and evaluates in EVERY frame. Cesium creates
+ * and tears down transient frames, so under machine load a frame can vanish
+ * mid-analysis and Playwright throws "Execution context was destroyed, most
+ * likely because of a navigation" from `page.evaluate`/`frame.evaluate`. That
+ * surfaced as intermittent failures of `revisit dark`, `commercial dark` and
+ * `commercial light` during Programme 7 — three different modes, one of them
+ * untouched by any of the work, which is what gave the cause away. It is not a
+ * violation, and it carries no accessibility information at all.
+ *
+ * Deliberately narrow: only that error is retried, and only once. Any real
+ * violation still fails, and a genuinely broken page fails on the retry too.
+ */
+async function analyzeAccessibility(page: Page) {
+    const run = () => new AxeBuilder({ page }).withTags(WCAG).analyze();
+    /*
+     * Axe injects and evaluates in every frame. Cesium creates and tears down
+     * transient frames, so a scan can lose its execution context through no
+     * fault of the page — it carries no accessibility information at all, which
+     * is why it surfaced in three different modes without pattern.
+     *
+     * A single retry was not enough: it lands in the same window and throws
+     * again. Bounded to three attempts with a settle between them; any real
+     * violation still fails on the first attempt, and a genuinely broken page
+     * fails on all three.
+     */
+    let lastCause: unknown;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+            return await run();
+        } catch (cause) {
+            const message = cause instanceof Error ? cause.message : String(cause);
+            if (!/Execution context was destroyed|frame was detached/i.test(message)) throw cause;
+            lastCause = cause;
+            await page.waitForLoadState('domcontentloaded');
+            await page.waitForTimeout(500);
+        }
+    }
+    throw lastCause;
+}
 
 test.describe('critical accessibility gate', () => {
   for (const theme of ['dark', 'light'] as const) {
@@ -18,36 +66,33 @@ test.describe('critical accessibility gate', () => {
         } else {
           await expect(page.getByRole('navigation', { name: 'Application mode' })).toBeVisible({ timeout: 30_000 });
         }
-        const analyses = [await new AxeBuilder({ page })
-          .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-          .analyze()];
+        const analyses = [await analyzeAccessibility(page)];
         if (mode === 'revisit') {
-          await page.getByRole('button', { name: 'Set reference location' }).click();
-          await expect(page.getByRole('dialog', { name: 'Set reference location' })).toBeVisible();
-          analyses.push(await new AxeBuilder({ page })
-            .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-            .analyze());
-          await page.getByRole('button', { name: 'Set reference location' }).click();
-          await page.getByRole('tab', { name: 'Area' }).click();
-          analyses.push(await new AxeBuilder({ page })
-            .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-            .analyze());
+          // REVISIT syncs `?mode=` into history shortly after mount. Clicking
+          // into that navigation lands before the app is interactive and the
+          // dialog never opens — the same race as the Axe retry above, on the
+          // interaction path rather than the analysis path.
+          await page.waitForLoadState('domcontentloaded');
+          // REVISIT opens with no target; the sizing-target controls this sweep
+          // audits only exist once one is chosen.
+          await seedReferenceTarget(page);
+          await page.getByRole('button', { name: 'Set reference target location' }).click();
+          await expect(page.getByRole('dialog', { name: 'Set reference target location' })).toBeVisible();
+          analyses.push(await analyzeAccessibility(page));
+          await page.getByRole('button', { name: 'Set reference target location' }).click();
+          await addSecondaryArea(page);
+          analyses.push(await analyzeAccessibility(page));
           await page.getByRole('button', { name: 'Define area target' }).click();
-          analyses.push(await new AxeBuilder({ page })
-            .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-            .analyze());
+          analyses.push(await analyzeAccessibility(page));
+          await page.getByRole('button', { name: 'Define area target' }).click();
           const areaPanel = page.getByRole('region', { name: 'Area coverage' });
           await areaPanel.getByText('Paste coordinate list', { exact: true }).click();
           await areaPanel.getByLabel('Custom area coordinate list').fill('51, -2\n51, 9\n61, 9\n61, -2');
           await areaPanel.getByRole('button', { name: 'Apply list' }).click();
-          await expect(page.getByRole('region', { name: 'Area result summary' })).toContainText('Worst cell', { timeout: 60_000 });
-          analyses.push(await new AxeBuilder({ page })
-            .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-            .analyze());
+          await expect(page.getByRole('region', { name: 'Area result summary' })).toContainText('Least-covered cell', { timeout: 60_000 });
+          analyses.push(await analyzeAccessibility(page));
           await page.getByRole('button', { name: 'Scenario workspace' }).click();
-          analyses.push(await new AxeBuilder({ page })
-            .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-            .analyze());
+          analyses.push(await analyzeAccessibility(page));
         }
         const blocking = analyses.flatMap((results) => results.violations).filter((violation) => (
           violation.impact === 'critical' || violation.impact === 'serious'

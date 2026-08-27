@@ -24,13 +24,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import type { RevisitScenario } from '../domain/types';
 import {
-    FOV_PRESET_SWATH_KM, fovPresetNameFor, swathKmForFov, type FovPresetName,
+    FOV_PRESET_SWATH_KM, fovPresetNameFor, fovPresets, swathKmForFov, type FovPresetName,
 } from '../domain/presets';
 import { useLocationSearch, type LocationResult } from '../../../hooks/useLocationSearch';
 import InlineLocationSearchInput from '../../../components/commercial/InlineLocationSearchInput';
 import InlineSearchResultsPopover from '../../../components/commercial/InlineSearchResultsPopover';
 import {
-    modelBadge, REVISIT_INSET_SURFACE, REVISIT_LABEL, REVISIT_MENU_SURFACE, REVISIT_PANEL,
+    modelBadge, REVISIT_LABEL, REVISIT_MENU_SURFACE, REVISIT_PANEL,
+    displayAltitudeKm, displayInclinationDeg,
 } from './revisitTheme';
 import { isValidLatDeg, isValidLonDeg, type AreaTarget } from '../domain/areaTarget';
 import type { AreaAnalysis } from '../analysis/areaAnalysis';
@@ -38,7 +39,8 @@ import { AreaPanel } from './AreaPanel';
 import { AdvancedDrawer, type ConstellationModelProps } from './AdvancedDrawer';
 
 import {
-    REFERENCE_POINT_ID, type RevisitAnalysisContext, type RevisitComparisonPoint,
+    AREA_TARGET_ID, MAX_SECONDARY_TARGETS, REFERENCE_POINT_ID,
+    type RevisitAnalysisContext, type RevisitAreaTargetRole, type RevisitComparisonPoint,
 } from '../domain/analysisTargets';
 
 /** Shared by every dismissable popover in this header: close when a pointer
@@ -72,12 +74,22 @@ interface RevisitHeaderProps {
     onAnalysisContextChange?: (context: RevisitAnalysisContext) => void;
     comparisonPoints?: RevisitComparisonPoint[];
     pendingComparisonPointIds?: string[];
+    secondaryTargetOrder?: string[];
     selectedPointId?: typeof REFERENCE_POINT_ID | string;
     onSelectedPointChange?: (id: typeof REFERENCE_POINT_ID | string) => void;
     onSecondaryPointChange?: (id: string, latDeg: number, lonDeg: number, name?: string) => void;
     onSecondaryPointTargetChange?: (id: string, name: string) => void;
     onRemoveSecondaryPoint?: (id: string) => void;
+    hasReferenceTarget?: boolean;
+    onAddReferencePoint?: () => void;
+    onRemoveReferenceTarget?: () => void;
     onAddComparisonPoint?: () => void;
+    areaTargetRole?: RevisitAreaTargetRole;
+    referenceArea?: AreaTarget | null;
+    comparisonArea?: AreaTarget | null;
+    onAreaTargetRoleChange?: (role: RevisitAreaTargetRole) => void;
+    onRemoveAreaTarget?: (role: RevisitAreaTargetRole) => void;
+    onAddAreaTarget?: (role?: RevisitAreaTargetRole) => void;
     customArea?: AreaTarget | null;
     customAreaCellCount?: number | null;
     areaAnalysis?: AreaAnalysis | null;
@@ -87,7 +99,6 @@ interface RevisitHeaderProps {
     areaRequirementMs?: number;
     onClearArea?: () => void;
     onCancelArea?: () => void;
-    onExportAreaCsv?: () => void;
     isDrawingArea?: boolean;
     onCustomAreaChange?: (area: AreaTarget | null) => void;
     onStartAreaDrawing?: () => void;
@@ -98,6 +109,14 @@ interface RevisitHeaderProps {
     model?: ConstellationModelProps;
     /** Set when the chosen count has a better plane split than another at the same count. */
     spreadNote: string | null;
+    /**
+     * Whether the compact setup triad is the open panel. Owned by `RevisitApp`,
+     * not by this component: it is one of five mutually exclusive panels, and
+     * exclusivity cannot be enforced from inside one of them (Programme 7B).
+     * Ignored above `md`, where the triad is always laid out in normal flow.
+     */
+    setupOpen?: boolean;
+    onToggleSetup?: () => void;
 }
 
 const Panel: React.FC<{
@@ -224,7 +243,7 @@ const TargetEditor: React.FC<TargetEditorProps> = ({
     }, [applyCoordinates, coordinatesValid]);
 
     return (
-        <div ref={menuRef} className="relative shrink-0 text-[9px] text-slate-400">
+        <div ref={menuRef} className="relative shrink-0 text-[11px] text-slate-400">
             <button
                 type="button"
                 aria-label={summaryLabel}
@@ -238,12 +257,12 @@ const TargetEditor: React.FC<TargetEditorProps> = ({
                     if (!isOpen) onOpen?.();
                     setIsOpen(!isOpen);
                 }}
-                className="flex h-7 w-7 cursor-pointer list-none select-none items-center justify-center rounded border border-slate-700 text-sm font-black leading-none hover:border-sky-400/50 hover:text-sky-300 [&::-webkit-details-marker]:hidden"
+                className="flex h-11 w-11 cursor-pointer list-none select-none items-center justify-center rounded border border-slate-700 text-sm font-black leading-none hover:border-sky-400/50 hover:text-sky-300 md:h-7 md:w-7 [&::-webkit-details-marker]:hidden"
             >
                 <span aria-hidden="true">…</span>
             </button>
             {isOpen && <div role="dialog" aria-label={summaryLabel} className={`absolute right-0 top-[calc(100%+0.25rem)] z-50 w-[min(18rem,calc(100vw-2rem))] space-y-2 rounded-lg border border-slate-700 ${REVISIT_MENU_SURFACE} p-2.5 shadow-2xl`}>
-                <div className="text-[9px] font-black uppercase tracking-[0.1em] text-slate-300">{summaryLabel}</div>
+                <div className="text-[11px] font-black uppercase tracking-[0.1em] text-slate-300">{summaryLabel}</div>
                 <div className="relative z-20">
                     <InlineLocationSearchInput
                         roleLabel={roleLabel}
@@ -268,7 +287,7 @@ const TargetEditor: React.FC<TargetEditorProps> = ({
                     )}
                 </div>
 
-                <div className="flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.1em] text-slate-600">
+                <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.1em] text-slate-400">
                     <span className="h-px flex-1 bg-slate-800" />
                     Or coordinates
                     <span className="h-px flex-1 bg-slate-800" />
@@ -284,7 +303,7 @@ const TargetEditor: React.FC<TargetEditorProps> = ({
                             value={latitudeDraft}
                             onChange={(event) => setLatitudeDraft(event.target.value)}
                             onKeyDown={handleCoordinateKeyDown}
-                            className="w-full rounded border border-slate-700 bg-slate-950/80 px-1.5 py-1 text-[10px] tabular-nums text-slate-200 outline-none focus:border-amber-400/60 aria-[invalid=true]:border-rose-500/70"
+                            className="w-full rounded border border-slate-700 bg-slate-950/80 px-1.5 py-1 text-[12px] tabular-nums text-slate-200 outline-none focus:border-amber-400/60 aria-[invalid=true]:border-rose-500/70"
                         />
                     </label>
                     <label className="min-w-0">
@@ -296,7 +315,7 @@ const TargetEditor: React.FC<TargetEditorProps> = ({
                             value={longitudeDraft}
                             onChange={(event) => setLongitudeDraft(event.target.value)}
                             onKeyDown={handleCoordinateKeyDown}
-                            className="w-full rounded border border-slate-700 bg-slate-950/80 px-1.5 py-1 text-[10px] tabular-nums text-slate-200 outline-none focus:border-amber-400/60 aria-[invalid=true]:border-rose-500/70"
+                            className="w-full rounded border border-slate-700 bg-slate-950/80 px-1.5 py-1 text-[12px] tabular-nums text-slate-200 outline-none focus:border-amber-400/60 aria-[invalid=true]:border-rose-500/70"
                         />
                     </label>
                 </div>
@@ -317,8 +336,8 @@ const TargetEditor: React.FC<TargetEditorProps> = ({
                 </button>
                 <p className="leading-3">
                     {coordinateLabel === 'Target'
-                        ? 'You can also click the globe to move the reference.'
-                        : 'You can also Shift-click the globe to add a comparison point.'}
+                        ? 'Point mode: click the globe to move the reference target.'
+                        : 'Point mode: Shift-click the globe to place or move the comparison target.'}
                 </p>
             </div>}
         </div>
@@ -332,41 +351,60 @@ const TargetEditor: React.FC<TargetEditorProps> = ({
  * the same precision the provenance card already uses keeps the two consistent
  * and leaves preset values untouched.
  */
-const displayAltitudeKm = (km: number): string => String(Math.round(km));
-const displayInclinationDeg = (deg: number): string => String(Number(deg.toFixed(2)));
 
 export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
     scenario, payloadCounts, currentPayloadCount, onPayloadCountChange,
     targetNames, onTargetChange, onTargetCoordinatesChange,
     onInstrumentPresetChange, spreadNote, analysisContext = 'POINTS',
     onAnalysisContextChange = () => undefined, comparisonPoints = [],
-    pendingComparisonPointIds = [],
+    pendingComparisonPointIds = [], secondaryTargetOrder,
     selectedPointId = REFERENCE_POINT_ID, onSelectedPointChange = () => undefined,
     onSecondaryPointChange = () => undefined,
     onSecondaryPointTargetChange = () => undefined,
     onRemoveSecondaryPoint = () => undefined,
+    hasReferenceTarget = true,
+    onAddReferencePoint = () => undefined,
+    onRemoveReferenceTarget = () => undefined,
     onAddComparisonPoint = () => undefined,
+    onAddAreaTarget = () => undefined,
     customArea = null, customAreaCellCount = null,
+    areaTargetRole = 'COMPARISON',
+    referenceArea = areaTargetRole === 'REFERENCE' ? customArea : null,
+    comparisonArea = areaTargetRole === 'COMPARISON' ? customArea : null,
+    onAreaTargetRoleChange = () => undefined,
+    onRemoveAreaTarget = () => undefined,
     areaAnalysis = null, areaIsRunning = false, areaError = null, areaProgress = null,
     areaRequirementMs = 2 * 3600_000,
     onClearArea = () => undefined, onCancelArea = () => undefined,
-    onExportAreaCsv = () => undefined, isDrawingArea = false,
+    isDrawingArea = false,
     onCustomAreaChange = () => undefined, onStartAreaDrawing = () => undefined,
     onFinishAreaDrawing = () => undefined, onUndoAreaVertex = () => undefined,
     isAreaScenarioSettling = false,
     onAdvancedScenarioChange = () => undefined,
     model,
+    setupOpen = false, onToggleSetup = () => undefined,
 }) => {
     const areaMenuRef = useRef<HTMLDivElement>(null);
+    const addReferenceMenuRef = useRef<HTMLDivElement>(null);
+    const addTargetMenuRef = useRef<HTMLDivElement>(null);
     const constellationMenuRef = useRef<HTMLDivElement>(null);
     const [areaMenuOpen, setAreaMenuOpen] = useState(false);
+    const [addReferenceMenuOpen, setAddReferenceMenuOpen] = useState(false);
+    const [addTargetMenuOpen, setAddTargetMenuOpen] = useState(false);
     const [constellationMenuOpen, setConstellationMenuOpen] = useState(false);
-    /** Compact viewports only; `md:` always renders the triad regardless. */
-    const [mobileSetupOpen, setMobileSetupOpen] = useState(false);
     const { reference, target, payload } = scenario;
     const presetName = useMemo(
         () => fovPresetNameFor(reference.altitudeKm, payload),
         [reference.altitudeKm, payload]
+    );
+    /**
+     * The three presets rebuilt at the CURRENT altitude, so each option can
+     * state the swath it actually produces rather than the constant it is
+     * named after.
+     */
+    const altitudePresets = useMemo(
+        () => fovPresets(reference.altitudeKm),
+        [reference.altitudeKm]
     );
     const swathKm = useMemo(
         () => Math.round(swathKmForFov(reference.altitudeKm, payload)),
@@ -392,6 +430,11 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
     const spareSatelliteCount = (reference.sparesPerPlane ?? [])
         .reduce((sum, count) => sum + count, 0);
     const totalSatelliteCount = activeSatelliteCount + spareSatelliteCount;
+    const orderedSecondaryTargetIds = (secondaryTargetOrder ?? [
+        ...comparisonPoints.map((point) => point.id),
+        ...pendingComparisonPointIds,
+        ...(comparisonArea ? [AREA_TARGET_ID] : []),
+    ]).slice(0, MAX_SECONDARY_TARGETS);
     useEffect(() => {
         if (analysisContext !== 'AREA') setAreaMenuOpen(false);
     }, [analysisContext]);
@@ -399,6 +442,10 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
     // The globe is the drawing surface. Clicking it must not dismiss the
     // editor that contains Undo and Finish polygon.
     useClickOutside(areaMenuRef, closeAreaMenu, areaMenuOpen && !isDrawingArea);
+    const closeAddTargetMenu = useCallback(() => setAddTargetMenuOpen(false), []);
+    useClickOutside(addTargetMenuRef, closeAddTargetMenu, addTargetMenuOpen);
+    const closeAddReferenceMenu = useCallback(() => setAddReferenceMenuOpen(false), []);
+    useClickOutside(addReferenceMenuRef, closeAddReferenceMenu, addReferenceMenuOpen);
     const closeConstellationMenus = useCallback(() => {
         setConstellationMenuOpen(false);
     }, []);
@@ -421,26 +468,26 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
             <div className={`${REVISIT_PANEL} flex items-center gap-2 px-2 py-1.5`}>
                 <button
                     type="button"
-                    onClick={() => setMobileSetupOpen((open) => !open)}
-                    aria-expanded={mobileSetupOpen}
+                    onClick={onToggleSetup}
+                    aria-expanded={setupOpen}
                     aria-controls="revisit-mobile-setup"
                     className="flex min-h-11 min-w-0 flex-1 items-center gap-2 text-left"
                 >
                     <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[11px] font-bold text-slate-100">
+                        <span className="block truncate text-[12px] font-bold text-slate-100">
                             {reference.planes} × {reference.satsPerPlane} {reference.pattern}
                             <span className="text-slate-500"> · </span>
                             {analysisContext === 'AREA'
                                 ? customArea?.name ?? 'No area'
                                 : target.name}
                         </span>
-                        <span className="block truncate text-[9px] text-slate-500">
+                        <span className="block truncate text-[11px] text-slate-500">
                             {displayAltitudeKm(reference.altitudeKm)} km · {displayInclinationDeg(reference.inclinationDeg)}° · {swathKm} km swath
                             {comparisonPoints.length > 0 && ` · +${comparisonPoints.length} compared`}
                         </span>
                     </span>
                     <span aria-hidden="true" className="shrink-0 text-sm text-amber-300">
-                        {mobileSetupOpen ? '⌃' : '⌄'}
+                        {setupOpen ? '⌃' : '⌄'}
                     </span>
                 </button>
                 <div className="flex shrink-0 items-center gap-1 rounded-lg border border-amber-400/40 bg-amber-500/10 px-1">
@@ -467,7 +514,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
         <div
             id="revisit-mobile-setup"
             data-revisit-context-bar
-            className={`revisit-context-bar ${mobileSetupOpen ? 'mt-2 grid' : 'hidden'} grid-cols-2 items-stretch gap-2 md:mt-0 md:flex`}
+            className={`revisit-context-bar ${setupOpen ? 'mt-2 grid' : 'hidden'} grid-cols-2 items-stretch gap-2 md:mt-0 md:flex`}
         >
             <Panel label="Constellation" className="relative z-50 min-w-0 md:min-w-[190px]">
                 <div ref={constellationMenuRef} className="relative">
@@ -480,7 +527,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                 </span>
                             </div>
                         </div>
-                        <div className="revisit-context-detail text-[11px] text-slate-400">
+                        <div className="revisit-context-detail text-[12px] text-slate-400">
                             {displayInclinationDeg(reference.inclinationDeg)}° · {displayAltitudeKm(reference.altitudeKm)} km ·{' '}
                             {spareSatelliteCount > 0
                                 ? `${activeSatelliteCount} active + ${spareSatelliteCount} spare · ${totalSatelliteCount} total`
@@ -501,7 +548,13 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                             aria-haspopup="dialog"
                             aria-expanded={constellationMenuOpen}
                             onClick={() => setConstellationMenuOpen((open) => !open)}
-                            className={`mt-2 flex min-h-7 w-full items-center justify-between gap-2 rounded border px-2 text-[8px] font-black uppercase tracking-[0.08em] transition-colors ${model
+                            /* At 11 px the tracked uppercase label no longer
+                               fits one 390 px line and truncated to
+                               "VALIDATED M… ". Dropping the tracking and
+                               allowing two lines keeps the whole verdict
+                               readable, which is the point of the badge
+                               (Programme 7D). */
+                            className={`mt-2 flex min-h-11 md:min-h-7 w-full items-center justify-between gap-2 rounded border px-2 py-1 text-[11px] font-black uppercase tracking-normal transition-colors md:tracking-[0.08em] ${model
                                 ? `${headerModelBadge.chip} hover:brightness-125`
                                 : 'border-slate-700 text-amber-200 hover:border-amber-400/50 hover:bg-amber-400/5'}`}
                         >
@@ -512,7 +565,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                         aria-hidden="true"
                                     />
                                 )}
-                                <span className="truncate">
+                                <span className="text-left leading-tight md:truncate">
                                     {model ? headerModelBadge.label : 'Constellation settings'}
                                 </span>
                             </span>
@@ -544,21 +597,27 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                         <span className="text-2xl font-black leading-none text-amber-300 tabular-nums md:text-3xl">
                             {currentPayloadCount}
                         </span>
-                        <span className="text-[11px] font-semibold text-amber-200/70">
-                            of {reference.planes * reference.satsPerPlane}
+                        {/* `12 of 576` read as "only 12 of the 576 satellites
+                            work". Naming what the 12 ARE, and what the 576 are,
+                            removes that reading (Programme 7D). */}
+                        <span className="text-[12px] font-semibold leading-4 text-amber-200/70">
+                            payload-equipped
+                            <span className="block text-[11px] text-amber-200/60">
+                                of {reference.planes * reference.satsPerPlane} active satellites
+                            </span>
                         </span>
                     </div>
                     {onInstrumentPresetChange && (
                         <label className="flex min-w-[160px] flex-col gap-0.5 md:min-w-[190px]">
                             <span
-                                className="text-[8px] font-black uppercase tracking-[0.12em] text-amber-200/70"
+                                className="text-[11px] font-black uppercase tracking-[0.12em] text-amber-200/70"
                                 title="Thermal-infrared imager. It images day and night, which is why no solar-illumination gating is applied to the access windows."
                             >
-                                IR swath
+                                Assumed sensor swath
                             </span>
                             <select
                                 aria-label="Instrument preset"
-                                className="min-h-8 rounded border border-amber-400/40 bg-transparent px-2 py-1 text-sm font-black text-amber-200 outline-none md:text-base"
+                                className="min-h-11 md:min-h-8 rounded border border-amber-400/40 bg-transparent px-2 py-1 text-sm font-black text-amber-200 outline-none md:text-base"
                                 value={presetName ?? 'CUSTOM'}
                                 onChange={(event) => {
                                     if (event.target.value !== 'CUSTOM') {
@@ -567,9 +626,20 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                 }}
                             >
                                 {!presetName && <option value="CUSTOM">Custom · {swathKm} km</option>}
+                                {/*
+                                  * The swath each preset ACTUALLY produces at the
+                                  * current altitude, not its nominal constant. The
+                                  * two diverge as soon as the altitude leaves the
+                                  * one the presets were built at — a measured
+                                  * shell at 1198.87 km turns the 700 km Standard
+                                  * into 699 km — and the customer question states
+                                  * the computed figure. Printing the constant here
+                                  * put two numbers for one quantity on one screen.
+                                  */}
                                 {(Object.keys(FOV_PRESET_SWATH_KM) as FovPresetName[]).map((name) => (
                                     <option key={name} value={name}>
-                                        {name[0]}{name.slice(1).toLowerCase()} · {FOV_PRESET_SWATH_KM[name]} km
+                                        {name[0]}{name.slice(1).toLowerCase()} ·{' '}
+                                        {Math.round(swathKmForFov(reference.altitudeKm, altitudePresets[name]))} km
                                     </option>
                                 ))}
                             </select>
@@ -587,10 +657,10 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                     aria-label="Number of hosted payloads"
                     aria-valuetext={`${currentPayloadCount} payloads`}
                 />
-                <div className="revisit-spread-note min-h-[14px] text-[10px] leading-[14px] text-amber-200/80">
+                <div className="revisit-spread-note min-h-[14px] text-[12px] leading-[14px] text-amber-200/80">
                     {spreadNote}
                 </div>
-                <div className="text-[8px] leading-3 text-amber-200/70">
+                <div className="text-[11px] leading-3 text-amber-200/70">
                     {presetName ? 'Illustrative IR preset · not an instrument datasheet' : `Custom FOV · approx. ${swathKm} km swath`}
                 </div>
             </Panel>
@@ -598,43 +668,104 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
             <Arrow />
 
             <Panel label="Analysis target" className="relative z-40 min-w-0 md:min-w-[260px] md:max-w-[320px]">
-                <div className={`grid min-w-0 grid-cols-2 rounded border border-slate-700/70 ${REVISIT_INSET_SURFACE} p-0.5`} role="tablist" aria-label="Analysis target context">
-                        {(['POINTS', 'AREA'] as const).map((context) => (
-                            <button
-                                key={context}
-                                type="button"
-                                role="tab"
-                                aria-selected={analysisContext === context}
-                                onClick={() => onAnalysisContextChange(context)}
-                                className={`rounded px-2 py-1 text-[9px] font-black uppercase tracking-[0.08em] ${analysisContext === context
-                                    ? context === 'AREA'
-                                        ? 'bg-sky-200 text-sky-950 dark:bg-sky-300/60 dark:text-slate-950'
-                                        : 'bg-amber-200 text-amber-950 dark:bg-amber-300/60 dark:text-slate-950'
-                                    : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'}`}
-                            >
-                                {context === 'POINTS' ? `Points ${comparisonPoints.length + pendingComparisonPointIds.length + 1}` : 'Area'}
-                            </button>
-                        ))}
-                </div>
-
-                {analysisContext === 'POINTS' ? (
-                    <div className="mt-1.5 space-y-1">
-                        <div className={`rounded border px-1.5 py-1 ${selectedPointId === REFERENCE_POINT_ID ? 'border-amber-400/50 bg-amber-400/8' : 'border-slate-800'}`}>
+                    <div className="space-y-1" role="group" aria-label="Analysis targets">
+                        {!hasReferenceTarget ? (
+                            <div ref={addReferenceMenuRef} className="relative">
+                                <p className="mb-2 text-[11px] leading-4 text-slate-400">
+                                    Add a reference point or polygon to start the analysis.
+                                </p>
+                                <button
+                                    type="button"
+                                    aria-label="Add reference target"
+                                    aria-haspopup="menu"
+                                    aria-expanded={addReferenceMenuOpen}
+                                    onClick={() => setAddReferenceMenuOpen((open) => !open)}
+                                    className="flex min-h-11 md:min-h-7 w-full items-center justify-center gap-1 rounded border border-amber-400/40 px-2 text-[11px] font-black uppercase tracking-[0.08em] text-amber-200 hover:border-amber-300"
+                                >
+                                    <span aria-hidden="true">+</span>
+                                    Add reference target
+                                </button>
+                                {addReferenceMenuOpen && (
+                                    <div role="menu" aria-label="Choose reference target type"
+                                        className={`absolute right-0 top-[calc(100%+0.25rem)] z-[75] grid w-full min-w-48 grid-cols-2 gap-1 rounded-lg border border-amber-400/35 p-1.5 ${REVISIT_MENU_SURFACE} shadow-2xl`}>
+                                        <button type="button" role="menuitem" aria-label="Add point reference target"
+                                            onClick={() => { onAddReferencePoint(); setAddReferenceMenuOpen(false); }}
+                                            className="min-h-11 md:min-h-9 rounded border border-slate-700 px-2 text-[11px] font-black uppercase tracking-wide text-amber-200 hover:border-amber-400/60 hover:bg-amber-400/10">
+                                            Point
+                                        </button>
+                                        <button type="button" role="menuitem" aria-label="Add polygon reference target"
+                                            onClick={() => {
+                                                onAddAreaTarget('REFERENCE');
+                                                setAddReferenceMenuOpen(false);
+                                                setAreaMenuOpen(true);
+                                            }}
+                                            className="min-h-11 md:min-h-9 rounded border border-slate-700 px-2 text-[11px] font-black uppercase tracking-wide text-amber-200 hover:border-amber-400/60 hover:bg-amber-400/10">
+                                            Polygon
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        ) : <>
+                        {referenceArea ? (
+                        <div ref={areaMenuRef} className="relative">
+                            <div className={`flex items-center gap-1 rounded border px-2 py-1 ${analysisContext === 'AREA' ? 'border-amber-400/50 bg-amber-400/10' : 'border-slate-800'}`}>
+                                <button
+                                    type="button"
+                                    onClick={() => { onAreaTargetRoleChange('REFERENCE'); onAnalysisContextChange('AREA'); }}
+                                    aria-pressed={analysisContext === 'AREA'}
+                                    aria-label="Select reference target polygon"
+                                    className="min-w-0 flex-1 text-left"
+                                >
+                                    <div className="text-[11px] font-black uppercase tracking-wide text-amber-300">Reference target</div>
+                                    <div className="truncate text-[12px] font-bold text-amber-100">Polygon · {referenceArea.name}</div>
+                                    <div className="mt-0.5 truncate text-[11px] text-slate-400">
+                                        {referenceArea.boundary.length} vertices · {areaTargetRole !== 'REFERENCE' || customAreaCellCount === null ? 'not analysed' : `${customAreaCellCount} cells`} · grid {referenceArea.gridSpacingDeg}°
+                                    </div>
+                                </button>
+                                <button
+                                    type="button"
+                                    aria-label="Edit reference polygon"
+                                    aria-haspopup="dialog"
+                                    aria-expanded={areaMenuOpen}
+                                    onClick={() => { onAreaTargetRoleChange('REFERENCE'); onAnalysisContextChange('AREA'); setAreaMenuOpen((open) => !open); }}
+                                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded border border-slate-700 text-sm font-black text-amber-200 hover:border-amber-400/50 md:h-7 md:w-7"
+                                >…</button>
+                                <button type="button" onClick={onRemoveReferenceTarget}
+                                    aria-label="Remove reference target"
+                                    className="h-11 w-11 shrink-0 rounded text-slate-500 hover:bg-rose-400/10 hover:text-rose-300 md:h-7 md:w-7">×</button>
+                            </div>
+                            {areaMenuOpen && (
+                                <div role="dialog" aria-label="Define reference polygon"
+                                    className={`absolute right-0 top-[calc(100%+0.25rem)] z-[70] max-h-[min(70vh,38rem)] w-[min(27rem,calc(100vw-1rem))] overflow-y-auto rounded-lg border border-amber-400/35 ${REVISIT_MENU_SURFACE} shadow-2xl`}>
+                                    <AreaPanel
+                                        scenario={scenario} analysis={areaAnalysis} isRunning={areaIsRunning}
+                                        error={areaError} progress={areaProgress} requirementMs={areaRequirementMs}
+                                        onClear={onClearArea} onCancel={onCancelArea} customArea={referenceArea}
+                                        isDrawing={isDrawingArea} onCustomAreaChange={onCustomAreaChange}
+                                        onStartDrawing={() => { onAreaTargetRoleChange('REFERENCE'); setAreaMenuOpen(false); onStartAreaDrawing(); }}
+                                        onFinishDrawing={onFinishAreaDrawing} onUndoVertex={onUndoAreaVertex}
+                                        showAnalysisSummary={false} isScenarioSettling={isAreaScenarioSettling} variant="menu"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                        ) : (
+                        <div className={`rounded border px-1.5 py-1 ${analysisContext === 'POINTS' && selectedPointId === REFERENCE_POINT_ID ? 'border-amber-400/50 bg-amber-400/8' : 'border-slate-800'}`}>
                             <div className="flex min-w-0 items-center gap-1">
                                 <button
                                     type="button"
                                     onClick={() => onSelectedPointChange(REFERENCE_POINT_ID)}
-                                    aria-pressed={selectedPointId === REFERENCE_POINT_ID}
+                                    aria-pressed={analysisContext === 'POINTS' && selectedPointId === REFERENCE_POINT_ID}
                                     className="w-[88px] shrink-0 text-left"
                                 >
-                                    <span className="block text-[8px] font-black uppercase tracking-wide text-amber-300">Reference</span>
-                                    <span className="block text-[8px] tabular-nums text-slate-400">
+                                    <span className="block text-[11px] font-black uppercase tracking-wide text-amber-300">Reference target</span>
+                                    <span className="block text-[11px] tabular-nums text-slate-400">
                                         {target.latDeg.toFixed(2)}° · {target.lonDeg.toFixed(2)}°
                                     </span>
                                 </button>
                                 <div className="relative min-w-0 flex-1">
                                     <select
-                                        className="w-full appearance-none truncate bg-transparent py-0.5 pl-0 pr-5 text-[10px] font-bold text-slate-300 outline-none"
+                                        className="min-h-11 w-full appearance-none truncate bg-transparent py-0.5 pl-0 pr-5 text-[12px] font-bold text-slate-300 outline-none md:min-h-0"
                                         value={target.name}
                                         onChange={(event) => onTargetChange(event.target.value)}
                                         aria-label="Target"
@@ -650,34 +781,107 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                         key="REFERENCE"
                                         latitude={target.latDeg}
                                         longitude={target.lonDeg}
-                                        summaryLabel="Set reference location"
-                                        roleLabel="Reference"
+                                        summaryLabel="Set reference target location"
+                                        roleLabel="Reference target"
                                         coordinateLabel="Target"
                                         onOpen={() => onSelectedPointChange(REFERENCE_POINT_ID)}
                                         onApply={(latDeg, lonDeg, name) => onTargetCoordinatesChange(latDeg, lonDeg, name)}
                                     />
                                 )}
+                                <button type="button" onClick={onRemoveReferenceTarget}
+                                    aria-label="Remove reference target"
+                                    className="h-11 w-11 shrink-0 rounded text-slate-500 hover:bg-rose-400/10 hover:text-rose-300 md:h-7 md:w-7">×</button>
                             </div>
                         </div>
+                        )}
 
-                        {[
-                            ...comparisonPoints.map((point) => ({ id: point.id, target: point.target })),
-                            ...pendingComparisonPointIds.map((id) => ({ id, target: null })),
-                        ].map((point, index) => {
+                        {orderedSecondaryTargetIds.map((secondaryId) => {
+                            if (secondaryId === AREA_TARGET_ID) return (
+                                <div ref={areaMenuRef} key={AREA_TARGET_ID} className="relative">
+                                    <div className={`flex items-center gap-1 rounded border px-2 py-1 ${analysisContext === 'AREA' ? 'border-sky-400/50 bg-sky-400/10' : 'border-slate-800'}`}>
+                                        <button
+                                            type="button"
+                                            onClick={() => { onAreaTargetRoleChange('COMPARISON'); onAnalysisContextChange('AREA'); }}
+                                            aria-pressed={analysisContext === 'AREA'}
+                                            aria-label="Select comparison target polygon"
+                                            className="min-w-0 flex-1 text-left"
+                                        >
+                                            <div className="text-[11px] font-black uppercase tracking-wide text-sky-700 dark:text-sky-300">Comparison target</div>
+                                            <div className="truncate text-[12px] font-bold text-sky-900 dark:text-sky-100">
+                                                Polygon · {comparisonArea?.name ?? 'Comparison area'}
+                                            </div>
+                                            <div className="mt-0.5 truncate text-[11px] text-slate-400">
+                                                {comparisonArea
+                                                    ? `${comparisonArea.boundary.length} vertices · ${areaTargetRole !== 'COMPARISON' || customAreaCellCount === null ? 'not analysed' : `${customAreaCellCount} cells`} · grid ${comparisonArea.gridSpacingDeg}°`
+                                                    : 'Draw or import a polygon'}
+                                            </div>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            aria-label="Define area target"
+                                            title="Define area target"
+                                            aria-haspopup="dialog"
+                                            aria-expanded={areaMenuOpen}
+                                            onClick={() => {
+                                                onAreaTargetRoleChange('COMPARISON');
+                                                onAnalysisContextChange('AREA');
+                                                setAreaMenuOpen((open) => !open);
+                                            }}
+                                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded border border-slate-700 text-sm font-black leading-none text-sky-700 hover:border-sky-400/50 md:h-7 md:w-7 dark:text-sky-300"
+                                        ><span aria-hidden="true">…</span></button>
+                                        <button type="button" onClick={() => onRemoveAreaTarget('COMPARISON')}
+                                            aria-label="Remove comparison target"
+                                            className="h-11 w-11 shrink-0 rounded text-slate-500 hover:bg-rose-400/10 hover:text-rose-300 md:h-7 md:w-7">×</button>
+                                    </div>
+                                    {areaMenuOpen && (
+                                        <div role="dialog" aria-label="Define area target"
+                                            className={`absolute right-0 top-[calc(100%+0.25rem)] z-[70] max-h-[min(70vh,38rem)] w-[min(27rem,calc(100vw-1rem))] overflow-y-auto rounded-lg border border-sky-400/35 ${REVISIT_MENU_SURFACE} shadow-2xl`}>
+                                            <AreaPanel
+                                                scenario={scenario}
+                                                analysis={areaAnalysis}
+                                                isRunning={areaIsRunning}
+                                                error={areaError}
+                                                progress={areaProgress}
+                                                requirementMs={areaRequirementMs}
+                                                onClear={onClearArea}
+                                                onCancel={onCancelArea}
+                                                customArea={comparisonArea}
+                                                isDrawing={isDrawingArea}
+                                                onCustomAreaChange={onCustomAreaChange}
+                                            onStartDrawing={() => {
+                                                onAreaTargetRoleChange('COMPARISON');
+                                                setAreaMenuOpen(false);
+                                                onStartAreaDrawing();
+                                            }}
+                                                onFinishDrawing={onFinishAreaDrawing}
+                                                onUndoVertex={onUndoAreaVertex}
+                                                showAnalysisSummary={false}
+                                                isScenarioSettling={isAreaScenarioSettling}
+                                                variant="menu"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                            const configuredPoint = comparisonPoints.find((point) => point.id === secondaryId);
+                            const point = {
+                                id: secondaryId,
+                                target: configuredPoint?.target ?? null,
+                            };
                             const pointTargetNames = point.target && !targetNames.includes(point.target.name)
                                 ? [...targetNames, point.target.name]
                                 : targetNames;
                             const targetName = point.target?.name ?? '';
                             return (
-                            <div key={point.id} className={`flex min-w-0 items-center gap-1 rounded border px-1.5 py-1 ${selectedPointId === point.id ? 'border-sky-400/50 bg-sky-400/8' : 'border-slate-800'}`}>
+                            <div key={point.id} className={`flex min-w-0 items-center gap-1 rounded border px-1.5 py-1 ${analysisContext === 'POINTS' && selectedPointId === point.id ? 'border-sky-400/50 bg-sky-400/8' : 'border-slate-800'}`}>
                                 <button
                                     type="button"
                                     onClick={() => onSelectedPointChange(point.id)}
-                                    aria-pressed={selectedPointId === point.id}
+                                    aria-pressed={analysisContext === 'POINTS' && selectedPointId === point.id}
                                     className="w-[88px] shrink-0 text-left"
                                 >
-                                    <span className="block text-[8px] font-black uppercase tracking-wide text-sky-700 dark:text-sky-300">Comparison {index + 1}</span>
-                                    <span className="block text-[8px] tabular-nums text-slate-400">
+                                    <span className="block text-[11px] font-black uppercase tracking-wide text-sky-700 dark:text-sky-300">Comparison target</span>
+                                    <span className="block text-[11px] tabular-nums text-slate-400">
                                         {point.target
                                             ? `${point.target.latDeg.toFixed(2)}° · ${point.target.lonDeg.toFixed(2)}°`
                                             : 'Not set'}
@@ -685,15 +889,15 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                 </button>
                                 <div className="relative min-w-0 flex-1">
                                     <select
-                                        className="w-full appearance-none truncate bg-transparent py-0.5 pl-0 pr-5 text-[10px] font-bold text-slate-300 outline-none"
+                                        className="min-h-11 w-full appearance-none truncate bg-transparent py-0.5 pl-0 pr-5 text-[12px] font-bold text-slate-300 outline-none md:min-h-0"
                                         value={targetName}
                                         onChange={(event) => onSecondaryPointTargetChange(point.id, event.target.value)}
-                                        aria-label={`Comparison ${index + 1} target`}
+                                        aria-label="Comparison target"
                                     >
                                         {!point.target && <option value="" disabled className="bg-slate-900">Choose site…</option>}
                                         {pointTargetNames.map((name) => (
                                             <option key={name} value={name} className="bg-slate-900">
-                                                {targetOptionLabel(name) === 'Custom point' ? 'Select site…' : targetOptionLabel(name)}
+                                                {targetOptionLabel(name)}
                                             </option>
                                         ))}
                                     </select>
@@ -703,82 +907,57 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                     key={point.id}
                                     latitude={point.target?.latDeg}
                                     longitude={point.target?.lonDeg}
-                                    summaryLabel={`Set comparison ${index + 1} location`}
-                                    roleLabel="Comparison"
-                                    coordinateLabel={`Comparison ${index + 1}`}
+                                    summaryLabel="Set comparison target location"
+                                    roleLabel="Comparison target"
+                                    coordinateLabel="Comparison target"
                                     onOpen={() => onSelectedPointChange(point.id)}
                                     onApply={(latDeg, lonDeg, name) => onSecondaryPointChange(point.id, latDeg, lonDeg, name)}
                                 />
                                 <button
                                     type="button"
                                     onClick={() => onRemoveSecondaryPoint(point.id)}
-                                    aria-label={`Remove comparison point ${index + 1}`}
-                                    className="h-7 w-7 shrink-0 rounded text-slate-500 hover:bg-rose-400/10 hover:text-rose-300"
+                                    aria-label="Remove comparison target"
+                                    className="h-11 w-11 shrink-0 rounded text-slate-500 hover:bg-rose-400/10 hover:text-rose-300 md:h-7 md:w-7"
                                 >×</button>
                             </div>
                         )})}
-                        {comparisonPoints.length + pendingComparisonPointIds.length < 2 && (
-                            <button
-                                type="button"
-                                aria-label="Add comparison point"
-                                onClick={onAddComparisonPoint}
-                                className="flex min-h-7 w-full items-center justify-center gap-1 rounded border border-slate-700 px-2 text-[8px] font-black uppercase tracking-[0.08em] text-sky-700 hover:border-sky-400/50 dark:text-sky-300"
-                            >
-                                <span aria-hidden="true">+</span>
-                                Add comparison point
-                            </button>
-                        )}
-                    </div>
-                ) : (
-                    <div ref={areaMenuRef} className="relative mt-1.5">
-                        <div className="flex items-center gap-1 rounded border border-sky-400/30 bg-sky-400/8 px-2 py-1.5">
-                            <div className="min-w-0 flex-1">
-                                <div className={`truncate text-[11px] font-bold ${customArea ? 'text-sky-900 dark:text-sky-100' : 'text-slate-300'}`}>
-                                    {customArea?.name ?? 'No area configured'}
-                                </div>
-                                <div className="mt-0.5 truncate text-[9px] text-slate-400">
-                                    {customArea
-                                        ? `${customArea.boundary.length} vertices · ${customAreaCellCount === null ? 'not analysed' : `${customAreaCellCount} cells`} · grid ${customArea.gridSpacingDeg}°`
-                                        : 'Draw, import or select an area'}
-                                </div>
-                            </div>
-                            <button
-                                type="button"
-                                aria-label="Define area target"
-                                title="Define area target"
-                                aria-haspopup="dialog"
-                                aria-expanded={areaMenuOpen}
-                                onClick={() => setAreaMenuOpen((open) => !open)}
-                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-slate-700 text-sm font-black leading-none text-sky-700 hover:border-sky-400/50 dark:text-sky-300"
-                            ><span aria-hidden="true">…</span></button>
-                        </div>
-                        {areaMenuOpen && (
-                            <div role="dialog" aria-label="Define area target"
-                                className={`absolute right-0 top-[calc(100%+0.25rem)] z-[70] max-h-[min(70vh,38rem)] w-[min(27rem,calc(100vw-1rem))] overflow-y-auto rounded-lg border border-sky-400/35 ${REVISIT_MENU_SURFACE} shadow-2xl`}>
-                                <AreaPanel
-                                    scenario={scenario}
-                                    analysis={areaAnalysis}
-                                    isRunning={areaIsRunning}
-                                    error={areaError}
-                                    progress={areaProgress}
-                                    requirementMs={areaRequirementMs}
-                                    onClear={onClearArea}
-                                    onCancel={onCancelArea}
-                                    onExportCsv={onExportAreaCsv}
-                                    customArea={customArea}
-                                    isDrawing={isDrawingArea}
-                                    onCustomAreaChange={onCustomAreaChange}
-                                    onStartDrawing={onStartAreaDrawing}
-                                    onFinishDrawing={onFinishAreaDrawing}
-                                    onUndoVertex={onUndoAreaVertex}
-                                    showAnalysisSummary={false}
-                                    isScenarioSettling={isAreaScenarioSettling}
-                                    variant="menu"
-                                />
+                        {orderedSecondaryTargetIds.length < MAX_SECONDARY_TARGETS && (
+                            <div ref={addTargetMenuRef} className="relative">
+                                <button
+                                    type="button"
+                                    aria-label="Add comparison target"
+                                    aria-haspopup="menu"
+                                    aria-expanded={addTargetMenuOpen}
+                                    onClick={() => setAddTargetMenuOpen((open) => !open)}
+                                    className="flex min-h-11 md:min-h-7 w-full items-center justify-center gap-1 rounded border border-slate-700 px-2 text-[11px] font-black uppercase tracking-[0.08em] text-sky-700 hover:border-sky-400/50 dark:text-sky-300"
+                                >
+                                    <span aria-hidden="true">+</span>
+                                    Add comparison target
+                                </button>
+                                {addTargetMenuOpen && (
+                                    <div role="menu" aria-label="Choose comparison target type"
+                                        className={`absolute right-0 top-[calc(100%+0.25rem)] z-[75] grid w-full min-w-48 grid-cols-2 gap-1 rounded-lg border border-sky-400/35 p-1.5 ${REVISIT_MENU_SURFACE} shadow-2xl`}>
+                                        <button type="button" role="menuitem" aria-label="Add point comparison target"
+                                            onClick={() => { onAddComparisonPoint(); setAddTargetMenuOpen(false); }}
+                                            className="min-h-11 md:min-h-9 rounded border border-slate-700 px-2 text-[11px] font-black uppercase tracking-wide text-sky-200 hover:border-sky-400/60 hover:bg-sky-400/10">
+                                            Point
+                                        </button>
+                                        <button type="button" role="menuitem" aria-label="Add polygon comparison target"
+                                            disabled={Boolean(comparisonArea)}
+                                            onClick={() => {
+                                                onAddAreaTarget('COMPARISON');
+                                                setAddTargetMenuOpen(false);
+                                                setAreaMenuOpen(true);
+                                            }}
+                                            className="min-h-11 md:min-h-9 rounded border border-slate-700 px-2 text-[11px] font-black uppercase tracking-wide text-sky-200 hover:border-sky-400/60 hover:bg-sky-400/10 disabled:cursor-not-allowed disabled:opacity-35">
+                                            Polygon
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         )}
+                        </>}
                     </div>
-                )}
             </Panel>
         </div>
         </>

@@ -1,0 +1,95 @@
+/**
+ * StageControls — globe display controls only.
+ *
+ * Navigation and scenario management live in the application header. This
+ * overlay is therefore unambiguous: every control changes only what is drawn
+ * on the globe.
+ *
+ * ── WHY IT COLLAPSES BELOW `md` ─────────────────────────────────────────────
+ * On a desktop the column stays expanded, so its state is always visible — that
+ * is the point of putting it on the stage rather than behind a menu.
+ *
+ * A phone cannot afford it. Five 44 px touch targets are ~250 px of opaque
+ * panel on an 844 px screen, and the consequences were not cosmetic: the stack
+ * came to rest over the footer and hid `Pause` behind `Auto-rotate globe`, so a
+ * presenter could not stop the simulation at all; and the unobstructed,
+ * directly hit-testable globe the compact layout exists for (mobile UX plan §2,
+ * gated at 360 px in `mode-smoke`) was down to 260 px.
+ *
+ * So below `md` it is a closed disclosure with a 44 px summary, and at `md` and
+ * above the summary disappears and the column renders exactly as before. The
+ * open state is seeded from the breakpoint at mount, the same way
+ * `RecommendedEvidenceDisclosure` does it — one pattern for "expanded on a
+ * desktop, one tap away on a phone" rather than two.
+ */
+
+import React from 'react';
+import { REVISIT_LABEL, REVISIT_PANEL } from './revisitTheme';
+
+export interface StageToggle<K extends string> {
+    key: K;
+    label: string;
+    hint?: string;
+}
+
+export interface StageControlsProps<K extends string> {
+    toggles: ReadonlyArray<StageToggle<K>>;
+    toggleState: Record<K, boolean>;
+    onToggle: (key: K) => void;
+}
+
+const GROUP_BUTTON =
+    'min-h-11 rounded-md px-2.5 py-1 text-left text-[12px] font-black uppercase '
+    + 'tracking-[0.12em] transition-colors md:min-h-0';
+
+export function StageControls<K extends string>({
+    toggles, toggleState, onToggle,
+}: StageControlsProps<K>) {
+    const [open, setOpen] = React.useState(() => (
+        typeof window !== 'undefined'
+        && typeof window.matchMedia === 'function'
+        && window.matchMedia('(min-width: 768px)').matches
+    ));
+    /*
+     * How many toggles are on, for the collapsed summary. Without it the phone
+     * summary would hide the very state this panel exists to report.
+     */
+    const activeCount = toggles.filter(({ key }) => toggleState[key]).length;
+
+    return (
+        <details
+            id="revisit-stage-controls"
+            data-revisit-stage-controls
+            open={open}
+            onToggle={(event) => setOpen(event.currentTarget.open)}
+            className={`pointer-events-auto ${REVISIT_PANEL} w-[min(15rem,calc(100vw-1rem))] p-1.5`}
+        >
+            <summary
+                className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 px-1 md:hidden"
+                title="What is drawn on the globe"
+            >
+                <span className={REVISIT_LABEL}>Display</span>
+                <span className="text-[11px] font-black tabular-nums text-slate-500">
+                    {activeCount}/{toggles.length}
+                </span>
+            </summary>
+
+            <div className="flex flex-col gap-1">
+                {toggles.map(({ key, label, hint }) => (
+                    <button
+                        key={key}
+                        type="button"
+                        onClick={() => onToggle(key)}
+                        aria-pressed={toggleState[key]}
+                        title={hint}
+                        className={`${GROUP_BUTTON} ${toggleState[key]
+                            ? 'bg-amber-500/20 text-amber-200'
+                            : 'text-slate-500 hover:text-slate-300'}`}
+                    >
+                        {label}
+                    </button>
+                ))}
+            </div>
+        </details>
+    );
+}

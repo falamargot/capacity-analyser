@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
-import { openRevisitSurfaces } from './revisitCompact';
+import { addSecondaryArea, openRevisitSurfaces,
+  seedReferenceTarget,
+} from './revisitCompact';
 
 const geoJson = JSON.stringify({
   type: 'Feature',
@@ -18,13 +20,15 @@ test.beforeEach(async ({ page }) => {
   });
   await page.goto('/?mode=revisit');
   await openRevisitSurfaces(page);
+  // REVISIT opens with no target selected; these specs describe the state
+  // after one has been chosen.
+  await seedReferenceTarget(page);
 });
 
 test.describe('REVISIT P2b-A custom areas', () => {
   test('imports, validates, runs and restores a GeoJSON polygon', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop-chromium', 'Persistence contract is viewport-independent');
-    await page.getByRole('tab', { name: 'Area' }).click();
-    await page.getByRole('button', { name: 'Define area target' }).click();
+    await addSecondaryArea(page);
     const area = page.getByRole('region', { name: 'Area coverage' });
     await area.getByLabel('Import area GeoJSON').setInputFiles({
       name: 'channel.geojson',
@@ -34,7 +38,11 @@ test.describe('REVISIT P2b-A custom areas', () => {
     await expect(area.getByLabel('Custom area name')).toHaveValue('Channel AOI');
     await expect(area.getByLabel('Custom area validation')).toContainText(/Ready · 4 vertices · \d+ cells/);
 
-    await expect(page.getByRole('region', { name: 'Area result summary' })).toContainText('Channel AOI', { timeout: 60_000 });
+    // The area's NAME identifies the active context; the summary carries the
+    // cell metrics.
+    await expect(page.getByLabel('Active result context')).toContainText('Channel AOI', { timeout: 60_000 });
+    await expect(page.getByRole('region', { name: 'Area result summary' }))
+      .toContainText('Least-covered cell', { timeout: 60_000 });
 
     await page.getByRole('button', { name: 'Scenario workspace' }).click();
     const workspace = page.getByRole('region', { name: 'Saved scenario workspace' });
@@ -43,10 +51,9 @@ test.describe('REVISIT P2b-A custom areas', () => {
     await page.getByRole('button', { name: 'Close scenario workspace' }).click();
     await page.getByRole('button', { name: 'Define area target' }).click();
     await area.getByRole('button', { name: 'Remove' }).click();
-    await expect(area.getByRole('button', { name: 'Draw on globe' })).toBeVisible();
+    await expect(page.getByText('Area · Channel AOI')).toHaveCount(0);
     await page.getByRole('button', { name: 'Scenario workspace' }).click();
     await workspace.getByRole('button', { name: 'Load', exact: true }).click();
-    await page.getByRole('tab', { name: 'Area' }).click();
     await page.getByRole('button', { name: 'Define area target' }).click();
     await expect(area.getByLabel('Custom area name')).toHaveValue('Channel AOI');
     await expect(area.getByLabel('Custom area validation')).toContainText('Ready');
@@ -54,15 +61,25 @@ test.describe('REVISIT P2b-A custom areas', () => {
 
   test('draws on the globe without moving the point target and cleans preview resources', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop-chromium', 'Cesium lifecycle contract is viewport-independent');
-    await page.getByRole('tab', { name: 'Area' }).click();
-    await page.getByRole('button', { name: 'Define area target' }).click();
+    await addSecondaryArea(page);
     const area = page.getByRole('region', { name: 'Area coverage' });
     const initial = await page.evaluate(() => (
       window as unknown as { __memStats?: () => { cesium: { entities: number; primitives: number } | null } }
     ).__memStats?.().cesium);
 
     await area.getByRole('button', { name: 'Draw on globe' }).click();
-    await expect(area).toContainText('Click the globe to add vertices · 0 points');
+    /*
+     * Drawing has its own toolbar over the globe now, and the editor popover
+     * deliberately closes to leave the scene clear. The old assertion — that
+     * the popover stays open so `Finish polygon` remains reachable — described
+     * a flow that no longer exists; `Finish polygon`, `Undo` and `Cancel` live
+     * in the drawing toolbar, which also carries the vertex count.
+     */
+    const drawing = page.getByRole('toolbar', { name: 'Polygon drawing controls' });
+    await expect(drawing).toBeVisible();
+    await expect(drawing).toContainText('Draw comparison polygon');
+    await expect(drawing).toContainText('the last edge closes automatically');
+    await expect(area).toHaveCount(0);
     const canvas = page.locator('.cesium-widget canvas');
     const box = await canvas.boundingBox();
     expect(box).not.toBeNull();
@@ -73,18 +90,16 @@ test.describe('REVISIT P2b-A custom areas', () => {
     ]) {
       await canvas.click({ position: point, force: true });
     }
-    // Globe clicks are part of the editor workflow: the popup must stay open
-    // so Finish polygon remains directly accessible.
-    await expect(area).toBeVisible();
-    await expect(area.getByRole('button', { name: 'Finish polygon' })).toBeVisible();
+    // Globe clicks keep the drawing toolbar in place and count the vertices.
+    await expect(drawing).toBeVisible();
     await expect(page.locator('[data-revisit-context-panel="analysis-target"]')).toContainText('3 vertices');
-    await area.getByRole('button', { name: 'Finish polygon' }).click();
-    await expect(area.getByLabel('Custom area validation')).toContainText('Ready');
-    await expect(page.getByRole('region', { name: 'Area result summary' })).toContainText('Worst cell', { timeout: 60_000 });
+    await drawing.getByRole('button', { name: 'Finish polygon' }).click();
+    await expect(drawing).toHaveCount(0);
+    await expect(page.getByRole('region', { name: 'Area result summary' })).toContainText('Least-covered cell', { timeout: 60_000 });
 
-    await page.getByRole('tab', { name: 'Points 1' }).click();
+    await page.getByRole('button', { name: /Reference target/ }).click();
     await expect(page.getByRole('combobox', { name: 'Target' })).toHaveValue('London');
-    await page.getByRole('tab', { name: 'Area' }).click();
+    await page.getByRole('button', { name: /Select comparison target polygon/ }).click();
     await page.getByRole('button', { name: 'Define area target' }).click();
 
     await area.getByRole('button', { name: 'Remove' }).click();
@@ -95,8 +110,7 @@ test.describe('REVISIT P2b-A custom areas', () => {
 
   test('keeps the custom-area editor usable on mobile without horizontal overflow', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'mobile-chromium', 'Dedicated mobile contract');
-    await page.getByRole('tab', { name: 'Area' }).click();
-    await page.getByRole('button', { name: 'Define area target' }).click();
+    await addSecondaryArea(page);
     const area = page.getByRole('region', { name: 'Area coverage' });
     await expect(area.getByRole('button', { name: 'Draw on globe' })).toBeVisible();
     const dimensions = await page.evaluate(() => ({

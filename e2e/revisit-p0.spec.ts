@@ -1,6 +1,11 @@
 import { expect, test } from '@playwright/test';
 import {
-  isCompactViewport, openRevisitStageControls, openRevisitSurfaces,
+  isCompactViewport, openRevisitAnalysis, openRevisitSetup,
+  openRevisitStageControls, openRevisitSurfaces,
+  openRevisitDisplayControls,
+  seedReferenceTarget,
+  ensureDetailsOpen,
+  openRevisitAnalysisTab,
 } from './revisitCompact';
 
 test.beforeEach(async ({ page }) => {
@@ -9,6 +14,9 @@ test.beforeEach(async ({ page }) => {
   });
   await page.goto('/?mode=revisit');
   await openRevisitSurfaces(page);
+  // REVISIT opens with no target selected; these specs describe the state
+  // after one has been chosen.
+  await seedReferenceTarget(page);
 });
 
 test.describe('REVISIT P0 demonstration contract', () => {
@@ -39,10 +47,16 @@ test.describe('REVISIT P0 demonstration contract', () => {
     await expect(settings.getByRole('radio', { name: 'Custom' })).toHaveAttribute('aria-checked', 'false');
     await expect(settings).toContainText('Propagation cross-checked vs NASA GMAT');
 
+    // The whole specification as one sentence — the panel's first level of
+    // reading since Programme 7E.
+    await expect(settings.locator('.revisit-characteristics-summary'))
+      .toContainText('12 planes × 48 satellites');
+
+    // The fields themselves, and the profile detail a fitted shell cannot
+    // carry, are one disclosure away and still exactly as they were.
+    await settings.locator('.revisit-expert-settings summary').click();
     // HLD is a record of something external, so its fields are not editable.
     await expect(settings.getByLabel('Planes P')).toBeDisabled();
-
-    // The profile detail a fitted shell cannot carry is stated, not hidden.
     await expect(settings).toContainText('1175–1219 km');
     await expect(settings).toContainText('58 across 12 planes');
 
@@ -51,50 +65,77 @@ test.describe('REVISIT P0 demonstration contract', () => {
   });
 
   test('uses a truthful executive envelope and preserves exact topology inspection', async ({ page }) => {
-    const curveTab = page.getByRole('button', { name: 'Curve', exact: true });
-    if (await curveTab.isVisible()) await curveTab.click();
+    await openRevisitAnalysis(page);
+    await openRevisitAnalysisTab(page, 'Analysis');
+    const evidence = page.locator('details', { hasText: 'Why this recommendation?' }).first();
+    await ensureDetailsOpen(evidence);
     await expect(page.getByText('best achieved with up to X payloads')).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByText(/Minimum tested balanced configuration:/)).toBeVisible();
+    await expect(evidence.getByText('Sizing evidence')).toBeVisible();
+    await expect(evidence.getByLabel('Sizing evidence legend')).toContainText('Current');
+    await expect(evidence).not.toContainText('Minimum tested balanced configuration:');
 
-    await page.getByRole('button', { name: 'Show exact topology points' }).click();
+    await evidence.getByRole('button', { name: 'Show exact topology points' }).click();
     await expect(page.getByText('exact topology points · lower is better')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Show executive envelope' })).toBeVisible();
   });
 
   test('supports presenter reset and explicit simulation time controls', async ({ page }) => {
-    await openRevisitStageControls(page);
+    // The slider is in the setup triad and Reset is in the stage toolbar, which
+    // since Programme 7B cannot both be open on a phone. Each is opened at the
+    // moment it is used, which is what the presenter does too.
+    await openRevisitSetup(page);
     const payloadSlider = page.getByRole('slider', { name: 'Number of hosted payloads' });
     await payloadSlider.press('ArrowRight');
     await expect(payloadSlider).not.toHaveAttribute('aria-valuetext', '12 payloads');
 
-    await page.getByRole('button', { name: /^(Reset scenario|Reset)$/ }).click();
+    // Reset is a scenario operation and lives in the workspace drawer now,
+    // two-step, rather than one pixel from the drawer opener in the toolbar.
+    await openRevisitStageControls(page);
+    await page.getByRole('button', { name: 'Scenario workspace' }).click();
+    const reset = page.getByRole('button', { name: /Reset scenario/ });
+    await reset.click();
+    await page.getByRole('button', { name: /Confirm reset/ }).click();
+    // Reset returns a compact viewport to the globe with no panel open, so the
+    // slider has to be brought back to read it. A role locator needs the
+    // element in the accessibility tree, which `display: none` removes.
+    await openRevisitSetup(page);
     await expect(payloadSlider).toHaveAttribute('aria-valuetext', '12 payloads');
 
-    const timestamp = page.locator('time');
-    const initial = await timestamp.textContent();
+    // The clock readout is an editable UTC field now, not a read-only `<time>`.
+    const timestamp = page.getByRole('textbox', { name: 'Simulation date and time UTC' });
+    const initial = await timestamp.inputValue();
     await page.getByRole('button', { name: 'Pause simulation' }).click();
     await expect(page.getByRole('button', { name: 'Play simulation' })).toBeVisible();
     // Hour stepping is a `sm`-and-up affordance; on a phone the same seek is
     // done on the timeline itself, which is keyboard-operable everywhere.
     if (isCompactViewport(page)) {
+      /*
+       * The reset above returned the scenario to its opening state, which has
+       * NO target — so there is no access lane and therefore nothing to seek
+       * along. Seeking on the timeline is the contract being asserted here, so
+       * the timeline has to exist: seed a target back before pressing it.
+       */
+      await seedReferenceTarget(page);
       await page.getByRole('slider', { name: /Seek within the .* analysis window/ })
         .press('ArrowRight');
     } else {
       await page.getByRole('button', { name: 'Step simulation forward one hour' }).click();
     }
-    await expect(timestamp).not.toHaveText(initial ?? '');
+    await expect(timestamp).not.toHaveValue(initial);
     await page.getByRole('combobox', { name: 'Simulation speed' }).selectOption('100');
     await expect(page.getByRole('combobox', { name: 'Simulation speed' })).toHaveValue('100');
   });
 
-  test('keeps secondary scene controls out of presenter view and exposes them on demand', async ({ page }) => {
-    await openRevisitStageControls(page);
-    await expect(page.getByRole('button', { name: 'Host fleet' })).toHaveCount(0);
-    await page.getByRole('button', { name: /^(Explore controls|Explore)$/ }).click();
+  /*
+   * Expanded at `md` and above, one tap away on a phone — `openRevisitDisplayControls`
+   * absorbs the difference. What both viewports owe is the same: every layer
+   * control reachable without leaving the globe, and no reduced-load mode.
+   */
+  test('keeps every globe display control directly reachable', async ({ page }) => {
+    await openRevisitDisplayControls(page);
     await expect(page.getByRole('button', { name: 'Host fleet' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Auto-rotate globe' })).toBeVisible();
-    await page.getByRole('button', { name: /^(Presenter view|Present)$/ }).click();
-    await expect(page.getByRole('button', { name: 'Host fleet' })).toHaveCount(0);
+    await expect(page.getByText('Reduced globe load', { exact: true })).toHaveCount(0);
   });
 
   test('adds no listeners or timers across repeated presenter and clock interactions', async ({ page }, testInfo) => {
@@ -120,9 +161,9 @@ test.describe('REVISIT P0 demonstration contract', () => {
       };
       const commit = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
       for (let cycle = 0; cycle < 5; cycle += 1) {
-        clickNamed('Explore controls');
+        clickNamed('Host fleet');
         await commit();
-        clickNamed('Presenter view');
+        clickNamed('Host fleet');
         await commit();
         clickNamed('Pause');
         await commit();

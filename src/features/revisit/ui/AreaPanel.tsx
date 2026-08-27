@@ -30,7 +30,6 @@ interface AreaPanelProps {
     requirementMs: number;
     onClear: () => void;
     onCancel: () => void;
-    onExportCsv: () => void;
     customArea: AreaTarget | null;
     isDrawing: boolean;
     onCustomAreaChange: (area: AreaTarget | null) => void;
@@ -46,7 +45,7 @@ interface AreaPanelProps {
 
 export const AreaPanel: React.FC<AreaPanelProps> = ({
     scenario, analysis, isRunning, error, progress, requirementMs,
-    onClear, onCancel, onExportCsv, customArea, isDrawing,
+    onClear, onCancel, customArea, isDrawing,
     onCustomAreaChange, onStartDrawing, onFinishDrawing, onUndoVertex,
     showAnalysisSummary = true,
     isScenarioSettling = false,
@@ -124,18 +123,18 @@ export const AreaPanel: React.FC<AreaPanelProps> = ({
                 <span className={REVISIT_LABEL}>Area coverage</span>
                 <div className="flex items-center gap-1.5">
                     {isRunning && (
-                        <span className="text-[9px] tabular-nums text-slate-500">
+                        <span className="text-[11px] tabular-nums text-slate-500">
                             {progress === null ? 'running cells…' : `${Math.round(progress * 100)}%`}
                         </span>
                     )}
                     {!isRunning && isScenarioSettling && (
-                        <span className="text-[9px] text-sky-300">finalising topology…</span>
+                        <span className="text-[11px] text-sky-300">finalising topology…</span>
                     )}
                     {isRunning ? (
                         <button
                             type="button"
                             onClick={onCancel}
-                            className="rounded border border-red-400/50 px-2 py-0.5 text-[9px] font-bold text-red-200 hover:bg-red-500/10"
+                            className="rounded border border-red-400/50 px-2 py-0.5 text-[11px] font-bold text-red-200 hover:bg-red-500/10"
                         >Cancel</button>
                     ) : null}
                 </div>
@@ -151,23 +150,23 @@ export const AreaPanel: React.FC<AreaPanelProps> = ({
             )}
 
             <div className="mt-2 border-t border-slate-700/50 pt-2">
-                <div className="text-[9px] font-black uppercase tracking-[0.1em] text-sky-300">
+                <div className="text-[11px] font-black uppercase tracking-[0.1em] text-sky-300">
                     Custom area · draw or import
                 </div>
                 <div className="mt-2 space-y-2">
                     <div className="grid grid-cols-[minmax(0,1fr)_6.5rem] gap-1.5">
                         <label className="min-w-0">
-                            <span className="mb-0.5 block text-[8px] font-bold uppercase tracking-wide text-slate-500">Area name</span>
+                            <span className="mb-0.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Area name</span>
                             <input
                                 aria-label="Custom area name"
                                 maxLength={80}
                                 value={customArea?.name ?? 'Custom area'}
                                 onChange={(event) => updateCustomArea({ name: event.target.value })}
-                                className="w-full rounded border border-slate-700 bg-slate-950/70 px-1.5 py-1 text-[10px] text-slate-200 outline-none focus:border-sky-400/60"
+                                className="w-full rounded border border-slate-700 bg-slate-950/70 px-1.5 py-1 text-[12px] text-slate-200 outline-none focus:border-sky-400/60"
                             />
                         </label>
                         <label>
-                            <span className="mb-0.5 block text-[8px] font-bold uppercase tracking-wide text-slate-500">Grid spacing °</span>
+                            <span className="mb-0.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Grid spacing °</span>
                             <input
                                 aria-label="Custom area grid spacing"
                                 type="number"
@@ -175,7 +174,7 @@ export const AreaPanel: React.FC<AreaPanelProps> = ({
                                 step="0.001"
                                 value={customArea?.gridSpacingDeg ?? defaultSpacing}
                                 onChange={(event) => updateCustomArea({ gridSpacingDeg: Number(event.target.value) })}
-                                className="w-full rounded border border-slate-700 bg-slate-950/70 px-1.5 py-1 text-[10px] tabular-nums text-slate-200 outline-none focus:border-sky-400/60"
+                                className="w-full rounded border border-slate-700 bg-slate-950/70 px-1.5 py-1 text-[12px] tabular-nums text-slate-200 outline-none focus:border-sky-400/60"
                             />
                         </label>
                     </div>
@@ -185,7 +184,7 @@ export const AreaPanel: React.FC<AreaPanelProps> = ({
                             type="button"
                             disabled={isRunning}
                             onClick={onStartDrawing}
-                            className="min-h-8 rounded border border-sky-400/50 bg-sky-400/10 px-2 text-[9px] font-black uppercase tracking-wide text-sky-200 disabled:opacity-40"
+                            className="min-h-11 md:min-h-8 rounded border border-sky-400/50 bg-sky-400/10 px-2 text-[11px] font-black uppercase tracking-wide text-sky-200 disabled:opacity-40"
                         >
                             {customArea?.boundary.length ? 'Redraw on globe' : 'Draw on globe'}
                         </button>
@@ -201,7 +200,7 @@ export const AreaPanel: React.FC<AreaPanelProps> = ({
                             type="button"
                             disabled={isRunning || isDrawing}
                             onClick={() => fileRef.current?.click()}
-                            className="min-h-8 rounded border border-slate-700 px-2 text-[9px] font-black uppercase tracking-wide text-slate-300 disabled:opacity-40"
+                            className="min-h-11 md:min-h-8 rounded border border-slate-700 px-2 text-[11px] font-black uppercase tracking-wide text-slate-300 disabled:opacity-40"
                         >Import GeoJSON</button>
                         {customArea && (
                             <button
@@ -212,38 +211,38 @@ export const AreaPanel: React.FC<AreaPanelProps> = ({
                                     onClear();
                                     setEditorMessage('Custom area removed.');
                                 }}
-                                className="min-h-8 rounded px-2 text-[9px] font-black uppercase tracking-wide text-rose-300 disabled:opacity-40"
+                                className="min-h-11 md:min-h-8 rounded px-2 text-[11px] font-black uppercase tracking-wide text-rose-300 disabled:opacity-40"
                             >Remove</button>
                         )}
                     </div>
 
                     {isDrawing && (
                         <div className="rounded border border-sky-400/40 bg-sky-400/10 p-2" role="status">
-                            <p className="text-[10px] font-bold text-sky-100">
+                            <p className="text-[12px] font-bold text-sky-100">
                                 Click the globe to add vertices · {customArea?.boundary.length ?? 0} points
                             </p>
-                            <p className="mt-0.5 text-[9px] text-sky-200/70">Camera rotation is paused while drawing.</p>
+                            <p className="mt-0.5 text-[11px] text-sky-200/70">Camera rotation is paused while drawing.</p>
                             <div className="mt-1.5 flex gap-1">
-                                <button type="button" disabled={!customArea?.boundary.length} onClick={onUndoVertex} className="min-h-8 rounded border border-slate-600 px-2 text-[9px] font-bold text-slate-200 disabled:opacity-30">Undo</button>
-                                <button type="button" disabled={!customValidation?.ok} onClick={onFinishDrawing} className="min-h-8 rounded bg-sky-400/20 px-2 text-[9px] font-black text-sky-100 disabled:opacity-30">Finish polygon</button>
+                                <button type="button" disabled={!customArea?.boundary.length} onClick={onUndoVertex} className="min-h-11 md:min-h-8 rounded border border-slate-600 px-2 text-[11px] font-bold text-slate-200 disabled:opacity-30">Undo</button>
+                                <button type="button" disabled={!customValidation?.ok} onClick={onFinishDrawing} className="min-h-11 md:min-h-8 rounded bg-sky-400/20 px-2 text-[11px] font-black text-sky-100 disabled:opacity-30">Finish polygon</button>
                             </div>
                         </div>
                     )}
 
                     {!isDrawing && (
                         <details>
-                            <summary className="cursor-pointer text-[9px] font-bold text-slate-400 hover:text-slate-300">Paste coordinate list</summary>
+                            <summary className="cursor-pointer text-[11px] font-bold text-slate-400 hover:text-slate-300">Paste coordinate list</summary>
                             <textarea
                                 aria-label="Custom area coordinate list"
                                 rows={5}
                                 value={coordinateText}
                                 onChange={(event) => setCoordinateText(event.target.value)}
                                 placeholder={'latitude, longitude\n51.0, -2.0\n51.0, 2.0\n55.0, 2.0'}
-                                className="mt-1 w-full resize-y rounded border border-slate-700 bg-slate-950/70 p-1.5 font-mono text-[9px] leading-4 text-slate-200 outline-none focus:border-sky-400/60"
+                                className="mt-1 w-full resize-y rounded border border-slate-700 bg-slate-950/70 p-1.5 font-mono text-[11px] leading-4 text-slate-200 outline-none focus:border-sky-400/60"
                             />
                             <div className="mt-1 flex items-center justify-between gap-2">
-                                <span className="text-[8px] text-slate-600">One latitude, longitude pair per line</span>
-                                <button type="button" onClick={applyCoordinateList} className="min-h-8 rounded border border-slate-600 px-2 text-[9px] font-black uppercase text-slate-300">Apply list</button>
+                                <span className="text-[11px] text-slate-600">One latitude, longitude pair per line</span>
+                                <button type="button" onClick={applyCoordinateList} className="min-h-11 md:min-h-8 rounded border border-slate-600 px-2 text-[11px] font-black uppercase text-slate-300">Apply list</button>
                             </div>
                         </details>
                     )}
@@ -251,16 +250,16 @@ export const AreaPanel: React.FC<AreaPanelProps> = ({
                     {customValidation && (
                         <div aria-label="Custom area validation" aria-live="polite" className="space-y-0.5">
                             {customValidation.ok && (
-                                <p className="text-[9px] font-bold text-emerald-300">
+                                <p className="text-[11px] font-bold text-emerald-300">
                                     Ready · {customArea?.boundary.length} vertices · {customValidation.estimatedCells} cells
                                 </p>
                             )}
-                            {customValidation.errors.map((message) => <p key={message} className="text-[9px] leading-3 text-rose-300">{message}</p>)}
-                            {customValidation.warnings.map((message) => <p key={message} className="text-[9px] leading-3 text-amber-200/80">{message}</p>)}
+                            {customValidation.errors.map((message) => <p key={message} className="text-[11px] leading-3 text-rose-300">{message}</p>)}
+                            {customValidation.warnings.map((message) => <p key={message} className="text-[11px] leading-3 text-amber-200/80">{message}</p>)}
                         </div>
                     )}
-                    {editorMessage && <p role="status" className="text-[9px] leading-3 text-slate-400">{editorMessage}</p>}
-                    <p className="text-[8px] leading-3 text-slate-500">
+                    {editorMessage && <p role="status" className="text-[11px] leading-3 text-slate-400">{editorMessage}</p>}
+                    <p className="text-[11px] leading-3 text-slate-500">
                         {isDrawing
                             ? 'Analysis will start after Finish polygon.'
                             : isScenarioSettling
@@ -270,13 +269,13 @@ export const AreaPanel: React.FC<AreaPanelProps> = ({
                 </div>
             </div>
 
-            {error && <p className="mt-1.5 text-[10px] leading-4 text-red-300">{error}</p>}
+            {error && <p className="mt-1.5 text-[12px] leading-4 text-red-300">{error}</p>}
 
             {analysis && showAnalysisSummary && (
                 <>
                     <div className="mt-2 grid grid-cols-3 gap-2 border-t border-slate-700/50 pt-2">
                         <div>
-                            <span className={REVISIT_LABEL}>Worst cell</span>
+                            <span className={REVISIT_LABEL}>Least-covered cell</span>
                             <div className={`text-sm font-black tabular-nums ${unbounded ? 'text-violet-300' : 'text-amber-300'}`}>
                                 {unbounded ? 'never seen' : formatGap(analysis.worstCell?.maxGapMs ?? null)}
                             </div>
@@ -295,7 +294,7 @@ export const AreaPanel: React.FC<AreaPanelProps> = ({
                         </div>
                     </div>
 
-                    <p className="mt-1 text-[9px] leading-3 text-slate-500">
+                    <p className="mt-1 text-[11px] leading-3 text-slate-500">
                         {analysis.area.name} · {analysis.cells.length} cells at {analysis.area.gridSpacingDeg}° ·
                         mean is over cells, not area
                     </p>
@@ -306,24 +305,17 @@ export const AreaPanel: React.FC<AreaPanelProps> = ({
                         {heatLegendStops(requirementMs).map((stop) => (
                             <span key={stop.label} className="flex items-center gap-1">
                                 <span className="h-2 w-2 rounded-sm" style={{ background: stop.css }} />
-                                <span className="text-[9px] text-slate-500">{stop.label}</span>
+                                <span className="text-[11px] text-slate-500">{stop.label}</span>
                             </span>
                         ))}
                     </div>
 
                     {analysis.warnings.map((warning) => (
-                        <p key={warning} className="mt-1 text-[9px] leading-3 text-amber-200/80">
+                        <p key={warning} className="mt-1 text-[11px] leading-3 text-amber-200/80">
                             {warning}
                         </p>
                     ))}
 
-                    <button
-                        type="button"
-                        onClick={onExportCsv}
-                        className="mt-1.5 rounded border border-slate-600 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-slate-300 hover:border-sky-400/50 hover:text-sky-200"
-                    >
-                        Export grid CSV
-                    </button>
                 </>
             )}
         </section>

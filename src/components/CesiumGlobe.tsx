@@ -36,8 +36,18 @@ import {
 } from 'cesium';
 // Cesium 1.142 exposes this runtime factory but omits it from the package's
 // generated public declarations. Keep the workaround isolated at the boundary.
+//
+// MUST be imported from the 'cesium' specifier (not a deep @cesium/widgets
+// path): vite-plugin-cesium externalizes 'cesium' to the global Cesium script
+// in production builds, so every other Cesium import in this app resolves to
+// that one shared instance — the one main.tsx configures with Ion.defaultAccessToken
+// and whose CESIUM_BASE_URL resolves correctly. A deep @cesium/widgets import
+// gets bundled as a second, separate Cesium module instance instead, with its
+// own unconfigured Ion token and its own (wrong) auto-detected base URL —
+// which silently broke both the default basemap and its offline fallback,
+// leaving the globe with zero imagery layers (flat blue) in production only.
 // @ts-expect-error -- missing upstream declaration for an exported widget factory
-import createDefaultImageryProviderViewModels from '@cesium/widgets/Source/BaseLayerPicker/createDefaultImageryProviderViewModels.js';
+import { createDefaultImageryProviderViewModels } from 'cesium';
 import { Feature, Geometry, GeoJsonProperties } from 'geojson';
 import type { SatelliteData } from '../types/satellites';
 import type { Aircraft } from '../modules/airTraffic/airTrafficService';

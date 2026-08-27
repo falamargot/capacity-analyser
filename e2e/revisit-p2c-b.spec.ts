@@ -1,0 +1,84 @@
+import { expect, test } from '@playwright/test';
+import { addSecondaryPoint, openRevisitSurfaces,
+} from './revisitCompact';
+
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    sessionStorage.clear();
+    localStorage.setItem('capacity-analyzer:revisit-independent-scenario-notice', 'dismissed');
+  });
+  await page.goto('/?mode=revisit');
+  await openRevisitSurfaces(page);
+  // Deliberately NOT seeded: this spec describes the target set from its empty
+  // opening state outwards, so it adds the reference target itself.
+});
+
+test.describe('REVISIT P2c-B unified target set', () => {
+  test('keeps Primary, Secondary and Area in one list with one inspected result', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop-chromium', 'Target-set semantics are viewport-independent');
+    const targetSet = page.locator('[data-revisit-context-panel="analysis-target"]');
+    const activeResult = page.getByLabel('Active result context');
+
+    await expect(targetSet.getByRole('tablist')).toHaveCount(0);
+    await expect(targetSet.getByRole('button', { name: 'Add reference target' })).toBeVisible();
+    await targetSet.getByRole('button', { name: 'Add reference target' }).click();
+    await targetSet.getByRole('menuitem', { name: 'Add point reference target' }).click();
+    await expect(targetSet).toContainText('Reference target');
+    await expect(targetSet).not.toContainText('Area ·');
+    await expect(targetSet).not.toContainText('Primary drives configuration');
+    const compactHeaderHeight = await page.locator('[data-revisit-context-bar]')
+      .evaluate((element) => element.getBoundingClientRect().height);
+    expect(compactHeaderHeight).toBeLessThan(170);
+
+    await addSecondaryPoint(page);
+    await page.getByRole('combobox', { name: 'Comparison target' }).selectOption('Singapore');
+    await expect(targetSet).toContainText('Comparison target');
+    await expect(activeResult).toContainText('Point result · Comparison target');
+
+    // Geometry is chosen when a target is added; replacing the reference also
+    // clears its dependent comparison slot.
+    await targetSet.getByRole('button', { name: 'Remove reference target' }).click();
+    await targetSet.getByRole('button', { name: 'Add reference target' }).click();
+    await targetSet.getByRole('menuitem', { name: 'Add polygon reference target' }).click();
+    const area = page.getByRole('region', { name: 'Area coverage' });
+    await area.getByText('Paste coordinate list', { exact: true }).click();
+    await area.getByLabel('Custom area coordinate list').fill('49, -2\n49, 2\n51, 2\n51, -2');
+    await area.getByRole('button', { name: 'Apply list' }).click();
+    await expect(activeResult).toContainText('Area result');
+    await expect(page.getByRole('region', { name: 'Area result summary' })).toContainText('Least-covered cell', { timeout: 60_000 });
+
+    // The polygon editor is still open over the target list; the add control
+    // underneath it cannot take a click until it is dismissed. Its own toggle
+    // closes it — Escape does not.
+    await targetSet.getByRole('button', { name: /reference polygon/i }).first().click();
+    await expect(area).toHaveCount(0);
+    await addSecondaryPoint(page);
+    await page.getByRole('combobox', { name: 'Comparison target' }).selectOption('Singapore');
+
+    // All targets remain in one list while only the selected target owns the
+    // contextual result and timeline.
+    await expect(targetSet).toContainText('Reference target');
+    await expect(targetSet).toContainText('Comparison target');
+    await expect(targetSet).toContainText('Polygon · Reference area');
+    await targetSet.getByRole('button', { name: /Comparison target/ }).click();
+    await expect(activeResult).toContainText('Point result · Comparison target');
+    await targetSet.getByRole('button', { name: 'Select reference target polygon' }).click();
+    await expect(activeResult).toContainText('Area result');
+    await expect(page.getByRole('region', { name: 'Coverage timeline' })).toContainText('Observation schedule comparison');
+    await expect(page.getByRole('region', { name: 'Coverage timeline' })).toContainText('Area worst-cell lane');
+  });
+
+  test('keeps the unified target list within the mobile viewport', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile-chromium', 'Dedicated compact-layout contract');
+    await addSecondaryPoint(page);
+    const targetSet = page.locator('[data-revisit-context-panel="analysis-target"]');
+    await expect(targetSet).toContainText('Reference target');
+    await expect(targetSet).toContainText('Comparison target');
+    await expect(targetSet).not.toContainText('Area ·');
+    const dimensions = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      viewportWidth: window.innerWidth,
+    }));
+    expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.viewportWidth + 1);
+  });
+});

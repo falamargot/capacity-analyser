@@ -67,13 +67,16 @@ describe('What drives this result', () => {
         expect(container.textContent).toContain('Observation opportunities');
         expect(container.textContent).toContain('Main lever');
 
-        const details = container.querySelector('details') as HTMLDetailsElement;
-        expect(details).not.toBeNull();
-        expect(details.open).toBe(false);
-        expect(details.querySelector('summary')?.textContent).toContain('Technical details');
-        expect(details.textContent).toContain('Geometry');
+        const resultDrivers = container.querySelector('details') as HTMLDetailsElement;
+        expect(resultDrivers).not.toBeNull();
+        expect(resultDrivers.open).toBe(false);
+        expect(resultDrivers.querySelector(':scope > summary')?.textContent).toContain('Result drivers');
+        const technical = resultDrivers.querySelector('details') as HTMLDetailsElement;
+        expect(technical.open).toBe(false);
+        expect(technical.querySelector('summary')?.textContent).toContain('Technical details');
+        expect(technical.textContent).toContain('Geometry');
 
-        const primaryList = container.querySelector(':scope > div > ul');
+        const primaryList = resultDrivers.querySelector(':scope > ul');
         expect(primaryList?.textContent).not.toContain('Target reachable');
         expect(primaryList?.textContent).not.toContain('Geometry');
     });
@@ -81,7 +84,7 @@ describe('What drives this result', () => {
     it('gives a WARN factor a visible cue in the primary summary rather than hiding it in Technical details', async () => {
         await act(async () => root?.render(<WhyThisRevisit explanation={explanation} />));
 
-        const primaryList = container.querySelector(':scope > div > ul');
+        const primaryList = container.querySelector('details > ul');
         expect(primaryList?.textContent).toContain('Walker phasing');
 
         const phasingRow = [...primaryList!.querySelectorAll('li')]
@@ -91,14 +94,17 @@ describe('What drives this result', () => {
 
     it('reveals the engineering explanation only on request', async () => {
         await act(async () => root?.render(<WhyThisRevisit explanation={explanation} />));
-        const details = container.querySelector('details') as HTMLDetailsElement;
-        const summary = details.querySelector('summary') as HTMLElement;
+        const resultDrivers = container.querySelector('details') as HTMLDetailsElement;
+        const summary = resultDrivers.querySelector(':scope > summary') as HTMLElement;
         await act(async () => summary.click());
-        expect(details.open).toBe(true);
+        expect(resultDrivers.open).toBe(true);
+        const technical = resultDrivers.querySelector('details') as HTMLDetailsElement;
+        await act(async () => (technical.querySelector('summary') as HTMLElement).click());
+        expect(technical.open).toBe(true);
 
-        const geometry = [...details.querySelectorAll('button')]
+        const geometry = [...technical.querySelectorAll('button')]
             .find((button) => button.textContent?.includes('Geometry'))!;
         await act(async () => geometry.click());
-        expect(details.textContent).toContain('The target is geometrically reachable.');
+        expect(technical.textContent).toContain('The target is geometrically reachable.');
     });
 });

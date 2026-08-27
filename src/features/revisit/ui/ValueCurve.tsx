@@ -38,8 +38,12 @@ interface ValueCurveProps {
     currentMaxGapMs: number | null;
     /** Whether the exact current selection is the sweep winner at this payload count. */
     currentIsMeasuredBest: boolean;
+    /** Wording for a valid topology that is not this target's measured winner. */
+    alternativeTopologyLabel?: string;
     targetName: string;
     onSelectPayloadCount: (count: number) => void;
+    /** Removes the outer panel when nested in Recommended configuration. */
+    embedded?: boolean;
 }
 
 const W = 320;
@@ -48,7 +52,8 @@ const PAD = { left: 40, right: 12, top: 12, bottom: 26 };
 
 export const ValueCurve: React.FC<ValueCurveProps> = ({
     sweep, isComputing, requirementMs, currentPayloadCount,
-    currentMaxGapMs, currentIsMeasuredBest, targetName, onSelectPayloadCount,
+    currentMaxGapMs, currentIsMeasuredBest, alternativeTopologyLabel = 'Current manual split',
+    targetName, onSelectPayloadCount, embedded = false,
 }) => {
     const [showExactTopologies, setShowExactTopologies] = useState(false);
     const model = useMemo(() => {
@@ -90,10 +95,10 @@ export const ValueCurve: React.FC<ValueCurveProps> = ({
     );
 
     return (
-        <div className={`${REVISIT_PANEL} px-3 py-2.5`}>
+        <div className={embedded ? '' : `${REVISIT_PANEL} px-3 py-2.5`}>
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                <span className={REVISIT_LABEL}>Payloads vs revisit</span>
-                <span className="text-right text-[9px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+                <span className={REVISIT_LABEL}>{embedded ? 'Sizing evidence' : 'Payloads vs revisit'}</span>
+                <span className="text-right text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
                     {!sweep
                         ? (isComputing ? 'computing…' : 'no valid sweep')
                         : showExactTopologies
@@ -102,8 +107,10 @@ export const ValueCurve: React.FC<ValueCurveProps> = ({
                 </span>
             </div>
 
-            {/* The deliverable sentence, produced by the tool. */}
-            <p className="mt-1.5 text-[11px] leading-4 text-slate-300">
+            {/* Standalone use carries its own summary. Embedded use lives under
+                the canonical Current / Recommended blocks, so repeating those
+                numbers here would make the hierarchy harder to scan. */}
+            {!embedded && <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[12px] leading-4 text-slate-400">
                 {!sweep ? (
                     <span className="text-slate-500">
                         {isComputing
@@ -111,33 +118,42 @@ export const ValueCurve: React.FC<ValueCurveProps> = ({
                             : 'No valid sweep is available for these inputs.'}
                     </span>
                 ) : answer ? (
-                    <>
-                        Minimum tested balanced configuration:{' '}
-                        <span className="font-black text-amber-300">{answer.payloadCount} payloads</span>{' '}
-                        to see {targetName} every {formatGap(requirementMs)}.
-                    </>
+                    <span>
+                        <strong className="text-slate-300">Minimum tested balanced configuration:</strong>{' '}
+                        <span className="font-black text-amber-300">{answer.payloadCount} payloads</span>
+                        {' · '}requirement {formatGap(requirementMs)}
+                    </span>
                 ) : (
                     <span className="text-red-300">
-                        No configuration on this ladder meets {formatGap(requirementMs)} over {targetName}.
+                        No tested configuration meets {formatGap(requirementMs)}.
                     </span>
                 )}
-            </p>
 
-            {/* `aria-live`: selecting a rung by keyboard changes the headline
-                number somewhere else on the page. Without an announcement a
-                screen-reader user gets no feedback that anything happened. */}
-            {sweep && currentMaxGapMs !== null && (
-                <p
-                    className="mt-1 text-[10px] font-semibold tabular-nums text-slate-400"
-                    aria-live="polite"
-                    aria-atomic="true"
-                >
-                    {currentIsMeasuredBest ? 'Current configuration' : 'Current manual split'}:{' '}
-                    <span className="text-amber-200">
-                        {currentPayloadCount} payload{currentPayloadCount === 1 ? '' : 's'}
+                {/* `aria-live`: selecting a rung by keyboard changes the answer
+                    tab. Announce this compact current state as feedback. */}
+                {sweep && currentMaxGapMs !== null && (
+                    <span className="font-semibold tabular-nums" aria-live="polite" aria-atomic="true">
+                        {currentIsMeasuredBest ? 'Current configuration' : alternativeTopologyLabel}:{' '}
+                        <span className="text-amber-200">
+                            {currentPayloadCount} payload{currentPayloadCount === 1 ? '' : 's'}
+                        </span>
+                        {' · '}maximum gap <span className="text-slate-200">{formatGap(currentMaxGapMs)}</span>
                     </span>
-                    {' · '}worst case <span className="text-slate-200">{formatGap(currentMaxGapMs)}</span>
-                </p>
+                )}
+            </div>}
+
+            {embedded && model && (
+                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500" aria-label="Sizing evidence legend">
+                    <span className="inline-flex items-center gap-1.5">
+                        <span className="h-2.5 w-2.5 rounded-full border border-white bg-amber-400" /> Current
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                        <span className="h-2.5 w-2.5 rounded-full border-2 border-lime-400" /> Recommended
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                        <span className="w-4 border-t border-dashed border-lime-400" /> Requirement
+                    </span>
+                </div>
             )}
 
             {model && (
@@ -151,7 +167,7 @@ export const ValueCurve: React.FC<ValueCurveProps> = ({
                     />
                     <text x={W - PAD.right} y={model.sy(requirementMs) - 4} textAnchor="end"
                         fontSize={8} fill={REVISIT_COLORS.pass}>
-                        requirement {formatGap(requirementMs)}
+                        {embedded ? 'requirement' : `requirement ${formatGap(requirementMs)}`}
                     </text>
 
                     {/* The curve */}
@@ -312,7 +328,7 @@ export const ValueCurve: React.FC<ValueCurveProps> = ({
             {sweep && (
                 <button
                     type="button"
-                    className="mt-1 rounded text-[9px] font-bold uppercase tracking-[0.08em] text-sky-300 hover:text-sky-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300"
+                    className="mt-1 rounded text-[11px] font-bold uppercase tracking-[0.08em] text-sky-300 hover:text-sky-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300"
                     aria-pressed={showExactTopologies}
                     onClick={() => setShowExactTopologies((shown) => !shown)}
                 >
@@ -326,7 +342,7 @@ export const ValueCurve: React.FC<ValueCurveProps> = ({
                 if (!here?.spreadAdvantage || here.alternatives.length === 0) return null;
                 const worst = here.alternatives[here.alternatives.length - 1];
                 return (
-                    <p className="mt-1 text-[10px] leading-4 text-amber-200/80">
+                    <p className="mt-1 text-[12px] leading-4 text-amber-200/80">
                         {currentPayloadCount} payloads over {here.best.selectedPlanes} planes beats{' '}
                         {worst.selectedPlanes} {worst.selectedPlanes === 1 ? 'plane' : 'planes'} by{' '}
                         {(here.spreadAdvantage * 100).toFixed(0)}% on revisit.

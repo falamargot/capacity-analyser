@@ -18,12 +18,50 @@ const scenario: RevisitScenario = {
 };
 
 describe('REVISIT result sheet', () => {
+    /*
+     * `recommendedPayloadCount: null` used to mean three different things at
+     * once, and the document printed the strongest of them — an impossibility —
+     * in all three cases. Exporting during the ~25 s sweep produced a customer
+     * document stating that nothing meets the requirement, seconds before the
+     * screen recommended a configuration that does.
+     */
+    it('does not claim the requirement is unreachable while the sweep is still running', () => {
+        const analysis = runRevisitScenario(scenario);
+        const sheet = buildRevisitResultSheet(
+            scenario, analysis, 60_000, [], new Date('2026-08-13T12:00:00Z'),
+            { recommendedPayloadCount: null, sizingStatus: 'PENDING' },
+        );
+        expect(sheet.recommendation).toMatch(/still being calculated/i);
+        expect(sheet.recommendation).not.toMatch(/No configuration/i);
+    });
+
+    it('says the sizing failed rather than that nothing meets the requirement', () => {
+        const analysis = runRevisitScenario(scenario);
+        const sheet = buildRevisitResultSheet(
+            scenario, analysis, 60_000, [], new Date('2026-08-13T12:00:00Z'),
+            { recommendedPayloadCount: null, sizingStatus: 'FAILED' },
+        );
+        expect(sheet.recommendation).toMatch(/could not be calculated/i);
+        expect(sheet.recommendation).not.toMatch(/No configuration/i);
+        // The measured result above it is untouched by a sizing failure.
+        expect(sheet.metrics[0].label).toBe('Maximum revisit gap');
+    });
+
+    it('still states the impossibility when the sweep actually completed', () => {
+        const analysis = runRevisitScenario(scenario);
+        const sheet = buildRevisitResultSheet(
+            scenario, analysis, 60_000, [], new Date('2026-08-13T12:00:00Z'),
+            { recommendedPayloadCount: null, sizingStatus: 'MEASURED' },
+        );
+        expect(sheet.recommendation).toMatch(/No configuration on the tested payload range/i);
+    });
+
     it('exports the contractual metric, reproducibility inputs and customer caveats', () => {
         const analysis = runRevisitScenario(scenario);
         const sheet = buildRevisitResultSheet(
             scenario, analysis, 2 * 3600_000, [], new Date('2026-08-13T12:00:00Z')
         );
-        expect(sheet.metrics[0].label).toBe('Worst-case revisit');
+        expect(sheet.metrics[0].label).toBe('Maximum revisit gap');
         expect(sheet.assumptions.map((row) => row.label)).toEqual(expect.arrayContaining([
             'Hosted payloads', 'Host fleet', 'Orbit', 'FOV', 'Analysis window',
         ]));
@@ -69,8 +107,8 @@ describe('REVISIT result sheet', () => {
             scenario, area, 2 * 3600_000, new Date('2026-08-13T12:00:00Z')
         );
         expect(sheet.title).toContain('area');
-        expect(sheet.metrics[0]).toEqual({ label: 'Worst cell', value: '4 h' });
-        expect(sheet.verdict).toBe('AREA MISSES TARGET');
+        expect(sheet.metrics[0]).toEqual({ label: 'Least-covered cell', value: '4 h' });
+        expect(sheet.verdict).toBe('FURTHER ENGINEERING ASSESSMENT REQUIRED');
         expect(sheet.assumptions.map((row) => row.label)).toContain('Area grid');
         expect(sheet.caveats.join(' ')).toMatch(/not an average timeline/i);
     });

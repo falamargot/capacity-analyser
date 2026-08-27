@@ -31,6 +31,7 @@ import {
     type ReferenceMode, type ReferenceProfile,
 } from '../domain/referenceProfiles';
 import { ModelProvenance } from './ModelProvenance';
+import { displayAltitudeKm, displayInclinationDeg } from './revisitTheme';
 import type { WalkerFit } from '../calibration/fitWalker';
 
 interface AdvancedDrawerProps {
@@ -46,7 +47,7 @@ interface AdvancedDrawerProps {
 }
 
 const fieldClass =
-    'w-full rounded border border-slate-600 bg-slate-900/70 px-1.5 py-1 text-[11px] '
+    'w-full rounded border border-slate-600 bg-slate-900/70 px-1.5 py-1 text-[12px] '
     + 'font-bold text-slate-100 outline-none focus:border-amber-400/70';
 
 export const MAX_ADVANCED_PLANES = 24;
@@ -75,7 +76,7 @@ export interface ConstellationModelProps {
     error: string | null;
 }
 
-const sectionLabel = 'text-[9px] font-black uppercase tracking-[0.12em] text-slate-500';
+const sectionLabel = 'text-[11px] font-black uppercase tracking-[0.12em] text-slate-500';
 
 /**
  * Short labels, explanation on hover. The panel has to stay readable at a
@@ -110,10 +111,10 @@ const DetailRow: React.FC<{ label: string; value: string; title: string }> = ({
     label, value, title,
 }) => (
     <div className="flex items-baseline justify-between gap-2" title={title}>
-        <span className="text-[9px] font-black uppercase tracking-[0.08em] text-slate-500">
+        <span className="text-[11px] font-black uppercase tracking-[0.08em] text-slate-500">
             {label}
         </span>
-        <span className="text-[10px] font-bold text-slate-300">{value}</span>
+        <span className="text-[12px] font-bold text-slate-300">{value}</span>
     </div>
 );
 
@@ -173,11 +174,11 @@ const Field: React.FC<{ label: string; hint?: string; children: React.ReactNode 
     label, hint, children,
 }) => (
     <label className="flex flex-col gap-1">
-        <span className="text-[9px] font-black uppercase tracking-[0.1em] text-slate-500">
+        <span className="text-[11px] font-black uppercase tracking-[0.1em] text-slate-500">
             {label}
         </span>
         {children}
-        {hint && <span className="text-[9px] leading-3 text-slate-600">{hint}</span>}
+        {hint && <span className="text-[11px] leading-3 text-slate-600">{hint}</span>}
     </label>
 );
 
@@ -200,10 +201,10 @@ const PayloadGeometryEditor: React.FC<AdvancedDrawerProps> = ({ scenario, onChan
     return (
         <div className="border-t border-slate-700/60 pt-2.5">
             <div className="mb-1.5 flex items-center justify-between gap-2">
-                <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-500">
+                <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
                     Instrument geometry
                 </p>
-                <span className="text-[9px] text-slate-500 tabular-nums">
+                <span className="text-[11px] text-slate-500 tabular-nums">
                     ≈ {Math.round(swathKmForFov(scenario.reference.altitudeKm, draft))} km swath
                 </span>
             </div>
@@ -300,11 +301,11 @@ const PayloadGeometryEditor: React.FC<AdvancedDrawerProps> = ({ scenario, onChan
                 </Field>
             </div>
 
-            <p className="mt-1.5 text-[9px] leading-3 text-slate-500">
+            <p className="mt-1.5 text-[11px] leading-3 text-slate-500">
                 Changes are staged locally to avoid recomputing the analysis and full payload sweep on every keystroke.
             </p>
             {!validation.ok && (
-                <p className="mt-1.5 rounded border border-red-400/40 bg-red-500/10 px-2 py-1 text-[10px] leading-4 text-red-200">
+                <p className="mt-1.5 rounded border border-red-400/40 bg-red-500/10 px-2 py-1 text-[12px] leading-4 text-red-200">
                     {validation.errors.join('; ')}
                 </p>
             )}
@@ -313,7 +314,7 @@ const PayloadGeometryEditor: React.FC<AdvancedDrawerProps> = ({ scenario, onChan
                     type="button"
                     disabled={!dirty}
                     onClick={() => setDraft(scenario.payload)}
-                    className="rounded px-2 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-slate-400 disabled:opacity-40"
+                    className="rounded px-2 py-1 text-[11px] font-black uppercase tracking-[0.1em] text-slate-400 disabled:opacity-40"
                 >
                     Revert
                 </button>
@@ -321,7 +322,7 @@ const PayloadGeometryEditor: React.FC<AdvancedDrawerProps> = ({ scenario, onChan
                     type="button"
                     disabled={!dirty || !validation.ok}
                     onClick={() => onChange({ ...scenario, payload: draft })}
-                    className="rounded border border-amber-400/40 bg-amber-500/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-amber-200 disabled:opacity-40"
+                    className="rounded border border-amber-400/40 bg-amber-500/10 px-2 py-1 text-[11px] font-black uppercase tracking-[0.1em] text-amber-200 disabled:opacity-40"
                 >
                     Apply geometry
                 </button>
@@ -341,6 +342,28 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
     const altitudeLadder = altitudeLadderOf(reference.planeAltitudesKm);
     const raanSpacing = raanSpacingOf(reference);
     const spares = sparesOf(reference.sparesPerPlane);
+
+    /**
+     * The whole specification in one line (Programme 7E).
+     *
+     * A salesperson opening this panel needs `which fleet am I simulating, and
+     * why should the customer believe it` — Model and Evidence. The seven
+     * Walker fields, the three profile arrays, the stride selectors, the
+     * instrument geometry and the analysis window are the engineer's, and they
+     * now live behind `Expert settings`. This sentence is what replaces them at
+     * the first level of reading: still the truth, just not a form.
+     */
+    const characteristicsSummary = [
+        `${reference.planes} planes × ${reference.satsPerPlane} satellites`,
+        `Walker ${reference.pattern}`,
+        // Rounded through the same helpers the header uses: a measured fit
+        // carries raw floats, and `87.90084999999999°` beside the header's
+        // `87.9°` reads as two different numbers.
+        `${displayInclinationDeg(reference.inclinationDeg)}° inclination`,
+        `${displayAltitudeKm(reference.altitudeKm)} km`,
+        altitudeLadder ? 'per-plane altitude ladder' : null,
+        spares ? `${spares.summary} spare` : null,
+    ].filter(Boolean).join(' · ');
 
     /** Editing the constellation must leave the selection legal. */
     const setReference = (patch: Partial<typeof reference>) => {
@@ -383,7 +406,7 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                                             title={option.title}
                                             disabled={model.isRunning}
                                             onClick={() => model.onModeChange(option.id)}
-                                            className={`flex-1 rounded border px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em] transition-colors disabled:opacity-60 ${active
+                                            className={`flex-1 rounded border px-2 py-1 text-[12px] font-black uppercase tracking-[0.08em] transition-colors disabled:opacity-60 ${active
                                                 ? 'border-amber-400/60 bg-amber-400/15 text-amber-100'
                                                 : 'border-slate-600 text-slate-400 hover:border-slate-500 hover:text-slate-200'}`}
                                         >
@@ -393,10 +416,52 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                                 })}
                             </div>
                             {model.error && (
-                                <p className="mb-2 text-[9px] leading-3 text-red-300">{model.error}</p>
+                                <p className="mb-2 text-[11px] leading-3 text-red-300">{model.error}</p>
                             )}
                         </>
                     )}
+                    {/* One line instead of a form: Model and Evidence are
+                        what a commercial reading of this panel needs
+                        (Programme 7E). */}
+                    <div className="mb-1.5 flex items-start justify-between gap-2">
+                        <p className={sectionLabel}>
+                            {model ? 'Characteristics' : 'Reference constellation'}
+                        </p>
+                        {matchesHldProfile && model?.mode === 'CUSTOM' && (
+                            <span
+                                title="These values are identical to the HLD reference profile, including its plane-altitude ladder, RAAN seam and spares."
+                                className="shrink-0 rounded border border-lime-400/40 px-1.5 py-0.5 text-[11px] font-black uppercase tracking-[0.08em] text-lime-200"
+                            >
+                                = HLD
+                            </span>
+                        )}
+                    </div>
+                    <p className="revisit-characteristics-summary mb-2 text-[12px] leading-5 text-slate-300">
+                        {characteristicsSummary}
+                    </p>
+                    {model && (
+                        <div className="mt-2 border-t border-slate-700/50 pt-2">
+                            <ModelProvenance
+                                profile={model.profile}
+                                fit={model.fit}
+                                mode={model.mode}
+                                isRestored={model.isRestored}
+                            />
+                        </div>
+                    )}
+                </div>
+
+                <details className="revisit-expert-settings border-t border-slate-700/60 pt-2">
+                    <summary className="flex min-h-11 cursor-pointer items-center gap-2 text-[11px] font-black uppercase tracking-[0.12em] text-slate-400 hover:text-amber-200 md:min-h-0">
+                        Expert settings
+                    </summary>
+                    <p className="mt-1 text-[11px] leading-4 text-slate-500">
+                        Walker parameters, hosted-payload topology, instrument
+                        geometry and the analysis window. Editing these changes
+                        what is simulated, not how it is presented.
+                    </p>
+                    <div className="mt-2 space-y-3">
+                    <div>
                     <div className="mb-1.5 flex items-center justify-between gap-2">
                         <p className={sectionLabel}>
                             {model ? 'Characteristics' : 'Reference constellation'}
@@ -404,7 +469,7 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                         {fieldsLocked && (
                             <span
                                 title="The HLD reference and the measured shell are records of something external, so their values are shown as they are. Choose Custom to edit them."
-                                className="text-[9px] font-black uppercase tracking-[0.08em] text-slate-500"
+                                className="text-[11px] font-black uppercase tracking-[0.08em] text-slate-500"
                             >
                                 Custom to edit
                             </span>
@@ -412,7 +477,7 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                         {matchesHldProfile && model?.mode === 'CUSTOM' && (
                             <span
                                 title="These values are identical to the HLD reference profile, including its plane-altitude ladder, RAAN seam and spares."
-                                className="rounded border border-lime-400/40 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-lime-200"
+                                className="rounded border border-lime-400/40 px-1.5 py-0.5 text-[11px] font-black uppercase tracking-[0.08em] text-lime-200"
                             >
                                 = HLD
                             </span>
@@ -500,7 +565,7 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                             />
                         </Field>
                         <Field label="Total">
-                            <div className="px-1.5 py-1 text-[11px] font-bold text-slate-400">
+                            <div className="px-1.5 py-1 text-[12px] font-bold text-slate-400">
                                 {reference.planes * reference.satsPerPlane} sats
                             </div>
                         </Field>
@@ -532,21 +597,9 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                             />
                         </div>
                     )}
-
-                    {model && (
-                        <div className="mt-2 border-t border-slate-700/50 pt-2">
-                            <ModelProvenance
-                                profile={model.profile}
-                                fit={model.fit}
-                                mode={model.mode}
-                                isRestored={model.isRestored}
-                            />
-                        </div>
-                    )}
-                </div>
-
+                    </div>
                 <div className="border-t border-slate-700/60 pt-2.5">
-                    <p className="mb-1.5 text-[9px] font-black uppercase tracking-[0.12em] text-slate-500">
+                    <p className="mb-1.5 text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
                         Hosted-payload selection
                     </p>
                     <div className="grid grid-cols-3 gap-2">
@@ -588,7 +641,7 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                         </Field>
                     </div>
 
-                    <p className="mt-1.5 text-[10px] text-slate-400">
+                    <p className="mt-1.5 text-[12px] text-slate-400">
                         <span className="font-black text-amber-300">
                             {payloadCount(reference, selection)}
                         </span>{' '}
@@ -597,7 +650,7 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                     </p>
 
                     {showDegeneracy && (
-                        <p className="mt-1.5 rounded border border-amber-400/40 bg-amber-500/10 px-2 py-1 text-[10px] leading-4 text-amber-200">
+                        <p className="mt-1.5 rounded border border-amber-400/40 bg-amber-500/10 px-2 py-1 text-[12px] leading-4 text-amber-200">
                             {validation.warnings[0]}
                         </p>
                     )}
@@ -606,7 +659,7 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                 <PayloadGeometryEditor scenario={scenario} onChange={onChange} />
 
                 <div className="border-t border-slate-700/60 pt-2.5">
-                    <p className="mb-1.5 text-[9px] font-black uppercase tracking-[0.12em] text-slate-500">
+                    <p className="mb-1.5 text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
                         Analysis window
                     </p>
                     <div className="grid grid-cols-2 gap-2">
@@ -644,6 +697,8 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                         </Field>
                     </div>
                 </div>
+                    </div>
+                </details>
         </div>
     );
 
@@ -651,10 +706,10 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
         return (
             <section className="px-3 py-3" aria-label="Constellation settings">
                 <div className="mb-3 border-b border-slate-700/60 pb-2">
-                    <p className="text-[9px] font-black uppercase tracking-[0.14em] text-amber-300">
+                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-amber-300">
                         Constellation settings
                     </p>
-                    <p className="mt-0.5 text-[9px] text-slate-500">
+                    <p className="mt-0.5 text-[11px] text-slate-500">
                         Walker model, hosted-payload topology, instrument geometry and analysis window
                     </p>
                 </div>

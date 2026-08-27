@@ -51,6 +51,16 @@ export interface AreaTarget {
     gridSpacingDeg: number;
 }
 
+/**
+ * Identity of the expensive gridded computation. The user-facing name is
+ * deliberately absent: renaming an already analysed Area must not discard its
+ * heat map or launch hundreds of point runs. `id` remains because a fresh draw
+ * session is a different Area even when its coordinates happen to match.
+ */
+export function areaAnalysisKey(area: AreaTarget | null): string {
+    return JSON.stringify(area ? [area.id ?? null, area.boundary, area.gridSpacingDeg] : null);
+}
+
 /** Valid WGS84 latitude, degrees. */
 export function isValidLatDeg(value: number): boolean {
     return Number.isFinite(value) && value >= -90 && value <= 90;
