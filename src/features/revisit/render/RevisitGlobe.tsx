@@ -42,10 +42,12 @@ interface RevisitGlobeProps {
     selectedIds: Set<string>;
     options: RevisitSceneOptions;
     getTimeMs: () => number;
-    /** Per-cell area results to drape as a heat map. Null hides the layer. */
-    areaAnalysis: AreaAnalysis | null;
-    /** P2b-A polygon being drawn/imported; previewed without triggering analysis. */
-    areaDraft: AreaTarget | null;
+    /** Both computed grids stay draped; selection only changes their opacity. */
+    referenceAreaAnalysis: AreaAnalysis | null;
+    comparisonAreaAnalysis: AreaAnalysis | null;
+    /** Both target geometries stay visible; selection only changes emphasis. */
+    referenceArea: AreaTarget | null;
+    comparisonArea: AreaTarget | null;
     isDrawingArea: boolean;
     analysisContext: RevisitAnalysisContext;
     hasReferenceTarget: boolean;
@@ -146,7 +148,9 @@ function createComparisonSelectionHalo(): HTMLCanvasElement {
 }
 
 export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
-    scenario, fleet, selectedIds, options, getTimeMs, areaAnalysis, areaDraft,
+    scenario, fleet, selectedIds, options, getTimeMs,
+    referenceAreaAnalysis, comparisonAreaAnalysis,
+    referenceArea, comparisonArea,
     isDrawingArea, analysisContext, hasReferenceTarget, areaTargetRole, referenceIsArea,
     comparisonPoints, secondaryTargetOrder, selectedPointId,
     requirementMs, autoRotate, onPickTarget,
@@ -155,7 +159,10 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
     const viewerRef = useRef<CesiumViewer | null>(null);
     const frameForCurrentLayoutRef = useRef<(() => void) | null>(null);
     const [viewer, setViewer] = useState<CesiumViewer | null>(null);
-    const areaDraftPointsRef = useRef<{ id: string | null; points: PointPrimitiveCollection } | null>(null);
+    const areaDraftPointsRef = useRef<Record<RevisitAreaTargetRole, {
+        id: string | null;
+        points: PointPrimitiveCollection;
+    } | null>>({ REFERENCE: null, COMPARISON: null });
 
     const handleViewerRef = useCallback((ref: CesiumComponentRef<CesiumViewer> | null) => {
         const instance = ref?.cesiumElement ?? null;
@@ -478,119 +485,156 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
         };
     }, [viewer, comparisonPoints, secondaryTargetOrder, selectedPointId, analysisContext]);
 
-    // ── P2b-A polygon preview ───────────────────────────────────────────────
-    // Entities are rebuilt on every vertex, but the point PRIMITIVE COLLECTION
-    // — the expensive part, a GPU buffer allocation via `scene.primitives.add`
-    // — is kept alive across edits to the SAME draft (matched by `id`, not the
-    // user-editable `name`) and merely repopulated. A 20-30 vertex freehand
-    // draw then costs 20-30 cheap `removeAll`/`add` passes instead of 20-30
-    // full primitive-collection create/destroy cycles.
+    // ── P2b-A polygon targets ───────────────────────────────────────────────
+    // Both role geometries are rendered at all times. Selection changes only
+    // emphasis; it must never decide which customer target exists on the globe.
+    // Each role owns a persistent point collection so editing the active draft
+    // does not churn GPU collections or disturb the other polygon.
     useEffect(() => {
         if (!viewer || viewer.isDestroyed?.()) return;
-        if (!areaDraft || areaDraft.boundary.length === 0) {
-            const existing = areaDraftPointsRef.current;
-            if (existing) {
-                viewer.scene.primitives.remove(existing.points);
-                areaDraftPointsRef.current = null;
-                viewer.scene.requestRender();
+        const visibleRoles: string[] = [];
+        const added = [
+            { role: 'REFERENCE' as const, area: referenceArea },
+            { role: 'COMPARISON' as const, area: comparisonArea },
+        ].flatMap(({ role, area }) => {
+            let handles = areaDraftPointsRef.current[role];
+            if (!area || area.boundary.length === 0) {
+                if (handles) {
+                    viewer.scene.primitives.remove(handles.points);
+                    areaDraftPointsRef.current[role] = null;
+                }
+                return [];
             }
-            return;
-        }
-        const belongsToVisibleAnalysis = Boolean(areaAnalysis?.area.id)
-            && areaAnalysis?.area.id === areaDraft.id;
-        if (!isDrawingArea && areaAnalysis && !belongsToVisibleAnalysis) return;
+            visibleRoles.push(role.toLowerCase());
 
-        const draftId = areaDraft.id ?? null;
-        let handles = areaDraftPointsRef.current;
-        if (!handles || handles.id !== draftId) {
-            if (handles) viewer.scene.primitives.remove(handles.points);
-            handles = { id: draftId, points: viewer.scene.primitives.add(new PointPrimitiveCollection()) };
-            areaDraftPointsRef.current = handles;
-        }
+            const draftId = area.id ?? null;
+            if (!handles || handles.id !== draftId) {
+                if (handles) viewer.scene.primitives.remove(handles.points);
+                handles = {
+                    id: draftId,
+                    points: viewer.scene.primitives.add(new PointPrimitiveCollection()),
+                };
+                areaDraftPointsRef.current[role] = handles;
+            }
 
-        const positions = areaDraft.boundary.map((point) => (
-            Cartesian3.fromDegrees(point.lonDeg, point.latDeg, 250)
-        ));
-        const areaSelected = analysisContext === 'AREA';
-        const pointColor = Color.fromCssColorString(
-            areaTargetRole === 'REFERENCE' ? REVISIT_COLORS.target : REVISIT_COLORS.comparison
-        );
-        handles.points.removeAll();
-        for (const position of positions) {
-            handles.points.add({
-                position,
-                color: pointColor,
-                pixelSize: 8,
-                outlineColor: Color.fromCssColorString('#05070D'),
-                outlineWidth: 2,
-            });
-        }
+            const positions = area.boundary.map((point) => (
+                Cartesian3.fromDegrees(point.lonDeg, point.latDeg, 250)
+            ));
+            const selected = analysisContext === 'AREA' && areaTargetRole === role;
+            const pointColor = Color.fromCssColorString(
+                role === 'REFERENCE' ? REVISIT_COLORS.target : REVISIT_COLORS.comparison
+            );
+            handles.points.removeAll();
+            for (const position of positions) {
+                handles.points.add({
+                    position,
+                    color: pointColor.withAlpha(selected ? 1 : 0.7),
+                    pixelSize: selected ? 8 : 6,
+                    outlineColor: Color.fromCssColorString('#05070D'),
+                    outlineWidth: 2,
+                });
+            }
 
-        const outlinePositions = positions.length >= 3 ? [...positions, positions[0]] : positions;
-        const outline = positions.length >= 2 ? viewer.entities.add({
-            polyline: {
-                positions: outlinePositions,
-                width: areaSelected ? 3.5 : 2.5,
-                material: pointColor.withAlpha(0.95),
-            },
-        }) : null;
-        const fill = positions.length >= 3 ? viewer.entities.add({
-            polygon: {
-                hierarchy: new PolygonHierarchy(positions),
-                material: pointColor.withAlpha(0.12),
-                height: 0,
-            },
-        }) : null;
-
-        viewer.scene.requestRender();
-        return () => {
-            if (viewer.isDestroyed?.()) return;
-            if (outline) viewer.entities.remove(outline);
-            if (fill) viewer.entities.remove(fill);
-            viewer.scene.requestRender();
-        };
-    }, [viewer, areaDraft, areaAnalysis, isDrawingArea, analysisContext, areaTargetRole]);
-
-    // The persisted point collection above outlives any single effect run —
-    // release it only when the viewer itself goes away.
-    useEffect(() => () => {
-        const handles = areaDraftPointsRef.current;
-        if (handles && viewer && !viewer.isDestroyed?.()) {
-            viewer.scene.primitives.remove(handles.points);
-        }
-        areaDraftPointsRef.current = null;
-    }, [viewer]);
-
-    // ── Area heat map ───────────────────────────────────────────────────────
-    // One rectangle per grid cell, as entities. Cell counts are bounded to 400
-    // by validateArea, which is well inside what the entity layer handles — the
-    // per-entity cost that the 256-satellite fleet must avoid does not bite at
-    // this scale, and rectangles are static so they never update per frame.
-    useEffect(() => {
-        if (!viewer || viewer.isDestroyed?.() || !areaAnalysis) return;
-
-        const half = areaAnalysis.area.gridSpacingDeg / 2;
-        const added = areaAnalysis.cells.map((cell) => {
-            const { rgb } = heatColorFor(cell.maxGapMs, requirementMs);
-            return viewer.entities.add({
-                rectangle: {
-                    coordinates: Rectangle.fromDegrees(
-                        cell.target.lonDeg - half, cell.target.latDeg - half,
-                        cell.target.lonDeg + half, cell.target.latDeg + half,
-                    ),
-                    material: new Color(rgb[0], rgb[1], rgb[2], 0.55),
-                    height: 0,
-                },
-            });
+            const entities = [];
+            const outlinePositions = positions.length >= 3 ? [...positions, positions[0]] : positions;
+            if (positions.length >= 2) {
+                entities.push(viewer.entities.add({
+                    polyline: {
+                        positions: outlinePositions,
+                        width: selected ? 3.5 : 2.25,
+                        material: pointColor.withAlpha(selected ? 0.95 : 0.68),
+                    },
+                }));
+            }
+            if (positions.length >= 3) {
+                entities.push(viewer.entities.add({
+                    polygon: {
+                        hierarchy: new PolygonHierarchy(positions),
+                        material: pointColor.withAlpha(selected ? 0.12 : 0.06),
+                        height: 0,
+                    },
+                }));
+            }
+            return entities;
         });
 
+        // Mirrors the layers actually installed by this effect. Besides making
+        // the scene state inspectable in diagnostics, this guards the exact
+        // regression where two definitions reached the globe but one layer was
+        // silently omitted.
+        viewer.container.setAttribute('data-revisit-area-layers', visibleRoles.join(','));
         viewer.scene.requestRender();
         return () => {
             if (viewer.isDestroyed?.()) return;
             for (const entity of added) viewer.entities.remove(entity);
+            viewer.container.removeAttribute('data-revisit-area-layers');
             viewer.scene.requestRender();
         };
-    }, [viewer, areaAnalysis, requirementMs]);
+    }, [viewer, referenceArea, comparisonArea, analysisContext, areaTargetRole]);
+
+    // The persisted point collection above outlives any single effect run —
+    // release it only when the viewer itself goes away.
+    useEffect(() => () => {
+        if (viewer && !viewer.isDestroyed?.()) {
+            for (const handles of Object.values(areaDraftPointsRef.current)) {
+                if (handles) viewer.scene.primitives.remove(handles.points);
+            }
+        }
+        areaDraftPointsRef.current = { REFERENCE: null, COMPARISON: null };
+    }, [viewer]);
+
+    // ── Area heat maps ──────────────────────────────────────────────────────
+    // One rectangle per grid cell, as entities. Cell counts are bounded to 400
+    // by validateArea, which is well inside what the entity layer handles — the
+    // per-entity cost that the 256-satellite fleet must avoid does not bite at
+    // this scale, and rectangles are static so they never update per frame.
+    // Both target grids stay visible; the selected result is stronger and is
+    // installed last so it remains the visual foreground if the Areas overlap.
+    useEffect(() => {
+        if (!viewer || viewer.isDestroyed?.()) return;
+
+        const layers = [
+            { role: 'REFERENCE' as const, analysis: referenceAreaAnalysis },
+            { role: 'COMPARISON' as const, analysis: comparisonAreaAnalysis },
+        ].filter((layer): layer is {
+            role: RevisitAreaTargetRole;
+            analysis: AreaAnalysis;
+        } => Boolean(layer.analysis)).sort((left, right) => (
+            Number(left.role === areaTargetRole) - Number(right.role === areaTargetRole)
+        ));
+        const added = layers.flatMap(({ role, analysis }) => {
+            const half = analysis.area.gridSpacingDeg / 2;
+            const selected = analysisContext === 'AREA' && areaTargetRole === role;
+            return analysis.cells.map((cell) => {
+                const { rgb } = heatColorFor(cell.maxGapMs, requirementMs);
+                return viewer.entities.add({
+                    rectangle: {
+                        coordinates: Rectangle.fromDegrees(
+                            cell.target.lonDeg - half, cell.target.latDeg - half,
+                            cell.target.lonDeg + half, cell.target.latDeg + half,
+                        ),
+                        material: new Color(rgb[0], rgb[1], rgb[2], selected ? 0.55 : 0.3),
+                        height: 0,
+                    },
+                });
+            });
+        });
+
+        viewer.container.setAttribute(
+            'data-revisit-area-analysis-layers',
+            layers.map(({ role }) => role.toLowerCase()).sort().join(','),
+        );
+        viewer.scene.requestRender();
+        return () => {
+            if (viewer.isDestroyed?.()) return;
+            for (const entity of added) viewer.entities.remove(entity);
+            viewer.container.removeAttribute('data-revisit-area-analysis-layers');
+            viewer.scene.requestRender();
+        };
+    }, [
+        viewer, referenceAreaAnalysis, comparisonAreaAnalysis,
+        requirementMs, analysisContext, areaTargetRole,
+    ]);
 
     return (
         <ResiumViewer

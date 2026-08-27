@@ -138,7 +138,6 @@ test.describe('REVISIT P7B presentation safety', () => {
     const hostFleet = page.getByRole('button', { name: 'Host fleet', exact: true });
     const labels = page.getByRole('button', { name: 'Satellite labels', exact: true });
     await orbits.click();
-    await labels.click();
     await expect(orbits).toHaveAttribute('aria-pressed', 'false');
     await expect(hostFleet).toHaveAttribute('aria-pressed', 'true');
     await expect(labels).toHaveAttribute('aria-pressed', 'true');

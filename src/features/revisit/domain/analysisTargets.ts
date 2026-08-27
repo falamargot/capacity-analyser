@@ -9,6 +9,10 @@ export type RevisitAreaTargetRole = 'REFERENCE' | 'COMPARISON';
 export const REFERENCE_POINT_ID = 'REFERENCE' as const;
 /** Stable id used by the ordered secondary-target list for its single area. */
 export const AREA_TARGET_ID = 'AREA_TARGET' as const;
+/** UI identity for the reference Area lane. It must differ from the secondary
+ * Area id when both roles are polygons, otherwise React and lane selection
+ * cannot tell the two simultaneously displayed results apart. */
+export const REFERENCE_AREA_TARGET_ID = 'REFERENCE_AREA_TARGET' as const;
 
 export interface RevisitComparisonPoint {
     id: string;

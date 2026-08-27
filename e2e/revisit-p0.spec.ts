@@ -134,7 +134,10 @@ test.describe('REVISIT P0 demonstration contract', () => {
   test('keeps every globe display control directly reachable', async ({ page }) => {
     await openRevisitDisplayControls(page);
     await expect(page.getByRole('button', { name: 'Host fleet' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Auto-rotate globe' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Satellite labels' }))
+      .toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('button', { name: 'Auto-rotate globe' }))
+      .toHaveAttribute('aria-pressed', 'false');
     await expect(page.getByText('Reduced globe load', { exact: true })).toHaveCount(0);
   });
 

@@ -152,15 +152,13 @@ test.describe('REVISIT P1 requirement contract', () => {
     await expect(page.getByRole('combobox', { name: 'Instrument preset' })).toHaveValue('CUSTOM');
   });
 
-  test('keeps labels opt-in, bounded and lifecycle-neutral', async ({ page }, testInfo) => {
+  test('keeps default labels bounded and lifecycle-neutral', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop-chromium', 'Lifecycle counters are viewport-independent');
     await openRevisitDisplayControls(page);
     const labels = page.getByRole('button', { name: 'Satellite labels' });
-    await expect(labels).toHaveAttribute('aria-pressed', 'false');
-
-    // Warm the bounded Cesium glyph atlas once, then measure repeated toggles.
-    await labels.click({ force: true });
     await expect(labels).toHaveAttribute('aria-pressed', 'true');
+
+    // The bounded Cesium glyph atlas is warm by default; then measure toggles.
     const renderedLabels = await page.evaluate(() => {
       const viewer = (window as unknown as { __revisitViewer?: {
         scene: { primitives: { length: number; get: (index: number) => unknown } };
@@ -177,6 +175,7 @@ test.describe('REVISIT P1 requirement contract', () => {
       expect(renderedLabels).toBeLessThanOrEqual(96);
     }
     await labels.click({ force: true });
+    await expect(labels).toHaveAttribute('aria-pressed', 'false');
     await page.waitForTimeout(500);
 
     const initial = await page.evaluate(() => (

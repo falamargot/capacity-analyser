@@ -38,6 +38,49 @@ async function configureMixedTargets(page: import('@playwright/test').Page) {
 }
 
 test.describe('REVISIT P2c-C mixed target comparison', () => {
+  test('computes and retains both polygon roles independently', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop-chromium', 'Dual-polygon worker ownership is viewport-independent');
+
+    const targetSet = page.locator('[data-revisit-context-panel="analysis-target"]');
+    await targetSet.getByRole('button', { name: 'Remove reference target' }).click();
+    await targetSet.getByRole('button', { name: 'Add reference target' }).click();
+    await targetSet.getByRole('menuitem', { name: 'Add polygon reference target' }).click();
+
+    let editor = page.getByRole('region', { name: 'Area coverage' });
+    await editor.getByText('Paste coordinate list', { exact: true }).click();
+    await editor.getByLabel('Custom area coordinate list')
+      .fill('18, 30\n18, 36\n22, 36\n22, 30');
+    await editor.getByRole('button', { name: 'Apply list' }).click();
+    await targetSet.getByRole('button', { name: /reference polygon/i }).first().click();
+
+    await addSecondaryArea(page);
+    editor = page.getByRole('dialog', { name: 'Define area target' });
+    await editor.getByText('Paste coordinate list', { exact: true }).click();
+    await editor.getByLabel('Custom area coordinate list')
+      .fill('8, 75\n8, 82\n13, 82\n13, 75');
+    await editor.getByRole('button', { name: 'Apply list' }).click();
+    await openRevisitAnalysis(page);
+
+    const comparison = page.getByRole('region', { name: 'Target comparison' });
+    const referenceRow = comparison.locator('[data-revisit-comparison-row="REFERENCE_AREA_TARGET"]');
+    const comparisonRow = comparison.locator('[data-revisit-comparison-row="AREA_TARGET"]');
+    await expect(referenceRow).toBeVisible();
+    await expect(comparisonRow).toBeVisible();
+    await expect(page.locator('[data-revisit-area-layers="reference,comparison"]')).toBeVisible();
+    await expect(referenceRow).not.toContainText(/Preparing|Computing|Select to analyse/, { timeout: 60_000 });
+    await expect(comparisonRow).not.toContainText(/Preparing|Computing|Select to analyse/, { timeout: 60_000 });
+    await expect(page.locator('[data-revisit-area-analysis-layers="comparison,reference"]')).toBeVisible();
+
+    const referenceResult = await referenceRow.textContent();
+    const comparisonResult = await comparisonRow.textContent();
+    await referenceRow.click();
+    await expect(page.getByLabel('Active result context')).toContainText('Reference area');
+    await comparisonRow.click();
+    await expect(page.getByLabel('Active result context')).toContainText('Comparison area');
+    await expect(referenceRow).toHaveText(referenceResult ?? '');
+    await expect(comparisonRow).toHaveText(comparisonResult ?? '');
+  });
+
   test('compares Point and Area on one qualified contractual metric and synchronises selection', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop-chromium', 'Desktop sidecar contract');
     await configureMixedTargets(page);

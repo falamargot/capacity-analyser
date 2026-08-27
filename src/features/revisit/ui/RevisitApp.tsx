@@ -44,7 +44,7 @@ import {
     areaAnalysisKey, MAX_AREA_VERTICES, recommendedAreaGridSpacing, validateArea, type AreaTarget,
 } from '../domain/areaTarget';
 import {
-    AREA_TARGET_ID, MAX_SECONDARY_TARGETS, REFERENCE_POINT_ID,
+    AREA_TARGET_ID, MAX_SECONDARY_TARGETS, REFERENCE_AREA_TARGET_ID, REFERENCE_POINT_ID,
     type RevisitAnalysisContext, type RevisitAreaTargetRole, type RevisitComparisonPoint,
 } from '../domain/analysisTargets';
 import {
@@ -164,10 +164,8 @@ function defaultDisplayOptions(): DisplayOptions {
         showOrbits: true,
         showSwaths: true,
         showHostFleet: true,
-        showLabels: false,
-        autoRotate: typeof window === 'undefined'
-            ? true
-            : !window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+        showLabels: true,
+        autoRotate: false,
     };
 }
 
@@ -679,7 +677,8 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     }, []);
 
     const handleSelectedTargetChange = useCallback((id: string) => {
-        if (id === AREA_TARGET_ID) {
+        if (id === REFERENCE_AREA_TARGET_ID || id === AREA_TARGET_ID) {
+            setAreaTargetRole(id === REFERENCE_AREA_TARGET_ID ? 'REFERENCE' : 'COMPARISON');
             setAnalysisContext('AREA');
             return;
         }
@@ -788,22 +787,46 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     }, [sweep, executiveEnvelope, requirementMs, currentPayloadCount]);
 
     const calibration = useOneWebCalibration();
-    // The DEFINED area is part of the result's freshness key: redrawing or
-    // re-pasting the polygon must not leave the previous area's worst cell and
-    // heat map on screen under the new area's name (Programme 7C).
-    const areaRun = useAreaAnalysis(scenario, customArea);
-    const displayedAreaAnalysis = useMemo(() => {
-        if (!areaRun.analysis || !customArea || areaRun.analysis.area.name === customArea.name) {
-            return areaRun.analysis;
+    // Each role owns an independent worker and result slot. A single area run
+    // keyed to `customArea` made role selection an accidental computation
+    // switch: selecting Comparison discarded Reference (and vice versa).
+    // Keeping both hooks mounted lets both defined polygons compute and remain
+    // available just like the point-target comparison rows do.
+    const referenceAreaRun = useAreaAnalysis(scenario, referenceArea);
+    const comparisonAreaRun = useAreaAnalysis(scenario, comparisonArea);
+    const areaRun = areaTargetRole === 'REFERENCE' ? referenceAreaRun : comparisonAreaRun;
+    const displayedReferenceAreaAnalysis = useMemo(() => {
+        if (
+            !referenceAreaRun.analysis
+            || !referenceArea
+            || referenceAreaRun.analysis.area.name === referenceArea.name
+        ) {
+            return referenceAreaRun.analysis;
         }
-        // The name is presentation metadata, not a physical input. Keep the
-        // computed cells and update only the label used by cards and exports.
         return {
-            ...areaRun.analysis,
-            area: { ...areaRun.analysis.area, name: customArea.name },
+            ...referenceAreaRun.analysis,
+            area: { ...referenceAreaRun.analysis.area, name: referenceArea.name },
         };
-    }, [areaRun.analysis, customArea]);
-    const activeMainThreadFallback = pointMainThreadFallback || areaRun.isMainThreadFallback;
+    }, [referenceAreaRun.analysis, referenceArea]);
+    const displayedComparisonAreaAnalysis = useMemo(() => {
+        if (
+            !comparisonAreaRun.analysis
+            || !comparisonArea
+            || comparisonAreaRun.analysis.area.name === comparisonArea.name
+        ) {
+            return comparisonAreaRun.analysis;
+        }
+        return {
+            ...comparisonAreaRun.analysis,
+            area: { ...comparisonAreaRun.analysis.area, name: comparisonArea.name },
+        };
+    }, [comparisonAreaRun.analysis, comparisonArea]);
+    const displayedAreaAnalysis = areaTargetRole === 'REFERENCE'
+        ? displayedReferenceAreaAnalysis
+        : displayedComparisonAreaAnalysis;
+    const activeMainThreadFallback = pointMainThreadFallback
+        || referenceAreaRun.isMainThreadFallback
+        || comparisonAreaRun.isMainThreadFallback;
 
     /*
      * ── THE COMMERCIAL ANSWER (Programme 7A) ────────────────────────────────
@@ -1112,18 +1135,27 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         activeResultError, activeResult, activeResultIsComputing, analysisContext,
         sweepError, sweep, isSweeping, isConfigurationSettling,
     ]);
-    const runAreaAnalysis = areaRun.run;
-    const lastAutoAreaRunKeyRef = useRef<string | null>(null);
-    const autoAreaRunKey = useMemo(() => customArea ? JSON.stringify([
-        areaAnalysisKey(customArea),
+    const runReferenceAreaAnalysis = referenceAreaRun.run;
+    const runComparisonAreaAnalysis = comparisonAreaRun.run;
+    const lastAutoReferenceAreaRunKeyRef = useRef<string | null>(null);
+    const lastAutoComparisonAreaRunKeyRef = useRef<string | null>(null);
+    const referenceAutoAreaRunKey = useMemo(() => referenceArea ? JSON.stringify([
+        areaAnalysisKey(referenceArea),
         scenario.reference,
         scenario.selection,
         scenario.payload,
         scenario.window,
-    ]) : null, [customArea, scenario.reference, scenario.selection, scenario.payload, scenario.window]);
+    ]) : null, [referenceArea, scenario.reference, scenario.selection, scenario.payload, scenario.window]);
+    const comparisonAutoAreaRunKey = useMemo(() => comparisonArea ? JSON.stringify([
+        areaAnalysisKey(comparisonArea),
+        scenario.reference,
+        scenario.selection,
+        scenario.payload,
+        scenario.window,
+    ]) : null, [comparisonArea, scenario.reference, scenario.selection, scenario.payload, scenario.window]);
 
     /**
-     * Area analysis follows a valid, stable definition automatically. The
+     * Each Area analysis follows its valid, stable definition automatically.
      * debounce is deliberate: drawing vertices and editing numeric fields must
      * cancel obsolete work, not enqueue a full grid run for every intermediate
      * value. Scenario settling is also awaited so the worker receives the
@@ -1131,44 +1163,61 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
      */
     useEffect(() => {
         if (
-            analysisContext !== 'AREA'
-            || isDrawingArea
+            (isDrawingArea && areaTargetRole === 'REFERENCE')
             || isConfigurationSettling
-            || !customArea
-            || !autoAreaRunKey
-            || lastAutoAreaRunKeyRef.current === autoAreaRunKey
-            || !validateArea(customArea, scenario.reference, scenario.payload).ok
+            || !referenceArea
+            || !referenceAutoAreaRunKey
+            || lastAutoReferenceAreaRunKeyRef.current === referenceAutoAreaRunKey
+            || !validateArea(referenceArea, scenario.reference, scenario.payload).ok
         ) return;
 
         const timeout = window.setTimeout(() => {
-            lastAutoAreaRunKeyRef.current = autoAreaRunKey;
-            runAreaAnalysis(customArea);
+            lastAutoReferenceAreaRunKeyRef.current = referenceAutoAreaRunKey;
+            runReferenceAreaAnalysis(referenceArea);
         }, 450);
         return () => window.clearTimeout(timeout);
     }, [
-        analysisContext, isDrawingArea, isConfigurationSettling, customArea,
-        autoAreaRunKey, scenario.reference, scenario.payload, runAreaAnalysis,
+        isDrawingArea, areaTargetRole, isConfigurationSettling, referenceArea,
+        referenceAutoAreaRunKey, scenario.reference, scenario.payload,
+        runReferenceAreaAnalysis,
+    ]);
+    useEffect(() => {
+        if (
+            (isDrawingArea && areaTargetRole === 'COMPARISON')
+            || isConfigurationSettling
+            || !comparisonArea
+            || !comparisonAutoAreaRunKey
+            || lastAutoComparisonAreaRunKeyRef.current === comparisonAutoAreaRunKey
+            || !validateArea(comparisonArea, scenario.reference, scenario.payload).ok
+        ) return;
+
+        const timeout = window.setTimeout(() => {
+            lastAutoComparisonAreaRunKeyRef.current = comparisonAutoAreaRunKey;
+            runComparisonAreaAnalysis(comparisonArea);
+        }, 450);
+        return () => window.clearTimeout(timeout);
+    }, [
+        isDrawingArea, areaTargetRole, isConfigurationSettling, comparisonArea,
+        comparisonAutoAreaRunKey, scenario.reference, scenario.payload,
+        runComparisonAreaAnalysis,
     ]);
     const warnings = useMemo(() => analysisContext === 'AREA' ? [] : [...new Set([
         ...(inspectedAnalysis?.warnings ?? []), ...(sweep?.warnings ?? []),
     ])], [analysisContext, inspectedAnalysis, sweep]);
     const targetSetTimelineLanes = useMemo<CoverageRibbonTarget[]>(() => {
         if (!hasReferenceTarget) return [];
-        const referenceAreaAnalysis = referenceArea && areaTargetRole === 'REFERENCE'
-            ? displayedAreaAnalysis
-            : null;
         const rows: CoverageRibbonTarget[] = referenceArea ? [{
-            id: AREA_TARGET_ID,
+            id: REFERENCE_AREA_TARGET_ID,
             kind: 'AREA',
             roleLabel: 'Reference',
             basisLabel: 'Least-covered cell',
             label: `Reference · ${referenceArea.name} · least-covered cell`,
             name: referenceArea.name,
-            intervals: referenceAreaAnalysis?.worstCellIntervals ?? [],
-            statistics: referenceAreaAnalysis?.worstCell?.statistics ?? null,
-            statusLabel: areaRun.isRunning ? 'Computing…' : referenceArea.boundary.length < 3 ? 'Define polygon' : null,
-            unbounded: Boolean(referenceAreaAnalysis?.neverInViewCount),
-            selected: analysisContext === 'AREA',
+            intervals: displayedReferenceAreaAnalysis?.worstCellIntervals ?? [],
+            statistics: displayedReferenceAreaAnalysis?.worstCell?.statistics ?? null,
+            statusLabel: referenceAreaRun.isRunning ? 'Computing…' : referenceArea.boundary.length < 3 ? 'Define polygon' : null,
+            unbounded: Boolean(displayedReferenceAreaAnalysis?.neverInViewCount),
+            selected: analysisContext === 'AREA' && areaTargetRole === 'REFERENCE',
         }] : [{
             id: REFERENCE_POINT_ID,
             kind: 'POINT',
@@ -1187,7 +1236,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         secondaryTargetOrder.forEach((id) => {
             const roleLabel = 'Comparison';
             if (id === AREA_TARGET_ID) {
-                const area = areaTargetRole === 'COMPARISON' ? displayedAreaAnalysis : null;
+                const area = displayedComparisonAreaAnalysis;
                 rows.push({
                     id,
                     kind: 'AREA',
@@ -1197,13 +1246,13 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                     name: comparisonArea?.name ?? 'Area',
                     intervals: area?.worstCellIntervals ?? [],
                     statistics: area?.worstCell?.statistics ?? null,
-                    statusLabel: areaRun.isRunning
+                    statusLabel: comparisonAreaRun.isRunning
                         ? 'Computing…'
                         : !comparisonArea || comparisonArea.boundary.length < 3
                             ? 'Define area'
-                            : !area ? analysisContext === 'AREA' ? 'Preparing…' : 'Select to analyse' : null,
+                            : !area ? 'Preparing…' : null,
                     unbounded: Boolean(area?.neverInViewCount),
-                    selected: analysisContext === 'AREA',
+                    selected: analysisContext === 'AREA' && areaTargetRole === 'COMPARISON',
                 });
                 return;
             }
@@ -1232,7 +1281,9 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         return rows;
     }, [
         hasReferenceTarget, scenario.target.name, analysis, isComputing, analysisContext, selectedPointId,
-        secondaryTargetOrder, referenceArea, comparisonArea, areaTargetRole, displayedAreaAnalysis, areaRun.isRunning,
+        secondaryTargetOrder, referenceArea, comparisonArea, areaTargetRole,
+        displayedReferenceAreaAnalysis, displayedComparisonAreaAnalysis,
+        referenceAreaRun.isRunning, comparisonAreaRun.isRunning,
         comparisonPoints, targetComparison.rows, targetComparison.isComputing,
     ]);
     useEffect(() => {
@@ -1246,7 +1297,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         if (role === 'COMPARISON' && !hasReferenceTarget) return;
         if (role === 'COMPARISON' && secondaryTargetOrder.length >= MAX_SECONDARY_TARGETS) return;
         if (role === 'REFERENCE') setHasReferenceTarget(true);
-        areaRun.clear();
+        (role === 'REFERENCE' ? referenceAreaRun : comparisonAreaRun).clear();
         setAreaTargetRole(role);
         setAreaTargets((current) => ({
             ...current,
@@ -1262,7 +1313,10 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
             ? current.filter((id) => id !== AREA_TARGET_ID)
             : current.includes(AREA_TARGET_ID) ? current : [...current, AREA_TARGET_ID]);
         setAnalysisContext('AREA');
-    }, [areaRun, hasReferenceTarget, secondaryTargetOrder.length, scenario.reference, scenario.payload]);
+    }, [
+        referenceAreaRun, comparisonAreaRun, hasReferenceTarget,
+        secondaryTargetOrder.length, scenario.reference, scenario.payload,
+    ]);
 
     const handleStartAreaDrawing = useCallback(() => {
         areaBeforeDrawingRef.current = customArea;
@@ -1365,7 +1419,11 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         setCustomArea(area);
         if (!area) {
             setIsDrawingArea(false);
-            lastAutoAreaRunKeyRef.current = null;
+            if (areaTargetRole === 'REFERENCE') {
+                lastAutoReferenceAreaRunKeyRef.current = null;
+            } else {
+                lastAutoComparisonAreaRunKeyRef.current = null;
+            }
             if (areaTargetRole === 'COMPARISON') {
                 setSecondaryTargetOrder((current) => current.filter((id) => id !== AREA_TARGET_ID));
             }
@@ -1383,22 +1441,27 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     }, [areaRun, areaTargetRole, customArea, setCustomArea]);
 
     const handleAreaTargetRoleChange = useCallback((role: RevisitAreaTargetRole) => {
-        if (role !== areaTargetRole) areaRun.clear();
         setAreaTargetRole(role);
-    }, [areaRun, areaTargetRole]);
+    }, []);
 
     const handleRemoveAreaTarget = useCallback((role: RevisitAreaTargetRole) => {
-        areaRun.clear();
+        (role === 'REFERENCE' ? referenceAreaRun : comparisonAreaRun).clear();
+        if (role === 'REFERENCE') {
+            lastAutoReferenceAreaRunKeyRef.current = null;
+        } else {
+            lastAutoComparisonAreaRunKeyRef.current = null;
+        }
         setAreaTargets((current) => ({ ...current, [role]: null }));
         if (role === 'COMPARISON') {
             setSecondaryTargetOrder((current) => current.filter((id) => id !== AREA_TARGET_ID));
         }
         setAnalysisContext('POINTS');
         setSelectedPointId(REFERENCE_POINT_ID);
-    }, [areaRun]);
+    }, [referenceAreaRun, comparisonAreaRun]);
 
     const handleRemoveComparisonTarget = useCallback(() => {
-        areaRun.clear();
+        comparisonAreaRun.clear();
+        lastAutoComparisonAreaRunKeyRef.current = null;
         setAreaTargets((current) => ({ ...current, COMPARISON: null }));
         setComparisonPoints([]);
         setPendingComparisonPointIds([]);
@@ -1407,7 +1470,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         setAnalysisContext(referenceArea ? 'AREA' : 'POINTS');
         setSelectedPointId(REFERENCE_POINT_ID);
         setPreviousConfiguration(null);
-    }, [areaRun, referenceArea]);
+    }, [comparisonAreaRun, referenceArea]);
 
     const handleInstrumentPresetChange = useCallback((name: FovPresetName) => {
         setScenario((current) => ({
@@ -1523,10 +1586,12 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         setCompactPanel('none');
         setAnalysisSheetSize('half');
         setResetRevision((revision) => revision + 1);
-        lastAutoAreaRunKeyRef.current = null;
-        areaRun.clear();
+        lastAutoReferenceAreaRunKeyRef.current = null;
+        lastAutoComparisonAreaRunKeyRef.current = null;
+        referenceAreaRun.clear();
+        comparisonAreaRun.clear();
         clock.setDateTime(resetScenario.window.startMs);
-    }, [areaRun, clock]);
+    }, [referenceAreaRun, comparisonAreaRun, clock]);
 
     const currentSnapshot = useMemo(() => ({
         schemaVersion: REVISIT_SESSION_SCHEMA_VERSION,
@@ -1590,10 +1655,12 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         // Loading a scenario from the workspace closes it: the point of loading
         // is to look at the globe, not at the drawer that loaded it.
         setCompactPanel('none');
-        lastAutoAreaRunKeyRef.current = null;
-        areaRun.clear();
+        lastAutoReferenceAreaRunKeyRef.current = null;
+        lastAutoComparisonAreaRunKeyRef.current = null;
+        referenceAreaRun.clear();
+        comparisonAreaRun.clear();
         clock.setDateTime(snapshot.scenario.window.startMs);
-    }, [areaRun, clock]);
+    }, [referenceAreaRun, comparisonAreaRun, clock]);
 
     const handleExportResultSheet = useCallback(() => {
         setExportError(null);
@@ -1741,8 +1808,10 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                     selectedIds={selectedIds}
                     options={options}
                     getTimeMs={getTimeMs}
-                    areaAnalysis={displayedAreaAnalysis}
-                    areaDraft={customArea}
+                    referenceAreaAnalysis={displayedReferenceAreaAnalysis}
+                    comparisonAreaAnalysis={displayedComparisonAreaAnalysis}
+                    referenceArea={referenceArea}
+                    comparisonArea={comparisonArea}
                     isDrawingArea={isDrawingArea}
                     analysisContext={analysisContext}
                     hasReferenceTarget={hasReferenceTarget}
