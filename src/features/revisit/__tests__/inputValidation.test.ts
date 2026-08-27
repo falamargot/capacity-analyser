@@ -7,7 +7,8 @@ import { runRevisitScenario, validateScenario } from '../analysis/runScenario';
 import { runPayloadSweep } from '../analysis/payloadSweep';
 import { analyseArea } from '../analysis/areaAnalysis';
 import { boxArea, swathWidthDeg } from '../domain/areaTarget';
-import { FOV_PRESETS, TARGET_PRESETS } from '../domain/presets';
+import { FOV_PRESETS, fovPresetNameFor, fovPresets, swathKmForFov, TARGET_PRESETS } from '../domain/presets';
+import { fovForDisplay } from '../ui/fovDisplay';
 import type { FovSpec, RevisitScenario, Target } from '../domain/types';
 import { MAX_STEP_SECONDS, MAX_WINDOW_HOURS } from '../analysis/accessIntervals';
 
@@ -280,5 +281,64 @@ describe('the payload sweep uses the same physical contract', () => {
             bad.reference, bad.target, bad.payload, bad.window,
             { planeShift: bad.selection.planeShift },
         )).toThrow(/Invalid payload sweep.*halfAngle1Deg/);
+    });
+});
+
+/**
+ * A3 — the presets solve a half-angle out of a ground swath, so they arrive as
+ * 16.13021207267992°. That is unreadable in an editable number field and read
+ * as a malfunction during the 2026-08-27 brief review.
+ */
+describe('fovForDisplay — readable half-angles', () => {
+    const raw: FovSpec = {
+        biasDeg: { alongTrack: 0, crossTrack: 0 },
+        shape: 'ELLIPSE',
+        halfAngle1Deg: 16.13021207267992,
+        halfAngle2Deg: 16.13021207267992,
+        clockingDeg: 0,
+    };
+
+    it('rounds both half-angles to two decimals', () => {
+        const shown = fovForDisplay(raw);
+        expect(shown.halfAngle1Deg).toBe(16.13);
+        expect(shown.halfAngle2Deg).toBe(16.13);
+    });
+
+    it('leaves every other field of the instrument untouched', () => {
+        const full: FovSpec = {
+            ...raw,
+            biasDeg: { alongTrack: -3.5, crossTrack: 12.25 },
+            shape: 'RECTANGLE',
+            clockingDeg: 45,
+            minElevationDeg: 5,
+        };
+        const shown = fovForDisplay(full);
+        expect(shown.biasDeg).toEqual(full.biasDeg);
+        expect(shown.shape).toBe('RECTANGLE');
+        expect(shown.clockingDeg).toBe(45);
+        expect(shown.minElevationDeg).toBe(5);
+    });
+
+    it('is idempotent, so re-seeding the editor never marks it dirty', () => {
+        expect(fovForDisplay(fovForDisplay(raw))).toEqual(fovForDisplay(raw));
+    });
+
+    it('keeps a value the user typed at two decimals exactly as typed', () => {
+        expect(fovForDisplay({ ...raw, halfAngle1Deg: 16.5 }).halfAngle1Deg).toBe(16.5);
+        expect(fovForDisplay({ ...raw, halfAngle1Deg: 0.01 }).halfAngle1Deg).toBe(0.01);
+    });
+
+    it('moves the resulting swath by well under a kilometre', () => {
+        const altitudeKm = 1200;
+        const before = swathKmForFov(altitudeKm, raw);
+        const after = swathKmForFov(altitudeKm, fovForDisplay(raw));
+        expect(Math.abs(after - before)).toBeLessThan(0.1);
+    });
+
+    it('does not cost the instrument its preset name', () => {
+        // The header dropdown would otherwise flip to `Custom` on open.
+        const altitudeKm = 1200;
+        const preset = fovPresets(altitudeKm).STANDARD;
+        expect(fovPresetNameFor(altitudeKm, fovForDisplay(preset))).toBe('STANDARD');
     });
 });

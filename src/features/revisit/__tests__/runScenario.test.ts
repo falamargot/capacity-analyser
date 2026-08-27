@@ -7,7 +7,7 @@ import {
     DEFAULT_REFERENCE, defaultScenario, FOV_PRESET_SWATH_KM, FOV_PRESETS, fovForSwath,
     fovPresetNameFor, fovPresets, offNadirDegForSwath, swathKmForFov, TARGET_PRESETS,
 } from '../domain/presets';
-import type { RevisitScenario } from '../domain/types';
+import type { RevisitScenario, WalkerSpec } from '../domain/types';
 /** By name, not by index — the preset list's order is not a contract. */
 const targetNamed = (name: string) => {
     const found = TARGET_PRESETS.find((t) => t.name === name);
@@ -133,6 +133,153 @@ describe('runScenario — constellation cache', () => {
         const uncached = runRevisitScenario(smallScenario({ target: targetNamed('Singapore') }));
         expect(recached.statistics).toEqual(uncached.statistics);
         expect(cached.scenario.target.name).toBe('London');
+    });
+});
+
+/**
+ * The per-plane arrays are the whole point of the HLD profile: the altitude
+ * ladder, the Walker Star seam, and the spares. The key omitted all three, so a
+ * Custom or imported scenario with the same scalars was served the HLD fleet
+ * out of the worker's persistent cache — 634 satellites for 576 — and published
+ * a maximum gap computed on a constellation nobody had asked for.
+ *
+ * These tests are written against the OBSERVABLE consequence (a different fleet,
+ * a different statistic) rather than against the key string, so they keep
+ * holding if the key's encoding changes again.
+ */
+describe('runScenario — constellation cache: per-plane structure (A0 regression)', () => {
+    /** Same scalars as the HLD profile, none of its per-plane arrays. */
+    const plainWalker: WalkerSpec = {
+        pattern: DEFAULT_REFERENCE.pattern,
+        planes: DEFAULT_REFERENCE.planes,
+        satsPerPlane: DEFAULT_REFERENCE.satsPerPlane,
+        inclinationDeg: DEFAULT_REFERENCE.inclinationDeg,
+        altitudeKm: DEFAULT_REFERENCE.altitudeKm,
+        phasingF: DEFAULT_REFERENCE.phasingF,
+        fudge: DEFAULT_REFERENCE.fudge,
+    };
+
+    const freshCache = () => ({ current: null } as { current: ConstellationCache | null });
+
+    it('does not serve the HLD fleet to a bare Walker with identical scalars', () => {
+        const cache = freshCache();
+        const hld = constellationFor(DEFAULT_REFERENCE, cache);
+        const plain = constellationFor(plainWalker, cache);
+
+        expect(hld).toHaveLength(634);   // 576 active + 58 spares
+        expect(plain).toHaveLength(576); // no spares, and none were asked for
+        expect(plain).not.toBe(hld);
+    });
+
+    /*
+     * add / remove / modify, for each of the three arrays. `remove` is the
+     * direction the original defect took, and it is the one a hand-written key
+     * is most likely to miss again.
+     */
+    const perPlaneCases: Array<{ field: keyof WalkerSpec; modified: number[] }> = [
+        {
+            field: 'planeAltitudesKm',
+            // One rung of the ladder moved by 1 km.
+            modified: (DEFAULT_REFERENCE.planeAltitudesKm ?? []).map(
+                (km, index) => (index === 3 ? km + 1 : km)
+            ),
+        },
+        {
+            field: 'raanOffsetsDeg',
+            // The seam moved: one plane's RAAN shifted by a tenth of a degree.
+            modified: (DEFAULT_REFERENCE.raanOffsetsDeg ?? []).map(
+                (deg, index) => (index === 5 ? deg + 0.1 : deg)
+            ),
+        },
+        {
+            field: 'sparesPerPlane',
+            // One spare moved from plane 0 to plane 1 — same fleet total.
+            modified: (DEFAULT_REFERENCE.sparesPerPlane ?? []).map(
+                (count, index) => (index === 0 ? count - 1 : index === 1 ? count + 1 : count)
+            ),
+        },
+    ];
+
+    for (const { field, modified } of perPlaneCases) {
+        describe(field, () => {
+            it('regenerates when the array is ADDED', () => {
+                const cache = freshCache();
+                const without = constellationFor(plainWalker, cache);
+                const withArray = constellationFor(
+                    { ...plainWalker, [field]: DEFAULT_REFERENCE[field] }, cache
+                );
+                expect(withArray).not.toBe(without);
+            });
+
+            it('regenerates when the array is REMOVED', () => {
+                const cache = freshCache();
+                const withArray = constellationFor(
+                    { ...plainWalker, [field]: DEFAULT_REFERENCE[field] }, cache
+                );
+                const without = constellationFor(plainWalker, cache);
+                expect(without).not.toBe(withArray);
+            });
+
+            it('regenerates when a single entry is MODIFIED', () => {
+                const cache = freshCache();
+                const original = constellationFor(
+                    { ...plainWalker, [field]: DEFAULT_REFERENCE[field] }, cache
+                );
+                const changed = constellationFor({ ...plainWalker, [field]: modified }, cache);
+                expect(changed).not.toBe(original);
+            });
+
+            it('still reuses the fleet when the array is unchanged but a new object', () => {
+                const cache = freshCache();
+                const spec = { ...plainWalker, [field]: DEFAULT_REFERENCE[field] };
+                const first = constellationFor(spec, cache);
+                const second = constellationFor(
+                    { ...plainWalker, [field]: [...(DEFAULT_REFERENCE[field] as number[])] }, cache
+                );
+                expect(second).toBe(first);
+            });
+        });
+    }
+
+    it('an absent array and an explicitly undefined one are the same fleet', () => {
+        const cache = freshCache();
+        const absent = constellationFor(plainWalker, cache);
+        const explicitlyUndefined = constellationFor(
+            { ...plainWalker, planeAltitudesKm: undefined }, cache
+        );
+        expect(explicitlyUndefined).toBe(absent);
+    });
+
+    it('keys on any future field of the spec, not on a hand-maintained list', () => {
+        // The guard against this defect recurring: the key is derived from the
+        // spec's own keys, so a property added to `WalkerSpec` later cannot be
+        // silently left out of it.
+        const cache = freshCache();
+        const base = constellationFor(plainWalker, cache);
+        const extended = constellationFor(
+            { ...plainWalker, someFutureField: 42 } as unknown as WalkerSpec, cache
+        );
+        expect(extended).not.toBe(base);
+    });
+
+    it('publishes the same statistics with a reused cache as with a cold one', () => {
+        // The end-to-end shape of the defect: two analyses down one persistent
+        // worker cache, the second one structurally different from the first.
+        const scenario: RevisitScenario = {
+            reference: plainWalker,
+            selection: { planeStride: 4, satStride: 16, planeShift: 0 },
+            payload: FOV_PRESETS.STANDARD,
+            target: targetNamed('London'),
+            window: { startMs: EPOCH, durationHours: 24, stepSeconds: 20 },
+        };
+
+        const cache = freshCache();
+        runRevisitScenario({ ...scenario, reference: DEFAULT_REFERENCE }, {}, cache);
+        const afterHld = runRevisitScenario(scenario, {}, cache);
+        const cold = runRevisitScenario(scenario);
+
+        expect(afterHld.statistics).toEqual(cold.statistics);
+        expect(afterHld.selectedIds).toEqual(cold.selectedIds);
     });
 });
 

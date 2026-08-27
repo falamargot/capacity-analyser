@@ -62,11 +62,44 @@ export interface ConstellationCache {
     elements: OrbitalElements[];
 }
 
+/**
+ * Cache identity for a generated fleet.
+ *
+ * ── WHY THIS IS DERIVED, NOT LISTED BY HAND ─────────────────────────────────
+ * It used to be a hand-written list of eight scalars, and it OMITTED
+ * `planeAltitudesKm`, `raanOffsetsDeg` and `sparesPerPlane` — the three arrays
+ * carrying the plane-altitude ladder, the Walker Star seam and the spares, all
+ * three of which `generateWalkerConstellation` consumes. Two structurally
+ * different specs with equal scalars therefore collided, and the worker's
+ * module-level cache served the wrong fleet across messages: 634 satellites
+ * where 576 were asked for, plane 0 at 7553 km instead of 7578 km, and a
+ * maximum revisit gap out by minutes.
+ *
+ * That was the worst possible shape of the bug. The globe regenerates its fleet
+ * WITHOUT this cache and `runPayloadSweep` calls `generateWalkerConstellation`
+ * directly, so the picture and the sizing recommendation stayed correct while
+ * the headline KPI, the area heat map and the comparison rows did not — nothing
+ * on screen contradicted the wrong number.
+ *
+ * So the key is no longer maintained by hand. It is built from the spec's OWN
+ * KEYS, sorted, which makes it exhaustive BY CONSTRUCTION: a field added to
+ * `WalkerSpec` tomorrow enters the key without anyone having to remember it.
+ * `raan0Deg` is normalised because an absent value and `0` are the same fleet;
+ * every other absent field is emitted as absent, so it can never be confused
+ * with a present one.
+ *
+ * The asymmetry to keep in mind when touching this: OVER-keying costs one
+ * redundant regeneration, which is cheap and correct. UNDER-keying returns the
+ * wrong constellation. When in doubt, include the field.
+ */
 function walkerKey(spec: WalkerSpec): string {
-    return [
-        spec.pattern, spec.planes, spec.satsPerPlane, spec.inclinationDeg,
-        spec.altitudeKm, spec.phasingF, spec.fudge, spec.raan0Deg ?? 0,
-    ].join('|');
+    const normalized: Record<string, unknown> = { ...spec, raan0Deg: spec.raan0Deg ?? 0 };
+    return JSON.stringify(
+        Object.keys(normalized)
+            .sort()
+            .filter((key) => normalized[key] !== undefined)
+            .map((key) => [key, normalized[key]])
+    );
 }
 
 /**

@@ -1,6 +1,93 @@
 # Handoff
 
-_Last updated 2026-08-27._
+_Last updated 2026-08-28._
+
+## 2026-08-28 — A0 / A1 / A3 fixed
+
+All three closed, with browser proof. Gates: **2135 unit tests** (+40), clean `tsc`
+and `eslint`, `revisit-p1` + `revisit-advanced` green on `desktop-chromium`.
+Details in `docs/REVISIT_BRIEF_CONFORMANCE_REVIEW_2026-08-27.md` §8.
+
+**A0 — `walkerKey` (`analysis/runScenario.ts`).** No longer a hand-written list.
+It is derived from the spec's OWN KEYS, sorted, so it is exhaustive by
+construction and a field added to `WalkerSpec` later cannot be silently left out.
+`raan0Deg` normalised (absent ≡ 0); every other absent field is emitted as absent.
+16 regression tests in `runScenario.test.ts`, written against the observable
+consequence (a different fleet, a different statistic) rather than the key string:
+add / remove / modify for each of the three per-plane arrays, plus the unchanged
+case, plus an unknown field, plus the end-to-end persistent-cache case.
+**Those tests were proved to fail against the old key — 12 of the 16 red — before
+being accepted.** Do not trust a regression test that has never been red.
+
+**A1 — `fetchWithTimeout` (`services/satelliteService.ts`).** `AbortSignal.timeout`
+at 5 s on the live CelesTrak call, `AbortController` fallback where that is
+missing. The timeout is not the point; what it unblocks is: `fetchTLE`'s four-step
+ladder was UNREACHABLE below step 2, because a filtering network does not refuse
+the connection, it swallows it. Verified in the browser with no
+`VITE_FORCE_LOCAL_CELESTRAK` workaround: CelesTrak is genuinely unreachable here
+(`TimeoutError` at 5021 ms, measured from the page) and the app now reaches
+`Startup complete.` with 680 satellites off the bundled file, where the same
+environment previously hung forever.
+7 regression tests in `services/__tests__/tleFetchTimeout.test.ts`. **Every stub
+hands out a promise that never settles and rejects only on abort** — the only
+shape that reproduces the defect, since a stub that REJECTED would have passed
+against the broken code too: the ladder always handled rejection, what it could
+not handle was pending. Three cover the mechanism, one pins the 5 s production
+value, three cover the wiring (falls back to the bundled file, TERMINATES, passes
+a live answer through). `fetchTLE` takes an optional `timeoutMs` defaulting to
+`CELESTRAK_FETCH_TIMEOUT_MS` — a test seam, not a test branch, so the tests drive
+the real ladder in 25 ms instead of 5 s. **Proved to fail without the fix:** with
+the bare `fetch` restored, both ladder tests TIME OUT at 5000 ms, which is the
+production symptom exactly.
+
+*Untouched on purpose:* `satcatService.ts:202`'s live SATCAT CSV has no deadline
+either, but it is only reached after BOTH the bundled file and the cache fail —
+a broken build, not a filtered network.
+
+**A3 — `ui/fovDisplay.ts`.** `fovForDisplay` rounds both half-angles to 2 dp.
+The design point is WHERE: on the value that SEEDS the editor, never on what is
+being typed — a display-time round on a controlled input would eat the third
+decimal as the user entered it. Measured on screen: field reads `16.13`;
+`Apply geometry` and `Revert` are DISABLED on open, so the rounding does not fake
+a pending edit; typing `20.125` survives verbatim and enables `Apply`; the preset
+keeps its name because `fovPresetNameFor` matches on relative swath tolerance.
+
+## 2026-08-27 — Brief conformance review (read this before quoting coverage)
+
+`docs/REVISIT_BRIEF_CONFORMANCE_REVIEW_2026-08-27.md` is the authoritative
+brief → implementation matrix. It supersedes
+`REVISIT_REQUIREMENT_RECHECK_2026-08-12.md`, whose P0/P1/P2 actions are all closed.
+
+Verdict: every requirement of the OneWeb payload brief is implemented, but the
+module is NOT yet "conformant and safe on every path" — a cross-review found a
+live defect the first pass missed:
+
+- **A0 / §1bis — `walkerKey` in `analysis/runScenario.ts:64` omits
+  `planeAltitudesKm`, `raanOffsetsDeg` and `sparesPerPlane`**, all three of which
+  `generateWalkerConstellation` consumes. The worker's module-level cache
+  (`workers/revisitWorker.ts:26`) therefore serves an HLD fleet to a structurally
+  different Custom/imported scenario with the same scalars. Reproduced: 634 vs 576
+  satellites, and 21 263 044 ms vs 21 560 982 ms max gap for the SAME scenario
+  (London, 24 h) — 4 min 58 s apart, 8 accesses vs 9. Worst possible shape: the
+  globe (`RevisitApp.tsx:455`, no cache) and the sweep (`payloadSweep.ts:139`,
+  direct call) stay correct, so only the headline KPI, the area heatmap and the
+  comparison rows go wrong, with nothing on screen contradicting them.
+  `isRevisitSessionSnapshot` validates `scenario.reference` with `Boolean()` alone,
+  so an imported/restored scenario reaches this freely. Fix: put the full
+  structural spec in the key (`walkerSpecsEqual` already compares exactly those
+  three arrays) plus add/remove/modify regression tests for each array.
+
+Also outstanding: five bounded gaps (M1–M5), four interpretation calls for the
+brief's authors (§4), and the ranked actions in §6. Two more can spoil a live demo
+and are not REVISIT code:
+
+- **A1 — the TLE fetch has no timeout.** `src/services/satelliteService.ts`
+  awaits `fetch(CELESTRAK_API[...])` with no `AbortSignal`, so with CelesTrak
+  unreachable the WHOLE app hangs on `Loading satellite data and coverage…` and
+  the stale-cache / bundled-file fallbacks below it are never reached. This
+  review could only proceed with `VITE_FORCE_LOCAL_CELESTRAK=true`.
+- **A2 — REVISIT opens with no analysis target**, contradicting `presets.ts`'s
+  own "never open on an empty form" principle and the brief's executive audience.
 
 ## 2026-08-26 — Programme 8: one sweep at a time
 

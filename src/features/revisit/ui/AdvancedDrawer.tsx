@@ -24,6 +24,7 @@ import {
 import type { FovSpec, RevisitScenario, WalkerPattern, WalkerSpec } from '../domain/types';
 import { validateFovSpec } from '../domain/inputValidation';
 import { swathKmForFov } from '../domain/presets';
+import { fovForDisplay } from './fovDisplay';
 import { MAX_STEP_SECONDS, MAX_WINDOW_HOURS } from '../analysis/accessIntervals';
 import { referenceWithPatch } from '../domain/referenceEditing';
 import {
@@ -183,14 +184,20 @@ const Field: React.FC<{ label: string; hint?: string; children: React.ReactNode 
 );
 
 const PayloadGeometryEditor: React.FC<AdvancedDrawerProps> = ({ scenario, onChange }) => {
-    const [draft, setDraft] = useState<FovSpec>(scenario.payload);
-    useEffect(() => setDraft(scenario.payload), [scenario.payload]);
+    const seed = useMemo(() => fovForDisplay(scenario.payload), [scenario.payload]);
+    const [draft, setDraft] = useState<FovSpec>(seed);
+    useEffect(() => setDraft(seed), [seed]);
 
     const validation = useMemo(
         () => validateFovSpec(draft, scenario.reference.altitudeKm),
         [draft, scenario.reference.altitudeKm]
     );
-    const dirty = JSON.stringify(draft) !== JSON.stringify(scenario.payload);
+    /*
+     * Compared against the SEED, not against `scenario.payload`: comparing
+     * against the raw value would light up `Apply geometry` the moment the
+     * drawer opened, before anybody had edited anything.
+     */
+    const dirty = JSON.stringify(draft) !== JSON.stringify(seed);
     const setBias = (axis: 'alongTrack' | 'crossTrack', value: number) => {
         setDraft((current) => ({
             ...current,
@@ -313,7 +320,7 @@ const PayloadGeometryEditor: React.FC<AdvancedDrawerProps> = ({ scenario, onChan
                 <button
                     type="button"
                     disabled={!dirty}
-                    onClick={() => setDraft(scenario.payload)}
+                    onClick={() => setDraft(seed)}
                     className="rounded px-2 py-1 text-[11px] font-black uppercase tracking-[0.1em] text-slate-400 disabled:opacity-40"
                 >
                     Revert
