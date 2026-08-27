@@ -74,9 +74,14 @@ test.describe('REVISIT P2c-C mixed target comparison', () => {
     const referenceResult = await referenceRow.textContent();
     const comparisonResult = await comparisonRow.textContent();
     await referenceRow.click();
-    await expect(page.getByLabel('Active result context')).toContainText('Reference area');
+    const activeResult = page.getByLabel('Active result context');
+    await expect(activeResult).toContainText('Reference area');
+    await expect(activeResult).toHaveAttribute('data-revisit-target-role', 'reference');
+    await expect(activeResult).toHaveClass(/revisit-target-reference/);
     await comparisonRow.click();
-    await expect(page.getByLabel('Active result context')).toContainText('Comparison area');
+    await expect(activeResult).toContainText('Comparison area');
+    await expect(activeResult).toHaveAttribute('data-revisit-target-role', 'comparison');
+    await expect(activeResult).toHaveClass(/revisit-target-comparison/);
     await expect(referenceRow).toHaveText(referenceResult ?? '');
     await expect(comparisonRow).toHaveText(comparisonResult ?? '');
   });

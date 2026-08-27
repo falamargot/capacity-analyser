@@ -4,12 +4,12 @@
  * ── WHY THE SCALE IS ABSOLUTE, NOT RELATIVE ─────────────────────────────────
  * The obvious choice is to normalise between the best and worst cell. It looks
  * better and it is wrong: an area where every cell is excellent and one where
- * every cell fails would render identically, both showing a full green-to-red
+ * every cell fails would render identically, both showing a full green-to-orange
  * spread. The map would encode variation within the area and say nothing about
  * whether the area is actually served.
  *
  * So the scale is anchored to the customer requirement. Green means "meets it",
- * red means "misses it by 4× or more", and the eye reads compliance rather than
+ * orange means "misses it", and the eye reads compliance rather than
  * contrast. That also makes two screenshots at different payload counts directly
  * comparable, which is the whole point during a demo.
  *
@@ -47,11 +47,12 @@ const mix = (
     a[2] + (b[2] - a[2]) * t,
 ];
 
-const PASS = hexToRgb(REVISIT_COLORS.pass);      // meets the requirement
-const MID = hexToRgb(REVISIT_COLORS.accent);     // amber, around the threshold
-const FAIL = hexToRgb(REVISIT_COLORS.alert);     // well past it
-/** Never in view — deliberately outside the ramp. */
-const UNBOUNDED = hexToRgb('#6D28D9');
+const PASS_STRONG = hexToRgb(REVISIT_COLORS.passStrong);
+const PASS = hexToRgb(REVISIT_COLORS.pass);
+const MISS_SOFT = hexToRgb(REVISIT_COLORS.missSoft);
+const MISS = hexToRgb(REVISIT_COLORS.miss);
+/** Never in view — a real observation impossibility, not a finite miss. */
+const UNBOUNDED = hexToRgb(REVISIT_COLORS.alert);
 
 /**
  * Colour for one cell.
@@ -64,18 +65,18 @@ export function heatColorFor(maxGapMs: number | null, requirementMs: number): He
         return { css: rgbToHex(UNBOUNDED), rgb: UNBOUNDED };
     }
     if (requirementMs <= 0) {
-        return { css: rgbToHex(MID), rgb: MID };
+        return { css: rgbToHex(UNBOUNDED), rgb: UNBOUNDED };
     }
 
     const ratio = maxGapMs / requirementMs;
     let rgb: [number, number, number];
 
     if (ratio <= 1) {
-        // Comfortably inside → at the threshold.
-        rgb = mix(PASS, MID, Math.max(0, Math.min(1, ratio)));
+        // Comfortable pass → pass at the threshold; both remain green.
+        rgb = mix(PASS_STRONG, PASS, Math.max(0, Math.min(1, ratio)));
     } else {
         const over = (ratio - 1) / (HEAT_SATURATION_MULTIPLE - 1);
-        rgb = mix(MID, FAIL, Math.max(0, Math.min(1, over)));
+        rgb = mix(MISS_SOFT, MISS, Math.max(0, Math.min(1, over)));
     }
 
     return { css: rgbToHex(rgb), rgb };

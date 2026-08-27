@@ -52,6 +52,16 @@ describe('OneWeb HLD profile — fleet composition', () => {
             expect(spares.length).toBeLessThanOrEqual(5);
         }
     });
+
+    it('never stacks a spare on an active slot or another spare', () => {
+        for (let p = 0; p < HLD.spec.planes; p++) {
+            const inPlane = fleet.filter((satellite) => satellite.planeIndex === p);
+            const distinctArguments = new Set(
+                inPlane.map((satellite) => satellite.argLatDeg.toFixed(9))
+            );
+            expect(distinctArguments.size).toBe(inPlane.length);
+        }
+    });
 });
 
 describe('OneWeb HLD profile — plane altitude ladder', () => {

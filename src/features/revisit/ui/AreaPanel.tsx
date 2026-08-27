@@ -276,7 +276,7 @@ export const AreaPanel: React.FC<AreaPanelProps> = ({
                     <div className="mt-2 grid grid-cols-3 gap-2 border-t border-slate-700/50 pt-2">
                         <div>
                             <span className={REVISIT_LABEL}>Least-covered cell</span>
-                            <div className={`text-sm font-black tabular-nums ${unbounded ? 'text-violet-300' : 'text-amber-300'}`}>
+                            <div className={`text-sm font-black tabular-nums ${unbounded ? 'text-violet-300' : 'text-white'}`}>
                                 {unbounded ? 'never seen' : formatGap(analysis.worstCell?.maxGapMs ?? null)}
                             </div>
                         </div>

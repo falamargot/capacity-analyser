@@ -27,9 +27,12 @@ import React, { useMemo, useState } from 'react';
 import { formatGap } from '../analysis/gapStatistics';
 import { payloadsRequiredFor, type PayloadSweepResult } from '../analysis/payloadSweep';
 import { executiveEnvelopePoints } from '../analysis/executiveEnvelope';
+import type { RevisitAreaTargetRole } from '../domain/analysisTargets';
 import { REVISIT_COLORS, REVISIT_LABEL, REVISIT_PANEL } from './revisitTheme';
 
 interface ValueCurveProps {
+    /** Target identity drives the evidence curve: Reference amber, Comparison blue. */
+    targetRole?: RevisitAreaTargetRole;
     sweep: PayloadSweepResult | null;
     isComputing: boolean;
     requirementMs: number;
@@ -51,11 +54,14 @@ const H = 150;
 const PAD = { left: 40, right: 12, top: 12, bottom: 26 };
 
 export const ValueCurve: React.FC<ValueCurveProps> = ({
-    sweep, isComputing, requirementMs, currentPayloadCount,
+    targetRole = 'REFERENCE', sweep, isComputing, requirementMs, currentPayloadCount,
     currentMaxGapMs, currentIsMeasuredBest, alternativeTopologyLabel = 'Current manual split',
     targetName, onSelectPayloadCount, embedded = false,
 }) => {
     const [showExactTopologies, setShowExactTopologies] = useState(false);
+    const targetColor = targetRole === 'COMPARISON'
+        ? REVISIT_COLORS.comparison
+        : REVISIT_COLORS.target;
     const model = useMemo(() => {
         if (!sweep) return null;
         // Points with no measurable gap (target never in view) cannot be placed
@@ -120,11 +126,11 @@ export const ValueCurve: React.FC<ValueCurveProps> = ({
                 ) : answer ? (
                     <span>
                         <strong className="text-slate-300">Minimum tested balanced configuration:</strong>{' '}
-                        <span className="font-black text-amber-300">{answer.payloadCount} payloads</span>
+                        <span className="font-black text-white">{answer.payloadCount} payloads</span>
                         {' · '}requirement {formatGap(requirementMs)}
                     </span>
                 ) : (
-                    <span className="text-red-300">
+                    <span className="text-orange-300">
                         No tested configuration meets {formatGap(requirementMs)}.
                     </span>
                 )}
@@ -134,7 +140,7 @@ export const ValueCurve: React.FC<ValueCurveProps> = ({
                 {sweep && currentMaxGapMs !== null && (
                     <span className="font-semibold tabular-nums" aria-live="polite" aria-atomic="true">
                         {currentIsMeasuredBest ? 'Current configuration' : alternativeTopologyLabel}:{' '}
-                        <span className="text-amber-200">
+                        <span className="text-slate-200">
                             {currentPayloadCount} payload{currentPayloadCount === 1 ? '' : 's'}
                         </span>
                         {' · '}maximum gap <span className="text-slate-200">{formatGap(currentMaxGapMs)}</span>
@@ -145,7 +151,7 @@ export const ValueCurve: React.FC<ValueCurveProps> = ({
             {embedded && model && (
                 <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500" aria-label="Sizing evidence legend">
                     <span className="inline-flex items-center gap-1.5">
-                        <span className="h-2.5 w-2.5 rounded-full border border-white bg-amber-400" /> Current
+                        <span className="h-2.5 w-2.5 rounded-full border border-slate-500 bg-white" /> Current
                     </span>
                     <span className="inline-flex items-center gap-1.5">
                         <span className="h-2.5 w-2.5 rounded-full border-2 border-lime-400" /> Recommended
@@ -173,8 +179,9 @@ export const ValueCurve: React.FC<ValueCurveProps> = ({
                     {/* The curve */}
                     <polyline
                         fill="none"
-                        stroke={REVISIT_COLORS.accent}
+                        stroke={targetColor}
                         strokeWidth={1.8}
+                        data-revisit-sizing-curve={targetRole.toLowerCase()}
                         points={model.points
                             .map((p) => `${model.sx(p.payloadCount)},${model.sy(p.maxGapMs!)}`)
                             .join(' ')}
@@ -251,7 +258,7 @@ export const ValueCurve: React.FC<ValueCurveProps> = ({
                                 <circle
                                     cx={model.sx(p.payloadCount)} cy={model.sy(p.maxGapMs!)}
                                     r={isCurrentBest ? 4 : 2.6}
-                                    fill={meets ? REVISIT_COLORS.pass : REVISIT_COLORS.accent}
+                                    fill={meets ? REVISIT_COLORS.pass : REVISIT_COLORS.miss}
                                 />
                                 <title>
                                     {p.payloadCount} payloads · {formatGap(p.maxGapMs)} · {' '}
@@ -282,7 +289,7 @@ export const ValueCurve: React.FC<ValueCurveProps> = ({
                                 cx={model.sx(currentPayloadCount)}
                                 cy={model.sy(currentMaxGapMs)}
                                 r={3.5}
-                                fill={REVISIT_COLORS.accent}
+                                fill={REVISIT_COLORS.payload}
                             />
                             <title>
                                 {currentIsMeasuredBest ? 'Current exact topology' : 'Current manual split'}

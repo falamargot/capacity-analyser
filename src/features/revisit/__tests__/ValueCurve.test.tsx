@@ -175,6 +175,27 @@ describe('ValueCurve current-selection coherence', () => {
         expect(container.textContent).not.toContain('requirement 2 h');
     });
 
+    it('uses the selected target role for the sizing evidence curve', async () => {
+        await act(async () => root?.render(
+            <ValueCurve
+                targetRole="COMPARISON"
+                sweep={sweep}
+                isComputing={false}
+                requirementMs={2 * 3600_000}
+                currentPayloadCount={4}
+                currentMaxGapMs={2 * 3600_000}
+                currentIsMeasuredBest
+                targetName="Comparison target"
+                onSelectPayloadCount={() => undefined}
+                embedded
+            />
+        ));
+
+        const curve = container.querySelector('[data-revisit-sizing-curve="comparison"]');
+        expect(curve).not.toBeNull();
+        expect(curve?.getAttribute('stroke')).toBe('#38BDF8');
+    });
+
     it('keeps exact topology measurements available on demand', async () => {
         await act(async () => root?.render(
             <ValueCurve

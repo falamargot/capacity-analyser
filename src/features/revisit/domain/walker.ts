@@ -39,6 +39,41 @@ export interface WalkerValidation {
     warnings: string[];
 }
 
+/**
+ * Place spare satellites strictly inside gaps of the active in-plane lattice.
+ *
+ * The former `(j + 0.5) * 360 / spareCount` formula only separated spares from
+ * one another. With 48 active slots and 5 spares, its middle value was 180° —
+ * exactly the active S24 slot — so the small grey spare was rendered on top of
+ * the larger white payload satellite. Assigning spares to active gaps first,
+ * then subdividing a gap when necessary, makes both kinds of collision
+ * impossible for any positive active/spare counts.
+ */
+function spareArgLatOffsetsDeg(activeCount: number, spareCount: number): number[] {
+    if (spareCount <= 0) return [];
+
+    const gapAssignments = Array.from({ length: spareCount }, (_, spareIndex) => (
+        Math.min(
+            activeCount - 1,
+            Math.floor(((spareIndex + 0.5) * activeCount) / spareCount)
+        )
+    ));
+    const populationByGap = new Map<number, number>();
+    for (const gap of gapAssignments) {
+        populationByGap.set(gap, (populationByGap.get(gap) ?? 0) + 1);
+    }
+
+    const rankByGap = new Map<number, number>();
+    const activeSpacingDeg = 360 / activeCount;
+    return gapAssignments.map((gap) => {
+        const rank = rankByGap.get(gap) ?? 0;
+        rankByGap.set(gap, rank + 1);
+        const gapPopulation = populationByGap.get(gap) ?? 1;
+        const fractionInsideGap = (rank + 1) / (gapPopulation + 1);
+        return (gap + fractionInsideGap) * activeSpacingDeg;
+    });
+}
+
 export function validateWalkerSpec(spec: WalkerSpec): WalkerValidation {
     const errors: string[] = [];
     const warnings: string[] = [];
@@ -150,6 +185,7 @@ export function generateWalkerConstellation(spec: WalkerSpec): OrbitalElements[]
         // construction. They are phased into the gaps between active
         // satellites so a drawn fleet does not show them stacked on one point.
         const spares = spec.sparesPerPlane?.[p] ?? 0;
+        const spareOffsetsDeg = spareArgLatOffsetsDeg(S, spares);
         for (let j = 0; j < spares; j++) {
             const s = S + j;
             out.push({
@@ -160,7 +196,7 @@ export function generateWalkerConstellation(spec: WalkerSpec): OrbitalElements[]
                 inclinationDeg: spec.inclinationDeg,
                 raanDeg,
                 argLatDeg: normalizeDeg(
-                    (j + 0.5) * (360 / Math.max(1, spares))
+                    spareOffsetsDeg[j]
                     + spec.phasingF * p * (360 / (P * S))
                 ),
                 isSpare: true,

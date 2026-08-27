@@ -87,13 +87,13 @@ body {
   z-index: var(--z-ui-topmost) !important;
 }
 
-/* REVISIT keeps its amber mission accent while sharing the application's light
-   and dark surface tokens. Cesium remains dark; only the product shell changes. */
+/* REVISIT panels are target-neutral. Amber and cyan are reserved for Reference
+   and Comparison context rather than leaking into every surface border. */
 .revisit-shell {
   /* One shared glass surface for header cards, side panels and the access
      timeline. Keeping the alpha here prevents those three zones drifting. */
   --revisit-panel-bg: rgba(2, 6, 23, 0.74);
-  --revisit-panel-border: rgba(245, 158, 11, 0.28);
+  --revisit-panel-border: rgba(100, 116, 139, 0.42);
   --revisit-muted: #94a3b8;
 }
 
@@ -104,8 +104,70 @@ body {
 
 .light .revisit-shell {
   --revisit-panel-bg: rgba(255, 255, 255, 0.86);
-  --revisit-panel-border: rgba(217, 119, 6, 0.34);
+  --revisit-panel-border: rgba(100, 116, 139, 0.38);
   --revisit-muted: #475569;
+}
+
+.revisit-shell .revisit-target-reference {
+  border-color: rgba(251, 191, 36, 0.72) !important;
+}
+
+.revisit-shell .revisit-target-comparison {
+  border-color: rgba(56, 189, 248, 0.72) !important;
+}
+
+/* Carry the selected target identity through the analysis card hierarchy.
+   Values remain neutral; only section labels become navigational signposts. */
+.revisit-shell .revisit-result-reference .revisit-label {
+  color: #fbbf24 !important;
+}
+
+.revisit-shell .revisit-result-comparison .revisit-label {
+  color: #38bdf8 !important;
+}
+
+.light .revisit-shell .revisit-result-reference .revisit-label {
+  color: #a16207 !important;
+}
+
+.light .revisit-shell .revisit-result-comparison .revisit-label {
+  color: #0369a1 !important;
+}
+
+/* Capacity is the only meaning carried by this slider: green grows with the
+   hosted-payload level, while the handle stays neutral and target-agnostic. */
+.revisit-shell .revisit-payload-slider {
+  --revisit-slider-progress: 0%;
+  appearance: none;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: linear-gradient(
+    to right,
+    #84cc16 0,
+    #84cc16 var(--revisit-slider-progress),
+    #cbd5e1 var(--revisit-slider-progress),
+    #cbd5e1 100%
+  );
+  cursor: pointer;
+}
+
+.revisit-shell .revisit-payload-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid #ffffff;
+  border-radius: 9999px;
+  background: #f8fafc;
+  box-shadow: 0 1px 4px rgba(2, 6, 23, 0.45);
+}
+
+.revisit-shell .revisit-payload-slider::-moz-range-thumb {
+  width: 0.875rem;
+  height: 0.875rem;
+  border: 2px solid #ffffff;
+  border-radius: 9999px;
+  background: #f8fafc;
+  box-shadow: 0 1px 4px rgba(2, 6, 23, 0.45);
 }
 
 .light .revisit-shell .revisit-panel {
@@ -211,15 +273,12 @@ body {
   color: #92400e !important;
 }
 
-/* The primary commercial action (Programme 7A). `text-amber-100` is nearly
-   white, which is right on the dark stage and unreadable on the light panel's
-   translucent amber — and the family overrides above deliberately stop at
-   amber-200. Axe did not catch it: the button only appears once the payload
-   sweep lands, ~30 s after the accessibility scan runs. */
+/* Target-neutral primary action: applying a shared fleet configuration must
+   not look like an action on the amber Reference target. */
 .light .revisit-shell .revisit-apply-recommended {
-  color: #78350f !important;
-  background: rgba(245, 158, 11, 0.28) !important;
-  border-color: rgba(180, 83, 9, 0.7) !important;
+  color: #0f172a !important;
+  background: rgba(148, 163, 184, 0.2) !important;
+  border-color: rgba(71, 85, 105, 0.65) !important;
 }
 
 .light .revisit-shell [class*="text-red-200"],

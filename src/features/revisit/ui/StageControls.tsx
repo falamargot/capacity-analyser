@@ -83,8 +83,8 @@ export function StageControls<K extends string>({
                         aria-pressed={toggleState[key]}
                         title={hint}
                         className={`${GROUP_BUTTON} ${toggleState[key]
-                            ? 'bg-amber-500/20 text-amber-200'
-                            : 'text-slate-500 hover:text-slate-300'}`}
+                            ? 'bg-white/10 text-slate-100'
+                            : 'text-slate-500 hover:bg-white/5 hover:text-slate-300'}`}
                     >
                         {label}
                     </button>

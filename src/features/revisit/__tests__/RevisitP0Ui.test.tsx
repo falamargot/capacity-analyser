@@ -8,9 +8,24 @@ import { RevisitHeader } from '../ui/RevisitHeader';
 import { CoverageRibbon } from '../ui/CoverageRibbon';
 import { ModelProvenance } from '../ui/ModelProvenance';
 import { referenceProfileFor } from '../domain/referenceProfiles';
+import type { GapStatistics } from '../domain/types';
 
 let root: Root | null = null;
 let container: HTMLDivElement;
+
+const gapStatistics = (maxGapMs: number): GapStatistics => ({
+    maxGapMs,
+    meanGapMs: maxGapMs / 2,
+    p95GapMs: maxGapMs,
+    accessCount: 2,
+    fractionInView: 0.1,
+    meanAccessDurationMs: 3600_000,
+    totalInViewMs: 2 * 3600_000,
+    interiorGapCount: 1,
+    boundaryGapsDiscarded: 2,
+    warnings: [],
+    coverage: 'INTERMITTENT',
+});
 
 beforeEach(() => {
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean })
@@ -184,6 +199,53 @@ describe('REVISIT P0 presentation UI', () => {
         // Any comparison cell, not only its target-name button, selects the row.
         await act(async () => (selectedSidecar.lastElementChild as HTMLElement).click());
         expect(onSelectPoint).toHaveBeenCalledWith('comparison-1');
+    });
+
+    it('uses orange for finite misses while keeping compliant gaps green or target-coloured', async () => {
+        const startMs = Date.UTC(2026, 7, 12, 0);
+        const hour = 3600_000;
+        await act(async () => root?.render(
+            <CoverageRibbon
+                intervals={[]}
+                statistics={null}
+                targetLanes={[
+                    {
+                        id: 'REFERENCE', kind: 'POINT', roleLabel: 'Reference', basisLabel: 'Point',
+                        label: 'Reference · London', name: 'London', selected: true,
+                        intervals: [
+                            { startMs: startMs + hour, endMs: startMs + 2 * hour, satelliteIds: ['sat-1'], clippedAtStart: false, clippedAtEnd: false },
+                            { startMs: startMs + 5 * hour, endMs: startMs + 6 * hour, satelliteIds: ['sat-1'], clippedAtStart: false, clippedAtEnd: false },
+                        ],
+                        statistics: gapStatistics(3 * hour),
+                    },
+                    {
+                        id: 'comparison-1', kind: 'POINT', roleLabel: 'Comparison', basisLabel: 'Point',
+                        label: 'Comparison · Singapore', name: 'Singapore',
+                        intervals: [
+                            { startMs: startMs + hour, endMs: startMs + 2 * hour, satelliteIds: ['sat-2'], clippedAtStart: false, clippedAtEnd: false },
+                            { startMs: startMs + 3 * hour, endMs: startMs + 4 * hour, satelliteIds: ['sat-2'], clippedAtStart: false, clippedAtEnd: false },
+                        ],
+                        statistics: gapStatistics(hour),
+                    },
+                ]}
+                requirementMs={2 * hour}
+                windowStartMs={startMs}
+                windowHours={8}
+                getTimeMs={() => startMs}
+                onSeek={() => undefined}
+                speed={0}
+                onSetSpeed={() => undefined}
+            />
+        ));
+
+        const missRow = container.querySelector('[data-revisit-comparison-row="REFERENCE"]');
+        const meetRow = container.querySelector('[data-revisit-comparison-row="comparison-1"]');
+        expect(missRow?.lastElementChild?.className).toContain('text-orange-300');
+        expect(meetRow?.lastElementChild?.className).toContain('text-lime-300');
+        expect(container.querySelector('[data-revisit-gap-outcome="misses"]')
+            ?.getAttribute('stroke')).toBe('#F97316');
+        expect(container.querySelector('[data-revisit-gap-outcome="meets"]')
+            ?.getAttribute('stroke')).toBe('#38BDF8');
     });
 
     /*

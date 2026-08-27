@@ -12,7 +12,10 @@ import {
 const snapshot = (): RevisitSessionSnapshotV1 => ({
     schemaVersion: REVISIT_SESSION_SCHEMA_VERSION,
     scenario: defaultScenario(Date.UTC(2026, 7, 13)),
-    options: { showOrbits: true, showSwaths: true, showHostFleet: true, showLabels: false, autoRotate: false },
+    options: {
+        showOrbits: true, showSwaths: true, showProjectionCones: false,
+        showHostFleet: true, showLabels: false, autoRotate: false,
+    },
     requirementMs: 2 * 3600_000,
     selectionSource: 'auto',
 });

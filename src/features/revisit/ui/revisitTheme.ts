@@ -1,43 +1,71 @@
 /**
- * revisitTheme.ts — the amber identity (UX §3).
+ * revisitTheme.ts — semantic colours shared by DOM and Cesium.
  *
- * The charter gives GEO a stable blue/cyan identity and LEO a dynamic
- * magenta/violet one. REVISIT takes amber/orange: the payload is an infrared
- * sensor and amber is the thermal colour, it collides with neither existing
- * mode, and it signals at a glance that the user has left the telecom world for
- * Earth observation.
- *
- * Known adjacency: amber is already used for `Monitoring` markers in the GEO
- * GROUND SITES legend. No real collision — those markers do not exist in
- * REVISIT — but it is the first place a conflict would surface.
+ * REVISIT uses role colours rather than one module-wide accent: amber identifies
+ * Reference, blue identifies Comparison, and neutral white/slate identifies the
+ * shared payload system. Green and red remain reserved for outcome semantics.
  *
  * One definition of each colour, consumed by both the DOM and Cesium, so the
  * globe and the panels can never drift apart.
  */
 
 export const REVISIT_COLORS = {
-    /** Accent, borders, active toolbar. */
+    /** Performance midpoint and caution state — never payload identity. */
     accent: '#EF9F27',
     /** Reference target — amber in header, globe and timeline. */
     target: '#FBBF24',
     /** Comparison target — sky blue in header, globe and timeline. */
     comparison: '#38BDF8',
-    /** Bright values, payload satellites. */
-    bright: '#FAC775',
-    /** Worst-case gap, out of view. */
+    /** Payload-equipped satellites and sensor geometry: neutral, target-agnostic. */
+    payload: '#F8FAFC',
+    /** Payload orbit planes: visible but subordinate to satellites and targets. */
+    payloadOrbit: '#CBD5E1',
+    /** Valid measured result that does not meet the customer requirement. */
+    miss: '#F97316',
+    /** Softer end of the finite-miss ramp used by area cells. */
+    missSoft: '#FDBA74',
+    /** Technical error or observation impossibility such as never-in-view. */
     alert: '#E24B4A',
     alertSoft: '#F09595',
     /** Pass, meets target. */
     pass: '#C0DD97',
+    /** Comfortable pass, used at the strong end of the area scale. */
+    passStrong: '#65A30D',
     /** Informational/calibration blue, distinct from target-role colours. */
     reference: '#7DD3FC',
     /** The host fleet — dim grey-blue, deliberately recessive. */
     hostFleet: '#7C8BA1',
 } as const;
 
+/**
+ * Shared outcome vocabulary for DOM badges and compact verdicts.
+ *
+ * Target identity (amber/blue) must never encode success. Conversely, these
+ * classes must never identify Reference or Comparison. Keeping the four states
+ * here prevents the desktop card, mobile strip and comparison table drifting.
+ */
+export const REVISIT_OUTCOME = {
+    meets: {
+        badge: 'border-lime-400/40 bg-lime-500/15 text-lime-200',
+        text: 'text-lime-300',
+    },
+    misses: {
+        badge: 'border-orange-400/40 bg-orange-500/15 text-orange-200',
+        text: 'text-orange-300',
+    },
+    unavailable: {
+        badge: 'border-slate-500/40 bg-slate-500/15 text-slate-300',
+        text: 'text-slate-500',
+    },
+    error: {
+        badge: 'border-red-400/40 bg-red-500/15 text-red-200',
+        text: 'text-red-300',
+    },
+} as const;
+
 /** Tailwind-ish class fragments reused across the REVISIT panels. */
 export const REVISIT_PANEL =
-    'revisit-panel rounded-xl border border-amber-500/25 bg-slate-950/80 backdrop-blur-sm shadow-lg';
+    'revisit-panel rounded-xl border border-slate-700/70 bg-slate-950/80 backdrop-blur-sm shadow-lg';
 
 /**
  * Menus, popovers and dialogs that float above the shell. Themed through one

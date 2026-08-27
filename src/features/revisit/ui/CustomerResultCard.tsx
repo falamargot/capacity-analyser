@@ -30,7 +30,8 @@
 
 import React from 'react';
 import { formatGap } from '../analysis/gapStatistics';
-import { REVISIT_LABEL, REVISIT_PANEL } from './revisitTheme';
+import type { RevisitAreaTargetRole } from '../domain/analysisTargets';
+import { REVISIT_LABEL, REVISIT_OUTCOME, REVISIT_PANEL } from './revisitTheme';
 
 /**
  * What the fleet sizing has to say. These are not interchangeable and the
@@ -63,6 +64,8 @@ export type CustomerSizing =
     | { kind: 'UNAVAILABLE' };
 
 export interface CustomerResultCardProps {
+    /** Semantic colour carried by the result currently inspected in the sidebar. */
+    targetRole?: RevisitAreaTargetRole;
     /** The customer's question, phrased to be read out loud verbatim. */
     question: string;
     /** Basis of a multi-target comparison, when there is more than one target. */
@@ -104,27 +107,32 @@ type Status = { text: string; className: string };
  */
 function customerStatus(meetsRequirement: boolean | null, sizing: CustomerSizing): Status {
     if (meetsRequirement === true) {
-        return { text: 'Requirement covered', className: 'border-lime-400/40 bg-lime-500/15 text-lime-200' };
+        return { text: 'Requirement covered', className: REVISIT_OUTCOME.meets.badge };
+    }
+    if (sizing.kind === 'FAILED') {
+        return {
+            text: 'Further engineering assessment required',
+            className: REVISIT_OUTCOME.error.badge,
+        };
     }
     if (meetsRequirement === null
         || sizing.kind === 'BEYOND_RANGE'
         || sizing.kind === 'AREA_NOT_SIZED'
-        || sizing.kind === 'FAILED'
         || sizing.kind === 'UNAVAILABLE') {
         return {
             text: 'Further engineering assessment required',
-            className: 'border-slate-500/40 bg-slate-500/15 text-slate-300',
+            className: REVISIT_OUTCOME.unavailable.badge,
         };
     }
     if (sizing.kind === 'COMPUTING') {
         return {
             text: 'Current configuration below requirement',
-            className: 'border-amber-400/40 bg-amber-500/15 text-amber-200',
+            className: REVISIT_OUTCOME.misses.badge,
         };
     }
     return {
         text: 'Additional payloads required',
-        className: 'border-amber-400/40 bg-amber-500/15 text-amber-200',
+        className: REVISIT_OUTCOME.misses.badge,
     };
 }
 
@@ -141,7 +149,7 @@ function RecommendedEvidenceDisclosure({ children }: { children: React.ReactNode
             onToggle={(event) => setOpen(event.currentTarget.open)}
             className="mt-3 border-t border-slate-700/50 pt-2.5"
         >
-            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 text-[11px] font-black uppercase tracking-[0.1em] text-sky-300 md:min-h-8">
+            <summary className="revisit-label flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 text-[11px] font-black uppercase tracking-[0.1em] text-slate-300 md:min-h-8">
                 Why this recommendation?
                 <span aria-hidden="true" className="text-sm text-slate-500">{open ? '−' : '+'}</span>
             </summary>
@@ -225,13 +233,13 @@ function SizingBlock({ sizing, fleetSize, applyNote, onApply, onUndo, onRetrySiz
             {sizing.kind === 'RECOMMENDED' && (
                 <>
                     <p className="mt-1 flex flex-wrap items-baseline gap-x-2 leading-none">
-                        <span className="text-2xl font-black text-amber-300 tabular-nums">
+                        <span className="text-2xl font-black text-white tabular-nums">
                             {sizing.payloadCount}
                         </span>
-                        <span className="text-[13px] font-semibold text-amber-200/80">
+                        <span className="text-[13px] font-semibold text-slate-300">
                             payload-equipped satellites
                         </span>
-                        <span className="text-[13px] font-black text-amber-300 tabular-nums">
+                        <span className="text-[13px] font-black text-slate-100 tabular-nums">
                             +{sizing.additionalPayloads}
                         </span>
                     </p>
@@ -242,7 +250,7 @@ function SizingBlock({ sizing, fleetSize, applyNote, onApply, onUndo, onRetrySiz
                         <button
                             type="button"
                             onClick={onApply}
-                            className="revisit-apply-recommended mt-2 min-h-11 w-full rounded-lg border border-amber-400/60 bg-amber-500/20 px-3 py-2 text-[12px] font-black uppercase tracking-[0.12em] text-amber-100 transition-colors hover:bg-amber-500/30"
+                            className="revisit-apply-recommended mt-2 min-h-11 w-full rounded-lg border border-slate-400/70 bg-slate-100/10 px-3 py-2 text-[12px] font-black uppercase tracking-[0.12em] text-slate-100 transition-colors hover:border-white hover:bg-white/15"
                         >
                             Apply recommended configuration
                         </button>
@@ -271,7 +279,7 @@ function SizingBlock({ sizing, fleetSize, applyNote, onApply, onUndo, onRetrySiz
 }
 
 export const CustomerResultCard: React.FC<CustomerResultCardProps> = ({
-    question, comparisonNote = null, currentPayloadCount, fleetSize,
+    targetRole = 'REFERENCE', question, comparisonNote = null, currentPayloadCount, fleetSize,
     currentMaxGapMs, currentIsComputing, currentUnavailableReason = null,
     currentMetricLabel = 'Maximum revisit gap', requirementMs, sizing,
     applyNote = null, onApply, onUndo, onRetrySizing, supportingMetrics = null,
@@ -282,8 +290,9 @@ export const CustomerResultCard: React.FC<CustomerResultCardProps> = ({
 
     return (
         <section
-            className={`${REVISIT_PANEL} revisit-customer-result px-4 py-3`}
+            className={`${REVISIT_PANEL} revisit-customer-result revisit-result-${targetRole.toLowerCase()} px-4 py-3`}
             aria-label="Customer result"
+            data-revisit-result-role={targetRole.toLowerCase()}
         >
             <p className="text-[13px] font-semibold leading-5 text-slate-100">{question}</p>
             {comparisonNote && (
@@ -301,10 +310,10 @@ export const CustomerResultCard: React.FC<CustomerResultCardProps> = ({
             <div className="mt-3 border-t border-slate-700/50 pt-2.5">
                 <span className={REVISIT_LABEL}>Current configuration</span>
                 <p className="mt-1 flex flex-wrap items-baseline gap-x-2 leading-none">
-                    <span className="text-2xl font-black text-amber-300 tabular-nums">
+                    <span className="text-2xl font-black text-white tabular-nums">
                         {currentPayloadCount}
                     </span>
-                    <span className="text-[13px] font-semibold text-amber-200/80">
+                    <span className="text-[13px] font-semibold text-slate-300">
                         payload-equipped satellites
                     </span>
                 </p>

@@ -85,6 +85,8 @@ test.describe('REVISIT P0 demonstration contract', () => {
     // moment it is used, which is what the presenter does too.
     await openRevisitSetup(page);
     const payloadSlider = page.getByRole('slider', { name: 'Number of hosted payloads' });
+    await expect(payloadSlider).toHaveClass(/revisit-payload-slider/);
+    await expect(payloadSlider).toHaveCSS('background-image', /linear-gradient/);
     await payloadSlider.press('ArrowRight');
     await expect(payloadSlider).not.toHaveAttribute('aria-valuetext', '12 payloads');
 
@@ -133,9 +135,15 @@ test.describe('REVISIT P0 demonstration contract', () => {
    */
   test('keeps every globe display control directly reachable', async ({ page }) => {
     await openRevisitDisplayControls(page);
+    await expect(page.locator('[data-revisit-payload-count]')).toHaveClass(/text-white/);
+    await expect(page.locator('[data-revisit-payload-swath]')).toHaveClass(/text-slate-100/);
     await expect(page.getByRole('button', { name: 'Host fleet' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Satellite labels' }))
       .toHaveAttribute('aria-pressed', 'true');
+    const projectionCones = page.getByRole('button', { name: 'Projection cones' });
+    await expect(projectionCones).toHaveAttribute('aria-pressed', 'false');
+    await projectionCones.click();
+    await expect(projectionCones).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByRole('button', { name: 'Auto-rotate globe' }))
       .toHaveAttribute('aria-pressed', 'false');
     await expect(page.getByText('Reduced globe load', { exact: true })).toHaveCount(0);

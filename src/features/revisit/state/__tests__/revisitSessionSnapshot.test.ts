@@ -16,6 +16,7 @@ const snapshot = (): RevisitSessionSnapshotV1 => ({
   options: {
     showOrbits: false,
     showSwaths: true,
+    showProjectionCones: true,
     showHostFleet: true,
     showLabels: false,
     autoRotate: false,
@@ -227,6 +228,16 @@ describe('revisitSessionSnapshot', () => {
       JSON.stringify({ ...legacy, options: legacyOptions }),
     );
     expect(readRevisitSessionSnapshot()?.options.showLabels).toBe(false);
+  });
+
+  it('migrates sessions created before projection cones with the layer disabled', () => {
+    const legacy = snapshot();
+    const { showProjectionCones: _omitted, ...legacyOptions } = legacy.options;
+    window.sessionStorage.setItem(
+      'capacity-analyzer:revisit-session:v1',
+      JSON.stringify({ ...legacy, options: legacyOptions }),
+    );
+    expect(readRevisitSessionSnapshot()?.options.showProjectionCones).toBe(false);
   });
 
   it('rejects a structurally present but invalid scenario', () => {

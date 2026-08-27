@@ -3,7 +3,7 @@ import { HEAT_SATURATION_MULTIPLE, heatColorFor, heatLegendStops } from '../rend
 
 const HOUR = 3600_000;
 const isGreener = (c: { rgb: [number, number, number] }) => c.rgb[1] > c.rgb[0];
-const isRedder = (c: { rgb: [number, number, number] }) => c.rgb[0] > c.rgb[1];
+const isWarm = (c: { rgb: [number, number, number] }) => c.rgb[0] > c.rgb[1];
 
 describe('heatMapColors — the scale is anchored to the requirement', () => {
     // The decision this file exists to protect. Normalising between the best and
@@ -14,7 +14,7 @@ describe('heatMapColors — the scale is anchored to the requirement', () => {
     it('colours the same gap differently as the requirement moves', () => {
         const gap = 4 * HOUR;
         expect(isGreener(heatColorFor(gap, 24 * HOUR))).toBe(true);
-        expect(isRedder(heatColorFor(gap, 1 * HOUR))).toBe(true);
+        expect(isWarm(heatColorFor(gap, 1 * HOUR))).toBe(true);
     });
 
     it('does not depend on the other cells in the area', () => {
@@ -23,12 +23,19 @@ describe('heatMapColors — the scale is anchored to the requirement', () => {
         expect(heatColorFor(2 * HOUR, 4 * HOUR)).toEqual(heatColorFor(2 * HOUR, 4 * HOUR));
     });
 
-    it('runs green → amber as a gap approaches the requirement', () => {
+    it('stays green through the requirement threshold', () => {
         const comfortable = heatColorFor(0.2 * HOUR, 4 * HOUR);
         const atTarget = heatColorFor(4 * HOUR, 4 * HOUR);
         expect(isGreener(comfortable)).toBe(true);
-        // At the threshold the green channel has given way.
-        expect(atTarget.rgb[0]).toBeGreaterThan(comfortable.rgb[0]);
+        expect(isGreener(atTarget)).toBe(true);
+        expect(atTarget.css).not.toBe(comfortable.css);
+    });
+
+    it('uses orange for a finite miss and red only when the cell is never seen', () => {
+        const miss = heatColorFor(2.1 * HOUR, 2 * HOUR);
+        const never = heatColorFor(null, 2 * HOUR);
+        expect(isWarm(miss)).toBe(true);
+        expect(miss.css).not.toBe(never.css);
     });
 
     it('saturates at the configured multiple and does not keep darkening', () => {
@@ -43,8 +50,9 @@ describe('heatMapColors — the scale is anchored to the requirement', () => {
         const never = heatColorFor(null, 2 * HOUR);
         const worst = heatColorFor(1000 * HOUR, 2 * HOUR);
         expect(never.css).not.toBe(worst.css);
-        // Violet: blue-dominant, unlike anything on the green→red ramp.
-        expect(never.rgb[2]).toBeGreaterThan(never.rgb[1]);
+        // Red is reserved for the observation impossibility.
+        expect(never.rgb[0]).toBeGreaterThan(never.rgb[1]);
+        expect(never.rgb[1]).toBeGreaterThan(worst.rgb[2]);
     });
 
     it('emits valid CSS hex and matching 0–1 rgb', () => {

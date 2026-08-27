@@ -196,7 +196,7 @@ describe('REVISIT P1 functional UI', () => {
                         { latDeg: 11, lonDeg: 12 },
                     ],
                 }}
-                customAreaCellCount={7}
+                comparisonAreaCellCount={7}
                 secondaryTargetOrder={['AREA_TARGET']}
                 onAnalysisContextChange={onAnalysisContextChange}
                 spreadNote={null}

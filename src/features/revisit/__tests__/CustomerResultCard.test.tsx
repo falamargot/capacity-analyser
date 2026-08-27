@@ -50,6 +50,15 @@ async function renderCard(overrides: Partial<React.ComponentProps<typeof Custome
 }
 
 describe('CustomerResultCard', () => {
+    it('carries the inspected target role across its section hierarchy', async () => {
+        await renderCard({ targetRole: 'COMPARISON' });
+
+        expect(container.querySelector('[data-revisit-result-role="comparison"]')
+            ?.classList.contains('revisit-result-comparison')).toBe(true);
+        expect(container.querySelector('.revisit-label')?.textContent)
+            .toContain('Current configuration');
+    });
+
     it('leads with the customer question and both sides of the comparison', async () => {
         await renderCard();
 
@@ -130,6 +139,8 @@ describe('CustomerResultCard', () => {
 
         expect(container.textContent).toContain('Additional payloads required');
         expect(container.textContent).not.toContain('MISSES');
+        expect(container.querySelector('.revisit-customer-status')?.className)
+            .toContain('text-orange-200');
     });
 
     it('reports a covered requirement without proposing anything', async () => {
@@ -138,6 +149,8 @@ describe('CustomerResultCard', () => {
         expect(container.textContent).toContain('Requirement covered');
         expect(container.textContent).toContain('no additional payloads required');
         expect(container.querySelector('.revisit-apply-recommended')).toBeNull();
+        expect(container.querySelector('.revisit-customer-status')?.className)
+            .toContain('text-lime-200');
     });
 
     /*
@@ -161,6 +174,12 @@ describe('CustomerResultCard', () => {
         expect(container.textContent).toContain('No configuration on the tested payload range');
         expect(container.textContent).toContain('Further engineering assessment required');
         expect(container.textContent).not.toContain('Calculating fleet sizing');
+    });
+
+    it('reserves red for a technical sizing failure', async () => {
+        await renderCard({ sizing: { kind: 'FAILED' } });
+        expect(container.querySelector('.revisit-customer-status')?.className)
+            .toContain('text-red-200');
     });
 
     /* Programme 5b guardrail, restated as a rendering contract. */

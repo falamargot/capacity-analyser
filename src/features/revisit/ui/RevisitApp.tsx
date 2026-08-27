@@ -128,6 +128,11 @@ type AnalysisSheetSize = 'half' | 'full';
 const TOGGLES: Array<{ key: keyof DisplayOptions; label: string; hint?: string }> = [
     { key: 'showOrbits', label: 'Orbits' },
     { key: 'showSwaths', label: 'Sensor swath' },
+    {
+        key: 'showProjectionCones',
+        label: 'Projection cones',
+        hint: 'Transparent link between each payload satellite and its sensor footprint',
+    },
     { key: 'showHostFleet', label: 'Host fleet' },
     {
         key: 'showLabels',
@@ -163,6 +168,7 @@ function defaultDisplayOptions(): DisplayOptions {
     return {
         showOrbits: true,
         showSwaths: true,
+        showProjectionCones: false,
         showHostFleet: true,
         showLabels: true,
         autoRotate: false,
@@ -375,6 +381,11 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     const inspectedPointRole = selectedPointId === REFERENCE_POINT_ID
         ? 'Reference target'
         : 'Comparison target';
+    const activeTargetRole: RevisitAreaTargetRole | null = !hasReferenceTarget
+        ? null
+        : analysisContext === 'AREA'
+            ? areaTargetRole
+            : selectedPointId === REFERENCE_POINT_ID ? 'REFERENCE' : 'COMPARISON';
     const inspectedScenario = useMemo<RevisitScenario>(
         () => inspectedPoint ? { ...scenario, target: inspectedPoint } : scenario,
         [scenario, inspectedPoint]
@@ -1620,7 +1631,11 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         setScenario(snapshot.scenario);
         setReferenceMode(referenceModeFor(snapshot.scenario.reference));
         setReferenceRestored(referenceModeFor(snapshot.scenario.reference) === 'CUSTOM');
-        setOptions({ ...snapshot.options, showLabels: snapshot.options.showLabels ?? false });
+        setOptions({
+            ...snapshot.options,
+            showLabels: snapshot.options.showLabels ?? false,
+            showProjectionCones: snapshot.options.showProjectionCones ?? false,
+        });
         setRequirementMs(snapshot.requirementMs);
         setSelectionSource(snapshot.selectionSource);
         const loadedHasReferenceTarget = snapshot.hasReferenceTarget ?? true;
@@ -1755,7 +1770,8 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                             onAreaTargetRoleChange={handleAreaTargetRoleChange}
                             onRemoveAreaTarget={handleRemoveAreaTarget}
                             customArea={customArea ?? displayedAreaAnalysis?.area ?? null}
-                            customAreaCellCount={displayedAreaAnalysis?.cells.length ?? null}
+                            referenceAreaCellCount={displayedReferenceAreaAnalysis?.cells.length ?? null}
+                            comparisonAreaCellCount={displayedComparisonAreaAnalysis?.cells.length ?? null}
                             areaAnalysis={displayedAreaAnalysis}
                             areaIsRunning={areaRun.isRunning}
                             areaError={areaRun.error}
@@ -1953,12 +1969,19 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
 
                         <div
                             aria-label="Active result context"
-                            className={`${REVISIT_PANEL} sticky top-8 z-[19] grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-l-4 px-3 py-2 md:top-0 ${analysisContext === 'AREA' || selectedPointId !== REFERENCE_POINT_ID
-                                ? 'border-l-sky-400'
-                                : 'border-l-amber-400'}`}
+                            data-revisit-target-role={activeTargetRole?.toLowerCase() ?? 'none'}
+                            className={`${REVISIT_PANEL} ${activeTargetRole === 'REFERENCE'
+                                ? 'revisit-target-reference'
+                                : activeTargetRole === 'COMPARISON'
+                                    ? 'revisit-target-comparison'
+                                    : ''} sticky top-8 z-[19] grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-l-4 px-3 py-2 md:top-0`}
                         >
                             <div className="min-w-0">
-                                <div className={`truncate text-[11px] font-black uppercase tracking-[0.12em] ${analysisContext === 'AREA' || selectedPointId !== REFERENCE_POINT_ID ? 'text-sky-700 dark:text-sky-300' : 'text-amber-300'}`}>
+                                <div className={`truncate text-[11px] font-black uppercase tracking-[0.12em] ${activeTargetRole === 'REFERENCE'
+                                    ? 'text-amber-300'
+                                    : activeTargetRole === 'COMPARISON'
+                                        ? 'text-sky-700 dark:text-sky-300'
+                                        : 'text-slate-300'}`}>
                                     {!hasReferenceTarget
                                         ? 'No target selected'
                                         : analysisContext === 'AREA'
@@ -1974,7 +1997,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                                     aria-label="Revisit requirement"
                                     value={requirementMs}
                                     onChange={(event) => setRequirementMs(Number(event.target.value))}
-                                    className="min-h-11 md:min-h-7 rounded border border-amber-400/35 bg-slate-950/85 px-2 text-[12px] font-black text-amber-200 outline-none"
+                                    className="min-h-11 md:min-h-7 rounded border border-slate-600/70 bg-slate-950/85 px-2 text-[12px] font-black text-slate-100 outline-none focus:border-slate-300"
                                     title="Maximum acceptable gap between two observations"
                                 >
                                     {REQUIREMENT_CHOICES_H.map((hours) => (
@@ -1992,6 +2015,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                                 cards repeated the same maximum gap and verdict. */}
                             {(analysisContext === 'AREA' || inspectedPoint) && (
                                 <CustomerResultCard
+                                    targetRole={activeTargetRole ?? 'REFERENCE'}
                                     question={customerQuestion}
                                     comparisonNote={customerComparisonNote}
                                     currentPayloadCount={currentPayloadCount}
@@ -2034,6 +2058,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                                     recommendedConfigurationDetail={analysisContext === 'POINTS' && inspectedPoint ? (
                                         <ValueCurve
                                             key={resetRevision}
+                                            targetRole={activeTargetRole ?? 'REFERENCE'}
                                             sweep={sweep}
                                             isComputing={isSweeping}
                                             requirementMs={requirementMs}
@@ -2051,14 +2076,18 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                                 />
                             )}
                             {analysisContext === 'AREA' && (
-                                <AreaDistributionPanel analysis={displayedAreaAnalysis} requirementMs={requirementMs} />
+                                <div className={`revisit-result-${(activeTargetRole ?? 'REFERENCE').toLowerCase()}`}>
+                                    <AreaDistributionPanel analysis={displayedAreaAnalysis} requirementMs={requirementMs} />
+                                </div>
                             )}
                             {analysisContext === 'POINTS' && inspectedPoint && (
-                                <WhyThisRevisit explanation={explanation} />
+                                <div className={`revisit-result-${(activeTargetRole ?? 'REFERENCE').toLowerCase()}`}>
+                                    <WhyThisRevisit explanation={explanation} />
+                                </div>
                             )}
                             {analysisContext === 'POINTS' && !inspectedPoint && (
                                 <div className={`${REVISIT_PANEL} px-4 py-4`}>
-                                    <div className="text-[12px] font-black uppercase tracking-[0.12em] text-sky-300">
+                                    <div className="text-[12px] font-black uppercase tracking-[0.12em] text-slate-300">
                                         {hasReferenceTarget ? 'Comparison target location required' : 'No analysis target'}
                                     </div>
                                     <p className="mt-1 text-[12px] leading-4 text-slate-400">

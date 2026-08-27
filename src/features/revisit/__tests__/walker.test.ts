@@ -101,6 +101,48 @@ describe('walker — constellation generation', () => {
         expect(fleet.map((f) => f.argLatDeg)).toEqual([0, 90, 180, 270]);
     });
 
+    it.each([4, 5])('places %i spares strictly between the 48 active slots', (spares) => {
+        const fleet = generateWalkerConstellation(spec({
+            planes: 1,
+            satsPerPlane: 48,
+            phasingF: 0,
+            sparesPerPlane: [spares],
+        }));
+        const active = fleet.filter((satellite) => !satellite.isSpare);
+        const spareFleet = fleet.filter((satellite) => satellite.isSpare);
+
+        expect(spareFleet).toHaveLength(spares);
+        for (const spare of spareFleet) {
+            expect(active.some((satellite) => satellite.argLatDeg === spare.argLatDeg)).toBe(false);
+        }
+        expect(new Set(spareFleet.map((satellite) => satellite.argLatDeg)).size).toBe(spares);
+    });
+
+    it('does not stack the OneWeb five-spare middle slot on active S24', () => {
+        const fleet = generateWalkerConstellation(spec({
+            planes: 1,
+            satsPerPlane: 48,
+            phasingF: 0,
+            sparesPerPlane: [5],
+        }));
+        const activeS24 = fleet.find((satellite) => satellite.id === 'P00_S24')!;
+        const middleSpare = fleet.find((satellite) => satellite.id === 'P00_S50')!;
+
+        expect(activeS24.argLatDeg).toBe(180);
+        expect(middleSpare.argLatDeg).toBe(183.75);
+    });
+
+    it('keeps spares distinct even when there are more spares than active gaps', () => {
+        const fleet = generateWalkerConstellation(spec({
+            planes: 1,
+            satsPerPlane: 2,
+            phasingF: 0,
+            sparesPerPlane: [5],
+        }));
+        const angles = fleet.map((satellite) => satellite.argLatDeg);
+        expect(new Set(angles).size).toBe(angles.length);
+    });
+
     it('applies the Walker phasing offset of f·360/(P·S) per plane', () => {
         // P=12, S=8, f=1 → each plane is offset by 360/96 = 3.75°.
         const fleet = generateWalkerConstellation(spec());

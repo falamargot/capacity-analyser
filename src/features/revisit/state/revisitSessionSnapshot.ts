@@ -81,6 +81,8 @@ export function isRevisitSessionSnapshot(value: unknown): value is RevisitSessio
     && Boolean(candidate.options)
     && typeof candidate.options?.showOrbits === 'boolean'
     && typeof candidate.options?.showSwaths === 'boolean'
+    && (candidate.options?.showProjectionCones === undefined
+      || typeof candidate.options.showProjectionCones === 'boolean')
     && typeof candidate.options?.showHostFleet === 'boolean'
     && (candidate.options?.showLabels === undefined
       || typeof candidate.options.showLabels === 'boolean')
@@ -190,6 +192,7 @@ export function normaliseRevisitSessionSnapshot(
 ): RevisitSessionSnapshotV1 {
   const copy = cloneSnapshot(snapshot);
   copy.options.showLabels ??= false;
+  copy.options.showProjectionCones ??= false;
   copy.analysisContext ??= 'POINTS';
   copy.areaTargetRole ??= 'COMPARISON';
   copy.comparisonPoints ??= [];

@@ -143,6 +143,9 @@ describe('REVISIT compact viewport', () => {
         ));
 
         expect(container.textContent).toContain('Misses');
+        expect([...container.querySelectorAll('span')]
+            .find((element) => element.textContent === 'Misses')?.className)
+            .toContain('text-orange-200');
         expect(container.textContent).toContain('3 h');
         expect(container.textContent).toContain('Maximum gap vs 2 h');
 
@@ -165,6 +168,9 @@ describe('REVISIT compact viewport', () => {
             />
         ));
         expect(container.textContent).toContain('Meets');
+        expect([...container.querySelectorAll('span')]
+            .find((element) => element.textContent === 'Meets')?.className)
+            .toContain('text-lime-200');
 
         await act(async () => root?.render(
             <MobileResultStrip
@@ -178,6 +184,9 @@ describe('REVISIT compact viewport', () => {
             />
         ));
         expect(container.textContent).toContain('Never in view');
+        expect([...container.querySelectorAll('span')]
+            .find((element) => element.textContent === 'Never in view')?.className)
+            .toContain('text-red-200');
     });
 
     it('does not substitute the reference result for an incomplete comparison point', async () => {

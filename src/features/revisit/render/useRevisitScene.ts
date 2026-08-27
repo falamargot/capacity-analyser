@@ -11,9 +11,10 @@
  *     place — never one Entity per satellite;
  *   - P orbit polylines, not P·S — a Walker constellation has only P distinct
  *     planes, so 12 lines look identical to 96 and cost an eighth;
- *   - swath polygons only for the highlighted sub-constellation.
+ *   - swath outlines and optional projection volumes only for the highlighted
+ *     payload sub-constellation.
  *
- * All three share one update pass, so they live in one controller. React owns
+ * All layers share one update pass, so they live in one controller. React owns
  * mounting; Cesium primitives own their own lifetime.
  *
  * ── FRAME ──────────────────────────────────────────────────────────────────
@@ -31,9 +32,12 @@
 
 import { useEffect, useRef } from 'react';
 import {
-    Cartesian2, Cartesian3, Color, DistanceDisplayCondition, LabelCollection, LabelStyle,
-    Math as CesiumMath, NearFarScalar, PointPrimitiveCollection, PolylineCollection,
-    Material, VerticalOrigin, type Viewer,
+    BoundingSphere, Cartesian2, Cartesian3, Color, ColorGeometryInstanceAttribute,
+    ComponentDatatype, DistanceDisplayCondition, Geometry, GeometryAttribute, GeometryAttributes,
+    GeometryInstance,
+    LabelCollection, LabelStyle, Math as CesiumMath, Material, NearFarScalar,
+    PerInstanceColorAppearance, PointPrimitiveCollection, PolylineCollection, Primitive,
+    PrimitiveCollection, PrimitiveType, VerticalOrigin, type Viewer,
 } from 'cesium';
 import { EARTH_RADIUS_KM } from '../../../utils/earthGeometry';
 import type { OrbitalElements, RevisitScenario } from '../domain/types';
@@ -69,10 +73,20 @@ export const MAX_SATELLITE_LABELS = 96;
 const ORBIT_SAMPLES = 128;
 /** Boundary vertices per swath. */
 const SWATH_SAMPLES = 32;
+/** Facets around the translucent satellite-to-footprint projection volume. */
+const PROJECTION_VOLUME_FACETS = 8;
+
+/** Keep the optional layer bounded when every host in a large fleet is equipped. */
+function projectionVolumeFacetCount(payloadCount: number): number {
+    if (payloadCount > 256) return 3;
+    if (payloadCount > 96) return 4;
+    return PROJECTION_VOLUME_FACETS;
+}
 
 export interface RevisitSceneOptions {
     showOrbits: boolean;
     showSwaths: boolean;
+    showProjectionCones: boolean;
     showHostFleet: boolean;
     showLabels: boolean;
 }
@@ -82,6 +96,7 @@ interface SceneHandles {
     labels: LabelCollection;
     orbits: PolylineCollection;
     swaths: PolylineCollection;
+    projectionVolumes: PrimitiveCollection;
 }
 
 /**
@@ -160,7 +175,8 @@ export function useRevisitScene(
         const labels = viewer.scene.primitives.add(new LabelCollection());
         const orbits = viewer.scene.primitives.add(new PolylineCollection());
         const swaths = viewer.scene.primitives.add(new PolylineCollection());
-        handlesRef.current = { points, labels, orbits, swaths };
+        const projectionVolumes = viewer.scene.primitives.add(new PrimitiveCollection());
+        handlesRef.current = { points, labels, orbits, swaths, projectionVolumes };
 
         return () => {
             handlesRef.current = null;
@@ -171,6 +187,7 @@ export function useRevisitScene(
             viewer.scene.primitives.remove(labels);
             viewer.scene.primitives.remove(orbits);
             viewer.scene.primitives.remove(swaths);
+            viewer.scene.primitives.remove(projectionVolumes);
         };
     }, [viewer]);
 
@@ -180,7 +197,7 @@ export function useRevisitScene(
         if (!viewer || viewer.isDestroyed?.() || !handles) return;
 
         const hostColor = Color.fromCssColorString(REVISIT_COLORS.hostFleet).withAlpha(0.72);
-        const payloadColor = Color.fromCssColorString(REVISIT_COLORS.bright);
+        const payloadColor = Color.fromCssColorString(REVISIT_COLORS.payload);
         const spaceOutline = Color.fromCssColorString('#05070D').withAlpha(0.9);
         const labelBackgroundColor = Color.fromCssColorString('#05070D').withAlpha(0.72);
 
@@ -220,7 +237,7 @@ export function useRevisitScene(
         const handles = handlesRef.current;
         if (!viewer || viewer.isDestroyed?.() || !handles) return;
         if (options.showLabels && handles.labels.length === 0) {
-            const payloadColor = Color.fromCssColorString(REVISIT_COLORS.bright);
+            const payloadColor = Color.fromCssColorString(REVISIT_COLORS.payload);
             const spaceOutline = Color.fromCssColorString('#05070D').withAlpha(0.9);
             const labelBackgroundColor = Color.fromCssColorString('#05070D').withAlpha(0.72);
             populateSatelliteLabels(
@@ -313,7 +330,10 @@ export function useRevisitScene(
                 );
             }
 
-            updateSwaths(handles, sc, fl, propagators, sel, epochMs, tSeconds, opt.showSwaths);
+            updateSensorGeometry(
+                handles, sc, fl, propagators, sel, epochMs, tSeconds,
+                opt.showSwaths, opt.showProjectionCones,
+            );
 
             viewer.scene.requestRender();
         };
@@ -384,7 +404,7 @@ function updateOrbits(
         // Structure changed: rebuild once, then never again until it changes.
         handles.orbits.removeAll();
         const hostColor = Color.fromCssColorString(REVISIT_COLORS.hostFleet).withAlpha(0.16);
-        const payloadColor = Color.fromCssColorString(REVISIT_COLORS.accent).withAlpha(0.42);
+        const payloadColor = Color.fromCssColorString(REVISIT_COLORS.payloadOrbit).withAlpha(0.34);
         const cache: Cartesian3[][] = [];
 
         for (const lead of planeLeads) {
@@ -427,7 +447,56 @@ function updateOrbits(
  * one thing guaranteed to drop the frame rate, and the host fleet's swaths are
  * not part of the story.
  */
-function updateSwaths(
+function clearSwaths(handles: SceneHandles): void {
+    if (handles.swaths.length === 0) return;
+    handles.swaths.removeAll();
+    swathSignature.delete(handles);
+    swathPositionCache.delete(handles);
+}
+
+function clearProjectionVolumes(handles: SceneHandles): void {
+    if (handles.projectionVolumes.length > 0) handles.projectionVolumes.removeAll();
+}
+
+/** Replace the whole translucent shell as one draw primitive. */
+function replaceProjectionVolume(handles: SceneHandles, positions: number[]): void {
+    handles.projectionVolumes.removeAll();
+    if (positions.length === 0) return;
+
+    const values = new Float64Array(positions);
+    const attributes = new GeometryAttributes();
+    attributes.position = new GeometryAttribute({
+        componentDatatype: ComponentDatatype.DOUBLE,
+        componentsPerAttribute: 3,
+        values,
+    });
+    const geometry = new Geometry({
+        attributes,
+        primitiveType: PrimitiveType.TRIANGLES,
+        boundingSphere: BoundingSphere.fromVertices(values),
+    });
+    const color = Color.fromCssColorString(REVISIT_COLORS.payload).withAlpha(0.13);
+    handles.projectionVolumes.add(new Primitive({
+        geometryInstances: new GeometryInstance({
+            geometry,
+            attributes: { color: ColorGeometryInstanceAttribute.fromColor(color) },
+        }),
+        appearance: new PerInstanceColorAppearance({
+            translucent: true,
+            flat: true,
+            closed: false,
+        }),
+        asynchronous: false,
+        allowPicking: false,
+    }));
+}
+
+/**
+ * Payload sensor geometry is updated in one pass. The footprint is the costly
+ * part, so the optional projection volume deliberately reuses the exact same
+ * result as the swath outline instead of tracing the field of view twice.
+ */
+function updateSensorGeometry(
     handles: SceneHandles,
     scenario: RevisitScenario,
     fleet: OrbitalElements[],
@@ -435,14 +504,12 @@ function updateSwaths(
     selectedIds: Set<string>,
     epochMs: number,
     tSeconds: number,
-    show: boolean
+    showSwaths: boolean,
+    showProjectionCones: boolean,
 ): void {
-    if (!show) {
-        if (handles.swaths.length > 0) {
-            handles.swaths.removeAll();
-            swathSignature.delete(handles);
-            swathPositionCache.delete(handles);
-        }
+    if (!showSwaths) clearSwaths(handles);
+    if (!showProjectionCones) clearProjectionVolumes(handles);
+    if (!showSwaths && !showProjectionCones) {
         return;
     }
 
@@ -450,13 +517,14 @@ function updateSwaths(
     for (let i = 0; i < fleet.length; i++) {
         if (selectedIds.has(fleet[i].id)) payloadIndices.push(i);
     }
+    const volumeFacetCount = projectionVolumeFacetCount(payloadIndices.length);
 
     // Boundary vertex count is fixed by SWATH_SAMPLES, so the structure depends
     // only on how many payloads there are and on the instrument's shape.
     const signature = `${payloadIndices.length}|${scenario.payload.shape}`;
-    if (swathSignature.get(handles) !== signature) {
+    if (showSwaths && swathSignature.get(handles) !== signature) {
         handles.swaths.removeAll();
-        const color = Color.fromCssColorString(REVISIT_COLORS.accent).withAlpha(0.75);
+        const color = Color.fromCssColorString(REVISIT_COLORS.payload).withAlpha(0.72);
         const cache: Cartesian3[][] = [];
         for (let n = 0; n < payloadIndices.length; n++) {
             // computeFootprint closes the ring, so it returns samples + 1 points.
@@ -473,32 +541,62 @@ function updateSwaths(
         swathSignature.set(handles, signature);
     }
 
-    const cache = swathPositionCache.get(handles);
-    if (!cache) return;
+    const swathCache = showSwaths ? swathPositionCache.get(handles) : undefined;
+    // The shell must share the exact same propagated instant as the satellite,
+    // outline and footprint. A slower mesh clock becomes visibly detached when
+    // the presenter accelerates simulation time.
+    const volumePositions: number[] | null = showProjectionCones ? [] : null;
+    const groundA = new Cartesian3();
+    const groundB = new Cartesian3();
 
     const fov = prepareFov(scenario.payload);
     for (let n = 0; n < payloadIndices.length; n++) {
         const i = payloadIndices[n];
-        const polyline = handles.swaths.get(n);
-        if (!polyline) break;
+        const swath = showSwaths ? handles.swaths.get(n) : undefined;
 
         const eci = propagateState(propagators[i], tSeconds);
         const footprint = computeFootprint(eci, fov, epochMs, tSeconds, SWATH_SAMPLES);
         // A satellite whose footprint cannot be computed (inside the Earth, or a
         // degenerate frame) is hidden rather than left showing its last position.
         if (!footprint || footprint.boundary.length < 3) {
-            polyline.show = false;
+            if (swath) swath.show = false;
             continue;
         }
-        polyline.show = true;
 
-        const positions = cache[n];
-        for (let k = 0; k < positions.length; k++) {
-            const point = footprint.boundary[Math.min(k, footprint.boundary.length - 1)];
-            Cartesian3.fromDegrees(point.lng, point.lat, 0, undefined, positions[k]);
+        if (swath && swathCache) {
+            swath.show = true;
+            const positions = swathCache[n];
+            for (let k = 0; k < positions.length; k++) {
+                const point = footprint.boundary[Math.min(k, footprint.boundary.length - 1)];
+                Cartesian3.fromDegrees(point.lng, point.lat, 0, undefined, positions[k]);
+            }
+            swath.positions = positions;
         }
-        polyline.positions = positions;
+
+        if (volumePositions) {
+            const apex = eciToEcef(eci, earthRotationRad(epochMs, tSeconds));
+            const apexX = apex.x * 1000;
+            const apexY = apex.y * 1000;
+            const apexZ = apex.z * 1000;
+            const boundaryLength = Math.max(1, footprint.boundary.length - 1);
+            for (let facet = 0; facet < volumeFacetCount; facet++) {
+                const boundaryIndex = Math.floor(facet * boundaryLength / volumeFacetCount);
+                const point = footprint.boundary[boundaryIndex];
+                const nextBoundaryIndex = Math.floor(
+                    ((facet + 1) % volumeFacetCount) * boundaryLength / volumeFacetCount,
+                );
+                const nextPoint = footprint.boundary[nextBoundaryIndex];
+                Cartesian3.fromDegrees(point.lng, point.lat, 0, undefined, groundA);
+                Cartesian3.fromDegrees(nextPoint.lng, nextPoint.lat, 0, undefined, groundB);
+                volumePositions.push(
+                    apexX, apexY, apexZ,
+                    groundA.x, groundA.y, groundA.z,
+                    groundB.x, groundB.y, groundB.z,
+                );
+            }
+        }
     }
+    if (volumePositions) replaceProjectionVolume(handles, volumePositions);
 }
 
 /** Camera framing: the full globe, per UX §4.3 — ENG's framing, not COMM's limb view. */

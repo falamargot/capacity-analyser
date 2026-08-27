@@ -19,7 +19,7 @@ import type { AreaAnalysis } from '../analysis/areaAnalysis';
 import { formatGap } from '../analysis/gapStatistics';
 import type { GapStatistics } from '../domain/types';
 import type { RevisitAnalysisContext } from '../domain/analysisTargets';
-import { REVISIT_PANEL } from './revisitTheme';
+import { REVISIT_OUTCOME, REVISIT_PANEL } from './revisitTheme';
 
 export interface MobileResultStripProps {
     analysisContext: RevisitAnalysisContext;
@@ -46,15 +46,15 @@ function pointVerdict(
 ): Verdict {
     if (!statistics) {
         return isComputing
-            ? { text: 'Analysing', className: 'border-slate-500/40 bg-slate-500/15 text-slate-300' }
-            : { text: 'No result', className: 'border-red-400/40 bg-red-500/15 text-red-200' };
+            ? { text: 'Analysing', className: REVISIT_OUTCOME.unavailable.badge }
+            : { text: 'No result', className: REVISIT_OUTCOME.unavailable.badge };
     }
     if (statistics.coverage === 'NEVER_IN_VIEW') {
-        return { text: 'Never in view', className: 'border-red-400/40 bg-red-500/15 text-red-200' };
+        return { text: 'Never in view', className: REVISIT_OUTCOME.error.badge };
     }
     return statistics.maxGapMs !== null && statistics.maxGapMs <= requirementMs
-        ? { text: 'Meets', className: 'border-lime-400/40 bg-lime-500/15 text-lime-200' }
-        : { text: 'Misses', className: 'border-red-400/40 bg-red-500/15 text-red-200' };
+        ? { text: 'Meets', className: REVISIT_OUTCOME.meets.badge }
+        : { text: 'Misses', className: REVISIT_OUTCOME.misses.badge };
 }
 
 function areaVerdict(
@@ -67,12 +67,14 @@ function areaVerdict(
                 ? { text: 'Ready', className: 'border-sky-400/40 bg-sky-500/15 text-sky-200' }
                 : { text: 'Area incomplete', className: 'border-slate-500/40 bg-slate-500/15 text-slate-300' };
     }
-    const misses = analysis.neverInViewCount > 0
-        || analysis.unmeasuredCount > 0
-        || analysis.cells.some((cell) => cell.maxGapMs !== null && cell.maxGapMs > requirementMs);
+    if (analysis.neverInViewCount > 0 || analysis.unmeasuredCount > 0) {
+        return { text: 'Area incomplete', className: REVISIT_OUTCOME.error.badge };
+    }
+    const misses = analysis.cells
+        .some((cell) => cell.maxGapMs !== null && cell.maxGapMs > requirementMs);
     return misses
-        ? { text: 'Area misses', className: 'border-red-400/40 bg-red-500/15 text-red-200' }
-        : { text: 'Area meets', className: 'border-lime-400/40 bg-lime-500/15 text-lime-200' };
+        ? { text: 'Area misses', className: REVISIT_OUTCOME.misses.badge }
+        : { text: 'Area meets', className: REVISIT_OUTCOME.meets.badge };
 }
 
 export const MobileResultStrip: React.FC<MobileResultStripProps> = ({
@@ -115,7 +117,7 @@ export const MobileResultStrip: React.FC<MobileResultStripProps> = ({
                     </span>
                 </span>
                 <span className="mt-0.5 flex items-baseline gap-2">
-                    <span className="text-2xl font-black leading-none text-amber-300 tabular-nums">
+                    <span className="text-2xl font-black leading-none text-white tabular-nums">
                         {noTarget
                             ? 'Add target'
                             : pointIsPending
@@ -131,7 +133,7 @@ export const MobileResultStrip: React.FC<MobileResultStripProps> = ({
                     </span>
                 </span>
             </span>
-            <span aria-hidden="true" className="shrink-0 text-sm text-amber-300">
+            <span aria-hidden="true" className="shrink-0 text-sm text-slate-300">
                 {expanded ? '⌄' : '⌃'}
             </span>
         </button>

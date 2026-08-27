@@ -50,7 +50,12 @@ export async function downloadRevisitResultSheet(model: RevisitResultSheetModel)
      * turned every covered requirement red the moment the vocabulary changed.
      */
     const verdictWidth = Math.max(42, model.verdict.length * 1.9);
-    pdf.setFillColor(...(model.meets ? [22, 101, 52] : [127, 29, 29]) as [number, number, number]);
+    const verdictColor: [number, number, number] = model.meets
+        ? [22, 101, 52]
+        : model.verdict === 'ADDITIONAL PAYLOADS REQUIRED'
+            ? [194, 65, 12]
+            : [71, 85, 105];
+    pdf.setFillColor(...verdictColor);
     pdf.roundedRect(margin, y, verdictWidth, 8, 2, 2, 'F');
     pdf.setTextColor(255, 255, 255);
     pdf.setFontSize(8);

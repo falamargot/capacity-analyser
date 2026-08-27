@@ -91,7 +91,8 @@ interface RevisitHeaderProps {
     onRemoveAreaTarget?: (role: RevisitAreaTargetRole) => void;
     onAddAreaTarget?: (role?: RevisitAreaTargetRole) => void;
     customArea?: AreaTarget | null;
-    customAreaCellCount?: number | null;
+    referenceAreaCellCount?: number | null;
+    comparisonAreaCellCount?: number | null;
     areaAnalysis?: AreaAnalysis | null;
     areaIsRunning?: boolean;
     areaError?: string | null;
@@ -120,14 +121,13 @@ interface RevisitHeaderProps {
 }
 
 const Panel: React.FC<{
-    label: string; children: React.ReactNode; emphasised?: boolean; className?: string;
-}> = ({ label, children, emphasised, className = '' }) => (
+    label: string; children: React.ReactNode; className?: string;
+}> = ({ label, children, className = '' }) => (
     <div
         data-revisit-context-panel={label.toLowerCase().replace(/\s+/g, '-')}
         className={[
             REVISIT_PANEL,
             'revisit-context-panel px-3 py-2 md:px-4 md:py-3',
-            emphasised ? 'border-amber-400/60 bg-amber-500/10' : '',
             className,
         ].join(' ')}
     >
@@ -137,7 +137,7 @@ const Panel: React.FC<{
 );
 
 const Arrow = () => (
-    <span aria-hidden="true" className="hidden select-none items-center text-lg text-amber-500/50 md:flex">→</span>
+    <span aria-hidden="true" className="hidden select-none items-center text-lg text-slate-500/70 md:flex">→</span>
 );
 
 /** Coordinate picks use the coordinates as their stable value. Avoid printing
@@ -367,7 +367,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
     onRemoveReferenceTarget = () => undefined,
     onAddComparisonPoint = () => undefined,
     onAddAreaTarget = () => undefined,
-    customArea = null, customAreaCellCount = null,
+    customArea = null, referenceAreaCellCount = null, comparisonAreaCellCount = null,
     areaTargetRole = 'COMPARISON',
     referenceArea = areaTargetRole === 'REFERENCE' ? customArea : null,
     comparisonArea = areaTargetRole === 'COMPARISON' ? customArea : null,
@@ -486,19 +486,19 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                             {comparisonPoints.length > 0 && ` · +${comparisonPoints.length} compared`}
                         </span>
                     </span>
-                    <span aria-hidden="true" className="shrink-0 text-sm text-amber-300">
+                    <span aria-hidden="true" className="shrink-0 text-sm text-slate-300">
                         {setupOpen ? '⌃' : '⌄'}
                     </span>
                 </button>
-                <div className="flex shrink-0 items-center gap-1 rounded-lg border border-amber-400/40 bg-amber-500/10 px-1">
+                <div className="flex shrink-0 items-center gap-1 rounded-lg border border-slate-600/70 bg-slate-400/5 px-1">
                     <button
                         type="button"
                         aria-label="One payload fewer"
                         disabled={sliderIndex <= 0}
                         onClick={() => stepPayload(-1)}
-                        className="min-h-11 w-9 text-lg font-black leading-none text-amber-200 disabled:opacity-30"
+                        className="min-h-11 w-9 text-lg font-black leading-none text-slate-200 disabled:opacity-30"
                     >−</button>
-                    <span className="min-w-[2.25rem] text-center text-base font-black tabular-nums leading-none text-amber-300">
+                    <span className="min-w-[2.25rem] text-center text-base font-black tabular-nums leading-none text-white">
                         {currentPayloadCount}
                     </span>
                     <button
@@ -506,7 +506,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                         aria-label="One payload more"
                         disabled={sliderIndex >= payloadCounts.length - 1}
                         onClick={() => stepPayload(1)}
-                        className="min-h-11 w-9 text-lg font-black leading-none text-amber-200 disabled:opacity-30"
+                        className="min-h-11 w-9 text-lg font-black leading-none text-slate-200 disabled:opacity-30"
                     >+</button>
                 </div>
             </div>
@@ -591,18 +591,18 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
 
             <Arrow />
 
-            <Panel label="Hosted payloads" emphasised className="order-3 col-span-2 min-w-0 md:order-none md:flex-1 md:min-w-[280px]">
+            <Panel label="Hosted payloads" className="order-3 col-span-2 min-w-0 md:order-none md:flex-1 md:min-w-[280px]">
                 <div className="flex flex-wrap items-end justify-between gap-2">
                     <div className="flex items-baseline gap-2">
-                        <span className="text-2xl font-black leading-none text-amber-300 tabular-nums md:text-3xl">
+                        <span data-revisit-payload-count className="text-2xl font-black leading-none text-white tabular-nums md:text-3xl">
                             {currentPayloadCount}
                         </span>
                         {/* `12 of 576` read as "only 12 of the 576 satellites
                             work". Naming what the 12 ARE, and what the 576 are,
                             removes that reading (Programme 7D). */}
-                        <span className="text-[12px] font-semibold leading-4 text-amber-200/70">
+                        <span className="text-[12px] font-semibold leading-4 text-slate-300">
                             payload-equipped
-                            <span className="block text-[11px] text-amber-200/60">
+                            <span className="block text-[11px] text-slate-500">
                                 of {reference.planes * reference.satsPerPlane} active satellites
                             </span>
                         </span>
@@ -610,14 +610,15 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                     {onInstrumentPresetChange && (
                         <label className="flex min-w-[160px] flex-col gap-0.5 md:min-w-[190px]">
                             <span
-                                className="text-[11px] font-black uppercase tracking-[0.12em] text-amber-200/70"
+                                className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-400"
                                 title="Thermal-infrared imager. It images day and night, which is why no solar-illumination gating is applied to the access windows."
                             >
                                 Assumed sensor swath
                             </span>
                             <select
+                                data-revisit-payload-swath
                                 aria-label="Instrument preset"
-                                className="min-h-11 md:min-h-8 rounded border border-amber-400/40 bg-transparent px-2 py-1 text-sm font-black text-amber-200 outline-none md:text-base"
+                                className="min-h-11 md:min-h-8 rounded border border-slate-600/70 bg-transparent px-2 py-1 text-sm font-black text-slate-100 outline-none focus:border-slate-300 md:text-base"
                                 value={presetName ?? 'CUSTOM'}
                                 onChange={(event) => {
                                     if (event.target.value !== 'CUSTOM') {
@@ -648,19 +649,24 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                 </div>
                 <input
                     type="range"
-                    className="mt-2 w-full accent-amber-400"
+                    className="revisit-payload-slider mt-2 w-full"
                     min={0}
                     max={Math.max(payloadCounts.length - 1, 0)}
                     step={1}
                     value={sliderIndex}
+                    style={{
+                        '--revisit-slider-progress': `${payloadCounts.length > 1
+                            ? (sliderIndex / (payloadCounts.length - 1)) * 100
+                            : 0}%`,
+                    } as React.CSSProperties}
                     onChange={(e) => onPayloadCountChange(payloadCounts[Number(e.target.value)])}
                     aria-label="Number of hosted payloads"
                     aria-valuetext={`${currentPayloadCount} payloads`}
                 />
-                <div className="revisit-spread-note min-h-[14px] text-[12px] leading-[14px] text-amber-200/80">
+                <div className="revisit-spread-note min-h-[14px] text-[12px] leading-[14px] text-slate-300">
                     {spreadNote}
                 </div>
-                <div className="text-[11px] leading-3 text-amber-200/70">
+                <div className="text-[11px] leading-3 text-slate-500">
                     {presetName ? 'Illustrative IR preset · not an instrument datasheet' : `Custom FOV · approx. ${swathKm} km swath`}
                 </div>
             </Panel>
@@ -708,18 +714,18 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                         ) : <>
                         {referenceArea ? (
                         <div ref={areaMenuRef} className="relative">
-                            <div className={`flex items-center gap-1 rounded border px-2 py-1 ${analysisContext === 'AREA' ? 'border-amber-400/50 bg-amber-400/10' : 'border-slate-800'}`}>
+                            <div className={`flex items-center gap-1 rounded border px-2 py-1 ${analysisContext === 'AREA' && areaTargetRole === 'REFERENCE' ? 'border-amber-400/50 bg-amber-400/10' : 'border-slate-800'}`}>
                                 <button
                                     type="button"
                                     onClick={() => { onAreaTargetRoleChange('REFERENCE'); onAnalysisContextChange('AREA'); }}
-                                    aria-pressed={analysisContext === 'AREA'}
+                                    aria-pressed={analysisContext === 'AREA' && areaTargetRole === 'REFERENCE'}
                                     aria-label="Select reference target polygon"
                                     className="min-w-0 flex-1 text-left"
                                 >
                                     <div className="text-[11px] font-black uppercase tracking-wide text-amber-300">Reference target</div>
                                     <div className="truncate text-[12px] font-bold text-amber-100">Polygon · {referenceArea.name}</div>
                                     <div className="mt-0.5 truncate text-[11px] text-slate-400">
-                                        {referenceArea.boundary.length} vertices · {areaTargetRole !== 'REFERENCE' || customAreaCellCount === null ? 'not analysed' : `${customAreaCellCount} cells`} · grid {referenceArea.gridSpacingDeg}°
+                                        {referenceArea.boundary.length} vertices · {referenceAreaCellCount === null ? 'not analysed' : `${referenceAreaCellCount} cells`} · grid {referenceArea.gridSpacingDeg}°
                                     </div>
                                 </button>
                                 <button
@@ -798,11 +804,11 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                         {orderedSecondaryTargetIds.map((secondaryId) => {
                             if (secondaryId === AREA_TARGET_ID) return (
                                 <div ref={areaMenuRef} key={AREA_TARGET_ID} className="relative">
-                                    <div className={`flex items-center gap-1 rounded border px-2 py-1 ${analysisContext === 'AREA' ? 'border-sky-400/50 bg-sky-400/10' : 'border-slate-800'}`}>
+                                    <div className={`flex items-center gap-1 rounded border px-2 py-1 ${analysisContext === 'AREA' && areaTargetRole === 'COMPARISON' ? 'border-sky-400/50 bg-sky-400/10' : 'border-slate-800'}`}>
                                         <button
                                             type="button"
                                             onClick={() => { onAreaTargetRoleChange('COMPARISON'); onAnalysisContextChange('AREA'); }}
-                                            aria-pressed={analysisContext === 'AREA'}
+                                            aria-pressed={analysisContext === 'AREA' && areaTargetRole === 'COMPARISON'}
                                             aria-label="Select comparison target polygon"
                                             className="min-w-0 flex-1 text-left"
                                         >
@@ -812,7 +818,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                             </div>
                                             <div className="mt-0.5 truncate text-[11px] text-slate-400">
                                                 {comparisonArea
-                                                    ? `${comparisonArea.boundary.length} vertices · ${areaTargetRole !== 'COMPARISON' || customAreaCellCount === null ? 'not analysed' : `${customAreaCellCount} cells`} · grid ${comparisonArea.gridSpacingDeg}°`
+                                                    ? `${comparisonArea.boundary.length} vertices · ${comparisonAreaCellCount === null ? 'not analysed' : `${comparisonAreaCellCount} cells`} · grid ${comparisonArea.gridSpacingDeg}°`
                                                     : 'Draw or import a polygon'}
                                             </div>
                                         </button>

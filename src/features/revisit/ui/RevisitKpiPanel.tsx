@@ -4,8 +4,8 @@
  * Reuses the treatment of ENG's `GEO [BLOCKED] · LAT / DL / UL` block: a verdict
  * badge, a row of metrics, and one grey line of qualification underneath.
  *
- * WORST CASE is roughly twice the size of the others and the only value in
- * bright amber. Both max and mean are always shown, labelled — showing mean
+ * WORST CASE is roughly twice the size of the others and remains neutral white.
+ * Both max and mean are always shown, labelled — showing mean
  * alone invites the accusation of cherry-picking, showing max alone hides the
  * typical experience (ADR-001 §3).
  *
@@ -69,7 +69,7 @@ function Metric({ label, value, tone = 'secondary' }: {
             <span className={`${REVISIT_LABEL} whitespace-nowrap`}>{label}</span>
             <span
                 className={tone === 'headline'
-                    ? 'whitespace-nowrap text-[32px] font-black leading-none text-amber-300 tabular-nums'
+                    ? 'whitespace-nowrap text-[32px] font-black leading-none text-white tabular-nums'
                     : 'whitespace-nowrap text-base font-bold leading-none text-slate-200 tabular-nums'}
             >
                 {value}

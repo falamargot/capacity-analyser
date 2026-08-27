@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import type { AreaAnalysis } from '../analysis/areaAnalysis';
 import type { AreaTarget } from '../domain/areaTarget';
 import { formatGap } from '../analysis/gapStatistics';
-import { REVISIT_LABEL, REVISIT_PANEL } from './revisitTheme';
+import { REVISIT_LABEL, REVISIT_OUTCOME, REVISIT_PANEL } from './revisitTheme';
 
 interface AreaResultsProps {
     analysis: AreaAnalysis | null;
@@ -38,7 +38,8 @@ export const AreaResultSummary: React.FC<AreaResultsProps> = ({
 }) => {
     const counts = useMemo(() => areaCounts(analysis, requirementMs), [analysis, requirementMs]);
     const unbounded = Boolean(analysis && analysis.neverInViewCount > 0);
-    const missesRequirement = unbounded || counts.misses > 0 || counts.unmeasured > 0;
+    const hasImpossibleCells = unbounded || counts.unmeasured > 0;
+    const missesRequirement = hasImpossibleCells || counts.misses > 0;
 
     return (
         <section className={`${embedded
@@ -52,12 +53,14 @@ export const AreaResultSummary: React.FC<AreaResultsProps> = ({
                     </div>
                 </div>
                 <span className={`rounded border px-2 py-1 text-[11px] font-black uppercase tracking-wide ${error
-                    ? 'border-amber-400/50 bg-amber-400/10 text-amber-200'
+                    ? REVISIT_OUTCOME.error.badge
                     : !analysis || isRunning
                     ? 'border-slate-600 text-slate-400'
-                    : missesRequirement
-                        ? 'border-rose-400/50 bg-rose-400/10 text-rose-300'
-                        : 'border-lime-400/50 bg-lime-400/10 text-lime-300'}`}>
+                    : hasImpossibleCells
+                        ? REVISIT_OUTCOME.error.badge
+                        : missesRequirement
+                        ? REVISIT_OUTCOME.misses.badge
+                        : REVISIT_OUTCOME.meets.badge}`}>
                     {error
                         ? 'Analysis unavailable'
                         : isRunning
@@ -87,7 +90,7 @@ export const AreaResultSummary: React.FC<AreaResultsProps> = ({
                 <>
                     {!embedded && <div className="mt-3 border-b border-slate-700/50 pb-3">
                         <span className={REVISIT_LABEL}>Least-covered cell</span>
-                        <div className={`mt-0.5 text-3xl font-black tabular-nums ${unbounded ? 'text-violet-300' : 'text-amber-300'}`}>
+                        <div className={`mt-0.5 text-3xl font-black tabular-nums ${unbounded ? 'text-violet-300' : 'text-white'}`}>
                             {unbounded ? 'Never seen' : formatGap(analysis.worstCell?.maxGapMs ?? null)}
                         </div>
                         {analysis.worstCell && (
@@ -129,10 +132,10 @@ export const AreaDistributionPanel: React.FC<Pick<AreaResultsProps, 'analysis' |
     );
     const total = Math.max(analysis.cells.length, 1);
     const categories = [
-        { label: 'Meets', count: counts.meets, color: 'bg-lime-400', text: 'text-lime-300' },
-        { label: 'Misses', count: counts.misses, color: 'bg-rose-400', text: 'text-rose-300' },
-        { label: 'Never seen', count: counts.never, color: 'bg-violet-400', text: 'text-violet-300' },
-        { label: 'Unmeasured', count: counts.unmeasured, color: 'bg-slate-500', text: 'text-slate-300' },
+        { label: 'Meets', count: counts.meets, color: 'bg-lime-400', text: REVISIT_OUTCOME.meets.text },
+        { label: 'Misses', count: counts.misses, color: 'bg-orange-500', text: REVISIT_OUTCOME.misses.text },
+        { label: 'Never seen', count: counts.never, color: 'bg-red-500', text: REVISIT_OUTCOME.error.text },
+        { label: 'Unmeasured', count: counts.unmeasured, color: 'bg-red-800', text: REVISIT_OUTCOME.error.text },
     ];
     return (
         <section className={REVISIT_PANEL} aria-label="Area cell distribution">

@@ -11,7 +11,7 @@ import type { AreaAnalysis } from '../analysis/areaAnalysis';
 import { computeGaps, formatGap } from '../analysis/gapStatistics';
 import { REFERENCE_POINT_ID, type RevisitAnalysisContext } from '../domain/analysisTargets';
 import type { AccessInterval, GapStatistics } from '../domain/types';
-import { REVISIT_COLORS, REVISIT_LABEL, REVISIT_PANEL } from './revisitTheme';
+import { REVISIT_COLORS, REVISIT_LABEL, REVISIT_OUTCOME, REVISIT_PANEL } from './revisitTheme';
 
 export interface CoverageRibbonLane {
     id: string;
@@ -67,6 +67,14 @@ interface CoverageRibbonProps {
 }
 
 const TRACK_HEIGHT = 18;
+
+function goalTextClass(maxGapMs: number | null, requirementMs: number, unbounded = false): string {
+    if (unbounded) return REVISIT_OUTCOME.error.text;
+    if (maxGapMs === null) return REVISIT_OUTCOME.unavailable.text;
+    return maxGapMs <= requirementMs
+        ? REVISIT_OUTCOME.meets.text
+        : REVISIT_OUTCOME.misses.text;
+}
 
 /** `datetime-local` has no timezone field. REVISIT defines the control as UTC,
  * so the displayed wall-clock fields are always cut from an ISO UTC value. */
@@ -194,7 +202,11 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
     const accessTrack = (
         laneIntervals: AccessInterval[], longestGap: ReturnType<typeof longestInteriorGap>,
         color: string, emphasised = true,
-    ) => (
+    ) => {
+        const gapColor = longestGap?.durationMs && longestGap.durationMs > requirementMs
+            ? REVISIT_COLORS.miss
+            : color;
+        return (
         <svg className={`block w-full transition-opacity ${emphasised ? 'opacity-100' : 'opacity-75'}`} height={TRACK_HEIGHT} aria-hidden="true">
             <rect width="100%" height={TRACK_HEIGHT} rx={3} fill="#111a2b" stroke="#1e2b42" />
             {laneIntervals.map((interval, index) => {
@@ -207,10 +219,12 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
             })}
             {longestGap && <rect x={`${fractionOf(longestGap.startMs) * 100}%`} y={1}
                 width={`${longestGap.durationMs / windowMs * 100}%`} height={TRACK_HEIGHT - 2}
-                fill={REVISIT_COLORS.alert} fillOpacity={0.16} stroke={REVISIT_COLORS.alert}
+                fill={gapColor} fillOpacity={0.16} stroke={gapColor}
+                data-revisit-gap-outcome={longestGap.durationMs > requirementMs ? 'misses' : 'meets'}
                 strokeWidth={1.2} rx={2} />}
         </svg>
-    );
+        );
+    };
 
     /*
      * A failure states itself where the comparison lives, using the two slots
@@ -224,7 +238,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
     const comparisonStatus = comparisonError
         ? (
             <span
-                className="text-[11px] font-black uppercase tracking-wide text-amber-300"
+                className="text-[11px] font-black uppercase tracking-wide text-red-300"
                 title={comparisonError}
             >
                 Unavailable
@@ -263,7 +277,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                     <div className="mb-2 flex flex-wrap items-center gap-1.5" aria-label="Simulation time controls">
                         <button type="button" onClick={() => onSetSpeed(speed === 0 ? 1 : 0)}
                             aria-label={speed === 0 ? 'Play simulation' : 'Pause simulation'}
-                            className="min-h-11 md:min-h-8 rounded border border-slate-600 px-2 text-[12px] font-black uppercase tracking-[0.08em] text-slate-200 hover:border-amber-400/60">
+                            className="min-h-11 md:min-h-8 rounded border border-slate-600 px-2 text-[12px] font-black uppercase tracking-[0.08em] text-slate-200 hover:border-slate-300">
                             {speed === 0 ? 'Play' : 'Pause'}
                         </button>
                         {/* Hour stepping duplicates tap-to-seek on the timeline
@@ -282,7 +296,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                                 <option value={1}>1×</option><option value={10}>10×</option><option value={100}>100×</option>
                             </select>
                         </label>
-                        <label className="ml-auto flex min-h-11 items-center gap-1.5 rounded border border-sky-400/25 px-2 md:min-h-8">
+                        <label className="ml-auto flex min-h-11 items-center gap-1.5 rounded border border-slate-600/70 px-2 md:min-h-8">
                             <span className="text-[11px] font-black uppercase tracking-[0.08em] text-slate-500">UTC</span>
                             <input
                                 type="datetime-local"
@@ -292,7 +306,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                                 value={utcDateTimeInputValue(timestampMs)}
                                 onChange={(event) => handleDateTimeChange(event.target.value)}
                                 aria-label="Simulation date and time UTC"
-                                className="min-h-9 bg-transparent text-[12px] font-bold tabular-nums text-sky-200 outline-none [color-scheme:dark] md:min-h-0"
+                                className="min-h-9 bg-transparent text-[12px] font-bold tabular-nums text-slate-100 outline-none [color-scheme:dark] md:min-h-0"
                             />
                         </label>
                     </div>
@@ -304,7 +318,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                             <div className="flex items-start justify-between gap-2">
                                 <div>
                                     <div className={REVISIT_LABEL}>Compare targets</div>
-                                    <p className={`mt-0.5 text-[11px] ${comparisonError ? 'text-amber-200' : 'text-slate-500'}`}>
+                                    <p className={`mt-0.5 text-[11px] ${comparisonError ? 'text-red-200' : 'text-slate-500'}`}>
                                         {comparisonSubtitle}
                                     </p>
                                 </div>
@@ -321,7 +335,8 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                                     const maxGapMs = lane.statistics?.maxGapMs ?? null;
                                     const meets = maxGapMs !== null && maxGapMs <= requirementMs;
                                     const waiting = Boolean(lane.statusLabel) || (index > 0 && !lane.statistics && comparisonIsComputing);
-                                    const selectedTone = index === 0
+                                    const isReference = lane.roleLabel === 'Reference';
+                                    const selectedTone = isReference
                                         ? 'border-y border-l-[3px] border-amber-300/60 bg-amber-400/12 shadow-[inset_0_0_14px_rgba(251,191,36,0.08)]'
                                         : 'border-y border-l-[3px] border-sky-300/60 bg-sky-400/12 shadow-[inset_0_0_14px_rgba(56,189,248,0.09)]';
                                     return (
@@ -339,11 +354,11 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                                                 }}
                                                 aria-pressed={lane.selected}
                                                 title={lane.label}
-                                                className={`truncate text-left font-bold ${index === 0 ? 'text-amber-200' : 'text-sky-200'} ${lane.selected ? 'brightness-125' : ''}`}
+                                                className={`truncate text-left font-bold ${isReference ? 'text-amber-200' : 'text-sky-200'} ${lane.selected ? 'brightness-125' : ''}`}
                                             >{lane.roleLabel} · {lane.name}</button>
                                             <span className="truncate text-slate-400">{lane.basisLabel}</span>
                                             <span className="text-slate-200">{lane.statusLabel ?? (lane.unbounded ? 'Never seen' : waiting ? '…' : formatGap(maxGapMs))}</span>
-                                            <span className={`text-right font-black ${lane.unbounded ? 'text-red-300' : maxGapMs === null ? 'text-slate-500' : meets ? 'text-lime-300' : 'text-red-300'}`}>
+                                            <span className={`text-right font-black ${goalTextClass(maxGapMs, requirementMs, lane.unbounded)}`}>
                                                 {lane.unbounded ? 'MISSES' : maxGapMs === null ? '—' : meets ? 'MEETS' : 'MISSES'}
                                             </span>
                                         </div>
@@ -358,8 +373,9 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                 <div className="px-2 sm:px-4 lg:col-start-1 lg:row-start-2">
                     <div className="relative" data-revisit-timeline>
                         <div className="space-y-1.5">
-                            {targetRows.map((lane, index) => {
-                                const selectedTone = index === 0
+                            {targetRows.map((lane) => {
+                                const isReference = lane.roleLabel === 'Reference';
+                                const selectedTone = isReference
                                     ? 'border-y border-l-[3px] border-amber-300/60 bg-amber-400/12 shadow-[inset_0_0_14px_rgba(251,191,36,0.08)]'
                                     : 'border-y border-l-[3px] border-sky-300/60 bg-sky-400/12 shadow-[inset_0_0_14px_rgba(56,189,248,0.09)]';
                                 return (
@@ -376,12 +392,12 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                                             }}
                                             aria-pressed={lane.selected}
                                             title={lane.label}
-                                            className={`truncate text-left text-[11px] font-bold ${index === 0 ? 'text-amber-200' : 'text-sky-200'} ${lane.selected ? 'brightness-125' : ''}`}
+                                            className={`truncate text-left text-[11px] font-bold ${isReference ? 'text-amber-200' : 'text-sky-200'} ${lane.selected ? 'brightness-125' : ''}`}
                                         >{lane.label}</button>
                                         {accessTrack(
                                             lane.intervals,
                                             lane.longestGap,
-                                            lane.kind === 'AREA' ? '#38bdf8' : index === 0 ? REVISIT_COLORS.accent : '#38bdf8',
+                                            isReference ? REVISIT_COLORS.target : REVISIT_COLORS.comparison,
                                             lane.selected || targetRows.length === 1,
                                         )}
                                         {!showComparisonSidecar && <span className="text-right text-[11px] font-bold text-slate-400">{lane.statusLabel ?? (lane.unbounded ? 'Never seen' : formatGap(lane.statistics?.maxGapMs ?? null))}</span>}
@@ -440,7 +456,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                         <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-left">
                             <span>
                                 <span className={REVISIT_LABEL}>Compare targets</span>
-                                <span className={`mt-0.5 block text-[11px] ${comparisonError ? 'text-amber-200' : 'text-slate-500'}`}>
+                                <span className={`mt-0.5 block text-[11px] ${comparisonError ? 'text-red-200' : 'text-slate-500'}`}>
                                     {comparisonSubtitle}
                                 </span>
                             </span>
@@ -457,6 +473,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                                 const maxGapMs = lane.statistics?.maxGapMs ?? null;
                                 const meets = maxGapMs !== null && maxGapMs <= requirementMs;
                                 const waiting = Boolean(lane.statusLabel) || (index > 0 && !lane.statistics && comparisonIsComputing);
+                                const isReference = lane.roleLabel === 'Reference';
                                 return (
                                     <button
                                         key={lane.id}
@@ -465,13 +482,13 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                                         onClick={() => onSelectTarget?.(lane.id)}
                                         aria-pressed={lane.selected}
                                         className={`grid min-h-11 min-w-[22rem] w-full grid-cols-[minmax(0,1fr)_6rem_5rem_4rem] items-center gap-2 border-b border-slate-800/60 px-1 text-left text-[11px] tabular-nums ${lane.selected
-                                            ? index === 0 ? 'border-l-[3px] border-l-amber-300/60 bg-amber-400/12' : 'border-l-[3px] border-l-sky-300/60 bg-sky-400/12'
+                                            ? isReference ? 'border-l-[3px] border-l-amber-300/60 bg-amber-400/12' : 'border-l-[3px] border-l-sky-300/60 bg-sky-400/12'
                                             : 'border-l-[3px] border-l-transparent'}`}
                                     >
-                                        <span className={`truncate font-bold ${index === 0 ? 'text-amber-200' : 'text-sky-200'}`}>{lane.roleLabel} · {lane.name}</span>
+                                        <span className={`truncate font-bold ${isReference ? 'text-amber-200' : 'text-sky-200'}`}>{lane.roleLabel} · {lane.name}</span>
                                         <span className="truncate text-slate-400">{lane.basisLabel}</span>
                                         <span className="text-slate-200">{lane.statusLabel ?? (lane.unbounded ? 'Never seen' : waiting ? '…' : formatGap(maxGapMs))}</span>
-                                        <span className={`text-right font-black ${lane.unbounded ? 'text-red-300' : maxGapMs === null ? 'text-slate-500' : meets ? 'text-lime-300' : 'text-red-300'}`}>
+                                        <span className={`text-right font-black ${goalTextClass(maxGapMs, requirementMs, lane.unbounded)}`}>
                                             {lane.unbounded ? 'MISSES' : maxGapMs === null ? '—' : meets ? 'MEETS' : 'MISSES'}
                                         </span>
                                     </button>

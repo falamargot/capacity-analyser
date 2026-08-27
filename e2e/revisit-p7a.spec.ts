@@ -50,6 +50,7 @@ test.describe('REVISIT P7A commercial result framing', () => {
     await page.getByRole('combobox', { name: 'Revisit requirement' }).selectOption(String(24 * 3600_000));
     await expect(card).toContainText('at least every 24 h');
     await expect(card).toContainText('Requirement covered');
+    await expect(card.locator('.revisit-customer-status')).toHaveClass(/text-lime-200/);
   });
 
   test('applies the recommended configuration and returns from it', async ({ page }, testInfo) => {
@@ -71,12 +72,14 @@ test.describe('REVISIT P7A commercial result framing', () => {
     const apply = card.getByRole('button', { name: 'Apply recommended configuration' });
     await expect(apply).toBeVisible({ timeout: 120_000 });
     await expect(card).toContainText('Additional payloads required');
+    await expect(card.locator('.revisit-customer-status')).toHaveClass(/text-orange-200/);
 
     const before = await payloadCount.inputValue();
     await apply.click();
 
     // Applying moves the configuration and the requirement becomes covered.
     await expect(card).toContainText('Requirement covered', { timeout: 60_000 });
+    await expect(card.locator('.revisit-customer-status')).toHaveClass(/text-lime-200/);
     await expect(payloadCount).not.toHaveValue(before);
     await expect(apply).toHaveCount(0);
 
