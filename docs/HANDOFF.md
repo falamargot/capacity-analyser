@@ -109,12 +109,28 @@ Different builds of npm, but both read the same `allowScripts` field in
 1 752.71 kB / 486.19 kB gzip). That is deliberate and unrelated — see the section
 below.
 
-**Still not closed:** the Node deprecation warning in the Vercel dashboard. It
-does not appear anywhere in this build log, which is consistent with it being a
-dashboard-surface notice rather than a build-time one, and means this deployment
-neither confirms nor refutes it. It still needs its exact wording and location
-captured. See the Vercel section of the Node 24 migration entry below for the
-two hypotheses already falsified.
+**Closed by observation: the dashboard warning is gone.** Confirmed by the owner
+after this deployment. All three checks pass — Node v24.19.0 in the build log,
+deployment succeeded, warning cleared.
+
+**But the cause was never diagnosed, and this is not evidence that it was
+`engines.node`.** Two hypotheses were proposed during this work and both were
+falsified by evidence (see the Vercel section of the Node 24 migration entry
+below). A third is not being invented now that the symptom has cleared and the
+evidence is gone with it. What is actually known:
+
+- Before: Project Settings `24.x`, `engines.node` `>=22.12.0` resolving to latest
+  24.x, builds running on Node 24 — and a Node deprecation warning displayed.
+- Several things then changed together in `d48ee1e` and its predecessor:
+  `engines.node` became the explicit `24.x`, the `allowScripts` policy landed,
+  and the GitHub Actions were pinned to `@v7`.
+- After the next deployment: warning gone.
+
+Which of those cleared it — or whether it was a stale notice that any fresh
+deployment would have cleared — is **not determined**. Anyone who needs the real
+answer should ask Vercel support rather than reason backwards from this entry.
+The practical outcome stands regardless: every Node input is explicitly on 24,
+and the warning is gone.
 
 ### Not touched: the chunk-size advisory
 
