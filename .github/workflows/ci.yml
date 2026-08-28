@@ -1,5 +1,11 @@
 name: CI
 
+# Actions are pinned to v7 (2026-08-28). v4 of checkout/setup-node declares
+# `using: node20`, which the runner now force-runs on Node 24 while printing a
+# deprecation warning on every job; v5 onward declare node24 natively. Note this
+# is the ACTION's own runtime, a separate axis from `node-version:` below,
+# which is the Node the project's own steps run on (24, current LTS).
+
 # TS-1: this repo previously had no CI at all — tests, lint, typecheck, and
 # build were never gated on push/PR, so regressions (including several this
 # workflow's own audit found) could land silently. Blocking gates below are
@@ -18,10 +24,10 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
       - run: npm ci
       - run: npm run test
@@ -30,10 +36,10 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
       - run: npm ci
       - run: npm run lint
@@ -42,10 +48,10 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
       - run: npm ci
       - run: npm run build
@@ -63,10 +69,10 @@ jobs:
     #   - a DECREASE passes and asks you to lower TYPECHECK_BASELINE to lock it in,
     #   - the delta is always printed for visibility.
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
       - run: npm ci
       - name: Typecheck against error baseline

@@ -2,6 +2,164 @@
 
 _Last updated 2026-08-28._
 
+## 2026-08-28 — Node 24 migration (three distinct concerns)
+
+These are three separate runtimes that happen to share a version number. They
+were migrated together but they fail, and are fixed, independently. Do not
+conflate them.
+
+### Concern 1 — GitHub Actions: the ACTION runtime (the deprecation warning)
+
+`actions/checkout@v4` and `actions/setup-node@v4` declare `using: node20` in
+their own `action.yml`. GitHub has retired the node20 action runtime, so the
+runner force-ran them on Node 24 and emitted a warning annotation on every job.
+Harmless today, a hard failure once the shim is withdrawn. **Both are now pinned
+to `@v7`**, which declares `node24` natively. Checked first: `setup-node` v5
+auto-enables caching when `package.json` has a `packageManager` field (this repo
+has none, and sets `cache: npm` explicitly); v6 narrows that auto-cache to npm;
+`checkout` v7 blocks fork-PR checkout for `pull_request_target` / `workflow_run`,
+neither of which this workflow uses; `ubuntu-latest` is far past the v2.327.1
+minimum runner.
+
+**This concern is entirely about GitHub Actions and has no Vercel counterpart.**
+
+### Concern 2 — the PROJECT runtime in CI and locally
+
+`node-version:` in all four CI jobs is now **24** (was 22; Node 22 is in
+maintenance, 24 "Krypton" is current LTS). Locally, Node 24 is installed
+permanently via **fnm** (`brew install fnm`, `fnm install 24`, `fnm default 24`),
+wired into `~/.zshrc` with `eval "$(fnm env --use-on-cd --shell zsh)"`.
+`~/.zshrc.bak-before-fnm-2026-08-28` is the pre-change backup. The old system
+Node 22 is still installed at `/usr/local/bin/node` and reachable via
+`fnm use system`.
+
+The repo is pinned two ways, deliberately:
+- **`.node-version`** containing `24` — what fnm's `--use-on-cd` reads, so
+  entering this directory switches Node automatically.
+- **`package.json` `engines.node: "24.x"`** (was `>=22.12.0`) — the declared
+  supported floor, and what Vercel reads (see Concern 3).
+
+**Gates on the permanent Node 24 install, after a full `npm ci` (not the earlier
+scratchpad tarball — that was a throwaway pre-check):** 2135 tests pass (203
+files, 5 skipped, ~10.6 s), `eslint` clean, `tsc -p tsconfig.app.json --noEmit`
+0 errors, `vite build` succeeds.
+
+No dependency reinstall was needed for ABI reasons: every native artefact is an
+N-API prebuild (`lightningcss`, `@rolldown/binding`, `@tailwindcss/oxide`,
+`fsevents`) and there is no `binding.gyp` anywhere in the tree.
+
+**Effect on the machine's other projects** (surveyed before installing; NONE of
+them were modified). No project outside this repo has a `.node-version` or
+`.nvmrc`, so all of them now resolve to fnm's default, Node 24:
+
+| Project | `engines.node` | Verdict |
+| --- | --- | --- |
+| `2026-01-14 - capacity_viewer` | none | no constraint, no `node_modules` |
+| `2026-05-29-capacity-analyzer` | `^20.19.0 \|\| >=22.12.0` | Node 24 satisfies it |
+| `PTLU/3. PTLU_Base44` | none | no constraint, no `node_modules` |
+| `PTLU/ptlu/frontend` | none | 205 MB `node_modules`, N-API prebuilds only (`fsevents`, `@rollup/rollup-darwin-arm64`), no `binding.gyp` → no reinstall needed |
+
+Two machine-level notes. Global npm packages live in `/usr/local/lib/node_modules`
+(tied to system Node 22); once fnm fronts `PATH`, `npm ls -g` reads fnm's own
+(empty) global dir, and future `npm i -g` lands there — existing global binaries
+keep working. Claude Code is unaffected either way: `/usr/local/bin/claude` is a
+compiled binary (`claude.exe`), not a `#!/usr/bin/env node` script.
+
+To hold any of those projects on Node 22, drop a one-line `.nvmrc` in it. That
+was deliberately NOT done here.
+
+### Concern 3 — Vercel: the DEPLOYMENT runtime
+
+Per Vercel's docs (`/docs/functions/runtimes/node-js/node-js-versions`, checked
+2026-08-28), the available majors are **24.x (default), 22.x, 20.x**, and
+`engines.node` in `package.json` **overrides** the dashboard's Project Settings →
+Build and Deployment → Node.js Version. So `engines.node: "24.x"` is by itself
+sufficient to pin Vercel to the latest 24.x; the dashboard dropdown does not have
+to be touched, though setting it to 24.x too removes the ambiguity.
+
+**A Node deprecation warning WAS shown in the Vercel dashboard** — confirmed by
+direct observation of the account on 2026-08-28. An earlier draft of this
+document asserted the warning was exclusively a GitHub Actions annotation. That
+was wrong: it was inferred from the CI screenshot and from having no Vercel
+access, not from evidence about Vercel. Corrected here.
+
+The two warnings are still separate causes that happen to name the same version,
+which is exactly why they are filed as separate concerns:
+
+- **Concern 1** is GitHub Actions warning about the ACTION runtime declared in
+  `actions/checkout@v4`'s own `action.yml` (`using: node20`). Fixed by pinning
+  the actions to `@v7`. Nothing about Vercel changes it.
+- **Concern 3** is Vercel warning about the PROJECT's configured Node.js version.
+  Fixed by setting Project Settings → Node.js Version to `24.x`.
+
+**The cause of the Vercel warning is UNIDENTIFIED. Do not guess at it again.**
+
+Two explanations were proposed and both are now falsified by evidence:
+
+1. *"It was only ever a GitHub Actions annotation, not a Vercel one."* — Wrong.
+   The owner confirmed by direct observation that a Node deprecation warning was
+   shown in the Vercel dashboard.
+2. *"Project Settings still stores a deprecated version, and that is what the
+   dashboard inspects; `engines.node` changes only the build runtime, so setting
+   the dropdown to 24.x is necessary."* — Also wrong. The owner checked on
+   2026-08-28: **Project Settings → Node.js Version was ALREADY `24.x`**, with
+   the Save button disabled, i.e. no pending change.
+
+So every Node version input this project gives Vercel was already on 24 before
+any of today's work:
+
+| Input | Value before this change | Resolves to |
+| --- | --- | --- |
+| Project Settings → Node.js Version | `24.x` | 24.x |
+| `package.json` `engines.node` | `>=22.12.0` (open-ended) | latest 24.x per Vercel's own mapping table |
+
+Neither accounts for a "Node.js 20" warning. `engines.node: "24.x"` is still the
+right value to carry — it states the intent explicitly and matches the dashboard
+— but **it should not be recorded as the fix for the Vercel warning**, because
+nothing here has been shown to cause that warning.
+
+The next step is EVIDENCE, not inference: capture the warning's exact wording and
+its exact location in the dashboard (project-level banner? a specific
+deployment's build log? the Git-integration checks panel, which can surface
+GitHub Actions annotations? an account-level notice about a different project?).
+Until that is captured, this concern has no diagnosed cause and no verified fix.
+
+Separately, and still true: the previous `>=22.12.0` was already an open-ended
+range, and Vercel maps those to the newest available major (its table lists
+`>=20.0.0` → latest 24.x), so the BUILD was very likely already running Node 24.
+`24.x` makes the intent explicit. The `Build` job in GitHub Actions was green on
+all four red CI runs, which is consistent: the build worked, the configuration
+was stale.
+
+**Verification hook.** Vercel's documented way to check a deployment's Node
+version is to run `node -v` in the build command. The `build` script now starts
+with `node -p "'[build] node '+process.version"`, so every build log — local and
+Vercel — opens with `[build] node vXX.Y.Z`. Locally this prints `v24.20.0`. This
+one line is purely diagnostic and safe to delete.
+
+**Still open, and NOT verifiable from here** (no `vercel.json`, no `.vercel` link
+directory, no Vercel CLI, and authenticating one requires credentials). After the
+deployment triggered by this push, the owner checks:
+
+1. the build log's first line reads `[build] node v24.` (the diagnostic added to
+   the `build` script — Vercel's own documented way to check a deployment's Node
+   version);
+2. the deployment succeeds;
+3. whether the deprecation warning is still shown.
+
+If it IS still shown — which is the outcome to expect, since no input to Vercel
+actually changed the Node version — capture its **exact wording and exact
+location** and start the diagnosis from that, rather than adding a third
+falsified hypothesis to the two above.
+
+**Lockfile note.** `package-lock.json` mirrors `engines` from `package.json` in
+its root package entry. `npm ci` never writes the lockfile, so that mirror sat
+stale at `>=22.12.0` after the bump; `npm install --package-lock-only` synced it,
+changing exactly one line and no dependency resolutions. Verified afterwards
+that `npm ci` still installs cleanly (444 packages) from the synced lock.
+
+---
+
 ## 2026-08-28 — CI red since 38384d5: one over-budget test, fixed
 
 **Symptom.** GitHub Actions CI (`Test` job) failed on the last four pushes to
@@ -47,6 +205,34 @@ fails the job instead of being absorbed by a 140-error allowance.
 
 **Gates after the fix.** 2135 unit tests pass (5 skipped, 203 files), `eslint`
 clean, `tsc` clean. Slowest surviving unit test is 1.1 s.
+
+**Node 20 deprecation warning (the other CI annotation).** `actions/checkout@v4`
+and `actions/setup-node@v4` declare `using: node20` in their own `action.yml`.
+GitHub has retired the node20 action runtime, so the runner force-ran them on
+Node 24 and printed a warning on every job — harmless today, a hard failure once
+the shim is withdrawn. Both are now pinned to **@v7**, which declares `node24`
+natively. This is the ACTION's runtime and is unrelated to `node-version: 22`,
+which is a separate axis — see below.
+
+Checked before bumping: `setup-node` v5 auto-enables caching when `package.json`
+has a `packageManager` field — this repo has none and sets `cache: npm`
+explicitly, so no behaviour change; v6 narrows that auto-cache to npm; `checkout`
+v7 blocks fork-PR checkout for `pull_request_target` / `workflow_run`, neither of
+which this workflow uses. `ubuntu-latest` is far past the v2.327.1 minimum runner.
+
+**`node-version` bumped 22 → 24** (superseded in detail by the Node 24 migration
+entry above; kept here for the original isolated verification).** Node 22 entered maintenance; 24 (Krypton) is
+the current LTS. All four CI gates were run locally against **Node v24.20.0**
+before the bump landed — official darwin-arm64 tarball, SHA256 verified against
+`SHASUMS256.txt`, unpacked to a scratchpad and put on `PATH` (nothing installed
+on the machine, no `npm ci`): **2135 tests pass** (203 files, 5 skipped, 10.6 s),
+`eslint` clean, `tsc -p tsconfig.app.json --noEmit` 0 errors, `vite build`
+succeeds. No reinstall was needed and none was done: every native artefact in
+`node_modules` (`lightningcss`, `@rolldown/binding`, `@tailwindcss/oxide`,
+`fsevents`) is an N-API prebuild and there is no `binding.gyp` anywhere, so
+nothing is compiled against a Node ABI. `package.json` `engines` stays at
+`>=22.12.0` — that declares the MINIMUM the project supports, which the bump
+does not raise.
 
 **Not investigated: Vercel.** The failures reported were GitHub Actions CI runs,
 not Vercel deployments — the `Build` job was green on all four. If a Vercel
