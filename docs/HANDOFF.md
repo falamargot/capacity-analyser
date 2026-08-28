@@ -2,6 +2,58 @@
 
 _Last updated 2026-08-28._
 
+## 2026-08-28 — CI red since 38384d5: one over-budget test, fixed
+
+**Symptom.** GitHub Actions CI (`Test` job) failed on the last four pushes to
+`main` (runs #41–#44, commits `38384d5` → `3c02869`). Lint, Build and Typecheck
+were green throughout; the only failure was a single test:
+
+    src/features/revisit/__tests__/payloadSweep.test.ts
+    > does not fold one rung's coverage narrative into the sweep-wide warnings
+    Error: Test timed out in 30000ms.   (35.1 s / 37.1 s / 36.0 s / 37.7 s)
+
+**Cause — cost, not correctness.** The assertion was never wrong. The test swept
+the FULL production ladder: `DEFAULT_REFERENCE` (12 × 48 = 576 satellites) over
+`defaultWindow` (72 h at a 10 s step = 25 920 epochs), which `enumerateLadder`
+expands to **60 ladder entries, one full access computation each**. That costs
+~11 s on an M-series Mac and ~35–38 s on a 2-vCPU `ubuntu-latest` runner, where
+vitest also runs the other 200+ test files in parallel forks and starves it. The
+test carried an explicit `30_000` budget, so it went red the moment the runner
+crossed it. The tipping push (`38384d5`, first red) did not touch
+`payloadSweep.ts`, `presets.ts` or `subConstellation.ts` — it added ~6 400 lines
+including a dozen new test files, i.e. more parallel CPU contention. The suite
+had been sitting just under the budget; that push pushed it over.
+
+**Fix.** `runPayloadSweep` already accepts `payloadCounts`. The test only ever
+inspected rungs **1** (the rung that never sees the target) and **12** (the rung
+the user was actually looking at); the other 53 entries were computed and thrown
+away. Restricting the sweep to `{ payloadCounts: [1, 12] }` keeps the premise
+and **every assertion byte-identical** — rung 1 still reports `NEVER_IN_VIEW`,
+rung 12 still `INTERMITTENT` with a non-null `maxGapMs`, and `warnings` still
+must not mention "never in view" — at **242 ms instead of 12.3 s**. The explicit
+`30_000` timeout is gone; the default applies. The file went 12.73 s → 0.57 s
+and the whole unit suite 24 s → 11.3 s wall.
+
+The regression's teeth are intact: it still runs against the production
+constellation and the default window, which is the only place the reported bug
+reproduces. A comment in the test says so, and says explicitly not to "optimise"
+it further by shrinking the reference or the window.
+
+**Also locked in.** The typecheck ratchet in `.github/workflows/ci.yml` had been
+emitting a `::notice::` every run — "TypeScript errors dropped from 140 to 0".
+The baseline was genuinely stale (`tsc -p tsconfig.app.json --noEmit` reports 0
+locally); `TYPECHECK_BASELINE` is now **0**, so any newly introduced type error
+fails the job instead of being absorbed by a 140-error allowance.
+
+**Gates after the fix.** 2135 unit tests pass (5 skipped, 203 files), `eslint`
+clean, `tsc` clean. Slowest surviving unit test is 1.1 s.
+
+**Not investigated: Vercel.** The failures reported were GitHub Actions CI runs,
+not Vercel deployments — the `Build` job was green on all four. If a Vercel
+deployment is also failing, that is a separate trail.
+
+---
+
 ## 2026-08-28 — A0 / A1 / A3 fixed
 
 All three closed, with browser proof. Gates: **2135 unit tests** (+40), clean `tsc`

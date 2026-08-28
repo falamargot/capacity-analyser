@@ -171,8 +171,18 @@ describe('payloadSweep — options and the requirement crossing', () => {
      */
     it('does not fold one rung\'s coverage narrative into the sweep-wide warnings', () => {
         const target: Target = { kind: 'POINT', name: 'Custom point', latDeg: 10, lonDeg: 10 };
+        // Only rungs 1 and 12 carry the regression: 1 is the rung that never
+        // sees the target, 12 the rung the user was actually looking at. The
+        // production ladder (12 x 48) has 60 entries over a 72 h / 10 s
+        // window; sweeping all of them costs ~11 s locally and blew past the
+        // 30 s per-test budget on CI, while the other 53 entries were never
+        // inspected. Restricting the counts keeps the premise and every
+        // assertion identical at ~0.2 s. Do NOT narrow this to a smaller
+        // reference or a shorter window - the bug only reproduces against the
+        // production constellation and the default window.
         const production = runPayloadSweep(
-            DEFAULT_REFERENCE, target, FOV_PRESETS.STANDARD, defaultWindow(EPOCH)
+            DEFAULT_REFERENCE, target, FOV_PRESETS.STANDARD, defaultWindow(EPOCH),
+            { payloadCounts: [1, 12] }
         );
 
         const oneRung = production.points.find((p) => p.payloadCount === 1);
@@ -185,5 +195,5 @@ describe('payloadSweep — options and the requirement crossing', () => {
         // The premise held (a rung with no coverage exists), but it must not
         // leak into the sweep-wide warnings.
         expect(production.warnings.join(' ')).not.toMatch(/never in view/i);
-    }, 30_000);
+    });
 });
