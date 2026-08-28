@@ -38,10 +38,24 @@ export interface RevisitResultSheetModel {
     caveats: string[];
 }
 
+/**
+ * What the sizing sweep has to propose, when the requirement is not already met.
+ *
+ * `SAME_BUDGET_RESPLIT` is the case a boolean could not express: the sweep
+ * measured a compliant configuration at a payload count the fleet already
+ * carries, so there IS a recommendation and it costs nothing. Collapsed into
+ * `false`, it made the document print the strongest claim it can make — "no
+ * configuration on the tested payload range meets this requirement" — about a
+ * requirement the sweep had just measured as met (2026-08-28).
+ */
+export type SizingOutcome = 'NONE' | 'ADDITIONAL_PAYLOADS' | 'SAME_BUDGET_RESPLIT';
+
 /** Shared vocabulary with `CustomerResultCard`, so the screen and the PDF agree. */
-export function customerVerdict(meets: boolean, hasRecommendation: boolean): string {
+export function customerVerdict(meets: boolean, outcome: SizingOutcome): string {
     if (meets) return 'REQUIREMENT COVERED';
-    return hasRecommendation ? 'ADDITIONAL PAYLOADS REQUIRED' : 'FURTHER ENGINEERING ASSESSMENT REQUIRED';
+    if (outcome === 'ADDITIONAL_PAYLOADS') return 'ADDITIONAL PAYLOADS REQUIRED';
+    if (outcome === 'SAME_BUDGET_RESPLIT') return 'RECONFIGURATION REQUIRED';
+    return 'FURTHER ENGINEERING ASSESSMENT REQUIRED';
 }
 
 /**
@@ -70,6 +84,17 @@ export interface ResultSheetContext {
     /** Payload count that would meet the requirement, when the sweep found one. */
     recommendedPayloadCount?: number | null;
     /**
+     * The split the sweep MEASURED at that count, when it is not the one flown.
+     *
+     * Required to state a recommendation that costs no additional payloads: the
+     * count alone is indistinguishable from the current configuration, so
+     * without this the document has nothing to recommend and falls back to
+     * claiming nothing meets the requirement.
+     */
+    recommendedSplit?: { planes: number; perPlane: number } | null;
+    /** Worst-case revisit measured for `recommendedSplit`, ms. */
+    recommendedMaxGapMs?: number | null;
+    /**
      * Whether the sizing sweep had actually answered. Defaults to `MEASURED`
      * for callers that only ever export a settled result.
      */
@@ -87,15 +112,23 @@ export interface ResultSheetContext {
  */
 function sizingRecommendation(
     meets: boolean,
-    hasRecommendation: boolean,
+    outcome: SizingOutcome,
     status: SizingStatus,
     recommended: number | null,
     additional: number | null,
+    split: { planes: number; perPlane: number } | null,
+    splitMaxGapMs: number | null,
 ): string {
     if (meets) return 'Met by the tested configuration — no additional payloads required.';
-    if (hasRecommendation) {
+    if (outcome === 'ADDITIONAL_PAYLOADS') {
         return `${recommended} payload-equipped satellites (+${additional}) meet the requirement `
             + 'over this target, measured on the tested payload range.';
+    }
+    if (outcome === 'SAME_BUDGET_RESPLIT' && split) {
+        const measured = splitMaxGapMs === null ? '' : `, measured at ${formatGap(splitMaxGapMs)}`;
+        return `${recommended} payload-equipped satellites redistributed as `
+            + `${split.planes} planes × ${split.perPlane} per plane meet the requirement over `
+            + `this target${measured}. No additional payloads required.`;
     }
     if (status === 'PENDING') {
         return 'Fleet sizing was still being calculated when this summary was exported. '
@@ -125,7 +158,20 @@ export function buildRevisitResultSheet(
     const sizingStatus = context.sizingStatus ?? 'MEASURED';
     const recommended = context.recommendedPayloadCount ?? null;
     const additional = recommended === null ? null : Math.max(0, recommended - payloadCount);
-    const hasRecommendation = additional !== null && additional > 0;
+    const recommendedSplit = context.recommendedSplit ?? null;
+    /*
+     * A recommendation is "the sweep measured something the current
+     * configuration is not", which is a payload delta OR a different split at
+     * the same budget — never the delta alone. Judging it on `additional > 0`
+     * is what silently discarded the whole no-cost half.
+     */
+    const outcome: SizingOutcome = additional !== null && additional > 0
+        ? 'ADDITIONAL_PAYLOADS'
+        : recommended !== null
+            && recommendedSplit !== null
+            && (recommendedSplit.planes !== planes || recommendedSplit.perPlane !== perPlane)
+            ? 'SAME_BUDGET_RESPLIT'
+            : 'NONE';
     const swathClause = context.assumedSwathKm
         ? `, with an assumed ${context.assumedSwathKm} km IR swath`
         : '';
@@ -138,10 +184,11 @@ export function buildRevisitResultSheet(
             + `at least every ${formatGap(requirementMs)}${swathClause}?`,
         target: `${scenario.target.name} (${scenario.target.latDeg.toFixed(4)}, ${scenario.target.lonDeg.toFixed(4)})`,
         requirement: formatGap(requirementMs),
-        verdict: customerVerdict(meets, hasRecommendation),
+        verdict: customerVerdict(meets, outcome),
         meets,
         recommendation: sizingRecommendation(
-            meets, hasRecommendation, sizingStatus, recommended, additional
+            meets, outcome, sizingStatus, recommended, additional,
+            recommendedSplit, context.recommendedMaxGapMs ?? null,
         ),
         metrics: [
             { label: 'Maximum revisit gap', value: formatGap(maxGap) },
@@ -200,7 +247,7 @@ export function buildAreaResultSheet(
             + `at least every ${formatGap(requirementMs)}${swathClause}?`,
         target: `${analysis.area.name} (${analysis.area.boundary.length} vertices · ${analysis.cells.length} cells)`,
         requirement: formatGap(requirementMs),
-        verdict: customerVerdict(meets, false),
+        verdict: customerVerdict(meets, 'NONE'),
         meets,
         /*
          * Programme 5b guardrail, carried into the document: an area is judged

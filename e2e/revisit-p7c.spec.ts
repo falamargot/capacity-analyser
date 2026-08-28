@@ -74,7 +74,6 @@ test.describe('REVISIT P7C freshness contract', () => {
     await expect(card).toContainText('Singapore');
     await expect(card).toContainText(/Maximum revisit gap\s*\n?\s*\d/, { timeout: 60_000 });
     const frames = await stopRecording(page);
-    const singaporeGap = gapOf(await card.innerText());
 
     // The identity change must have been observable at all — otherwise the
     // recording proves nothing.
@@ -82,28 +81,37 @@ test.describe('REVISIT P7C freshness contract', () => {
     expect(singaporeFrames.length).toBeGreaterThan(0);
 
     /*
-     * The STRUCTURAL assertion, and the one that matters: between the question
-     * changing and the new figure arriving, the card must have passed through a
-     * state with no figure at all. Comparing the two cities' formatted gaps
-     * cannot stand alone — they can coincide, and did: at one epoch London and
-     * Singapore both measured 6 h 7 min, which made an earlier version of this
-     * test report a defect that was not there.
+     * ── WHY THIS ASSERTS ORDER AND NOT VALUES ───────────────────────────────
+     * Staleness has a shape: the question changes, the PREVIOUS target's figure
+     * is still standing under it, and only then does the card catch up. So
+     * every frame carrying a figure BEFORE the card has blanked is a stale one
+     * whatever number it shows, and every frame after the blank is the new
+     * target's own — also whatever number it shows.
+     *
+     * Comparing the two cities' formatted gaps cannot do this job, and the
+     * attempt failed twice. They coincide outright: on the preset split both
+     * measure 6 h 7 min at 2026-08-29T12:00Z and again at 2026-08-30T12:50Z.
+     * Guarding the comparison with `singaporeGap !== londonGap` only covers the
+     * case where the SETTLED figures collide, and Singapore is measured twice —
+     * once under the split inherited from London, then again under its own once
+     * `reconcileToMeasuredBest` lands. It is the FIRST of those that collides
+     * with London while the second differs (4 h 17 min at that second epoch),
+     * so the guard opens and the coincidence is reported as staleness. Whether
+     * the settled figure is read at all is a race with the ~25 s sweep, which
+     * is why it only ever failed under a full-suite run.
      */
-    const withoutFigure = singaporeFrames.filter(
+    const firstEmptyFigure = singaporeFrames.findIndex(
       (frame) => /Maximum revisit gap\s*\n\s*(—|measuring…)/.test(frame)
     );
     expect(
-      withoutFigure.length,
+      firstEmptyFigure,
       `no empty-figure frame between the two targets:\n${singaporeFrames.slice(0, 3).join('\n---\n')}`
-    ).toBeGreaterThan(0);
+    ).toBeGreaterThanOrEqual(0);
 
-    // And the value-based check, kept but only where it can discriminate.
-    if (singaporeGap !== londonGap) {
-      const contradictory = singaporeFrames.filter(
-        (frame) => frame.includes(`Maximum revisit gap\n${londonGap}`)
-      );
-      expect(contradictory, `stale frames:\n${contradictory.slice(0, 3).join('\n---\n')}`).toEqual([]);
-    }
+    const stale = singaporeFrames
+      .slice(0, firstEmptyFigure)
+      .filter((frame) => /Maximum revisit gap\s*\n\s*\d/.test(frame));
+    expect(stale, `stale frames:\n${stale.slice(0, 3).join('\n---\n')}`).toEqual([]);
   });
 
   /*

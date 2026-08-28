@@ -60,7 +60,8 @@ import type { PointTarget, RevisitScenario, WalkerSpec } from '../domain/types';
 import type { RevisitSceneOptions } from '../render/useRevisitScene';
 import { RevisitHeader } from './RevisitHeader';
 import { RevisitKpiPanel } from './RevisitKpiPanel';
-import { CustomerResultCard, type CustomerSizing } from './CustomerResultCard';
+import { CustomerResultCard } from './CustomerResultCard';
+import { resolveCustomerSizing, type CustomerSizing } from '../analysis/customerSizing';
 import { StageControls } from './StageControls';
 import {
     PresentationNotice, PresentationReadiness,
@@ -907,50 +908,23 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         return 'Every gap in this window touches a boundary and is discarded.';
     }, [customerMaxGapMs, analysisContext, customArea, displayedAreaAnalysis, inspectedAnalysis]);
 
-    /**
-     * The sizing outcome.
-     *
-     * `COMPUTING` is a wait and `BEYOND_RANGE` is an answer; conflating them is
-     * what made the old `To target: beyond the tested payload range` appear
-     * while the sweep that would have contradicted it was still running.
-     *
-     * An Area never yields a payload figure: it is judged on its least-covered
-     * cell and no area-wide sizing sweep exists (Programme 5b guardrail).
-     */
-    const customerSizing = useMemo<CustomerSizing>(() => {
-        const covered = customerMaxGapMs !== null && customerMaxGapMs <= requirementMs;
-        if (covered) return { kind: 'COVERED' };
-        if (analysisContext === 'AREA') {
-            return displayedAreaAnalysis ? { kind: 'AREA_NOT_SIZED' } : { kind: 'UNAVAILABLE' };
-        }
-        if (!inspectedPoint) return { kind: 'UNAVAILABLE' };
-        // A failed sweep is a sizing state, not a presentation-wide failure.
-        if (sweepError) return { kind: 'FAILED' };
-        const recommended = businessComparison.targetPayloadCount;
-        if (recommended === null) {
-            // No answer yet is not the same as no answer at all.
-            return isSweeping || !sweep ? { kind: 'COMPUTING' } : { kind: 'BEYOND_RANGE' };
-        }
-        const additionalPayloads = recommended - currentPayloadCount;
-        if (additionalPayloads > 0) {
-            return { kind: 'RECOMMENDED', payloadCount: recommended, additionalPayloads };
-        }
-        /*
-         * The measured best at the CURRENT count already meets the requirement
-         * while the current topology does not — `reconcileToMeasuredBest` has
-         * not adopted it yet. Announcing "no additional payloads required" in
-         * that window contradicts the verdict printed directly above it: the
-         * card showed `Additional payloads required` over a 3 h 10 min gap
-         * against a 2 h requirement, and `Met by the current configuration` in
-         * the same frame. The reconcile is milliseconds away; say it is still
-         * being computed rather than say two opposite things at once.
-         */
-        if (!covered && isConfigurationSettling) return { kind: 'COMPUTING' };
-        return { kind: 'COVERED' };
-    }, [
+    const customerSizing = useMemo<CustomerSizing>(() => resolveCustomerSizing({
+        currentMaxGapMs: customerMaxGapMs,
+        requirementMs,
+        isArea: analysisContext === 'AREA',
+        hasAreaAnalysis: Boolean(displayedAreaAnalysis),
+        hasInspectedPoint: Boolean(inspectedPoint),
+        sweep,
+        isSweeping,
+        hasSweepError: Boolean(sweepError),
+        recommendedPayloadCount: businessComparison.targetPayloadCount,
+        currentPayloadCount,
+        selection: scenario.selection,
+        isConfigurationSettling,
+    }), [
         customerMaxGapMs, requirementMs, analysisContext, displayedAreaAnalysis, inspectedPoint,
         businessComparison.targetPayloadCount, isSweeping, sweep, currentPayloadCount, sweepError,
-        isConfigurationSettling,
+        isConfigurationSettling, scenario.selection,
     ]);
 
     const undoContextKey = useMemo(() => recommendationContextKey(
@@ -983,7 +957,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
      *    its next landing and the button would appear to do nothing.
      */
     const handleApplyRecommendation = useCallback(() => {
-        if (customerSizing.kind !== 'RECOMMENDED') return;
+        if (customerSizing.kind !== 'RECOMMENDED' && customerSizing.kind !== 'RETOPOLOGY') return;
         const count = customerSizing.payloadCount;
         setPreviousConfiguration({
             selection: scenario.selection,
@@ -1697,6 +1671,16 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                         // The same measured figure the card offers to apply, so
                         // the document and the screen cannot disagree.
                         recommendedPayloadCount: businessComparison.targetPayloadCount,
+                        // And the same split. Without it the document cannot
+                        // tell a recommendation that costs no payloads from no
+                        // recommendation at all, and prints the impossibility
+                        // sentence over a requirement the sweep measured as met.
+                        recommendedSplit: customerSizing.kind === 'RETOPOLOGY'
+                            ? customerSizing.split
+                            : null,
+                        recommendedMaxGapMs: customerSizing.kind === 'RETOPOLOGY'
+                            ? customerSizing.maxGapMs
+                            : null,
                         // And the same distinction the card makes between "no
                         // answer yet" and "no answer exists" — exporting mid
                         // sweep must not print an impossibility as fact.
@@ -1714,7 +1698,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         analysisContext, displayedAreaAnalysis, inspectedAnalysis,
         inspectedScenario, scenario, requirementMs, targetComparison.rows,
         opportunity, assumedSwathKm, businessComparison.targetPayloadCount, referenceMode,
-        sweepError, isSweeping, sweep,
+        sweepError, isSweeping, sweep, customerSizing,
     ]);
 
     const toggle = useCallback((key: keyof DisplayOptions) => {

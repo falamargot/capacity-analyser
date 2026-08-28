@@ -25,43 +25,22 @@
  *
  * The verdict vocabulary is deliberately secondary to the answer: the status
  * pill states `Requirement covered` / `Additional payloads required` /
- * `Further engineering assessment required` and never leads with red.
+ * `Reconfiguration required` / `Further engineering assessment required` and
+ * never leads with red.
  */
 
 import React from 'react';
 import { formatGap } from '../analysis/gapStatistics';
 import type { RevisitAreaTargetRole } from '../domain/analysisTargets';
 import { REVISIT_LABEL, REVISIT_OUTCOME, REVISIT_PANEL } from './revisitTheme';
+import type { CustomerSizing } from '../analysis/customerSizing';
 
-/**
- * What the fleet sizing has to say. These are not interchangeable and the
- * distinction is the whole point of the card:
- *
- * - `COVERED`        the current configuration already meets the requirement;
- * - `RECOMMENDED`    a measured configuration on the ladder meets it;
- * - `COMPUTING`      the sweep has not answered yet — a wait, not an answer;
- * - `BEYOND_RANGE`   the sweep answered: nothing on the tested ladder meets it;
- * - `AREA_NOT_SIZED` an Area is being analysed and no area-wide sizing sweep
- *                    exists, so no payload figure may be proposed at all
- *                    (Programme 5b guardrail, kept as an invariant here);
- * - `UNAVAILABLE`    there is no current result to size against.
+/*
+ * The vocabulary is shared, so the decision is too: `CustomerSizing` and the
+ * function that resolves it live in `analysis/customerSizing.ts`, where they can
+ * be tested against a real sweep instead of through a render of the whole mode.
  */
-export type CustomerSizing =
-    | { kind: 'COVERED' }
-    | { kind: 'RECOMMENDED'; payloadCount: number; additionalPayloads: number }
-    | { kind: 'COMPUTING' }
-    /**
-     * The sizing sweep failed while the result above is fine.
-     *
-     * A separate kind rather than `UNAVAILABLE` because the two say different
-     * things to the room: `UNAVAILABLE` means no sizing applies here, `FAILED`
-     * means one applies and did not complete — which is recoverable, and is why
-     * this is the only sizing state that offers an action.
-     */
-    | { kind: 'FAILED' }
-    | { kind: 'BEYOND_RANGE' }
-    | { kind: 'AREA_NOT_SIZED' }
-    | { kind: 'UNAVAILABLE' };
+export type { CustomerSizing };
 
 export interface CustomerResultCardProps {
     /** Semantic colour carried by the result currently inspected in the sidebar. */
@@ -130,6 +109,15 @@ function customerStatus(meetsRequirement: boolean | null, sizing: CustomerSizing
             className: REVISIT_OUTCOME.misses.badge,
         };
     }
+    // Still a miss, so still the miss colour — but the ask is a redistribution,
+    // and saying "additional payloads" for a change that costs none would be
+    // the same false claim in the opposite direction.
+    if (sizing.kind === 'RETOPOLOGY') {
+        return {
+            text: 'Reconfiguration required',
+            className: REVISIT_OUTCOME.misses.badge,
+        };
+    }
     return {
         text: 'Additional payloads required',
         className: REVISIT_OUTCOME.misses.badge,
@@ -158,9 +146,12 @@ function RecommendedEvidenceDisclosure({ children }: { children: React.ReactNode
     );
 }
 
-function SizingBlock({ sizing, fleetSize, applyNote, onApply, onUndo, onRetrySizing, detail }: {
+function SizingBlock({
+    sizing, fleetSize, currentPayloadCount, applyNote, onApply, onUndo, onRetrySizing, detail,
+}: {
     sizing: CustomerSizing;
     fleetSize: number;
+    currentPayloadCount: number;
     applyNote?: string | null;
     onApply?: () => void;
     onUndo?: () => void;
@@ -168,6 +159,14 @@ function SizingBlock({ sizing, fleetSize, applyNote, onApply, onUndo, onRetrySiz
     detail?: React.ReactNode;
 }) {
     if (sizing.kind === 'UNAVAILABLE') return null;
+
+    /*
+     * Both proposals are applied by the same control, through the same helper
+     * (`selectionForPayloadCount`). Keeping one button rather than one per kind
+     * is what stops a measured recommendation from being un-actionable: the
+     * re-split case had no way to be adopted from this card at all.
+     */
+    const offersApply = sizing.kind === 'RECOMMENDED' || sizing.kind === 'RETOPOLOGY';
 
     return (
         <div
@@ -246,19 +245,48 @@ function SizingBlock({ sizing, fleetSize, applyNote, onApply, onUndo, onRetrySiz
                     <p className="revisit-customer-secondary mt-0.5 text-[12px] leading-4 text-slate-400">
                         within the {fleetSize}-satellite active fleet
                     </p>
-                    {onApply && (
-                        <button
-                            type="button"
-                            onClick={onApply}
-                            className="revisit-apply-recommended mt-2 min-h-11 w-full rounded-lg border border-slate-400/70 bg-slate-100/10 px-3 py-2 text-[12px] font-black uppercase tracking-[0.12em] text-slate-100 transition-colors hover:border-white hover:bg-white/15"
-                        >
-                            Apply recommended configuration
-                        </button>
-                    )}
-                    {applyNote && (
-                        <p className="mt-1 text-[12px] leading-4 text-slate-400">{applyNote}</p>
-                    )}
                 </>
+            )}
+
+            {/*
+                The change IS the split, so the split is what the eye lands on.
+                Leading with the payload count here would print the number that
+                is NOT changing in the position reserved for the answer.
+            */}
+            {sizing.kind === 'RETOPOLOGY' && (
+                <>
+                    <p className="mt-1 flex flex-wrap items-baseline gap-x-2 leading-none">
+                        <span className="text-2xl font-black text-white tabular-nums">
+                            {sizing.split.planes} × {sizing.split.perPlane}
+                        </span>
+                        <span className="text-[13px] font-semibold text-slate-300">
+                            planes × payloads per plane
+                        </span>
+                    </p>
+                    <p className="revisit-customer-secondary mt-0.5 text-[12px] leading-4 text-slate-400">
+                        {sizing.payloadCount} payload-equipped satellites within the {fleetSize}-satellite
+                        active fleet — {sizing.payloadCount === currentPayloadCount
+                            ? 'the payloads already flown, redistributed'
+                            : `${currentPayloadCount - sizing.payloadCount} fewer than the current configuration`}.
+                    </p>
+                    <p className="mt-1 text-[13px] leading-5 text-lime-200">
+                        Measured at {formatGap(sizing.maxGapMs)} over this target — no additional
+                        payloads required.
+                    </p>
+                </>
+            )}
+
+            {offersApply && onApply && (
+                <button
+                    type="button"
+                    onClick={onApply}
+                    className="revisit-apply-recommended mt-2 min-h-11 w-full rounded-lg border border-slate-400/70 bg-slate-100/10 px-3 py-2 text-[12px] font-black uppercase tracking-[0.12em] text-slate-100 transition-colors hover:border-white hover:bg-white/15"
+                >
+                    Apply recommended configuration
+                </button>
+            )}
+            {offersApply && applyNote && (
+                <p className="mt-1 text-[12px] leading-4 text-slate-400">{applyNote}</p>
             )}
 
             {/* Undo survives the transition it caused: after applying, the card
@@ -347,6 +375,7 @@ export const CustomerResultCard: React.FC<CustomerResultCardProps> = ({
             <SizingBlock
                 sizing={sizing}
                 fleetSize={fleetSize}
+                currentPayloadCount={currentPayloadCount}
                 applyNote={applyNote}
                 onApply={onApply}
                 onUndo={onUndo}

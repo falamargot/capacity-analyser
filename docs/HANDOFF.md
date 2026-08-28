@@ -2,6 +2,30 @@
 
 _Last updated 2026-08-28._
 
+## 2026-08-28 — Sizing can now say "same count, different split" (FIXED)
+
+Found from a screenshot: with a comparison target inspected, the card showed
+`ADDITIONAL PAYLOADS REQUIRED` and `Met by the current configuration — no
+additional payloads required` at once, permanently, and the exported PDF printed
+a false impossibility claim. `RECOMMENDED` was reachable only through a
+payload-count delta, so a recommendation that is a re-split at the SAME count
+degraded to `COVERED`.
+
+**The decision now lives in `src/features/revisit/analysis/customerSizing.ts`**
+— pure, with `CustomerSizing` (re-exported by `CustomerResultCard` for
+compatibility) and the new `RETOPOLOGY` kind. Anything that needs to reason
+about what the sizing sweep proposes belongs there, not inline in `RevisitApp`.
+
+Diagnosis, fix, tests and browser validation:
+[REVISIT_SIZING_SAME_COUNT_TOPOLOGY_2026-08-28.md](REVISIT_SIZING_SAME_COUNT_TOPOLOGY_2026-08-28.md).
+Gates: 2150 unit tests, `tsc` and `eslint` clean, and `revisit-p7a`,
+`revisit-p7c`, `revisit-p7e` all green on desktop. `revisit-p7c`'s stale-frame
+test was failing for an unrelated, pre-existing reason (it compared the two
+cities' formatted gaps, which coincide at some epochs) and was rewritten to
+assert frame ORDER instead — see that document's "e2e" section, including the
+deterministic before/after evidence in both directions. The rest of the
+Playwright suite has not been re-run.
+
 ## 2026-08-28 — Explicit `allowScripts` install-script policy
 
 npm 11 no longer runs dependency install scripts implicitly: anything not

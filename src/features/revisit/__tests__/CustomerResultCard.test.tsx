@@ -116,6 +116,76 @@ describe('CustomerResultCard', () => {
         expect(onApply).toHaveBeenCalledTimes(1);
     });
 
+    /*
+     * The 2026-08-28 defect, as a rendering contract: the card must not print a
+     * verdict and a recommendation that contradict each other, and a
+     * recommendation that costs nothing must still be actionable.
+     */
+    it('offers a re-split without ever calling it additional payloads', async () => {
+        const onApply = vi.fn();
+        await renderCard({
+            currentPayloadCount: 48,
+            currentMaxGapMs: 2 * HOUR + 20 * 60_000,
+            sizing: {
+                kind: 'RETOPOLOGY',
+                payloadCount: 48,
+                split: { planes: 6, perPlane: 8 },
+                maxGapMs: 1.9 * HOUR,
+            },
+            onApply,
+        });
+
+        expect(container.textContent).toContain('Reconfiguration required');
+        expect(container.textContent).toContain('6 × 8');
+        expect(container.textContent).toContain('planes × payloads per plane');
+        expect(container.textContent).toContain('the payloads already flown, redistributed');
+        expect(container.textContent).toContain('no additional payloads required');
+        // The two statements that must never appear together.
+        expect(container.textContent).not.toContain('Additional payloads required');
+        expect(container.textContent).not.toContain('Met by the current configuration');
+        expect(container.textContent).not.toMatch(/\+\d+/);
+
+        const apply = container.querySelector<HTMLButtonElement>('.revisit-apply-recommended');
+        expect(apply).not.toBeNull();
+        await act(async () => apply?.click());
+        expect(onApply).toHaveBeenCalledTimes(1);
+    });
+
+    it('says how many payloads are freed when the answer needs fewer', async () => {
+        await renderCard({
+            currentPayloadCount: 48,
+            currentMaxGapMs: 2.4 * HOUR,
+            sizing: {
+                kind: 'RETOPOLOGY',
+                payloadCount: 36,
+                split: { planes: 12, perPlane: 3 },
+                maxGapMs: 1.5 * HOUR,
+            },
+        });
+
+        expect(container.textContent).toContain('36 payload-equipped satellites');
+        expect(container.textContent).toContain('12 fewer than the current configuration');
+        expect(container.textContent).not.toContain('the payloads already flown');
+    });
+
+    it('carries the apply note only where there is something to apply', async () => {
+        const note = 'Optimises the shared topology for the comparison target.';
+        await renderCard({ sizing: { kind: 'BEYOND_RANGE' }, applyNote: note, onApply: vi.fn() });
+        expect(container.textContent).not.toContain(note);
+
+        await renderCard({
+            sizing: {
+                kind: 'RETOPOLOGY',
+                payloadCount: 48,
+                split: { planes: 6, perPlane: 8 },
+                maxGapMs: 1.9 * HOUR,
+            },
+            applyNote: note,
+            onApply: vi.fn(),
+        });
+        expect(container.textContent).toContain(note);
+    });
+
     it('keeps sizing evidence inside Recommended configuration', async () => {
         await renderCard({
             sizing: { kind: 'COVERED' },

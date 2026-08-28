@@ -52,7 +52,10 @@ export async function downloadRevisitResultSheet(model: RevisitResultSheetModel)
     const verdictWidth = Math.max(42, model.verdict.length * 1.9);
     const verdictColor: [number, number, number] = model.meets
         ? [22, 101, 52]
+        // Both actionable shortfalls read the same: there is a measured answer,
+        // it just is not the configuration on screen. Only "no answer" is grey.
         : model.verdict === 'ADDITIONAL PAYLOADS REQUIRED'
+            || model.verdict === 'RECONFIGURATION REQUIRED'
             ? [194, 65, 12]
             : [71, 85, 105];
     pdf.setFillColor(...verdictColor);

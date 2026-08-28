@@ -1,6 +1,43 @@
 # Review Report
 
-_Last updated 2026-08-27._
+_Last updated 2026-08-28._
+
+## `revisit-p7c` compared values where it should compare order — 2026-08-28
+
+The stale-frame test asserted that no recorded frame showed the PREVIOUS
+target's formatted gap under the NEW target's question. London and Singapore
+coincide — both measure 6 h 7 min on the preset split at 2026-08-29T12:00Z and
+at 2026-08-30T12:50Z — and the `singaporeGap !== londonGap` guard only covers a
+collision between the two SETTLED figures, while the colliding one is Singapore
+measured under the split inherited from London, before `reconcileToMeasuredBest`
+lands. Reading the settled figure at all is a race with the sweep, so it failed
+only under a full-suite run. Pre-existing: reproduced on `e784e6d`.
+
+Rewritten to assert ORDER — any frame carrying a figure before the card blanks
+is stale whatever its value; any frame after the blank is the new target's own.
+Verified in both directions at a clock-pinned epoch, injected defect included;
+details in
+[REVISIT_SIZING_SAME_COUNT_TOPOLOGY_2026-08-28.md](REVISIT_SIZING_SAME_COUNT_TOPOLOGY_2026-08-28.md).
+
+## The same contradiction, permanent this time — 2026-08-28
+
+The 2026-08-27 fix below closed the reconcile RACE. It did not close the
+STRUCTURAL case: with a comparison target inspected, the card shows
+`Additional payloads required` over a 2 h 20 min gap against a 2 h requirement
+AND `Met by the current configuration` at the same time, indefinitely, because
+the sizing envelope's answer at 48 payloads is a DIFFERENT SPLIT (6 × 8,
+1 h 54) from the one on screen (12 × 4, adopted for the reference target).
+`additionalPayloads = 0` falls through to `COVERED`. The exported PDF is worse:
+it prints "No configuration on the tested payload range meets this requirement"
+about a requirement the sweep measured as met.
+
+Fixed the same day. `CustomerSizing` gained `RETOPOLOGY` — the answer that
+costs no payloads — and the decision moved out of `RevisitApp` into the pure,
+testable `analysis/customerSizing.ts`; the card leads with the split and offers
+the same apply control, and the PDF's verdict became a `SizingOutcome` rather
+than a boolean that could not express the case. 15 tests added, two of them
+driving the real engine. Full write-up in
+[REVISIT_SIZING_SAME_COUNT_TOPOLOGY_2026-08-28.md](REVISIT_SIZING_SAME_COUNT_TOPOLOGY_2026-08-28.md).
 
 ## The result card contradicted itself during the reconcile window — 2026-08-27
 

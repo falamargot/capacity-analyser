@@ -22,15 +22,17 @@ const analysis = runRevisitScenario(scenario);
 const HOUR = 3600_000;
 
 describe('customerVerdict', () => {
-    it('uses the same three phrases as the customer result card', () => {
-        expect(customerVerdict(true, false)).toBe('REQUIREMENT COVERED');
-        expect(customerVerdict(false, true)).toBe('ADDITIONAL PAYLOADS REQUIRED');
-        expect(customerVerdict(false, false)).toBe('FURTHER ENGINEERING ASSESSMENT REQUIRED');
+    it('uses the same four phrases as the customer result card', () => {
+        expect(customerVerdict(true, 'NONE')).toBe('REQUIREMENT COVERED');
+        expect(customerVerdict(false, 'ADDITIONAL_PAYLOADS')).toBe('ADDITIONAL PAYLOADS REQUIRED');
+        expect(customerVerdict(false, 'SAME_BUDGET_RESPLIT')).toBe('RECONFIGURATION REQUIRED');
+        expect(customerVerdict(false, 'NONE')).toBe('FURTHER ENGINEERING ASSESSMENT REQUIRED');
     });
 
     /* A covered requirement never depends on whether a recommendation exists. */
     it('reports coverage regardless of the recommendation', () => {
-        expect(customerVerdict(true, true)).toBe('REQUIREMENT COVERED');
+        expect(customerVerdict(true, 'ADDITIONAL_PAYLOADS')).toBe('REQUIREMENT COVERED');
+        expect(customerVerdict(true, 'SAME_BUDGET_RESPLIT')).toBe('REQUIREMENT COVERED');
     });
 });
 
@@ -100,6 +102,47 @@ describe('buildRevisitResultSheet — the commercial narrative', () => {
         const sheet = buildRevisitResultSheet(
             scenario, analysis, 1 * HOUR, [], new Date(EPOCH),
             { recommendedPayloadCount: null },
+        );
+
+        expect(sheet.verdict).toBe('FURTHER ENGINEERING ASSESSMENT REQUIRED');
+        expect(sheet.recommendation).toContain('No configuration on the tested payload range');
+    });
+
+    /*
+     * The document's strongest claim, and the one it used to make wrongly. A
+     * recommendation that costs no payloads has `recommended === payloadCount`,
+     * which the old `additional > 0` test read as "no recommendation" — so a
+     * requirement the sweep had just measured as met was exported as one that
+     * nothing on the tested range can meet (2026-08-28).
+     */
+    it('never claims nothing meets a requirement the sweep measured as met', () => {
+        const sheet = buildRevisitResultSheet(
+            scenario, analysis, 1 * HOUR, [], new Date(EPOCH),
+            {
+                recommendedPayloadCount: analysis.payloadCount,
+                recommendedSplit: { planes: 6, perPlane: 2 },
+                recommendedMaxGapMs: 55 * 60_000,
+            },
+        );
+
+        expect(sheet.meets).toBe(false);
+        expect(sheet.verdict).toBe('RECONFIGURATION REQUIRED');
+        expect(sheet.recommendation).not.toContain('No configuration on the tested payload range');
+        expect(sheet.recommendation).toContain(`${analysis.payloadCount} payload-equipped satellites`);
+        expect(sheet.recommendation).toContain('6 planes × 2 per plane');
+        expect(sheet.recommendation).toContain('measured at 55 min');
+        expect(sheet.recommendation).toContain('No additional payloads required');
+    });
+
+    /*
+     * The split is what makes it a recommendation. Without one the count alone
+     * is indistinguishable from the configuration already flown, and the
+     * document must go back to claiming nothing rather than proposing itself.
+     */
+    it('proposes nothing when the recommended count is the current one and no split is given', () => {
+        const sheet = buildRevisitResultSheet(
+            scenario, analysis, 1 * HOUR, [], new Date(EPOCH),
+            { recommendedPayloadCount: analysis.payloadCount },
         );
 
         expect(sheet.verdict).toBe('FURTHER ENGINEERING ASSESSMENT REQUIRED');
