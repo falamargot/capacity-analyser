@@ -81,6 +81,41 @@ Verified after a fresh `npm ci` with the denial in force, on Node v24.20.0:
 `npm install-scripts ls` now reports **"No packages with unreviewed install
 scripts."** and `npm ci` emits no install-script warnings at all.
 
+### Confirmed on Vercel (deployment of `d48ee1e`, 2026-08-28 11:23 UTC)
+
+Build log evidence, in order:
+
+- `[build] node v24.19.0` — the diagnostic added to the `build` script. Vercel
+  builds on Node 24, as `engines.node: "24.x"` specifies.
+- `Build Completed in /vercel/output [44s]` → `Deployment completed`.
+- **No `allow-scripts` warnings at all.** The previously logged
+  `core-js@3.49.0` and `esbuild@0.27.7` lines are gone.
+
+That third point was checked rather than assumed, because the log also says
+`Restored build cache from previous deployment` and `up to date in 1s` — the
+install was a no-op, so a clean log could have meant "npm never evaluated the
+scripts" instead of "the policy worked". It does not: reproduced locally by
+temporarily removing `allowScripts` and running a no-op `npm install`, which
+still printed `up to date, audited 445 packages in 1s` followed by the full
+4-package warning. **A no-op install still performs the check**, so Vercel's
+silence is genuine.
+
+Worth recording because it looks alarming otherwise: Vercel's npm names the CLI
+`npm approve-scripts` while npm 11.19.0 locally names it `npm install-scripts`.
+Different builds of npm, but both read the same `allowScripts` field in
+`package.json` — now demonstrated interoperable in both directions.
+
+**The chunk-size advisory is still in the Vercel log** (`index-DCTWdFBi.js`,
+1 752.71 kB / 486.19 kB gzip). That is deliberate and unrelated — see the section
+below.
+
+**Still not closed:** the Node deprecation warning in the Vercel dashboard. It
+does not appear anywhere in this build log, which is consistent with it being a
+dashboard-surface notice rather than a build-time one, and means this deployment
+neither confirms nor refutes it. It still needs its exact wording and location
+captured. See the Vercel section of the Node 24 migration entry below for the
+two hypotheses already falsified.
+
 ### Not touched: the chunk-size advisory
 
 `vite build` warns that chunks exceed 500 kB. `build.chunkSizeWarningLimit` was
