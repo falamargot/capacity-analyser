@@ -185,7 +185,7 @@ describe('ValueCurve current-selection coherence', () => {
                 currentPayloadCount={4}
                 currentMaxGapMs={2 * 3600_000}
                 currentIsMeasuredBest
-                targetName="Comparison target"
+                targetName="Secondary target"
                 onSelectPayloadCount={() => undefined}
                 embedded
             />

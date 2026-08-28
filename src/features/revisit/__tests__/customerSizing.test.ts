@@ -215,11 +215,11 @@ describe('resolveCustomerSizing against a measured sweep', () => {
         expect(singaporeBest.selection).not.toEqual(londonBest.selection);
     });
 
-    it('does not tell the comparison target its shared topology is enough', () => {
+    it('does not tell the secondary target its shared topology is enough', () => {
         const requirementMs = 2 * HOUR;
-        // What the reference target's winner is reconciled to, fleet-wide.
+        // What the primary target's winner is reconciled to, fleet-wide.
         const shared = at(londonSweep, 48).best.selection;
-        // What that same split delivers over the comparison target.
+        // What that same split delivers over the secondary target.
         const sharedOverSingapore = at(singaporeSweep, 48).alternatives
             .find((candidate) => candidate.selection.planeStride === shared.planeStride
                 && candidate.selection.satStride === shared.satStride)!;

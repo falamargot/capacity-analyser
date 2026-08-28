@@ -10,7 +10,7 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/?mode=revisit');
   await openRevisitSurfaces(page);
   // Deliberately NOT seeded: this spec describes the target set from its empty
-  // opening state outwards, so it adds the reference target itself.
+  // opening state outwards, so it adds the primary target itself.
 });
 
 test.describe('REVISIT P2c-B unified target set', () => {
@@ -20,10 +20,10 @@ test.describe('REVISIT P2c-B unified target set', () => {
     const activeResult = page.getByLabel('Active result context');
 
     await expect(targetSet.getByRole('tablist')).toHaveCount(0);
-    await expect(targetSet.getByRole('button', { name: 'Add reference target' })).toBeVisible();
-    await targetSet.getByRole('button', { name: 'Add reference target' }).click();
-    await targetSet.getByRole('menuitem', { name: 'Add point reference target' }).click();
-    await expect(targetSet).toContainText('Reference target');
+    await expect(targetSet.getByRole('button', { name: 'Add primary target' })).toBeVisible();
+    await targetSet.getByRole('button', { name: 'Add primary target' }).click();
+    await targetSet.getByRole('menuitem', { name: 'Add Primary point target' }).click();
+    await expect(targetSet).toContainText('Primary target');
     await expect(targetSet).not.toContainText('Area ·');
     await expect(targetSet).not.toContainText('Primary drives configuration');
     const compactHeaderHeight = await page.locator('[data-revisit-context-bar]')
@@ -31,15 +31,15 @@ test.describe('REVISIT P2c-B unified target set', () => {
     expect(compactHeaderHeight).toBeLessThan(170);
 
     await addSecondaryPoint(page);
-    await page.getByRole('combobox', { name: 'Comparison target' }).selectOption('Singapore');
-    await expect(targetSet).toContainText('Comparison target');
-    await expect(activeResult).toContainText('Point result · Comparison target');
+    await page.getByRole('combobox', { name: 'Secondary target', exact: true }).selectOption('Singapore');
+    await expect(targetSet).toContainText('Secondary target');
+    await expect(activeResult).toContainText('Point result · Secondary target');
 
     // Geometry is chosen when a target is added; replacing the reference also
     // clears its dependent comparison slot.
-    await targetSet.getByRole('button', { name: 'Remove reference target' }).click();
-    await targetSet.getByRole('button', { name: 'Add reference target' }).click();
-    await targetSet.getByRole('menuitem', { name: 'Add polygon reference target' }).click();
+    await targetSet.getByRole('button', { name: 'Remove primary target' }).click();
+    await targetSet.getByRole('button', { name: 'Add primary target' }).click();
+    await targetSet.getByRole('menuitem', { name: 'Add Primary polygon target' }).click();
     const area = page.getByRole('region', { name: 'Area coverage' });
     await area.getByText('Paste coordinate list', { exact: true }).click();
     await area.getByLabel('Custom area coordinate list').fill('49, -2\n49, 2\n51, 2\n51, -2');
@@ -50,19 +50,19 @@ test.describe('REVISIT P2c-B unified target set', () => {
     // The polygon editor is still open over the target list; the add control
     // underneath it cannot take a click until it is dismissed. Its own toggle
     // closes it — Escape does not.
-    await targetSet.getByRole('button', { name: /reference polygon/i }).first().click();
+    await targetSet.getByRole('button', { name: /primary polygon/i }).first().click();
     await expect(area).toHaveCount(0);
     await addSecondaryPoint(page);
-    await page.getByRole('combobox', { name: 'Comparison target' }).selectOption('Singapore');
+    await page.getByRole('combobox', { name: 'Secondary target', exact: true }).selectOption('Singapore');
 
     // All targets remain in one list while only the selected target owns the
     // contextual result and timeline.
-    await expect(targetSet).toContainText('Reference target');
-    await expect(targetSet).toContainText('Comparison target');
-    await expect(targetSet).toContainText('Polygon · Reference area');
-    await targetSet.getByRole('button', { name: /Comparison target/ }).click();
-    await expect(activeResult).toContainText('Point result · Comparison target');
-    await targetSet.getByRole('button', { name: 'Select reference target polygon' }).click();
+    await expect(targetSet).toContainText('Primary target');
+    await expect(targetSet).toContainText('Secondary target');
+    await expect(targetSet).toContainText('Polygon · Primary area');
+    await targetSet.locator('button[aria-pressed]').filter({ hasText: 'Secondary target' }).click();
+    await expect(activeResult).toContainText('Point result · Secondary target');
+    await targetSet.getByRole('button', { name: 'Select primary target polygon' }).click();
     await expect(activeResult).toContainText('Area result');
     await expect(page.getByRole('region', { name: 'Coverage timeline' })).toContainText('Observation schedule comparison');
     await expect(page.getByRole('region', { name: 'Coverage timeline' })).toContainText('Area worst-cell lane');
@@ -72,13 +72,43 @@ test.describe('REVISIT P2c-B unified target set', () => {
     test.skip(testInfo.project.name !== 'mobile-chromium', 'Dedicated compact-layout contract');
     await addSecondaryPoint(page);
     const targetSet = page.locator('[data-revisit-context-panel="analysis-target"]');
-    await expect(targetSet).toContainText('Reference target');
-    await expect(targetSet).toContainText('Comparison target');
+    await expect(targetSet).toContainText('Primary target');
+    await expect(targetSet).toContainText('Secondary target');
     await expect(targetSet).not.toContainText('Area ·');
     const dimensions = await page.evaluate(() => ({
       scrollWidth: document.documentElement.scrollWidth,
       viewportWidth: window.innerWidth,
     }));
     expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.viewportWidth + 1);
+  });
+
+  test('swaps two point roles with their requirements without changing payload count', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop-chromium', 'Role ownership is viewport-independent');
+    const targetSet = page.locator('[data-revisit-context-panel="analysis-target"]');
+    const hostedPayloads = page.locator('[data-revisit-context-panel="hosted-payloads"]');
+
+    await targetSet.getByRole('button', { name: 'Add primary target' }).click();
+    await targetSet.getByRole('menuitem', { name: 'Add Primary point target' }).click();
+    await hostedPayloads.getByRole('combobox', { name: 'Revisit requirement for Primary target' })
+      .selectOption(String(3600_000));
+
+    await addSecondaryPoint(page);
+    await page.getByRole('combobox', { name: 'Secondary target', exact: true }).selectOption('Singapore');
+    await hostedPayloads.getByRole('combobox', { name: 'Revisit requirement for Secondary target' })
+      .selectOption(String(6 * 3600_000));
+    const payloadCountBefore = await hostedPayloads.locator('[data-revisit-payload-count]').textContent();
+
+    await targetSet.getByRole('button', { name: 'Swap Primary and Secondary targets' }).click();
+
+    await expect(page.getByRole('combobox', { name: 'Target', exact: true })).toHaveValue('Singapore');
+    await expect(page.getByRole('combobox', { name: 'Secondary target', exact: true })).toHaveValue('London');
+    await expect(page.getByLabel('Active result context')).toContainText('Point result · Primary target');
+    await expect(hostedPayloads.getByRole('combobox', { name: 'Revisit requirement for Primary target' }))
+      .toHaveValue(String(6 * 3600_000));
+    await expect(hostedPayloads.locator('[data-revisit-payload-count]')).toHaveText(payloadCountBefore ?? '');
+
+    await targetSet.locator('button[aria-pressed]').filter({ hasText: 'Secondary target' }).click();
+    await expect(hostedPayloads.getByRole('combobox', { name: 'Revisit requirement for Secondary target' }))
+      .toHaveValue(String(3600_000));
   });
 });

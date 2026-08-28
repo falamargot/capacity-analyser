@@ -12,9 +12,9 @@
 export const REVISIT_COLORS = {
     /** Performance midpoint and caution state — never payload identity. */
     accent: '#EF9F27',
-    /** Reference target — amber in header, globe and timeline. */
+    /** Primary target — amber in header, globe and timeline. */
     target: '#FBBF24',
-    /** Comparison target — sky blue in header, globe and timeline. */
+    /** Secondary target — sky blue in header, globe and timeline. */
     comparison: '#38BDF8',
     /** Payload-equipped satellites and sensor geometry: neutral, target-agnostic. */
     payload: '#F8FAFC',

@@ -37,6 +37,7 @@ import { isValidLatDeg, isValidLonDeg, type AreaTarget } from '../domain/areaTar
 import type { AreaAnalysis } from '../analysis/areaAnalysis';
 import { AreaPanel } from './AreaPanel';
 import { AdvancedDrawer, type ConstellationModelProps } from './AdvancedDrawer';
+import { formatGap } from '../analysis/gapStatistics';
 
 import {
     AREA_TARGET_ID, MAX_SECONDARY_TARGETS, REFERENCE_POINT_ID,
@@ -70,6 +71,10 @@ interface RevisitHeaderProps {
     onTargetChange: (name: string) => void;
     onTargetCoordinatesChange?: (latDeg: number, lonDeg: number, name?: string) => void;
     onInstrumentPresetChange?: (name: FovPresetName) => void;
+    requirementMs?: number;
+    requirementChoicesHours?: readonly number[];
+    onRequirementChange?: (requirementMs: number) => void;
+    activeTargetRole?: RevisitAreaTargetRole | null;
     analysisContext?: RevisitAnalysisContext;
     onAnalysisContextChange?: (context: RevisitAnalysisContext) => void;
     comparisonPoints?: RevisitComparisonPoint[];
@@ -89,6 +94,8 @@ interface RevisitHeaderProps {
     comparisonArea?: AreaTarget | null;
     onAreaTargetRoleChange?: (role: RevisitAreaTargetRole) => void;
     onRemoveAreaTarget?: (role: RevisitAreaTargetRole) => void;
+    canSwapTargetRoles?: boolean;
+    onSwapTargetRoles?: () => void;
     onAddAreaTarget?: (role?: RevisitAreaTargetRole) => void;
     customArea?: AreaTarget | null;
     referenceAreaCellCount?: number | null;
@@ -127,7 +134,7 @@ const Panel: React.FC<{
         data-revisit-context-panel={label.toLowerCase().replace(/\s+/g, '-')}
         className={[
             REVISIT_PANEL,
-            'revisit-context-panel px-3 py-2 md:px-4 md:py-3',
+            'revisit-context-panel px-3 py-2 md:px-4',
             className,
         ].join(' ')}
     >
@@ -336,8 +343,8 @@ const TargetEditor: React.FC<TargetEditorProps> = ({
                 </button>
                 <p className="leading-3">
                     {coordinateLabel === 'Target'
-                        ? 'Point mode: click the globe to move the reference target.'
-                        : 'Point mode: Shift-click the globe to place or move the comparison target.'}
+                        ? 'Point mode: click the globe to move the primary target.'
+                        : 'Point mode: Shift-click the globe to place or move the secondary target.'}
                 </p>
             </div>}
         </div>
@@ -355,7 +362,9 @@ const TargetEditor: React.FC<TargetEditorProps> = ({
 export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
     scenario, payloadCounts, currentPayloadCount, onPayloadCountChange,
     targetNames, onTargetChange, onTargetCoordinatesChange,
-    onInstrumentPresetChange, spreadNote, analysisContext = 'POINTS',
+    onInstrumentPresetChange, requirementMs, requirementChoicesHours = [],
+    onRequirementChange = () => undefined, activeTargetRole = null,
+    spreadNote, analysisContext = 'POINTS',
     onAnalysisContextChange = () => undefined, comparisonPoints = [],
     pendingComparisonPointIds = [], secondaryTargetOrder,
     selectedPointId = REFERENCE_POINT_ID, onSelectedPointChange = () => undefined,
@@ -373,6 +382,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
     comparisonArea = areaTargetRole === 'COMPARISON' ? customArea : null,
     onAreaTargetRoleChange = () => undefined,
     onRemoveAreaTarget = () => undefined,
+    canSwapTargetRoles = false, onSwapTargetRoles = () => undefined,
     areaAnalysis = null, areaIsRunning = false, areaError = null, areaProgress = null,
     areaRequirementMs = 2 * 3600_000,
     onClearArea = () => undefined, onCancelArea = () => undefined,
@@ -592,9 +602,9 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
             <Arrow />
 
             <Panel label="Hosted payloads" className="order-3 col-span-2 min-w-0 md:order-none md:flex-1 md:min-w-[280px]">
-                <div className="flex flex-wrap items-end justify-between gap-2">
+                <div className="flex flex-col gap-2 md:flex-row md:items-end">
                     <div className="flex items-baseline gap-2">
-                        <span data-revisit-payload-count className="text-2xl font-black leading-none text-white tabular-nums md:text-3xl">
+                        <span data-revisit-payload-count className="revisit-payload-count text-2xl font-black leading-none tabular-nums md:text-3xl">
                             {currentPayloadCount}
                         </span>
                         {/* `12 of 576` read as "only 12 of the 576 satellites
@@ -602,13 +612,14 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                             removes that reading (Programme 7D). */}
                         <span className="text-[12px] font-semibold leading-4 text-slate-300">
                             payload-equipped
-                            <span className="block text-[11px] text-slate-500">
+                            <span className="block text-[11px] text-slate-400">
                                 of {reference.planes * reference.satsPerPlane} active satellites
                             </span>
                         </span>
                     </div>
+                    <div className="grid w-full min-w-0 grid-cols-2 items-end gap-2 md:ml-auto md:w-[58%]">
                     {onInstrumentPresetChange && (
-                        <label className="flex min-w-[160px] flex-col gap-0.5 md:min-w-[190px]">
+                        <label className="flex min-w-0 flex-col gap-0.5">
                             <span
                                 className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-400"
                                 title="Thermal-infrared imager. It images day and night, which is why no solar-illumination gating is applied to the access windows."
@@ -646,6 +657,33 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                             </select>
                         </label>
                     )}
+                    {requirementMs !== undefined && (
+                        <label className="flex min-w-0 flex-col gap-0.5">
+                            <span className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">
+                                Revisit requirement
+                            </span>
+                            <select
+                                data-revisit-requirement
+                                aria-label={`Revisit requirement for ${activeTargetRole === 'COMPARISON' ? 'Secondary target' : 'Primary target'}`}
+                                value={requirementMs}
+                                disabled={!activeTargetRole}
+                                onChange={(event) => onRequirementChange(Number(event.target.value))}
+                                className={`min-h-11 rounded border bg-transparent px-2 py-1 text-sm font-black text-slate-100 outline-none disabled:cursor-not-allowed disabled:border-slate-600/70 disabled:opacity-50 md:min-h-8 md:text-base ${activeTargetRole === 'REFERENCE'
+                                    ? 'border-amber-400/60 focus:border-amber-300'
+                                    : activeTargetRole === 'COMPARISON'
+                                        ? 'border-sky-400/60 focus:border-sky-300'
+                                        : 'border-slate-600/70 focus:border-slate-300'}`}
+                                title="Maximum acceptable gap between two observations for the selected target"
+                            >
+                                {requirementChoicesHours.map((hours) => (
+                                    <option key={hours} value={hours * 3600_000}>
+                                        {formatGap(hours * 3600_000)} max gap
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                    )}
+                    </div>
                 </div>
                 <input
                     type="range"
@@ -666,7 +704,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                 <div className="revisit-spread-note min-h-[14px] text-[12px] leading-[14px] text-slate-300">
                     {spreadNote}
                 </div>
-                <div className="text-[11px] leading-3 text-slate-500">
+                <div className="text-[11px] leading-3 text-slate-400">
                     {presetName ? 'Illustrative IR preset · not an instrument datasheet' : `Custom FOV · approx. ${swathKm} km swath`}
                 </div>
             </Panel>
@@ -678,28 +716,28 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                         {!hasReferenceTarget ? (
                             <div ref={addReferenceMenuRef} className="relative">
                                 <p className="mb-2 text-[11px] leading-4 text-slate-400">
-                                    Add a reference point or polygon to start the analysis.
+                                    Add a Primary point or polygon to start the analysis.
                                 </p>
                                 <button
                                     type="button"
-                                    aria-label="Add reference target"
+                                    aria-label="Add primary target"
                                     aria-haspopup="menu"
                                     aria-expanded={addReferenceMenuOpen}
                                     onClick={() => setAddReferenceMenuOpen((open) => !open)}
                                     className="flex min-h-11 md:min-h-7 w-full items-center justify-center gap-1 rounded border border-amber-400/40 px-2 text-[11px] font-black uppercase tracking-[0.08em] text-amber-200 hover:border-amber-300"
                                 >
                                     <span aria-hidden="true">+</span>
-                                    Add reference target
+                                    Add primary target
                                 </button>
                                 {addReferenceMenuOpen && (
-                                    <div role="menu" aria-label="Choose reference target type"
+                                    <div role="menu" aria-label="Choose primary target type"
                                         className={`absolute right-0 top-[calc(100%+0.25rem)] z-[75] grid w-full min-w-48 grid-cols-2 gap-1 rounded-lg border border-amber-400/35 p-1.5 ${REVISIT_MENU_SURFACE} shadow-2xl`}>
-                                        <button type="button" role="menuitem" aria-label="Add point reference target"
+                                        <button type="button" role="menuitem" aria-label="Add Primary point target"
                                             onClick={() => { onAddReferencePoint(); setAddReferenceMenuOpen(false); }}
                                             className="min-h-11 md:min-h-9 rounded border border-slate-700 px-2 text-[11px] font-black uppercase tracking-wide text-amber-200 hover:border-amber-400/60 hover:bg-amber-400/10">
                                             Point
                                         </button>
-                                        <button type="button" role="menuitem" aria-label="Add polygon reference target"
+                                        <button type="button" role="menuitem" aria-label="Add Primary polygon target"
                                             onClick={() => {
                                                 onAddAreaTarget('REFERENCE');
                                                 setAddReferenceMenuOpen(false);
@@ -719,10 +757,10 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                     type="button"
                                     onClick={() => { onAreaTargetRoleChange('REFERENCE'); onAnalysisContextChange('AREA'); }}
                                     aria-pressed={analysisContext === 'AREA' && areaTargetRole === 'REFERENCE'}
-                                    aria-label="Select reference target polygon"
+                                    aria-label="Select primary target polygon"
                                     className="min-w-0 flex-1 text-left"
                                 >
-                                    <div className="text-[11px] font-black uppercase tracking-wide text-amber-300">Reference target</div>
+                                    <div className="text-[11px] font-black uppercase tracking-wide text-amber-300">Primary target</div>
                                     <div className="truncate text-[12px] font-bold text-amber-100">Polygon · {referenceArea.name}</div>
                                     <div className="mt-0.5 truncate text-[11px] text-slate-400">
                                         {referenceArea.boundary.length} vertices · {referenceAreaCellCount === null ? 'not analysed' : `${referenceAreaCellCount} cells`} · grid {referenceArea.gridSpacingDeg}°
@@ -730,18 +768,18 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                 </button>
                                 <button
                                     type="button"
-                                    aria-label="Edit reference polygon"
+                                    aria-label="Edit Primary polygon"
                                     aria-haspopup="dialog"
                                     aria-expanded={areaMenuOpen}
                                     onClick={() => { onAreaTargetRoleChange('REFERENCE'); onAnalysisContextChange('AREA'); setAreaMenuOpen((open) => !open); }}
                                     className="flex h-11 w-11 shrink-0 items-center justify-center rounded border border-slate-700 text-sm font-black text-amber-200 hover:border-amber-400/50 md:h-7 md:w-7"
                                 >…</button>
                                 <button type="button" onClick={onRemoveReferenceTarget}
-                                    aria-label="Remove reference target"
+                                    aria-label="Remove primary target"
                                     className="h-11 w-11 shrink-0 rounded text-slate-500 hover:bg-rose-400/10 hover:text-rose-300 md:h-7 md:w-7">×</button>
                             </div>
                             {areaMenuOpen && (
-                                <div role="dialog" aria-label="Define reference polygon"
+                                <div role="dialog" aria-label="Define Primary polygon"
                                     className={`absolute right-0 top-[calc(100%+0.25rem)] z-[70] max-h-[min(70vh,38rem)] w-[min(27rem,calc(100vw-1rem))] overflow-y-auto rounded-lg border border-amber-400/35 ${REVISIT_MENU_SURFACE} shadow-2xl`}>
                                     <AreaPanel
                                         scenario={scenario} analysis={areaAnalysis} isRunning={areaIsRunning}
@@ -764,7 +802,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                     aria-pressed={analysisContext === 'POINTS' && selectedPointId === REFERENCE_POINT_ID}
                                     className="w-[88px] shrink-0 text-left"
                                 >
-                                    <span className="block text-[11px] font-black uppercase tracking-wide text-amber-300">Reference target</span>
+                                    <span className="block text-[11px] font-black uppercase tracking-wide text-amber-300">Primary target</span>
                                     <span className="block text-[11px] tabular-nums text-slate-400">
                                         {target.latDeg.toFixed(2)}° · {target.lonDeg.toFixed(2)}°
                                     </span>
@@ -787,15 +825,15 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                         key="REFERENCE"
                                         latitude={target.latDeg}
                                         longitude={target.lonDeg}
-                                        summaryLabel="Set reference target location"
-                                        roleLabel="Reference target"
+                                        summaryLabel="Set primary target location"
+                                        roleLabel="Primary target"
                                         coordinateLabel="Target"
                                         onOpen={() => onSelectedPointChange(REFERENCE_POINT_ID)}
                                         onApply={(latDeg, lonDeg, name) => onTargetCoordinatesChange(latDeg, lonDeg, name)}
                                     />
                                 )}
                                 <button type="button" onClick={onRemoveReferenceTarget}
-                                    aria-label="Remove reference target"
+                                    aria-label="Remove primary target"
                                     className="h-11 w-11 shrink-0 rounded text-slate-500 hover:bg-rose-400/10 hover:text-rose-300 md:h-7 md:w-7">×</button>
                             </div>
                         </div>
@@ -809,12 +847,12 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                             type="button"
                                             onClick={() => { onAreaTargetRoleChange('COMPARISON'); onAnalysisContextChange('AREA'); }}
                                             aria-pressed={analysisContext === 'AREA' && areaTargetRole === 'COMPARISON'}
-                                            aria-label="Select comparison target polygon"
+                                            aria-label="Select secondary target polygon"
                                             className="min-w-0 flex-1 text-left"
                                         >
-                                            <div className="text-[11px] font-black uppercase tracking-wide text-sky-700 dark:text-sky-300">Comparison target</div>
+                                            <div className="text-[11px] font-black uppercase tracking-wide text-sky-700 dark:text-sky-300">Secondary target</div>
                                             <div className="truncate text-[12px] font-bold text-sky-900 dark:text-sky-100">
-                                                Polygon · {comparisonArea?.name ?? 'Comparison area'}
+                                                Polygon · {comparisonArea?.name ?? 'Secondary area'}
                                             </div>
                                             <div className="mt-0.5 truncate text-[11px] text-slate-400">
                                                 {comparisonArea
@@ -836,7 +874,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                             className="flex h-11 w-11 shrink-0 items-center justify-center rounded border border-slate-700 text-sm font-black leading-none text-sky-700 hover:border-sky-400/50 md:h-7 md:w-7 dark:text-sky-300"
                                         ><span aria-hidden="true">…</span></button>
                                         <button type="button" onClick={() => onRemoveAreaTarget('COMPARISON')}
-                                            aria-label="Remove comparison target"
+                                            aria-label="Remove secondary target"
                                             className="h-11 w-11 shrink-0 rounded text-slate-500 hover:bg-rose-400/10 hover:text-rose-300 md:h-7 md:w-7">×</button>
                                     </div>
                                     {areaMenuOpen && (
@@ -886,7 +924,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                     aria-pressed={analysisContext === 'POINTS' && selectedPointId === point.id}
                                     className="w-[88px] shrink-0 text-left"
                                 >
-                                    <span className="block text-[11px] font-black uppercase tracking-wide text-sky-700 dark:text-sky-300">Comparison target</span>
+                                    <span className="block text-[11px] font-black uppercase tracking-wide text-sky-700 dark:text-sky-300">Secondary target</span>
                                     <span className="block text-[11px] tabular-nums text-slate-400">
                                         {point.target
                                             ? `${point.target.latDeg.toFixed(2)}° · ${point.target.lonDeg.toFixed(2)}°`
@@ -898,7 +936,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                         className="min-h-11 w-full appearance-none truncate bg-transparent py-0.5 pl-0 pr-5 text-[12px] font-bold text-slate-300 outline-none md:min-h-0"
                                         value={targetName}
                                         onChange={(event) => onSecondaryPointTargetChange(point.id, event.target.value)}
-                                        aria-label="Comparison target"
+                                        aria-label="Secondary target"
                                     >
                                         {!point.target && <option value="" disabled className="bg-slate-900">Choose site…</option>}
                                         {pointTargetNames.map((name) => (
@@ -913,42 +951,57 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                     key={point.id}
                                     latitude={point.target?.latDeg}
                                     longitude={point.target?.lonDeg}
-                                    summaryLabel="Set comparison target location"
-                                    roleLabel="Comparison target"
-                                    coordinateLabel="Comparison target"
+                                    summaryLabel="Set secondary target location"
+                                    roleLabel="Secondary target"
+                                    coordinateLabel="Secondary target"
                                     onOpen={() => onSelectedPointChange(point.id)}
                                     onApply={(latDeg, lonDeg, name) => onSecondaryPointChange(point.id, latDeg, lonDeg, name)}
                                 />
                                 <button
                                     type="button"
                                     onClick={() => onRemoveSecondaryPoint(point.id)}
-                                    aria-label="Remove comparison target"
+                                    aria-label="Remove secondary target"
                                     className="h-11 w-11 shrink-0 rounded text-slate-500 hover:bg-rose-400/10 hover:text-rose-300 md:h-7 md:w-7"
                                 >×</button>
                             </div>
                         )})}
+                        {orderedSecondaryTargetIds.length > 0 && (
+                            <button
+                                type="button"
+                                aria-label="Swap Primary and Secondary targets"
+                                title={canSwapTargetRoles
+                                    ? 'Make the Secondary target Primary and the Primary target Secondary'
+                                    : 'Define both targets before swapping their roles'}
+                                disabled={!canSwapTargetRoles}
+                                onClick={onSwapTargetRoles}
+                                className="flex min-h-11 w-full items-center justify-center gap-1.5 rounded border border-slate-700 px-2 text-[11px] font-black uppercase tracking-[0.08em] text-slate-300 hover:border-slate-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 md:min-h-7"
+                            >
+                                <span aria-hidden="true">⇄</span>
+                                Swap roles
+                            </button>
+                        )}
                         {orderedSecondaryTargetIds.length < MAX_SECONDARY_TARGETS && (
                             <div ref={addTargetMenuRef} className="relative">
                                 <button
                                     type="button"
-                                    aria-label="Add comparison target"
+                                    aria-label="Add secondary target"
                                     aria-haspopup="menu"
                                     aria-expanded={addTargetMenuOpen}
                                     onClick={() => setAddTargetMenuOpen((open) => !open)}
                                     className="flex min-h-11 md:min-h-7 w-full items-center justify-center gap-1 rounded border border-slate-700 px-2 text-[11px] font-black uppercase tracking-[0.08em] text-sky-700 hover:border-sky-400/50 dark:text-sky-300"
                                 >
                                     <span aria-hidden="true">+</span>
-                                    Add comparison target
+                                    Add secondary target
                                 </button>
                                 {addTargetMenuOpen && (
-                                    <div role="menu" aria-label="Choose comparison target type"
+                                    <div role="menu" aria-label="Choose secondary target type"
                                         className={`absolute right-0 top-[calc(100%+0.25rem)] z-[75] grid w-full min-w-48 grid-cols-2 gap-1 rounded-lg border border-sky-400/35 p-1.5 ${REVISIT_MENU_SURFACE} shadow-2xl`}>
-                                        <button type="button" role="menuitem" aria-label="Add point comparison target"
+                                        <button type="button" role="menuitem" aria-label="Add Secondary point target"
                                             onClick={() => { onAddComparisonPoint(); setAddTargetMenuOpen(false); }}
                                             className="min-h-11 md:min-h-9 rounded border border-slate-700 px-2 text-[11px] font-black uppercase tracking-wide text-sky-200 hover:border-sky-400/60 hover:bg-sky-400/10">
                                             Point
                                         </button>
-                                        <button type="button" role="menuitem" aria-label="Add polygon comparison target"
+                                        <button type="button" role="menuitem" aria-label="Add Secondary polygon target"
                                             disabled={Boolean(comparisonArea)}
                                             onClick={() => {
                                                 onAddAreaTarget('COMPARISON');

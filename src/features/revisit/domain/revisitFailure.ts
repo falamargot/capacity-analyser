@@ -17,7 +17,7 @@
  * failed, which target it belonged to, which execution path produced it, and
  * what kind of fault it was. `describeRevisitFailure` renders them as one line:
  *
- *     Comparison target · Fleet sizing · Worker runtime error
+ *     Secondary target · Fleet sizing · Worker runtime error
  *
  * Nothing here formats for the customer. These strings are for the disclosure
  * an engineer opens, never for the headline the room reads.
@@ -76,7 +76,7 @@ export function revisitFailure(
     return { ...cause, operation, target };
 }
 
-/** `Comparison target · Fleet sizing · Worker runtime error`. */
+/** `Secondary target · Fleet sizing · Worker runtime error`. */
 export function describeRevisitFailure(failure: RevisitFailure): string {
     return [failure.target, failure.operation, `${failure.path} ${failure.kind}`]
         .filter((part): part is string => Boolean(part))

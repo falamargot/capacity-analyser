@@ -2,6 +2,101 @@
 
 _Last updated 2026-08-28._
 
+## Per-target requirements: three consequences the split missed — 2026-08-28
+
+Splitting the single `requirementMs` into `targetRequirementsMs.{REFERENCE,
+COMPARISON}` converted every remaining single-threshold consumer into a silent
+mis-attribution. Three were live, all found by review of the working tree, all
+fixed here with the same rule: **a threshold belongs to a target, so it must
+travel with the target it judges.**
+
+**1 — The role swap left both Area analyses attached to their old slots.**
+`handleSwapTargetRoles` rewrote `areaTargets`, `comparisonPoints`,
+`secondaryTargetOrder` and both requirements, but not the two `useAreaRun`
+caches, which are keyed by ROLE. Swapping two analysed polygons therefore left
+polygon A's completed grid in the REFERENCE slot under polygon B's name — and
+`displayedReferenceAreaAnalysis` RENAMES a mismatched analysis rather than
+discarding it, so the ribbon lane and the globe heat map presented A's coverage
+as B's, verdicted against B's just-swapped requirement. The auto-run effects do
+re-fire (the polygons' `areaAnalysisKey`s differ), but only after a 450 ms
+debounce plus a full worker grid run, and `isRunning` is false throughout the
+debounce, so no `Computing…` status covered the window. Fixed by clearing both
+runs and both `lastAuto*AreaRunKeyRef`s in the swap, which is what every other
+target transition (`handleCreateAreaTarget`, `handleRemoveAreaTarget`,
+`handleRemoveComparisonTarget`, snapshot restore) already did.
+
+**2 — The exported customer summary verdicted every target against one
+threshold.** `buildRevisitResultSheet` took a single `requirementMs` and applied
+it to all of `comparisonRows`, including `rows[0]`, which is the Primary target.
+Exporting with the Secondary selected at 12 h printed `Meets` beside a Primary
+the ribbon was reporting as MISSES at 2 h — the document contradicted the screen
+it came from. Fixed with `ResultSheetContext.comparisonRequirementsMs`, an
+index-aligned list supplied by `RevisitApp` (`rows[0]` → Primary, later rows →
+Secondary), falling back to `requirementMs` when absent. The PDF's compared-
+targets table gained a **Requirement** column: without the figure printed
+beside it, the same `Misses` on two rows is two different facts.
+
+**3 — The globe coloured both Area heat grids with the active threshold.**
+`RevisitGlobe` draws the Primary and Secondary grids simultaneously (by design —
+`RevisitGlobe.tsx`, "Both target grids stay visible") but received one
+`requirementMs` and passed it to `heatColorFor` for every cell of both. With a
+1 h Primary and a 12 h Secondary, selecting the Secondary repainted the Primary
+polygon's failing cells green. Fixed by replacing the prop with
+`areaRequirementsMs: Record<RevisitAreaTargetRole, number>` and indexing it by
+the layer's own role.
+
+Not fixed, recorded instead: `swapTargetRoles` sets `areaTargetRole:
+'REFERENCE'` in the Primary-polygon → Secondary-point branch when the Secondary
+was selected, even though the surviving polygon has just moved to the COMPARISON
+slot. Nothing renders a wrong value from it — every consumer of the empty slot
+is behind `analysisContext === 'AREA'`, and the next explicit area selection
+corrects it — but the invariant "`areaTargetRole` names a populated slot" is
+broken. See R30 in `DEFERRED_ITEMS.md`.
+
+**Regression coverage, proven in both directions.**
+`revisit-p2c-c` gained *"releases both Area analyses when the polygons exchange
+roles"*. It builds two named polygons, records the settled figure of each, and
+then watches the Primary lane through the swap with a **MutationObserver** — not
+with a retried assertion. That distinction is the whole test: the defect also
+reached the correct end state, ~450 ms later, having shown a wrong one first, so
+`toContainText` simply waits for it and passes. Confirmed by reverting the fix
+in place: with the four `clear()` lines removed the test fails with
+`Alpha's result was rendered under Beta's name in 1 of 5 recorded states`; with
+them restored the spec is green (3 passed, 1 skipped).
+
+The `expect(alphaGap).not.toBe(betaGap)` guard is deliberate — if a fixture
+change ever collapses the two polygons onto the same measured gap, the test must
+fail loudly rather than pass vacuously.
+
+Gates: `tsc --noEmit` and `eslint` clean; REVISIT unit suite green including two
+new `resultSheet` cases (per-row verdicts, and the legacy single-threshold
+fallback); the full REVISIT Playwright set green on desktop and mobile, Axe
+included (both themes).
+
+## Scenario workspace moved to the stage rail — 2026-08-28
+
+The launcher left the application header for the stage rail, directly beneath
+the display-options panel, and the workspace now opens as a popup anchored under
+it rather than as a full-height left edge drawer. The rail is where the
+presenter's hand already is, and an anchored popup leaves the globe it overlays
+readable beside it.
+
+Position is read from the launcher's live `getBoundingClientRect()` on open and
+on resize, not from a hard-coded offset: the application header grows when a
+spread note appears, so any fixed top would drift out from under the button.
+Below `md` the panel stays the full-width sheet — a 432 px popup on a 390 px
+phone is an edge drawer with extra steps — which also preserves the
+`drawerWidth === viewportWidth` contract in `revisit-p2b-b3`. Every other
+contract is unchanged: same `Scenario workspace` accessible name, same
+`#revisit-scenario-workspace-drawer` dialog id, same `aria-modal`, focus trap,
+Escape-to-close and focus-return-to-launcher.
+
+Verified in the browser at 1440×900 (popup: top 434 under a launcher whose
+bottom is 426, left 12, width 432, bottom 888 against a 900 px viewport, no
+horizontal overflow; Escape closes and returns focus to the launcher with
+`aria-expanded="false"`) and at 375×812 (sheet: width 375 === viewport width,
+`scrollWidth` 375).
+
 ## `revisit-p7c` compared values where it should compare order — 2026-08-28
 
 The stale-frame test asserted that no recorded frame showed the PREVIOUS

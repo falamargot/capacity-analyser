@@ -55,20 +55,20 @@ describe('REVISIT P1 functional UI', () => {
             />
         ));
 
-        expect(container.querySelector('[aria-label="Add comparison target"]')).toBeNull();
+        expect(container.querySelector('[aria-label="Add secondary target"]')).toBeNull();
         expect(container.textContent).not.toContain('Reference geometry');
         await act(async () => (
-            container.querySelector('[aria-label="Add reference target"]') as HTMLButtonElement
+            container.querySelector('[aria-label="Add primary target"]') as HTMLButtonElement
         ).click());
-        expect(container.querySelector('[aria-label="Choose reference target type"]')).not.toBeNull();
+        expect(container.querySelector('[aria-label="Choose primary target type"]')).not.toBeNull();
 
         await act(async () => (
-            container.querySelector('[aria-label="Add point reference target"]') as HTMLButtonElement
+            container.querySelector('[aria-label="Add Primary point target"]') as HTMLButtonElement
         ).click());
         expect(onAddReferencePoint).toHaveBeenCalledOnce();
     });
 
-    it('allows the reference target to be removed as a complete target-set reset', async () => {
+    it('allows the primary target to be removed as a complete target-set reset', async () => {
         const scenario = defaultScenario(Date.UTC(2026, 7, 12));
         const onRemoveReferenceTarget = vi.fn();
         await act(async () => root?.render(
@@ -84,9 +84,9 @@ describe('REVISIT P1 functional UI', () => {
             />
         ));
 
-        expect(container.querySelector('[aria-label="Add comparison target"]')).not.toBeNull();
+        expect(container.querySelector('[aria-label="Add secondary target"]')).not.toBeNull();
         await act(async () => (
-            container.querySelector('[aria-label="Remove reference target"]') as HTMLButtonElement
+            container.querySelector('[aria-label="Remove primary target"]') as HTMLButtonElement
         ).click());
         expect(onRemoveReferenceTarget).toHaveBeenCalledOnce();
     });
@@ -114,7 +114,7 @@ describe('REVISIT P1 functional UI', () => {
         await act(async () => change(preset, 'WIDE'));
         expect(onInstrumentPresetChange).toHaveBeenCalledWith('WIDE');
 
-        const locationButton = container.querySelector('[aria-label="Set reference target location"]') as HTMLButtonElement;
+        const locationButton = container.querySelector('[aria-label="Set primary target location"]') as HTMLButtonElement;
         await act(async () => locationButton.click());
         const latitude = container.querySelector('[aria-label="Target latitude"]') as HTMLInputElement;
         const longitude = container.querySelector('[aria-label="Target longitude"]') as HTMLInputElement;
@@ -126,6 +126,39 @@ describe('REVISIT P1 functional UI', () => {
             .find((button) => button.textContent?.includes('Apply coordinates'))!;
         await act(async () => applyCoordinates.click());
         expect(onTargetCoordinatesChange).toHaveBeenCalledWith(48.86, 2.35, undefined);
+    });
+
+    it('keeps the selected target requirement beside the swath input', async () => {
+        const scenario = defaultScenario(Date.UTC(2026, 7, 12));
+        const onRequirementChange = vi.fn();
+        await act(async () => root?.render(
+            <RevisitHeader
+                scenario={scenario}
+                payloadCounts={[12]}
+                currentPayloadCount={12}
+                onPayloadCountChange={() => undefined}
+                targetNames={['London']}
+                onTargetChange={() => undefined}
+                onInstrumentPresetChange={() => undefined}
+                requirementMs={2 * 3600_000}
+                requirementChoicesHours={[1, 2, 6]}
+                onRequirementChange={onRequirementChange}
+                activeTargetRole="REFERENCE"
+                spreadNote={null}
+            />
+        ));
+
+        const hostedPayloads = container.querySelector(
+            '[data-revisit-context-panel="hosted-payloads"]'
+        )!;
+        expect(hostedPayloads.textContent).toContain('Assumed sensor swath');
+        expect(hostedPayloads.textContent).toContain('Revisit requirement');
+        const requirement = hostedPayloads.querySelector(
+            '[aria-label="Revisit requirement for Primary target"]'
+        ) as HTMLSelectElement;
+        expect(requirement.className).toContain('border-amber');
+        await act(async () => change(requirement, String(6 * 3600_000)));
+        expect(onRequirementChange).toHaveBeenCalledWith(6 * 3600_000);
     });
 
     it('keeps manual location editors inside each point row', async () => {
@@ -154,14 +187,14 @@ describe('REVISIT P1 functional UI', () => {
         expect(container.textContent).not.toContain('Click: move reference');
         const locationButtons = [...container.querySelectorAll('[aria-haspopup="dialog"][aria-label$="location"]')];
         expect(locationButtons.map((button) => button.getAttribute('aria-label'))).toEqual([
-            'Set reference target location',
-            'Set comparison target location',
+            'Set primary target location',
+            'Set secondary target location',
         ]);
 
         await act(async () => (locationButtons[1] as HTMLButtonElement).click());
         const openMenu = container.querySelector('[role="dialog"]')!;
-        const latitude = openMenu.querySelector('[aria-label="Comparison target latitude"]') as HTMLInputElement;
-        const longitude = openMenu.querySelector('[aria-label="Comparison target longitude"]') as HTMLInputElement;
+        const latitude = openMenu.querySelector('[aria-label="Secondary target latitude"]') as HTMLInputElement;
+        const longitude = openMenu.querySelector('[aria-label="Secondary target longitude"]') as HTMLInputElement;
         await act(async () => {
             change(latitude, '41.5');
             change(longitude, '6.25');
@@ -171,7 +204,7 @@ describe('REVISIT P1 functional UI', () => {
         await act(async () => apply.click());
         expect(onSecondaryPointChange).toHaveBeenCalledWith('comparison-1', 41.5, 6.25, undefined);
 
-        const targetPreset = container.querySelector('[aria-label="Comparison target"]') as HTMLSelectElement;
+        const targetPreset = container.querySelector('[aria-label="Secondary target"]') as HTMLSelectElement;
         expect(targetPreset.selectedOptions[0]?.textContent).toBe('Custom point');
         await act(async () => change(targetPreset, 'Singapore'));
         expect(onSecondaryPointTargetChange).toHaveBeenCalledWith('comparison-1', 'Singapore');
@@ -204,13 +237,13 @@ describe('REVISIT P1 functional UI', () => {
         ));
 
         expect(container.querySelector('[role="tablist"]')).toBeNull();
-        expect(container.textContent).toContain('Reference target');
-        expect(container.textContent).toContain('Comparison target');
+        expect(container.textContent).toContain('Primary target');
+        expect(container.textContent).toContain('Secondary target');
         expect(container.textContent).toContain('Polygon · Custom area');
         expect(container.textContent).not.toContain('Primary drives configuration');
 
         await act(async () => (
-            container.querySelector('[aria-label="Select comparison target polygon"]') as HTMLButtonElement
+            container.querySelector('[aria-label="Select secondary target polygon"]') as HTMLButtonElement
         ).click());
         expect(onAnalysisContextChange).toHaveBeenCalledWith('AREA');
     });
@@ -232,11 +265,11 @@ describe('REVISIT P1 functional UI', () => {
 
         expect(container.textContent).not.toContain('Area ·');
         await act(async () => (
-            container.querySelector('[aria-label="Add comparison target"]') as HTMLButtonElement
+            container.querySelector('[aria-label="Add secondary target"]') as HTMLButtonElement
         ).click());
-        expect(container.querySelector('[aria-label="Choose comparison target type"]')).not.toBeNull();
-        expect(container.querySelector('[aria-label="Add point comparison target"]')).not.toBeNull();
-        expect(container.querySelector('[aria-label="Add polygon comparison target"]')).not.toBeNull();
+        expect(container.querySelector('[aria-label="Choose secondary target type"]')).not.toBeNull();
+        expect(container.querySelector('[aria-label="Add Secondary point target"]')).not.toBeNull();
+        expect(container.querySelector('[aria-label="Add Secondary polygon target"]')).not.toBeNull();
     });
 
     it('does not render a redundant geometry switch for an existing reference', async () => {
@@ -254,7 +287,7 @@ describe('REVISIT P1 functional UI', () => {
         ));
 
         expect(container.textContent).not.toContain('Reference geometry');
-        expect(container.querySelector('[aria-label="Reference target geometry"]')).toBeNull();
+        expect(container.querySelector('[aria-label="Primary target geometry"]')).toBeNull();
     });
 
     it('renders independent reference and comparison polygons without adding a third slot', async () => {
@@ -286,7 +319,37 @@ describe('REVISIT P1 functional UI', () => {
 
         expect(container.textContent).toContain('Polygon · Reference AOI');
         expect(container.textContent).toContain('Polygon · Comparison AOI');
-        expect(container.querySelector('[aria-label="Add comparison target"]')).toBeNull();
+        expect(container.querySelector('[aria-label="Add secondary target"]')).toBeNull();
+    });
+
+    it('offers one atomic role-swap action only for complete targets', async () => {
+        const scenario = defaultScenario(Date.UTC(2026, 7, 12));
+        const onSwapTargetRoles = vi.fn();
+        await act(async () => root?.render(
+            <RevisitHeader
+                scenario={scenario}
+                payloadCounts={[12]}
+                currentPayloadCount={12}
+                onPayloadCountChange={() => undefined}
+                targetNames={['London', 'Singapore']}
+                onTargetChange={() => undefined}
+                comparisonPoints={[{
+                    id: 'secondary-1',
+                    target: { kind: 'POINT', name: 'Singapore', latDeg: 1.35, lonDeg: 103.82 },
+                }]}
+                secondaryTargetOrder={['secondary-1']}
+                canSwapTargetRoles
+                onSwapTargetRoles={onSwapTargetRoles}
+                spreadNote={null}
+            />
+        ));
+
+        const swap = container.querySelector(
+            '[aria-label="Swap Primary and Secondary targets"]'
+        ) as HTMLButtonElement;
+        expect(swap.disabled).toBe(false);
+        await act(async () => swap.click());
+        expect(onSwapTargetRoles).toHaveBeenCalledOnce();
     });
 
     it('stages complete FOV geometry and applies it once', async () => {

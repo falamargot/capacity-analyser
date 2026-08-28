@@ -77,7 +77,7 @@ test.describe('REVISIT P2b-A custom areas', () => {
      */
     const drawing = page.getByRole('toolbar', { name: 'Polygon drawing controls' });
     await expect(drawing).toBeVisible();
-    await expect(drawing).toContainText('Draw comparison polygon');
+    await expect(drawing).toContainText('Draw Secondary polygon');
     await expect(drawing).toContainText('the last edge closes automatically');
     await expect(area).toHaveCount(0);
     const canvas = page.locator('.cesium-widget canvas');
@@ -97,9 +97,9 @@ test.describe('REVISIT P2b-A custom areas', () => {
     await expect(drawing).toHaveCount(0);
     await expect(page.getByRole('region', { name: 'Area result summary' })).toContainText('Least-covered cell', { timeout: 60_000 });
 
-    await page.getByRole('button', { name: /Reference target/ }).click();
-    await expect(page.getByRole('combobox', { name: 'Target' })).toHaveValue('London');
-    await page.getByRole('button', { name: /Select comparison target polygon/ }).click();
+    await page.getByRole('button', { name: /Primary target/ }).click();
+    await expect(page.getByRole('combobox', { name: 'Target', exact: true })).toHaveValue('London');
+    await page.getByRole('button', { name: /Select secondary target polygon/ }).click();
     await page.getByRole('button', { name: 'Define area target' }).click();
 
     await area.getByRole('button', { name: 'Remove' }).click();

@@ -39,11 +39,11 @@ test.describe('REVISIT P2a product workflow', () => {
     expect(download.suggestedFilename()).toBe('revisit-london-board-demo.json');
 
     await page.getByRole('button', { name: 'Close scenario workspace' }).click();
-    await page.getByRole('combobox', { name: 'Target' }).selectOption('Singapore');
-    await expect(page.getByRole('combobox', { name: 'Target' })).toHaveValue('Singapore');
+    await page.getByRole('combobox', { name: 'Target', exact: true }).selectOption('Singapore');
+    await expect(page.getByRole('combobox', { name: 'Target', exact: true })).toHaveValue('Singapore');
     await page.getByRole('button', { name: 'Scenario workspace' }).click();
     await workspace.getByRole('button', { name: 'Load', exact: true }).click();
-    await expect(page.getByRole('combobox', { name: 'Target' })).toHaveValue('London');
+    await expect(page.getByRole('combobox', { name: 'Target', exact: true })).toHaveValue('London');
   });
 
   /*
@@ -72,9 +72,9 @@ test.describe('REVISIT P2a product workflow', () => {
     test.skip(testInfo.project.name !== 'mobile-chromium', 'Dedicated mobile contract');
     /*
     * The stage controls hold globe display toggles only. Scenario management
-    * moved to the application header, where the same `Scenario workspace`
-    * control serves every viewport — so this is the desktop path, not a
-    * compact-only one.
+    * sits on the stage rail directly beneath them, where the same `Scenario
+    * workspace` control serves every viewport — so this is the desktop path,
+    * not a compact-only one.
     */
     await page.getByRole('button', { name: 'Scenario workspace' }).click();
     await expect(page.getByRole('dialog', { name: 'Scenario workspace' })).toBeVisible();

@@ -86,12 +86,15 @@ import { useTargetComparison } from '../hooks/useTargetComparison';
 import { buildAreaResultSheet, buildRevisitResultSheet } from '../analysis/resultSheet';
 import { downloadRevisitResultSheet } from './downloadResultSheet';
 import { recommendationContextKey } from '../state/recommendationUndo';
+import {
+    canSwapTargetRoles as canSwapTargets, swapTargetRoles,
+} from '../domain/targetRoleSwap';
 
 /** The customer requirement the verdict badge and the value curve compare against. */
 const DEFAULT_REQUIREMENT_MS = 2 * 3600_000;
 
 /** Requirements a customer actually states, in hours. */
-const REQUIREMENT_CHOICES_H = [0.5, 1, 2, 3, 6, 12, 24];
+const REQUIREMENT_CHOICES_H = [0.5, 1, 2, 3, 6, 12, 24] as const;
 
 /** Scene layers plus the camera behaviour the user can switch. */
 interface DisplayOptions extends RevisitSceneOptions, RevisitDisplayOptions {}
@@ -169,7 +172,7 @@ function defaultDisplayOptions(): DisplayOptions {
     return {
         showOrbits: true,
         showSwaths: true,
-        showProjectionCones: false,
+        showProjectionCones: true,
         showHostFleet: true,
         showLabels: true,
         autoRotate: false,
@@ -294,8 +297,30 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         REFERENCE_POINT_ID
     );
     const analysisColumnRef = useRef<HTMLElement | null>(null);
+    /** The stage-rail launcher the Scenario workspace popup hangs from. */
+    const workspaceLauncherRef = useRef<HTMLButtonElement | null>(null);
 
-    const [requirementMs, setRequirementMs] = useState(restoredSession?.requirementMs ?? DEFAULT_REQUIREMENT_MS);
+    const activeTargetRole: RevisitAreaTargetRole | null = !hasReferenceTarget
+        ? null
+        : analysisContext === 'AREA'
+            ? areaTargetRole
+            : selectedPointId === REFERENCE_POINT_ID ? 'REFERENCE' : 'COMPARISON';
+    const [targetRequirementsMs, setTargetRequirementsMs] = useState<
+        Record<RevisitAreaTargetRole, number>
+    >(() => {
+        const primary = restoredSession?.requirementMs ?? DEFAULT_REQUIREMENT_MS;
+        return {
+            REFERENCE: primary,
+            COMPARISON: restoredSession?.comparisonRequirementMs ?? primary,
+        };
+    });
+    const requirementMs = targetRequirementsMs[activeTargetRole ?? 'REFERENCE'];
+    const setRequirementMs = useCallback((value: number) => {
+        if (!activeTargetRole || !Number.isFinite(value) || value <= 0) return;
+        setTargetRequirementsMs((current) => current[activeTargetRole] === value
+            ? current
+            : { ...current, [activeTargetRole]: value });
+    }, [activeTargetRole]);
     const persistedSelectedPointId = selectedPointId === REFERENCE_POINT_ID
         || (secondaryTargetOrder.includes(selectedPointId)
             && comparisonPoints.some((point) => point.id === selectedPointId))
@@ -323,7 +348,9 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     const [opportunity, setOpportunity] = useState(restoredSession?.opportunity ?? '');
 
     const sessionRef = useRef({
-        scenario, options, requirementMs, selectionSource, hasReferenceTarget,
+        scenario, options, requirementMs: targetRequirementsMs.REFERENCE,
+        comparisonRequirementMs: targetRequirementsMs.COMPARISON,
+        selectionSource, hasReferenceTarget,
         customArea, referenceArea, comparisonArea, areaTargetRole,
         analysisContext, comparisonPoints, secondaryTargetOrder,
         selectedPointId: persistedSelectedPointId, referenceRestored: false,
@@ -331,7 +358,9 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     });
     sessionRef.current = {
         ...sessionRef.current,
-        scenario, options, requirementMs, selectionSource, hasReferenceTarget,
+        scenario, options, requirementMs: targetRequirementsMs.REFERENCE,
+        comparisonRequirementMs: targetRequirementsMs.COMPARISON,
+        selectionSource, hasReferenceTarget,
         customArea, referenceArea, comparisonArea, areaTargetRole,
         analysisContext, comparisonPoints, secondaryTargetOrder,
         selectedPointId: persistedSelectedPointId, opportunity,
@@ -351,12 +380,20 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         error: referenceSweepError,
         isMainThreadFallback: isReferenceSweepFallback,
         retry: retryReferenceSweep,
-    } = useRevisitSweep(scenario, hasReferenceTarget && !referenceArea, 'Reference target');
+    } = useRevisitSweep(scenario, hasReferenceTarget && !referenceArea, 'Primary target');
     const orderedComparisonPoints = useMemo(() => secondaryTargetOrder
         .filter((id) => id !== AREA_TARGET_ID)
         .map((id) => comparisonPoints.find((point) => point.id === id))
         .filter((point): point is RevisitComparisonPoint => Boolean(point)),
     [secondaryTargetOrder, comparisonPoints]);
+    const secondaryTargetId = secondaryTargetOrder[0] ?? null;
+    const canSwapTargetRoles = hasReferenceTarget && canSwapTargets({
+        primaryPoint: scenario.target,
+        primaryArea: referenceArea,
+        secondaryArea: comparisonArea,
+        comparisonPoints,
+        secondaryTargetOrder,
+    });
     const comparisonTargets = useMemo(
         () => hasReferenceTarget
             ? [scenario.target, ...orderedComparisonPoints.map((point) => point.target)]
@@ -380,13 +417,8 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         ? hasReferenceTarget && !referenceArea ? scenario.target : null
         : selectedComparisonPoint?.target ?? null;
     const inspectedPointRole = selectedPointId === REFERENCE_POINT_ID
-        ? 'Reference target'
-        : 'Comparison target';
-    const activeTargetRole: RevisitAreaTargetRole | null = !hasReferenceTarget
-        ? null
-        : analysisContext === 'AREA'
-            ? areaTargetRole
-            : selectedPointId === REFERENCE_POINT_ID ? 'REFERENCE' : 'COMPARISON';
+        ? 'Primary target'
+        : 'Secondary target';
     const inspectedScenario = useMemo<RevisitScenario>(
         () => inspectedPoint ? { ...scenario, target: inspectedPoint } : scenario,
         [scenario, inspectedPoint]
@@ -416,7 +448,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         : targetComparison.error;
 
     // Comparison curves are lazy: selecting the point subscribes to one sweep.
-    // Both instances now read the same scheduler, so a comparison target at the
+    // Both instances now read the same scheduler, so a secondary target at the
     // reference's coordinates is served from the curve already measured rather
     // than starting a second identical run. The reference sweep stays a separate
     // subscription because it owns automatic topology reconciliation.
@@ -425,7 +457,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         analysisContext === 'POINTS'
             && selectedPointId !== REFERENCE_POINT_ID
             && Boolean(inspectedPoint),
-        'Comparison target',
+        'Secondary target',
     );
     const sweep = selectedPointId === REFERENCE_POINT_ID
         ? inspectedPoint ? referenceSweep : null
@@ -518,7 +550,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     const handlePayloadCountChange = useCallback((count: number) => {
         // Choosing a topology from a secondary target's curve is an explicit
         // optimisation choice. Mark it manual so the reference sweep does not
-        // immediately reconcile it back to the reference target's winner.
+        // immediately reconcile it back to the primary target's winner.
         setSelectionSource(selectedPointIdRef.current === REFERENCE_POINT_ID ? 'auto' : 'manual');
         setPreviousConfiguration(null);
         setScenario((current) => {
@@ -615,6 +647,10 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         }
         if (secondaryTargetOrder.length >= MAX_SECONDARY_TARGETS && pendingComparisonPointIds.length === 0) return;
         const id = pendingComparisonPointIds[0] ?? crypto.randomUUID();
+        setTargetRequirementsMs((current) => ({
+            ...current,
+            COMPARISON: current.REFERENCE,
+        }));
         setSecondaryTargetOrder((current) => current.includes(id) || current.length >= MAX_SECONDARY_TARGETS
             ? current
             : [...current, id]);
@@ -632,6 +668,10 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         if (!hasReferenceTarget) return;
         if (secondaryTargetOrder.length >= MAX_SECONDARY_TARGETS) return;
         const id = crypto.randomUUID();
+        setTargetRequirementsMs((current) => ({
+            ...current,
+            COMPARISON: current.REFERENCE,
+        }));
         setPendingComparisonPointIds((current) => [...current, id]);
         setSecondaryTargetOrder((current) => [...current, id]);
         setSelectedPointId(id);
@@ -657,6 +697,10 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         setAnalysisContext('POINTS');
         setSelectedPointId(REFERENCE_POINT_ID);
         setPreviousConfiguration(null);
+        setTargetRequirementsMs({
+            REFERENCE: DEFAULT_REQUIREMENT_MS,
+            COMPARISON: DEFAULT_REQUIREMENT_MS,
+        });
     }, []);
 
     const handleSecondaryPointTargetChange = useCallback((id: string, name: string) => {
@@ -681,6 +725,10 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         setPendingComparisonPointIds((current) => current.filter((candidate) => candidate !== id));
         setSecondaryTargetOrder((current) => current.filter((candidate) => candidate !== id));
         setSelectedPointId((current) => current === id ? REFERENCE_POINT_ID : current);
+        setTargetRequirementsMs((current) => ({
+            ...current,
+            COMPARISON: current.REFERENCE,
+        }));
     }, []);
 
     const handleSelectedPointChange = useCallback((id: string) => {
@@ -1194,32 +1242,34 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         const rows: CoverageRibbonTarget[] = referenceArea ? [{
             id: REFERENCE_AREA_TARGET_ID,
             kind: 'AREA',
-            roleLabel: 'Reference',
+            roleLabel: 'Primary',
             basisLabel: 'Least-covered cell',
-            label: `Reference · ${referenceArea.name} · least-covered cell`,
+            label: `Primary · ${referenceArea.name} · least-covered cell`,
             name: referenceArea.name,
             intervals: displayedReferenceAreaAnalysis?.worstCellIntervals ?? [],
             statistics: displayedReferenceAreaAnalysis?.worstCell?.statistics ?? null,
             statusLabel: referenceAreaRun.isRunning ? 'Computing…' : referenceArea.boundary.length < 3 ? 'Define polygon' : null,
             unbounded: Boolean(displayedReferenceAreaAnalysis?.neverInViewCount),
+            requirementMs: targetRequirementsMs.REFERENCE,
             selected: analysisContext === 'AREA' && areaTargetRole === 'REFERENCE',
         }] : [{
             id: REFERENCE_POINT_ID,
             kind: 'POINT',
-            roleLabel: 'Reference',
+            roleLabel: 'Primary',
             basisLabel: 'Point',
-            label: `Reference · ${scenario.target.name}`,
+            label: `Primary · ${scenario.target.name}`,
             name: scenario.target.name,
             intervals: analysis?.intervals ?? [],
             statistics: analysis?.statistics ?? null,
             statusLabel: isComputing && !analysis ? 'Computing…' : null,
             unbounded: analysis?.statistics.coverage === 'NEVER_IN_VIEW',
+            requirementMs: targetRequirementsMs.REFERENCE,
             selected: analysisContext === 'POINTS' && selectedPointId === REFERENCE_POINT_ID,
         }];
 
         let pointResultIndex = 1;
         secondaryTargetOrder.forEach((id) => {
-            const roleLabel = 'Comparison';
+            const roleLabel = 'Secondary';
             if (id === AREA_TARGET_ID) {
                 const area = displayedComparisonAreaAnalysis;
                 rows.push({
@@ -1237,6 +1287,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                             ? 'Define area'
                             : !area ? 'Preparing…' : null,
                     unbounded: Boolean(area?.neverInViewCount),
+                    requirementMs: targetRequirementsMs.COMPARISON,
                     selected: analysisContext === 'AREA' && areaTargetRole === 'COMPARISON',
                 });
                 return;
@@ -1260,6 +1311,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                         ? 'Computing…'
                         : !comparisonRow ? 'Select to analyse' : null,
                 unbounded: comparisonRow?.statistics.coverage === 'NEVER_IN_VIEW',
+                requirementMs: targetRequirementsMs.COMPARISON,
                 selected: analysisContext === 'POINTS' && selectedPointId === id,
             });
         });
@@ -1269,7 +1321,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         secondaryTargetOrder, referenceArea, comparisonArea, areaTargetRole,
         displayedReferenceAreaAnalysis, displayedComparisonAreaAnalysis,
         referenceAreaRun.isRunning, comparisonAreaRun.isRunning,
-        comparisonPoints, targetComparison.rows, targetComparison.isComputing,
+        comparisonPoints, targetComparison.rows, targetComparison.isComputing, targetRequirementsMs,
     ]);
     useEffect(() => {
         if (analysisColumnRef.current) analysisColumnRef.current.scrollTop = 0;
@@ -1282,6 +1334,12 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         if (role === 'COMPARISON' && !hasReferenceTarget) return;
         if (role === 'COMPARISON' && secondaryTargetOrder.length >= MAX_SECONDARY_TARGETS) return;
         if (role === 'REFERENCE') setHasReferenceTarget(true);
+        if (role === 'COMPARISON') {
+            setTargetRequirementsMs((current) => ({
+                ...current,
+                COMPARISON: current.REFERENCE,
+            }));
+        }
         (role === 'REFERENCE' ? referenceAreaRun : comparisonAreaRun).clear();
         setAreaTargetRole(role);
         setAreaTargets((current) => ({
@@ -1289,7 +1347,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
             [role]: current[role] ?? {
                 kind: 'AREA',
                 id: crypto.randomUUID(),
-                name: role === 'REFERENCE' ? 'Reference area' : 'Comparison area',
+                name: role === 'REFERENCE' ? 'Primary area' : 'Secondary area',
                 boundary: [],
                 gridSpacingDeg: recommendedAreaGridSpacing(scenario.reference, scenario.payload),
             },
@@ -1439,6 +1497,10 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         setAreaTargets((current) => ({ ...current, [role]: null }));
         if (role === 'COMPARISON') {
             setSecondaryTargetOrder((current) => current.filter((id) => id !== AREA_TARGET_ID));
+            setTargetRequirementsMs((current) => ({
+                ...current,
+                COMPARISON: current.REFERENCE,
+            }));
         }
         setAnalysisContext('POINTS');
         setSelectedPointId(REFERENCE_POINT_ID);
@@ -1455,7 +1517,69 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         setAnalysisContext(referenceArea ? 'AREA' : 'POINTS');
         setSelectedPointId(REFERENCE_POINT_ID);
         setPreviousConfiguration(null);
+        setTargetRequirementsMs((current) => ({
+            ...current,
+            COMPARISON: current.REFERENCE,
+        }));
     }, [comparisonAreaRun, referenceArea]);
+
+    /**
+     * Exchange the two complete target entities without touching the shared
+     * constellation selection. React batches these writes into one commit, so
+     * consumers never observe a transient empty Primary or duplicate target.
+     * The requirements move with their physical targets.
+     */
+    const handleSwapTargetRoles = useCallback(() => {
+        if (!canSwapTargetRoles || !secondaryTargetId) return;
+        const swapped = swapTargetRoles({
+            primaryPoint: scenario.target,
+            primaryArea: referenceArea,
+            secondaryArea: comparisonArea,
+            comparisonPoints,
+            secondaryTargetOrder,
+            activeTargetRole,
+            demotedPointId: crypto.randomUUID(),
+        });
+        if (!swapped) return;
+
+        setPreviousConfiguration(null);
+        /*
+         * Each Area run is keyed to its ROLE, not to its polygon, so a swap that
+         * left them in place kept the old Primary's completed grid attached to
+         * the new Primary slot — and `displayedReferenceAreaAnalysis` renames a
+         * mismatched analysis rather than discarding it, so the ribbon lane and
+         * the globe heat map presented one polygon's coverage under the other
+         * polygon's name until the debounced auto-run landed, with no
+         * `Computing…` status covering the gap. Releasing both runs and their
+         * auto-run keys is what every other target transition already does.
+         */
+        referenceAreaRun.clear();
+        comparisonAreaRun.clear();
+        lastAutoReferenceAreaRunKeyRef.current = null;
+        lastAutoComparisonAreaRunKeyRef.current = null;
+        // Swapping the sizing basis must not silently reconcile the shared
+        // topology. The new Primary can still propose an explicit Apply action.
+        setSelectionSource('manual');
+        setTargetRequirementsMs((current) => ({
+            REFERENCE: current.COMPARISON,
+            COMPARISON: current.REFERENCE,
+        }));
+        setPendingComparisonPointIds([]);
+        setScenario((current) => ({ ...current, target: swapped.primaryPoint }));
+        setAreaTargets({
+            REFERENCE: swapped.primaryArea,
+            COMPARISON: swapped.secondaryArea,
+        });
+        setComparisonPoints(swapped.comparisonPoints);
+        setSecondaryTargetOrder(swapped.secondaryTargetOrder);
+        setAreaTargetRole(swapped.areaTargetRole);
+        setAnalysisContext(swapped.analysisContext);
+        setSelectedPointId(swapped.selectedPointId);
+    }, [
+        activeTargetRole, canSwapTargetRoles, comparisonArea, comparisonPoints,
+        referenceArea, scenario.target, secondaryTargetId, secondaryTargetOrder,
+        referenceAreaRun, comparisonAreaRun,
+    ]);
 
     const handleInstrumentPresetChange = useCallback((name: FovPresetName) => {
         setScenario((current) => ({
@@ -1554,7 +1678,10 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         setReferenceMode(referenceModeFor(resetScenario.reference));
         setReferenceRestored(false);
         setOptions(defaultDisplayOptions());
-        setRequirementMs(DEFAULT_REQUIREMENT_MS);
+        setTargetRequirementsMs({
+            REFERENCE: DEFAULT_REQUIREMENT_MS,
+            COMPARISON: DEFAULT_REQUIREMENT_MS,
+        });
         setSelectionSource('auto');
         setPreviousConfiguration(null);
         setOpportunity('');
@@ -1582,7 +1709,8 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         schemaVersion: REVISIT_SESSION_SCHEMA_VERSION,
         scenario,
         options,
-        requirementMs,
+        requirementMs: targetRequirementsMs.REFERENCE,
+        comparisonRequirementMs: targetRequirementsMs.COMPARISON,
         selectionSource,
         hasReferenceTarget,
         customArea,
@@ -1595,7 +1723,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         selectedPointId: persistedSelectedPointId,
         opportunity,
     }), [
-        scenario, options, requirementMs, selectionSource, hasReferenceTarget, customArea, referenceArea, comparisonArea, areaTargetRole,
+        scenario, options, targetRequirementsMs, selectionSource, hasReferenceTarget, customArea, referenceArea, comparisonArea, areaTargetRole,
         analysisContext, comparisonPoints, secondaryTargetOrder, persistedSelectedPointId,
         opportunity,
     ]);
@@ -1608,9 +1736,12 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         setOptions({
             ...snapshot.options,
             showLabels: snapshot.options.showLabels ?? false,
-            showProjectionCones: snapshot.options.showProjectionCones ?? false,
+            showProjectionCones: snapshot.options.showProjectionCones ?? true,
         });
-        setRequirementMs(snapshot.requirementMs);
+        setTargetRequirementsMs({
+            REFERENCE: snapshot.requirementMs,
+            COMPARISON: snapshot.comparisonRequirementMs ?? snapshot.requirementMs,
+        });
         setSelectionSource(snapshot.selectionSource);
         const loadedHasReferenceTarget = snapshot.hasReferenceTarget ?? true;
         setHasReferenceTarget(loadedHasReferenceTarget);
@@ -1651,6 +1782,21 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         clock.setDateTime(snapshot.scenario.window.startMs);
     }, [referenceAreaRun, comparisonAreaRun, clock]);
 
+    /*
+     * The requirement each comparison row is judged against, in row order.
+     * `targetComparison.rows[0]` is the Primary target and every later row is a
+     * Secondary one, so the two thresholds map straight onto the index. Without
+     * this the exported sheet verdicted every row against whichever target
+     * happened to be selected, and printed `Meets` over a Primary the ribbon
+     * was reporting as MISSES.
+     */
+    const comparisonRowRequirementsMs = useMemo(
+        () => (targetComparison.rows ?? []).map((_, index) => index === 0
+            ? targetRequirementsMs.REFERENCE
+            : targetRequirementsMs.COMPARISON),
+        [targetComparison.rows, targetRequirementsMs],
+    );
+
     const handleExportResultSheet = useCallback(() => {
         setExportError(null);
         const model = analysisContext === 'AREA'
@@ -1687,6 +1833,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                         sizingStatus: sweepError
                             ? 'FAILED'
                             : isSweeping || !sweep ? 'PENDING' : 'MEASURED',
+                        comparisonRequirementsMs: comparisonRowRequirementsMs,
                     },
                 )
                 : null;
@@ -1697,6 +1844,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     }, [
         analysisContext, displayedAreaAnalysis, inspectedAnalysis,
         inspectedScenario, scenario, requirementMs, targetComparison.rows,
+        comparisonRowRequirementsMs,
         opportunity, assumedSwathKm, businessComparison.targetPayloadCount, referenceMode,
         sweepError, isSweeping, sweep, customerSizing,
     ]);
@@ -1728,6 +1876,10 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                             onTargetChange={handleTargetChange}
                             onTargetCoordinatesChange={handlePickTarget}
                             onInstrumentPresetChange={handleInstrumentPresetChange}
+                            requirementMs={requirementMs}
+                            requirementChoicesHours={REQUIREMENT_CHOICES_H}
+                            onRequirementChange={setRequirementMs}
+                            activeTargetRole={activeTargetRole}
                             spreadNote={spreadNote}
                             setupOpen={compactPanel === 'setup'}
                             onToggleSetup={() => togglePanel('setup')}
@@ -1753,6 +1905,8 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                             comparisonArea={comparisonArea}
                             onAreaTargetRoleChange={handleAreaTargetRoleChange}
                             onRemoveAreaTarget={handleRemoveAreaTarget}
+                            canSwapTargetRoles={canSwapTargetRoles}
+                            onSwapTargetRoles={handleSwapTargetRoles}
                             customArea={customArea ?? displayedAreaAnalysis?.area ?? null}
                             referenceAreaCellCount={displayedReferenceAreaAnalysis?.cells.length ?? null}
                             comparisonAreaCellCount={displayedComparisonAreaAnalysis?.cells.length ?? null}
@@ -1781,19 +1935,6 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                             }}
                         />
                     </div>
-                    <button
-                        type="button"
-                        onClick={() => togglePanel('workspace')}
-                        aria-label="Scenario workspace"
-                        title="Scenario workspace"
-                        aria-expanded={compactPanel === 'workspace'}
-                        aria-controls="revisit-scenario-workspace-drawer"
-                        className={`${REVISIT_PANEL} flex min-h-11 w-11 shrink-0 items-center justify-center px-2 text-[11px] font-black uppercase tracking-[0.1em] ${compactPanel === 'workspace'
-                            ? 'border-sky-400/50 bg-sky-500/15 text-sky-200'
-                            : 'border-slate-700 text-slate-400 hover:border-sky-400/40 hover:text-sky-200'}`}
-                    >
-                        <span aria-hidden="true" className="text-base">▤</span>
-                    </button>
                 </nav>
             </GlobalAppHeader>
 
@@ -1820,7 +1961,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                     comparisonPoints={orderedComparisonPoints}
                     secondaryTargetOrder={secondaryTargetOrder}
                     selectedPointId={selectedPointId}
-                    requirementMs={requirementMs}
+                    areaRequirementsMs={targetRequirementsMs}
                     autoRotate={options.autoRotate && !isDrawingArea}
                     onPickTarget={handlePickTarget}
                     onDrawAreaVertex={handleDrawAreaVertex}
@@ -1842,7 +1983,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                                 {customArea?.boundary.length ?? 0}
                             </span>
                             <span className="text-[12px] font-black uppercase tracking-[0.08em] text-sky-100">
-                                Draw {areaTargetRole === 'REFERENCE' ? 'reference' : 'comparison'} polygon
+                                Draw {areaTargetRole === 'REFERENCE' ? 'Primary' : 'Secondary'} polygon
                             </span>
                         </div>
                         <p className="mt-0.5 text-[11px] text-slate-400">
@@ -1891,11 +2032,35 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                   {/* `items-start` so each panel sizes to its own content rather
                       than stretching to the width of the widest sibling. */}
                   <div className="pointer-events-none absolute left-0 top-0 z-40 flex flex-col items-start justify-between md:static md:z-20">
-                    <StageControls
-                        toggles={TOGGLES}
-                        toggleState={options}
-                        onToggle={toggle}
-                    />
+                    {/* One group, so `justify-between` pushes only the
+                        readiness status to the foot of the rail. */}
+                    <div className="flex flex-col items-start">
+                        <StageControls
+                            toggles={TOGGLES}
+                            toggleState={options}
+                            onToggle={toggle}
+                        />
+                        {/* Scenario management sits under the display controls, on
+                            the stage, and opens as a popup anchored to this button
+                            rather than as a header action detached from it. The
+                            stage rail is where the presenter's hand already is. */}
+                        <button
+                            ref={workspaceLauncherRef}
+                            type="button"
+                            onClick={() => togglePanel('workspace')}
+                            aria-expanded={compactPanel === 'workspace'}
+                            aria-controls="revisit-scenario-workspace-drawer"
+                            className={`${REVISIT_PANEL} pointer-events-auto mt-2 flex min-h-11 w-[min(15rem,calc(100vw-1rem))] items-center gap-2 px-2.5 text-left text-[12px] font-black uppercase tracking-[0.12em] md:min-h-9 ${compactPanel === 'workspace'
+                                ? 'border-sky-400/50 bg-sky-500/15 text-sky-200'
+                                : 'border-slate-700 text-slate-400 hover:border-sky-400/40 hover:text-sky-200'}`}
+                        >
+                            {/* The visible text IS the accessible name: a
+                                separate `aria-label` would leave speech input
+                                unable to act on the words on screen. */}
+                            <span aria-hidden="true" className="text-base leading-none">▤</span>
+                            <span className="truncate">Scenario workspace</span>
+                        </button>
+                    </div>
                     {/* A status, beside the toolbar rather than inside it. */}
                     <PresentationReadiness signals={readinessSignals} />
 
@@ -1973,24 +2138,6 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                                         : `Point result · ${inspectedPointRole} · ${inspectedPoint?.name ?? 'Location required'}`}
                                 </div>
                             </div>
-                            <label className="flex shrink-0 flex-col gap-0.5">
-                                <span className="text-[11px] font-black uppercase tracking-[0.1em] text-slate-400">
-                                    Revisit requirement
-                                </span>
-                                <select
-                                    aria-label="Revisit requirement"
-                                    value={requirementMs}
-                                    onChange={(event) => setRequirementMs(Number(event.target.value))}
-                                    className="min-h-11 md:min-h-7 rounded border border-slate-600/70 bg-slate-950/85 px-2 text-[12px] font-black text-slate-100 outline-none focus:border-slate-300"
-                                    title="Maximum acceptable gap between two observations"
-                                >
-                                    {REQUIREMENT_CHOICES_H.map((hours) => (
-                                        <option key={hours} value={hours * 3600_000}>
-                                            {formatGap(hours * 3600_000)} max gap
-                                        </option>
-                                    ))}
-                                </select>
-                            </label>
                         </div>
 
                         <div className="space-y-2" aria-live="polite">
@@ -2014,7 +2161,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                                     sizing={customerSizing}
                                     applyNote={selectedPointId === REFERENCE_POINT_ID
                                         ? null
-                                        : 'Optimises the shared topology for the comparison target, so the reference target stops driving it.'}
+                                        : 'Optimises the shared topology for the secondary target, so the primary target stops driving it.'}
                                     onApply={handleApplyRecommendation}
                                     onUndo={canUndoRecommendation ? handleUndoRecommendation : undefined}
                                     onRetrySizing={activeSizingError ? retrySweep : undefined}
@@ -2072,12 +2219,12 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                             {analysisContext === 'POINTS' && !inspectedPoint && (
                                 <div className={`${REVISIT_PANEL} px-4 py-4`}>
                                     <div className="text-[12px] font-black uppercase tracking-[0.12em] text-slate-300">
-                                        {hasReferenceTarget ? 'Comparison target location required' : 'No analysis target'}
+                                        {hasReferenceTarget ? 'Secondary target location required' : 'No analysis target'}
                                     </div>
                                     <p className="mt-1 text-[12px] leading-4 text-slate-400">
                                         {hasReferenceTarget
-                                            ? 'Choose a site, enter coordinates, or place this point on the globe. No reference-target result is substituted while this row is incomplete.'
-                                            : 'Add a reference point or polygon in the header, or click the globe to create a reference point.'}
+                                            ? 'Choose a site, enter coordinates, or place this point on the globe. No Primary-target result is substituted while this row is incomplete.'
+                                            : 'Add a Primary point or polygon in the header, or click the globe to create a Primary point.'}
                                     </p>
                                 </div>
                             )}
@@ -2124,7 +2271,10 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
               </div>
             </div>
             {compactPanel === 'workspace' && (
-                <ScenarioWorkspaceDrawer onClose={() => showPanel('none')}>
+                <ScenarioWorkspaceDrawer
+                    onClose={() => showPanel('none')}
+                    anchorRef={workspaceLauncherRef}
+                >
                     <ScenarioWorkspace
                         snapshot={currentSnapshot}
                         onLoad={handleLoadSavedScenario}

@@ -2,6 +2,62 @@
 
 _Last updated 2026-08-28._
 
+## 2026-08-28 — Per-target requirements: three live consequences fixed, launcher moved
+
+The working tree's per-target requirement split (`targetRequirementsMs.
+{REFERENCE, COMPARISON}`, persisted as `comparisonRequirementMs` in the session
+snapshot) left three consumers still reasoning with one threshold. Review of the
+uncommitted diff found them; all three are fixed here. The rule to carry
+forward: **a threshold belongs to a target and must travel with it.** Anything
+that renders or exports more than one target at a time needs a per-target
+requirement, not the active one.
+
+1. **`handleSwapTargetRoles` now releases both Area runs.** Covered by
+   `revisit-p2c-c` › *releases both Area analyses when the polygons exchange
+   roles*, which watches the lane with a MutationObserver rather than a retried
+   assertion — the defect reached the right end state too, so anything that
+   waits for it passes. Proven by reverting the fix in place (fails: "Alpha's
+   result was rendered under Beta's name in 1 of 5 recorded states").
+   The mechanism: The `useAreaRun`
+   caches are keyed by ROLE, so a swap left the old Primary's completed grid in
+   the new Primary slot — and `displayedReferenceAreaAnalysis` renames a
+   mismatched analysis instead of discarding it, so ribbon and globe showed one
+   polygon's coverage under the other's name for the 450 ms auto-run debounce
+   plus a full worker run, with `isRunning` false the whole time. It now clears
+   both runs and both `lastAuto*AreaRunKeyRef`s, as every other target
+   transition already did.
+2. **The exported summary verdicts each row against its own requirement.**
+   `ResultSheetContext.comparisonRequirementsMs` (index-aligned with
+   `comparisonRows`; `rows[0]` is Primary) replaces the single threshold, and
+   the PDF's compared-targets table gained a **Requirement** column.
+3. **The globe colours each Area grid with its own requirement.**
+   `RevisitGlobe`'s `requirementMs` prop became
+   `areaRequirementsMs: Record<RevisitAreaTargetRole, number>`, indexed by the
+   layer's role. Both grids are drawn at once, so one value was repainting a
+   failing polygon green whenever the other target was selected.
+
+One related defect is recorded, not fixed: `swapTargetRoles` can leave
+`areaTargetRole` naming an empty slot. Nothing renders a wrong value from it
+today. See **R30** in `DEFERRED_ITEMS.md`.
+
+**Scenario workspace launcher** moved from the application header to the stage
+rail, directly under the display-options panel, and the workspace now opens as a
+popup anchored to that button (position read from its live rect on open and on
+resize — the header's height is not constant, so no offset can be hard-coded).
+Below `md` it stays the full-width sheet. Accessible name, dialog id,
+`aria-modal`, focus trap, Escape-to-close and focus-return are all unchanged.
+
+Diagnosis and evidence: `REVIEW_REPORT.md`, the two 2026-08-28 sections at the
+top. One test in the tree was left red by the requirement relocation and is fixed
+here too: `revisit-p7a` changed the requirement without opening the setup panel,
+which is where the header lives on a phone — the same adjustment `revisit-p1`
+had already received.
+
+Gates: `tsc --noEmit` and `eslint` clean; REVISIT unit suite green (two new
+`resultSheet` cases); the full REVISIT Playwright set green on desktop and
+mobile including the Axe gate in both themes; browser-validated at 1440×900 and
+375×812.
+
 ## 2026-08-28 — Sizing can now say "same count, different split" (FIXED)
 
 Found from a screenshot: with a comparison target inspected, the card showed

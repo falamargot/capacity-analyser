@@ -20,7 +20,13 @@ export interface RevisitSessionSnapshotV1 {
   schemaVersion: typeof REVISIT_SESSION_SCHEMA_VERSION;
   scenario: RevisitScenario;
   options: RevisitDisplayOptions;
+  /** Primary target requirement. Kept under its v1 name for compatibility. */
   requirementMs: number;
+  /**
+   * Secondary target requirement. Older snapshots omit it and inherit the
+   * primary value during normalisation.
+   */
+  comparisonRequirementMs?: number;
   selectionSource: SelectionSource;
   /** False represents the intentional zero-target state. Missing means legacy true. */
   hasReferenceTarget?: boolean;
@@ -115,6 +121,9 @@ export function isRevisitSessionSnapshot(value: unknown): value is RevisitSessio
     || typeof candidate.referenceRestored === 'boolean';
   const opportunityValid = candidate.opportunity === undefined
     || (typeof candidate.opportunity === 'string' && candidate.opportunity.length <= 120);
+  const comparisonRequirementValid = candidate.comparisonRequirementMs === undefined
+    || (Number.isFinite(candidate.comparisonRequirementMs)
+      && (candidate.comparisonRequirementMs ?? 0) > 0);
   const referencePresenceValid = candidate.hasReferenceTarget === undefined
     || typeof candidate.hasReferenceTarget === 'boolean';
   const emptyTargetSetValid = candidate.hasReferenceTarget !== false
@@ -128,6 +137,7 @@ export function isRevisitSessionSnapshot(value: unknown): value is RevisitSessio
     || !secondaryOrderValid
     || !referenceRestoredValid
     || !opportunityValid
+    || !comparisonRequirementValid
     || !referencePresenceValid
     || !emptyTargetSetValid) return false;
 
@@ -192,8 +202,9 @@ export function normaliseRevisitSessionSnapshot(
 ): RevisitSessionSnapshotV1 {
   const copy = cloneSnapshot(snapshot);
   copy.options.showLabels ??= false;
-  copy.options.showProjectionCones ??= false;
+  copy.options.showProjectionCones ??= true;
   copy.analysisContext ??= 'POINTS';
+  copy.comparisonRequirementMs ??= copy.requirementMs;
   copy.areaTargetRole ??= 'COMPARISON';
   copy.comparisonPoints ??= [];
   copy.secondaryTargetOrder ??= legacySecondaryTargetOrder(copy);

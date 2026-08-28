@@ -117,17 +117,21 @@ export async function downloadRevisitResultSheet(model: RevisitResultSheetModel)
         y += 2;
         section('Other compared targets');
         pdf.setTextColor(148, 163, 184);
+        // Requirement is a column, not a caption: each target carries its own
+        // threshold, so `Misses` is unreadable without the figure beside it.
         pdf.text('Target', margin, y);
-        pdf.text('Maximum gap', margin + 62, y);
-        pdf.text('Average', margin + 105, y);
-        pdf.text('Verdict', margin + 140, y);
+        pdf.text('Requirement', margin + 62, y);
+        pdf.text('Maximum gap', margin + 96, y);
+        pdf.text('Average', margin + 130, y);
+        pdf.text('Verdict', margin + 156, y);
         y += 5;
         for (const row of model.comparisons) {
             pdf.setTextColor(226, 232, 240);
             pdf.text(toPdfSafeText(row.target), margin, y);
-            pdf.text(toPdfSafeText(row.worstCase), margin + 62, y);
-            pdf.text(toPdfSafeText(row.mean), margin + 105, y);
-            pdf.text(toPdfSafeText(row.verdict), margin + 140, y);
+            pdf.text(toPdfSafeText(row.requirement), margin + 62, y);
+            pdf.text(toPdfSafeText(row.worstCase), margin + 96, y);
+            pdf.text(toPdfSafeText(row.mean), margin + 130, y);
+            pdf.text(toPdfSafeText(row.verdict), margin + 156, y);
             y += 6;
         }
     }

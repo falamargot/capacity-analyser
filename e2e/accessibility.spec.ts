@@ -76,10 +76,10 @@ test.describe('critical accessibility gate', () => {
           // REVISIT opens with no target; the sizing-target controls this sweep
           // audits only exist once one is chosen.
           await seedReferenceTarget(page);
-          await page.getByRole('button', { name: 'Set reference target location' }).click();
-          await expect(page.getByRole('dialog', { name: 'Set reference target location' })).toBeVisible();
+          await page.getByRole('button', { name: 'Set primary target location' }).click();
+          await expect(page.getByRole('dialog', { name: 'Set primary target location' })).toBeVisible();
           analyses.push(await analyzeAccessibility(page));
-          await page.getByRole('button', { name: 'Set reference target location' }).click();
+          await page.getByRole('button', { name: 'Set primary target location' }).click();
           await addSecondaryArea(page);
           analyses.push(await analyzeAccessibility(page));
           await page.getByRole('button', { name: 'Define area target' }).click();

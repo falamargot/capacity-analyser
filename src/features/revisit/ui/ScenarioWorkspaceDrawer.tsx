@@ -1,21 +1,81 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { REVISIT_MENU_SURFACE } from './revisitTheme';
 
 interface ScenarioWorkspaceDrawerProps {
     onClose: () => void;
+    /**
+     * The launcher this panel belongs to. When it is on screen and the viewport
+     * is wide enough, the panel opens as a popup hanging off it rather than as a
+     * full-height edge drawer, so the globe it overlays stays readable beside it.
+     */
+    anchorRef?: React.RefObject<HTMLElement | null>;
     children: React.ReactNode;
 }
 
+/** Popup width at `md` and above, px. Matches the drawer's `max-w-[27rem]`. */
+const POPUP_WIDTH = 432;
+/** Breathing room between the popup and the viewport edges, px. */
+const GUTTER = 12;
+/** Below this the popup is lifted rather than squeezed against the bottom, px. */
+const MIN_POPUP_HEIGHT = 320;
+
 /**
- * A real application-level drawer: it does not consume analysis-column space
+ * Where the popup sits relative to its launcher, or `null` for the compact
+ * full-width sheet.
+ *
+ * Read from the live rect rather than from a magic offset: the application
+ * header grows when a spread note appears and the stage controls collapse below
+ * `md`, so any hard-coded top would drift out from under the button.
+ */
+function anchoredPosition(anchor: HTMLElement | null): React.CSSProperties | null {
+    if (!anchor || typeof window === 'undefined') return null;
+    if (typeof window.matchMedia !== 'function') return null;
+    if (!window.matchMedia('(min-width: 768px)').matches) return null;
+
+    const rect = anchor.getBoundingClientRect();
+    // A launcher scrolled out of the layout has a zero rect; the sheet is the
+    // honest fallback rather than a popup pinned to the top-left corner.
+    if (rect.width === 0 && rect.height === 0) return null;
+
+    const width = Math.min(POPUP_WIDTH, window.innerWidth - GUTTER * 2);
+    const left = Math.min(
+        Math.max(rect.left, GUTTER),
+        Math.max(GUTTER, window.innerWidth - width - GUTTER),
+    );
+    const top = Math.max(GUTTER, Math.min(
+        rect.bottom + 8,
+        window.innerHeight - GUTTER - MIN_POPUP_HEIGHT,
+    ));
+    return { top, left, width, maxHeight: window.innerHeight - top - GUTTER };
+}
+
+/**
+ * A real application-level overlay: it does not consume analysis-column space
  * and is portalled above the Cesium canvas. Focus is contained while open and
  * restored to the launcher when it closes.
+ *
+ * At `md` and above it renders as a popup panel anchored under its launcher on
+ * the stage; below `md` it stays the full-width sheet, because a 432 px popup
+ * on a 390 px phone is an edge drawer with extra steps.
  */
 export const ScenarioWorkspaceDrawer: React.FC<ScenarioWorkspaceDrawerProps> = ({
-    onClose, children,
+    onClose, anchorRef, children,
 }) => {
     const panelRef = useRef<HTMLElement | null>(null);
+    const [position, setPosition] = useState<React.CSSProperties | null>(null);
+
+    const reposition = useCallback(
+        () => setPosition(anchoredPosition(anchorRef?.current ?? null)),
+        [anchorRef],
+    );
+    // Layout effect, not effect: the sheet geometry must never paint on a
+    // desktop before the popup replaces it.
+    useLayoutEffect(() => {
+        reposition();
+        window.addEventListener('resize', reposition);
+        return () => window.removeEventListener('resize', reposition);
+    }, [reposition]);
 
     useEffect(() => {
         const returnFocusTo = document.activeElement instanceof HTMLElement
@@ -79,7 +139,11 @@ export const ScenarioWorkspaceDrawer: React.FC<ScenarioWorkspaceDrawerProps> = (
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="revisit-scenario-workspace-title"
-                className={`absolute inset-y-0 left-0 flex w-full max-w-[27rem] flex-col border-r border-sky-400/25 text-slate-100 shadow-[18px_0_50px_rgba(0,0,0,0.5)] ${REVISIT_MENU_SURFACE}`}
+                data-revisit-workspace-shape={position ? 'popup' : 'sheet'}
+                style={position ?? undefined}
+                className={position
+                    ? `absolute flex flex-col overflow-hidden rounded-xl border border-sky-400/30 text-slate-100 shadow-[0_28px_70px_rgba(0,0,0,0.55)] ${REVISIT_MENU_SURFACE}`
+                    : `absolute inset-y-0 left-0 flex w-full max-w-[27rem] flex-col border-r border-sky-400/25 text-slate-100 shadow-[18px_0_50px_rgba(0,0,0,0.5)] ${REVISIT_MENU_SURFACE}`}
             >
                 <header className="flex items-start justify-between gap-4 border-b border-slate-700/70 px-4 py-4">
                     <div>

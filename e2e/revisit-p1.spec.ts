@@ -25,14 +25,14 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe('REVISIT P1 requirement contract', () => {
-  test('keeps one canonical revisit requirement at the top of the active result context', async ({ page }) => {
-    await openRevisitAnalysis(page);
-    const context = page.getByLabel('Active result context');
+  test('keeps one canonical target requirement beside the sensor swath', async ({ page }) => {
+    const hostedPayloads = page.locator('[data-revisit-context-panel="hosted-payloads"]');
     const requirement = page.getByRole('combobox', { name: 'Revisit requirement' });
     await expect(requirement).toHaveCount(1);
-    await expect(context.getByRole('combobox', { name: 'Revisit requirement' })).toHaveValue('7200000');
+    await expect(hostedPayloads.getByRole('combobox', { name: 'Revisit requirement' })).toHaveValue('7200000');
 
     await requirement.selectOption('3600000');
+    await openRevisitAnalysis(page);
     // The requirement now reads back from the customer result card rather than
     // the KPI verdict badge, which kept only the exceptional states when the
     // pass/fail pair moved beside the recommendation (Programme 7A).
@@ -40,13 +40,11 @@ test.describe('REVISIT P1 requirement contract', () => {
     await expect(card).toContainText('at least every 1 h');
     await expect(card).toContainText('Customer requirement');
 
-    // Adding the Area happens on the configuration surface, which on a phone
-    // is now the panel that closes the analysis column. Reopen it to read the
-    // requirement back: the point of the assertion is that there is still only
-    // ONE requirement and it survived the context change.
+    // A new Secondary target inherits the Primary threshold. The header still
+    // exposes exactly one control, now explicitly attributed to Secondary.
     await addSecondaryArea(page);
-    await openRevisitAnalysis(page);
-    await expect(context.getByRole('combobox', { name: 'Revisit requirement' })).toHaveValue('3600000');
+    await expect(hostedPayloads.getByRole('combobox', { name: 'Revisit requirement for Secondary target' }))
+      .toHaveValue('3600000');
     await expect(page.getByRole('combobox', { name: 'Area requirement' })).toHaveCount(0);
   });
 
@@ -97,12 +95,12 @@ test.describe('REVISIT P1 requirement contract', () => {
   });
 
   test('accepts bounded coordinates and reports topology changes', async ({ page }) => {
-    await page.getByRole('button', { name: 'Set reference target location' }).click();
+    await page.getByRole('button', { name: 'Set primary target location' }).click();
     await page.getByRole('textbox', { name: 'Target latitude' }).fill('48,8566');
     await page.getByRole('textbox', { name: 'Target longitude' }).fill('2,3522');
     await page.getByRole('button', { name: 'Apply coordinates' }).click();
-    await expect(page.getByRole('combobox', { name: 'Target' })).toHaveValue('48.86°N 2.35°E');
-    await expect(page.getByRole('combobox', { name: 'Target' }).locator('option:checked'))
+    await expect(page.getByRole('combobox', { name: 'Target', exact: true })).toHaveValue('48.86°N 2.35°E');
+    await expect(page.getByRole('combobox', { name: 'Target', exact: true }).locator('option:checked'))
       .toHaveText('Custom point');
 
     const topologyBefore = await page.locator('.revisit-spread-note').innerText();
@@ -123,11 +121,11 @@ test.describe('REVISIT P1 requirement contract', () => {
       });
     });
 
-    await page.getByRole('button', { name: 'Set reference target location' }).click();
-    await page.getByRole('textbox', { name: 'Search reference target location' }).fill('Toulouse');
+    await page.getByRole('button', { name: 'Set primary target location' }).click();
+    await page.getByRole('textbox', { name: 'Search primary target location' }).fill('Toulouse');
     await page.getByRole('button', { name: /Toulouse, Haute-Garonne/ }).click();
 
-    await expect(page.getByRole('combobox', { name: 'Target' })).toHaveValue('Toulouse, Haute-Garonne');
+    await expect(page.getByRole('combobox', { name: 'Target', exact: true })).toHaveValue('Toulouse, Haute-Garonne');
     await expect(page.getByText('43.60° · 1.44°', { exact: true })).toBeVisible();
   });
 

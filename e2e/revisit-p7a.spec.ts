@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import {
-  addSecondaryArea, openAreaEditor, openRevisitAnalysis, openRevisitSurfaces,
-  seedReferenceTarget,
+  addSecondaryArea, openAreaEditor, openRevisitAnalysis, openRevisitSetup,
+  openRevisitSurfaces, seedReferenceTarget,
 } from './revisitCompact';
 
 /**
@@ -47,7 +47,12 @@ test.describe('REVISIT P7A commercial result framing', () => {
     // The requirement is component state, not part of the scenario: changing it
     // re-derives the answer with no recomputation and therefore no wait
     // (plan, Programme 7 decision 4).
+    // It now lives beside the sensor swath in the header, which on a phone is
+    // the setup panel — and the panels are mutually exclusive (Programme 7B),
+    // so the card has to be reopened to read the re-derived answer back.
+    await openRevisitSetup(page);
     await page.getByRole('combobox', { name: 'Revisit requirement' }).selectOption(String(24 * 3600_000));
+    await openRevisitAnalysis(page);
     await expect(card).toContainText('at least every 24 h');
     await expect(card).toContainText('Requirement covered');
     await expect(card.locator('.revisit-customer-status')).toHaveClass(/text-lime-200/);

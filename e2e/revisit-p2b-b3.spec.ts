@@ -48,11 +48,11 @@ test.describe('REVISIT P2b-B3 scenario workspace', () => {
     await page.getByRole('button', { name: 'Close scenario workspace' }).press('Escape');
     await expect(drawer).toHaveCount(0);
     await expect(launcher).toBeFocused();
-    await page.getByRole('button', { name: /Reference target/ }).click();
+    await page.getByRole('button', { name: /Primary target/ }).click();
     await launcher.click();
     await page.getByRole('region', { name: 'Saved scenario workspace' }).getByRole('button', { name: 'Load', exact: true }).click();
 
-    await expect(page.getByRole('button', { name: /Select comparison target polygon/ })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('button', { name: /Select secondary target polygon/ })).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('[data-revisit-context-panel="analysis-target"]')).toContainText('North Sea');
     await expect(page.getByLabel('Active result context')).toContainText('North Sea', { timeout: 60_000 });
     await expect(page.getByRole('region', { name: 'Coverage timeline' })).toContainText('Observation schedule comparison');
@@ -61,8 +61,10 @@ test.describe('REVISIT P2b-B3 scenario workspace', () => {
 
   test('fills the mobile viewport without horizontal overflow', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'mobile-chromium', 'Dedicated mobile drawer contract');
-    // Scenario management lives in the application header now, not in the
-    // stage controls, which carry globe display toggles only.
+    // Scenario management sits under the stage controls, which themselves
+    // carry globe display toggles only. Below `md` the panel is still the
+    // full-width sheet: a 432 px popup on a 390 px phone is an edge drawer
+    // with extra steps, so the width contract below is unchanged.
     await page.getByRole('button', { name: 'Scenario workspace' }).click();
     await expect(page.getByRole('dialog', { name: 'Scenario workspace' })).toBeVisible();
     const dimensions = await page.evaluate(() => ({

@@ -137,7 +137,7 @@ export async function ensureDetailsOpen(details: Locator): Promise<void> {
 }
 
 /**
- * Activate the reference target.
+ * Activate the primary target.
  *
  * REVISIT opens with NO target selected — a deliberate, validated behaviour:
  * the module starts on an empty analysis and the user chooses a point or a
@@ -150,23 +150,23 @@ export async function ensureDetailsOpen(details: Locator): Promise<void> {
  */
 export async function seedReferenceTarget(page: Page): Promise<void> {
     await openRevisitSetup(page);
-    const add = page.getByRole('button', { name: 'Add reference target' });
+    const add = page.getByRole('button', { name: 'Add primary target' });
     if (await add.count() === 0) return;
     await add.click();
-    await page.getByRole('menuitem', { name: 'Add point reference target' }).click();
+    await page.getByRole('menuitem', { name: 'Add Primary point target' }).click();
     await expect(add).toHaveCount(0);
 }
 
 /** Create an empty secondary Point row through the polymorphic add control. */
 export async function addSecondaryPoint(page: Page): Promise<void> {
     await openRevisitSetup(page);
-    const addReference = page.getByRole('button', { name: 'Add reference target' });
+    const addReference = page.getByRole('button', { name: 'Add primary target' });
     if (await addReference.isVisible()) {
         await addReference.click({ force: true });
-        await page.getByRole('menuitem', { name: 'Add point reference target' }).click({ force: true });
+        await page.getByRole('menuitem', { name: 'Add Primary point target' }).click({ force: true });
     }
-    await page.getByRole('button', { name: 'Add comparison target' }).click({ force: true });
-    await page.getByRole('menuitem', { name: 'Add point comparison target' }).click({ force: true });
+    await page.getByRole('button', { name: 'Add secondary target' }).click({ force: true });
+    await page.getByRole('menuitem', { name: 'Add Secondary point target' }).click({ force: true });
 }
 
 /**
@@ -187,8 +187,8 @@ export async function openAreaEditor(page: Page): Promise<void> {
 /** Create the unique Area row and leave its definition panel open. */
 export async function addSecondaryArea(page: Page): Promise<void> {
     await openRevisitSetup(page);
-    await page.getByRole('button', { name: 'Add comparison target' }).click({ force: true });
-    await page.getByRole('menuitem', { name: 'Add polygon comparison target' }).click({ force: true });
+    await page.getByRole('button', { name: 'Add secondary target' }).click({ force: true });
+    await page.getByRole('menuitem', { name: 'Add Secondary polygon target' }).click({ force: true });
     await expect(page.getByRole('dialog', { name: 'Define area target' })).toBeVisible();
 }
 

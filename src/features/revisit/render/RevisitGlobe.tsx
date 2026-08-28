@@ -56,8 +56,14 @@ interface RevisitGlobeProps {
     comparisonPoints: RevisitComparisonPoint[];
     secondaryTargetOrder: string[];
     selectedPointId: typeof REFERENCE_POINT_ID | string;
-    /** The requirement the heat scale is anchored to. */
-    requirementMs: number;
+    /**
+     * The requirement each area heat scale is anchored to, per role.
+     *
+     * Both grids are drawn at once and the targets own separate thresholds,
+     * so a single value coloured one polygon's cells against the other
+     * target's requirement — repainting a missing grid green on selection.
+     */
+    areaRequirementsMs: Record<RevisitAreaTargetRole, number>;
     /** Slow automatic rotation. */
     autoRotate: boolean;
     /** Plain click places or moves the reference point. */
@@ -153,7 +159,7 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
     referenceArea, comparisonArea,
     isDrawingArea, analysisContext, hasReferenceTarget, areaTargetRole, referenceIsArea,
     comparisonPoints, secondaryTargetOrder, selectedPointId,
-    requirementMs, autoRotate, onPickTarget,
+    areaRequirementsMs, autoRotate, onPickTarget,
     onDrawAreaVertex, onAddComparisonPoint, onClearTargets, onRemoveComparisonTarget,
 }) => {
     const viewerRef = useRef<CesiumViewer | null>(null);
@@ -606,7 +612,7 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
             const half = analysis.area.gridSpacingDeg / 2;
             const selected = analysisContext === 'AREA' && areaTargetRole === role;
             return analysis.cells.map((cell) => {
-                const { rgb } = heatColorFor(cell.maxGapMs, requirementMs);
+                const { rgb } = heatColorFor(cell.maxGapMs, areaRequirementsMs[role]);
                 return viewer.entities.add({
                     rectangle: {
                         coordinates: Rectangle.fromDegrees(
@@ -633,7 +639,7 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
         };
     }, [
         viewer, referenceAreaAnalysis, comparisonAreaAnalysis,
-        requirementMs, analysisContext, areaTargetRole,
+        areaRequirementsMs, analysisContext, areaTargetRole,
     ]);
 
     return (

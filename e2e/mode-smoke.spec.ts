@@ -68,12 +68,12 @@ test.describe('application mode shell', () => {
     // REVISIT opens with no target; the target selector appears once one exists.
     await waitForRevisitReady(page);
     await seedReferenceTarget(page);
-    await expect(page.getByRole('combobox', { name: 'Target' })).toBeVisible({ timeout: 30_000 });
-    await page.getByRole('combobox', { name: 'Target' }).selectOption({ label: 'Singapore' });
+    await expect(page.getByRole('combobox', { name: 'Target', exact: true })).toBeVisible({ timeout: 30_000 });
+    await page.getByRole('combobox', { name: 'Target', exact: true }).selectOption({ label: 'Singapore' });
     await page.getByRole('button', { name: 'Back to Engineering', exact: false }).click();
     await waitForTelecomShell(page);
     await page.getByRole('button', { name: 'Revisit', exact: true }).click();
-    await expect(page.getByRole('combobox', { name: 'Target' })).toHaveValue('Singapore');
+    await expect(page.getByRole('combobox', { name: 'Target', exact: true })).toHaveValue('Singapore');
   });
 });
 

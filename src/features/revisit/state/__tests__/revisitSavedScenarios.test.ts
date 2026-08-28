@@ -17,6 +17,7 @@ const snapshot = (): RevisitSessionSnapshotV1 => ({
         showHostFleet: true, showLabels: false, autoRotate: false,
     },
     requirementMs: 2 * 3600_000,
+    comparisonRequirementMs: 3 * 3600_000,
     selectionSource: 'auto',
 });
 
@@ -55,6 +56,7 @@ describe('saved REVISIT scenarios', () => {
             ],
         };
         complete.requirementMs = 6 * 3600_000;
+        complete.comparisonRequirementMs = 12 * 3600_000;
         complete.options.showSwaths = false;
 
         const restored = parseSavedRevisitScenario(serializeSavedRevisitScenario(
@@ -64,6 +66,7 @@ describe('saved REVISIT scenarios', () => {
         expect(restored.comparisonPoints).toEqual(complete.comparisonPoints);
         expect(restored.customArea).toEqual(complete.customArea);
         expect(restored.requirementMs).toBe(complete.requirementMs);
+        expect(restored.comparisonRequirementMs).toBe(complete.comparisonRequirementMs);
         expect(restored.options.showSwaths).toBe(false);
         expect(restored.scenario.selection).toEqual(complete.scenario.selection);
         expect(restored.scenario.payload).toEqual(complete.scenario.payload);

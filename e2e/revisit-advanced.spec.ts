@@ -96,7 +96,7 @@ test.describe('REVISIT Advanced stabilization', () => {
   test('offers real cancellation while the first area grid is running', async ({ page }) => {
     await page.goto('/?mode=revisit');
     await expect(page.getByRole('region', { name: 'REVISIT analysis' })).toBeVisible({ timeout: 30_000 });
-    // A comparison target can only be added once a reference target exists.
+    // A secondary target can only be added once a primary target exists.
     await seedReferenceTarget(page);
     await addSecondaryArea(page);
     const areaPanel = page.getByRole('region', { name: 'Area coverage' });

@@ -134,7 +134,7 @@ describe('REVISIT P0 presentation UI', () => {
                 statistics={null}
                 pointLanes={[
                     {
-                        id: 'REFERENCE', label: 'Reference · London', name: 'London',
+                        id: 'REFERENCE', label: 'Primary · London', name: 'London',
                         intervals: [], statistics: null, selected: true,
                     },
                     {
@@ -156,7 +156,7 @@ describe('REVISIT P0 presentation UI', () => {
         expect(slider.querySelectorAll('button, a, input, select, [tabindex]')).toHaveLength(0);
         // The lane buttons still exist — they moved out of the slider, not away.
         expect([...container.querySelectorAll('button')].map((button) => button.textContent))
-            .toEqual(expect.arrayContaining(['Reference · London', 'Compare 1 · Singapore']));
+            .toEqual(expect.arrayContaining(['Primary · London', 'Compare 1 · Singapore']));
         // Nothing may hide the slider from assistive technology.
         expect(slider.closest('[aria-hidden="true"]')).toBeNull();
     });
@@ -170,7 +170,7 @@ describe('REVISIT P0 presentation UI', () => {
                 statistics={null}
                 pointLanes={[
                     {
-                        id: 'REFERENCE', label: 'Reference · London', name: 'London',
+                        id: 'REFERENCE', label: 'Primary · London', name: 'London',
                         intervals: [], statistics: null,
                     },
                     {
@@ -211,7 +211,7 @@ describe('REVISIT P0 presentation UI', () => {
                 targetLanes={[
                     {
                         id: 'REFERENCE', kind: 'POINT', roleLabel: 'Reference', basisLabel: 'Point',
-                        label: 'Reference · London', name: 'London', selected: true,
+                        label: 'Primary · London', name: 'London', selected: true,
                         intervals: [
                             { startMs: startMs + hour, endMs: startMs + 2 * hour, satelliteIds: ['sat-1'], clippedAtStart: false, clippedAtEnd: false },
                             { startMs: startMs + 5 * hour, endMs: startMs + 6 * hour, satelliteIds: ['sat-1'], clippedAtStart: false, clippedAtEnd: false },
@@ -220,7 +220,7 @@ describe('REVISIT P0 presentation UI', () => {
                     },
                     {
                         id: 'comparison-1', kind: 'POINT', roleLabel: 'Comparison', basisLabel: 'Point',
-                        label: 'Comparison · Singapore', name: 'Singapore',
+                        label: 'Secondary · Singapore', name: 'Singapore',
                         intervals: [
                             { startMs: startMs + hour, endMs: startMs + 2 * hour, satelliteIds: ['sat-2'], clippedAtStart: false, clippedAtEnd: false },
                             { startMs: startMs + 3 * hour, endMs: startMs + 4 * hour, satelliteIds: ['sat-2'], clippedAtStart: false, clippedAtEnd: false },
@@ -264,11 +264,11 @@ describe('REVISIT P0 presentation UI', () => {
                 targetLanes={[
                     {
                         id: 'REFERENCE', kind: 'POINT', roleLabel: 'Reference', basisLabel: 'Point',
-                        label: 'Reference · London', name: 'London', intervals: [], statistics: null,
+                        label: 'Primary · London', name: 'London', intervals: [], statistics: null,
                     },
                     {
                         id: 'comparison-1', kind: 'POINT', roleLabel: 'Comparison', basisLabel: 'Point',
-                        label: 'Comparison · Singapore', name: 'Singapore', intervals: [], statistics: null,
+                        label: 'Secondary · Singapore', name: 'Singapore', intervals: [], statistics: null,
                     },
                 ]}
                 windowStartMs={startMs}
@@ -298,11 +298,11 @@ describe('REVISIT P0 presentation UI', () => {
                 targetLanes={[
                     {
                         id: 'REFERENCE', kind: 'POINT', roleLabel: 'Reference', basisLabel: 'Point',
-                        label: 'Reference · London', name: 'London', intervals: [], statistics: null,
+                        label: 'Primary · London', name: 'London', intervals: [], statistics: null,
                     },
                     {
                         id: 'comparison-1', kind: 'POINT', roleLabel: 'Comparison', basisLabel: 'Point',
-                        label: 'Comparison · Singapore', name: 'Singapore', intervals: [], statistics: null,
+                        label: 'Secondary · Singapore', name: 'Singapore', intervals: [], statistics: null,
                     },
                 ]}
                 windowStartMs={startMs}
@@ -317,7 +317,7 @@ describe('REVISIT P0 presentation UI', () => {
 
         expect(container.textContent).toContain('Computing…');
         expect(container.textContent).not.toContain('Unavailable');
-        expect(container.textContent).toContain('Same topology, FOV and requirement');
+        expect(container.textContent).toContain('Same topology and FOV · target-specific requirements');
     });
 
     it('compares Point and Area on the shared contractual gap without mixing means', async () => {

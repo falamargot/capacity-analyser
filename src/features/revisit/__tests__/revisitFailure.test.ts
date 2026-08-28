@@ -18,16 +18,16 @@ describe('revisitFailure', () => {
     it('names the target, the operation and the fault in one line', () => {
         const failure = revisitFailure(
             { path: 'Worker', kind: 'runtime error', message: '' },
-            'Fleet sizing', 'Comparison target',
+            'Fleet sizing', 'Secondary target',
         );
         expect(describeRevisitFailure(failure))
-            .toBe('Comparison target · Fleet sizing · Worker runtime error');
+            .toBe('Secondary target · Fleet sizing · Worker runtime error');
     });
 
     it('still says something useful when the runtime supplies no message', () => {
         const failure = revisitFailure(
             { path: 'Worker', kind: 'runtime error', message: '' },
-            'Fleet sizing', 'Comparison target',
+            'Fleet sizing', 'Secondary target',
         );
         // A Worker `error` event can carry an empty message. The detail must
         // never collapse to an empty string, or the disclosure reads as
@@ -39,10 +39,10 @@ describe('revisitFailure', () => {
     it('puts the label before the engine message so the source is read first', () => {
         const failure = revisitFailure(
             { path: 'Worker', kind: 'engine error', message: 'ladder is empty' },
-            'Analysis', 'Reference target',
+            'Analysis', 'Primary target',
         );
         expect(revisitFailureDetail(failure)).toBe(
-            'Reference target · Analysis · Worker engine error\nladder is empty'
+            'Primary target · Analysis · Worker engine error\nladder is empty'
         );
     });
 
@@ -65,12 +65,12 @@ describe('revisitFailure', () => {
     /*
      * Retry scope. Replacing the Worker requeues and restarts every other sweep
      * in flight, so it is reserved for the case where the Worker is what broke.
-     * A comparison target failing with an engine exception must not reset a
+     * A secondary target failing with an engine exception must not reset a
      * reference sweep that is seconds from finishing.
      */
     it('replaces the Worker only when the Worker is what broke', () => {
         const cause = (kind: 'engine error' | 'runtime error' | 'unavailable' | 'invalid input') =>
-            revisitFailure({ path: 'Worker', kind, message: '' }, 'Fleet sizing', 'Comparison target');
+            revisitFailure({ path: 'Worker', kind, message: '' }, 'Fleet sizing', 'Secondary target');
 
         expect(needsWorkerRestart(cause('runtime error'))).toBe(true);
         expect(needsWorkerRestart(cause('unavailable'))).toBe(true);

@@ -1,9 +1,10 @@
 /**
  * StageControls — globe display controls only.
  *
- * Navigation and scenario management live in the application header. This
- * overlay is therefore unambiguous: every control changes only what is drawn
- * on the globe.
+ * Navigation lives in the application header, and scenario management is its
+ * own launcher directly beneath this panel on the stage rail. This overlay is
+ * therefore unambiguous: every control inside it changes only what is drawn on
+ * the globe.
  *
  * ── WHY IT COLLAPSES BELOW `md` ─────────────────────────────────────────────
  * On a desktop the column stays expanded, so its state is always visible — that

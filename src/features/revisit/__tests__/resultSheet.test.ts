@@ -56,6 +56,63 @@ describe('REVISIT result sheet', () => {
         expect(sheet.recommendation).toMatch(/No configuration on the tested payload range/i);
     });
 
+    /*
+     * Primary and Secondary targets own separate requirements. Verdicting every
+     * comparison row against the single threshold of whichever target happened
+     * to be selected at export time printed `Meets` beside a target the ribbon
+     * was reporting as MISSES — the exported customer document contradicted the
+     * screen it was exported from.
+     */
+    it('verdicts every compared target against its own requirement', () => {
+        const analysis = runRevisitScenario(scenario);
+        const rows = [
+            { name: 'London', maxGapMs: 3 * 3600_000 },
+            { name: 'Singapore', maxGapMs: 3 * 3600_000 },
+        ].map(({ name, maxGapMs }) => ({
+            target: { ...london, name },
+            // Derived from a real run so the row cannot drift out of shape as
+            // `GapStatistics` grows; only the figure under test is overridden.
+            statistics: { ...analysis.statistics, maxGapMs, meanGapMs: maxGapMs },
+            intervals: [],
+            payloadCount: analysis.payloadCount,
+            warnings: [],
+        }));
+
+        const sheet = buildRevisitResultSheet(
+            scenario, analysis, 12 * 3600_000, rows, new Date('2026-08-13T12:00:00Z'),
+            // The Secondary target is selected, so the sheet's headline
+            // requirement is 12 h — but the Primary row is still judged at 2 h.
+            { comparisonRequirementsMs: [2 * 3600_000, 12 * 3600_000] },
+        );
+
+        expect(sheet.comparisons[0]).toMatchObject({
+            target: 'London', requirement: '2 h', verdict: 'Misses',
+        });
+        expect(sheet.comparisons[1]).toMatchObject({
+            target: 'Singapore', requirement: '12 h', verdict: 'Meets',
+        });
+    });
+
+    it('falls back to the single requirement when no per-target list is supplied', () => {
+        const analysis = runRevisitScenario(scenario);
+        const rows = [{
+            target: london,
+            statistics: {
+                ...analysis.statistics,
+                maxGapMs: 3 * 3600_000,
+                meanGapMs: 3 * 3600_000,
+            },
+            intervals: [],
+            payloadCount: analysis.payloadCount,
+            warnings: [],
+        }];
+
+        const sheet = buildRevisitResultSheet(
+            scenario, analysis, 12 * 3600_000, rows, new Date('2026-08-13T12:00:00Z'),
+        );
+        expect(sheet.comparisons[0]).toMatchObject({ requirement: '12 h', verdict: 'Meets' });
+    });
+
     it('exports the contractual metric, reproducibility inputs and customer caveats', () => {
         const analysis = runRevisitScenario(scenario);
         const sheet = buildRevisitResultSheet(

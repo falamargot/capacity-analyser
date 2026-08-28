@@ -33,6 +33,8 @@ export interface CoverageRibbonTarget extends CoverageRibbonLane {
     basisLabel: 'Point' | 'Least-covered cell';
     statusLabel?: string | null;
     unbounded?: boolean;
+    /** Target-owned business threshold; falls back to the legacy global prop. */
+    requirementMs?: number;
 }
 
 interface CoverageRibbonProps {
@@ -99,7 +101,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
     intervals, statistics, pointLanes, targetLanes, areaAnalysis,
     windowStartMs, windowHours, getTimeMs, onSeek,
     speed, onSetSpeed, analysisContext = 'POINTS',
-    referenceTargetName = 'Reference target',
+    referenceTargetName = 'Primary target',
     requirementMs = 2 * 3600_000, comparisonIsComputing = false, comparisonError = null,
     onSelectPoint, onSelectTarget = onSelectPoint,
 }) => {
@@ -118,7 +120,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
         const targets: CoverageRibbonTarget[] = targetLanes !== undefined ? targetLanes : lanes.map((lane, index) => ({
             ...lane,
             kind: 'POINT',
-            roleLabel: index === 0 ? 'Reference target' : 'Comparison target',
+            roleLabel: index === 0 ? 'Primary' : 'Secondary',
             basisLabel: 'Point',
             statusLabel: null,
             unbounded: false,
@@ -201,9 +203,9 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
 
     const accessTrack = (
         laneIntervals: AccessInterval[], longestGap: ReturnType<typeof longestInteriorGap>,
-        color: string, emphasised = true,
+        color: string, laneRequirementMs: number, emphasised = true,
     ) => {
-        const gapColor = longestGap?.durationMs && longestGap.durationMs > requirementMs
+        const gapColor = longestGap?.durationMs && longestGap.durationMs > laneRequirementMs
             ? REVISIT_COLORS.miss
             : color;
         return (
@@ -220,7 +222,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
             {longestGap && <rect x={`${fractionOf(longestGap.startMs) * 100}%`} y={1}
                 width={`${longestGap.durationMs / windowMs * 100}%`} height={TRACK_HEIGHT - 2}
                 fill={gapColor} fillOpacity={0.16} stroke={gapColor}
-                data-revisit-gap-outcome={longestGap.durationMs > requirementMs ? 'misses' : 'meets'}
+                data-revisit-gap-outcome={longestGap.durationMs > laneRequirementMs ? 'misses' : 'meets'}
                 strokeWidth={1.2} rx={2} />}
         </svg>
         );
@@ -234,7 +236,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
      */
     const comparisonSubtitle = comparisonError
         ? 'Comparison unavailable — the selected result above is unaffected.'
-        : 'Same topology, FOV and requirement';
+        : 'Same topology and FOV · target-specific requirements';
     const comparisonStatus = comparisonError
         ? (
             <span
@@ -257,11 +259,11 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                             <div className={REVISIT_LABEL}>
                                 {targetRows.length === 0
                                     ? 'No target selected'
-                                    : targetRows.length > 1 ? 'Observation schedule comparison' : 'Reference target access'}
+                                    : targetRows.length > 1 ? 'Observation schedule comparison' : 'Primary target access'}
                             </div>
                             <div className="mt-0.5 hidden text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 sm:block">
                                 {targetRows.length === 0
-                                    ? 'Add a reference target to create an access lane'
+                                    ? 'Add a primary target to create an access lane'
                                     : targetRows.some((row) => row.kind === 'AREA')
                                     ? `${windowHours} h window · Point lanes + Area worst-cell lane`
                                     : `${windowHours} h analysis window · one access lane per point`}
@@ -333,9 +335,10 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                             <div className="space-y-1.5">
                                 {targetRows.map((lane, index) => {
                                     const maxGapMs = lane.statistics?.maxGapMs ?? null;
-                                    const meets = maxGapMs !== null && maxGapMs <= requirementMs;
+                                    const laneRequirementMs = lane.requirementMs ?? requirementMs;
+                                    const meets = maxGapMs !== null && maxGapMs <= laneRequirementMs;
                                     const waiting = Boolean(lane.statusLabel) || (index > 0 && !lane.statistics && comparisonIsComputing);
-                                    const isReference = lane.roleLabel === 'Reference';
+                                    const isReference = lane.roleLabel === 'Primary';
                                     const selectedTone = isReference
                                         ? 'border-y border-l-[3px] border-amber-300/60 bg-amber-400/12 shadow-[inset_0_0_14px_rgba(251,191,36,0.08)]'
                                         : 'border-y border-l-[3px] border-sky-300/60 bg-sky-400/12 shadow-[inset_0_0_14px_rgba(56,189,248,0.09)]';
@@ -358,7 +361,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                                             >{lane.roleLabel} · {lane.name}</button>
                                             <span className="truncate text-slate-400">{lane.basisLabel}</span>
                                             <span className="text-slate-200">{lane.statusLabel ?? (lane.unbounded ? 'Never seen' : waiting ? '…' : formatGap(maxGapMs))}</span>
-                                            <span className={`text-right font-black ${goalTextClass(maxGapMs, requirementMs, lane.unbounded)}`}>
+                                            <span className={`text-right font-black ${goalTextClass(maxGapMs, laneRequirementMs, lane.unbounded)}`}>
                                                 {lane.unbounded ? 'MISSES' : maxGapMs === null ? '—' : meets ? 'MEETS' : 'MISSES'}
                                             </span>
                                         </div>
@@ -374,7 +377,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                     <div className="relative" data-revisit-timeline>
                         <div className="space-y-1.5">
                             {targetRows.map((lane) => {
-                                const isReference = lane.roleLabel === 'Reference';
+                                const isReference = lane.roleLabel === 'Primary';
                                 const selectedTone = isReference
                                     ? 'border-y border-l-[3px] border-amber-300/60 bg-amber-400/12 shadow-[inset_0_0_14px_rgba(251,191,36,0.08)]'
                                     : 'border-y border-l-[3px] border-sky-300/60 bg-sky-400/12 shadow-[inset_0_0_14px_rgba(56,189,248,0.09)]';
@@ -398,6 +401,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                                             lane.intervals,
                                             lane.longestGap,
                                             isReference ? REVISIT_COLORS.target : REVISIT_COLORS.comparison,
+                                            lane.requirementMs ?? requirementMs,
                                             lane.selected || targetRows.length === 1,
                                         )}
                                         {!showComparisonSidecar && <span className="text-right text-[11px] font-bold text-slate-400">{lane.statusLabel ?? (lane.unbounded ? 'Never seen' : formatGap(lane.statistics?.maxGapMs ?? null))}</span>}
@@ -471,9 +475,10 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                             </div>
                             {targetRows.map((lane, index) => {
                                 const maxGapMs = lane.statistics?.maxGapMs ?? null;
-                                const meets = maxGapMs !== null && maxGapMs <= requirementMs;
+                                const laneRequirementMs = lane.requirementMs ?? requirementMs;
+                                const meets = maxGapMs !== null && maxGapMs <= laneRequirementMs;
                                 const waiting = Boolean(lane.statusLabel) || (index > 0 && !lane.statistics && comparisonIsComputing);
-                                const isReference = lane.roleLabel === 'Reference';
+                                const isReference = lane.roleLabel === 'Primary';
                                 return (
                                     <button
                                         key={lane.id}
@@ -488,7 +493,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                                         <span className={`truncate font-bold ${isReference ? 'text-amber-200' : 'text-sky-200'}`}>{lane.roleLabel} · {lane.name}</span>
                                         <span className="truncate text-slate-400">{lane.basisLabel}</span>
                                         <span className="text-slate-200">{lane.statusLabel ?? (lane.unbounded ? 'Never seen' : waiting ? '…' : formatGap(maxGapMs))}</span>
-                                        <span className={`text-right font-black ${goalTextClass(maxGapMs, requirementMs, lane.unbounded)}`}>
+                                        <span className={`text-right font-black ${goalTextClass(maxGapMs, laneRequirementMs, lane.unbounded)}`}>
                                             {lane.unbounded ? 'MISSES' : maxGapMs === null ? '—' : meets ? 'MEETS' : 'MISSES'}
                                         </span>
                                     </button>

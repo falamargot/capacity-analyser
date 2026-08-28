@@ -21,7 +21,7 @@ test.describe('REVISIT P2b-B2 contextual results', () => {
   test('separates Points and Area results and moves Scenario Workspace to the left menu', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop-chromium', 'Context contract is viewport-independent');
     const analysis = page.getByRole('region', { name: 'REVISIT analysis' });
-    await expect(analysis).toContainText('Point result · Reference target');
+    await expect(analysis).toContainText('Point result · Primary target');
     await expect(analysis.getByRole('region', { name: 'Area coverage' })).toHaveCount(0);
     await expect(page.getByRole('region', { name: 'Saved scenario workspace' })).toHaveCount(0);
 
@@ -71,8 +71,8 @@ test.describe('REVISIT P2b-B2 contextual results', () => {
     // The lanes and the seek slider are siblings: the slider overlays the track
     // column only, so it can carry the playhead without nesting the lane buttons.
     const timeline = page.locator('[data-revisit-timeline]');
-    await expect(timeline).toContainText('Reference ·');
-    await expect(timeline).toContainText('Comparison ·');
+    await expect(timeline).toContainText('Primary ·');
+    await expect(timeline).toContainText('Secondary ·');
     const comparison = page.getByRole('region', { name: 'Target comparison' });
     await expect(comparison).toContainText('Maximum gap', { timeout: 30_000 });
 

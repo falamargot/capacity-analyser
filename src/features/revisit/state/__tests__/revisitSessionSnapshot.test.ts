@@ -22,6 +22,7 @@ const snapshot = (): RevisitSessionSnapshotV1 => ({
     autoRotate: false,
   },
   requirementMs: 3_600_000,
+  comparisonRequirementMs: 6 * 3_600_000,
   selectionSource: 'manual',
   analysisContext: 'POINTS',
   areaTargetRole: 'COMPARISON',
@@ -45,6 +46,16 @@ describe('revisitSessionSnapshot', () => {
     expect(restored).not.toBe(original);
     if (restored) restored.scenario.target.name = 'Changed';
     expect(readRevisitSessionSnapshot()?.scenario.target.name).not.toBe('Changed');
+  });
+
+  it('migrates the legacy global requirement to the Secondary target', () => {
+    const legacy = snapshot();
+    delete legacy.comparisonRequirementMs;
+    writeRevisitSessionSnapshot(legacy);
+
+    const restored = readRevisitSessionSnapshot();
+    expect(restored?.requirementMs).toBe(3_600_000);
+    expect(restored?.comparisonRequirementMs).toBe(3_600_000);
   });
 
   it('persists an intentional empty target set and rejects orphan comparison data', () => {
@@ -230,14 +241,14 @@ describe('revisitSessionSnapshot', () => {
     expect(readRevisitSessionSnapshot()?.options.showLabels).toBe(false);
   });
 
-  it('migrates sessions created before projection cones with the layer disabled', () => {
+  it('migrates sessions created before projection cones with the new default enabled', () => {
     const legacy = snapshot();
     const { showProjectionCones: _omitted, ...legacyOptions } = legacy.options;
     window.sessionStorage.setItem(
       'capacity-analyzer:revisit-session:v1',
       JSON.stringify({ ...legacy, options: legacyOptions }),
     );
-    expect(readRevisitSessionSnapshot()?.options.showProjectionCones).toBe(false);
+    expect(readRevisitSessionSnapshot()?.options.showProjectionCones).toBe(true);
   });
 
   it('rejects a structurally present but invalid scenario', () => {

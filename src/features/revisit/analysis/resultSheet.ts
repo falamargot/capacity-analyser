@@ -34,7 +34,14 @@ export interface RevisitResultSheetModel {
     recommendation: string;
     metrics: Array<{ label: string; value: string }>;
     assumptions: Array<{ label: string; value: string }>;
-    comparisons: Array<{ target: string; worstCase: string; mean: string; verdict: string }>;
+    /**
+     * Every compared target, each with the requirement it was judged against.
+     * Targets own their own threshold, so the column is not decoration: the
+     * same `Misses` beside two different requirements is two different facts.
+     */
+    comparisons: Array<{
+        target: string; requirement: string; worstCase: string; mean: string; verdict: string;
+    }>;
     caveats: string[];
 }
 
@@ -101,6 +108,16 @@ export interface ResultSheetContext {
     sizingStatus?: SizingStatus;
     /** Assumed swath, km — stated as an assumption, never as a datasheet. */
     assumedSwathKm?: number | null;
+    /**
+     * Each compared target's own requirement in ms, in `comparisonRows` order.
+     *
+     * Primary and Secondary targets carry separate thresholds, so verdicting
+     * every row against the single `requirementMs` of whichever target happened
+     * to be selected at export time printed `Meets` over a target the screen
+     * reported as MISSES. Entries that are absent or non-finite fall back to
+     * `requirementMs`, which is the legacy single-threshold behaviour.
+     */
+    comparisonRequirementsMs?: ReadonlyArray<number | null | undefined>;
 }
 
 /**
@@ -203,13 +220,22 @@ export function buildRevisitResultSheet(
             { label: 'FOV', value: `${scenario.payload.shape.toLowerCase()} · ${scenario.payload.halfAngle1Deg}° × ${scenario.payload.halfAngle2Deg}° half-angles` },
             { label: 'Analysis window', value: `${scenario.window.durationHours} h · ${scenario.window.stepSeconds} s sampling` },
         ],
-        comparisons: comparisonRows.map((row) => ({
-            target: row.target.name,
-            worstCase: formatGap(row.statistics.maxGapMs),
-            mean: formatGap(row.statistics.meanGapMs),
-            verdict: row.statistics.maxGapMs !== null && row.statistics.maxGapMs <= requirementMs
-                ? 'Meets' : 'Misses',
-        })),
+        comparisons: comparisonRows.map((row, index) => {
+            const candidate = context.comparisonRequirementsMs?.[index];
+            const rowRequirementMs = typeof candidate === 'number'
+                && Number.isFinite(candidate) && candidate > 0
+                ? candidate
+                : requirementMs;
+            return {
+                target: row.target.name,
+                requirement: formatGap(rowRequirementMs),
+                worstCase: formatGap(row.statistics.maxGapMs),
+                mean: formatGap(row.statistics.meanGapMs),
+                verdict: row.statistics.maxGapMs !== null
+                    && row.statistics.maxGapMs <= rowRequirementMs
+                    ? 'Meets' : 'Misses',
+            };
+        }),
         caveats: [
             'Parametric mission-analysis model; not an operational scheduling or tasking tool.',
             'Worst case is the longest interior gap; gaps truncated by analysis-window boundaries are discarded.',

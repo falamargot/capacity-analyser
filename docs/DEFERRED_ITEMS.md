@@ -698,3 +698,26 @@ reference inclination of 87.9°, cos i ≈ 0.037 makes Ω̇ small in absolute te
 72 h of the residual is under 0.4 km cross-track, measured. It would matter more
 for a low-inclination shell, where it should be re-measured before quoting
 numbers.
+
+## R30. `swapTargetRoles` can name an empty Area slot
+
+**Open, cosmetic-only today, worth closing before the next Area feature.**
+
+In `swapTargetRoles`, the Primary-polygon → Secondary-point branch sets
+`areaTargetRole: primaryWasSelected ? 'COMPARISON' : 'REFERENCE'`. The
+`'REFERENCE'` half is wrong: the surviving polygon has just been moved to the
+COMPARISON slot, so `areaTargetRole` names a slot holding `null`.
+
+Nothing renders a wrong value from it. `customArea` becomes `null` and
+`displayedAreaAnalysis` falls through `displayedReferenceAreaAnalysis`'s
+`!referenceArea` early return to the released run, but every consumer of both is
+behind `analysisContext === 'AREA'`, which this branch sets to `'POINTS'`; and
+the header's polygon controls all call `onAreaTargetRoleChange('COMPARISON')`
+before rendering anything, so the state self-corrects on first use.
+
+It is still a broken invariant — "`areaTargetRole` names a populated slot" —
+and the next consumer that reads it outside an `AREA` context will inherit a
+defect that is not its own. `'COMPARISON'` is the consistent value in that
+branch. Deferred rather than fixed here because the swap's role/selection
+matrix is covered by `targetRoleSwap.test.ts` and changing a branch's asserted
+output belongs with a test-matrix pass, not with a same-day correctness fix.

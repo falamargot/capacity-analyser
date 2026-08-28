@@ -192,7 +192,7 @@ export function useRevisitAnalysis(
                 setCompleted(null);
                 setFailure(revisitFailure(
                     { path: 'Worker', kind: 'engine error', message: response.error },
-                    'Analysis', 'Reference target',
+                    'Analysis', 'Primary target',
                 ));
             }
         });
@@ -205,7 +205,7 @@ export function useRevisitAnalysis(
             setCompleted(null);
             setFailure(revisitFailure(
                 { path: 'Worker', kind: 'runtime error', message: event.message || '' },
-                'Analysis', 'Reference target',
+                'Analysis', 'Primary target',
             ));
         });
 
@@ -247,7 +247,7 @@ export function useRevisitAnalysis(
                     setCompleted(null);
                     setFailure(revisitFailure(
                         inlineFailureCause(e),
-                        'Analysis', 'Reference target',
+                        'Analysis', 'Primary target',
                     ));
                 } finally {
                     if (mountedRef.current) {

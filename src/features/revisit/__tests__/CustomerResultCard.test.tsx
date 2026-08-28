@@ -169,7 +169,7 @@ describe('CustomerResultCard', () => {
     });
 
     it('carries the apply note only where there is something to apply', async () => {
-        const note = 'Optimises the shared topology for the comparison target.';
+        const note = 'Optimises the shared topology for the secondary target.';
         await renderCard({ sizing: { kind: 'BEYOND_RANGE' }, applyNote: note, onApply: vi.fn() });
         expect(container.textContent).not.toContain(note);
 
