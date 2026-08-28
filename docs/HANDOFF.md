@@ -2,6 +2,94 @@
 
 _Last updated 2026-08-28._
 
+## 2026-08-28 — Explicit `allowScripts` install-script policy
+
+npm 11 no longer runs dependency install scripts implicitly: anything not
+covered by an `allowScripts` policy is skipped and warned about on every
+install, locally and in the Vercel build log. Three packages were pending (two
+on Linux/Vercel, plus macOS-only `fsevents`). **Every script was read before
+deciding — do not approve one on its name alone.**
+
+| Package | What the script actually does | Decision |
+| --- | --- | --- |
+| `esbuild@0.27.7` (`postinstall: node install.js`) | 289 lines. Validates the platform binary and, if the optional `@esbuild/<platform>` package is absent, downloads that tarball from `registry.npmjs.org`, `chmod`s it, and execs it to verify. Legitimate binary provisioning — esbuild is broken without it on any platform where the optional dep did not resolve. | **approve, pinned** |
+| `core-js@3.49.0` (`postinstall: node -e "…"`) | 62 lines. Prints a funding/thank-you banner and writes a timestamp file so the banner is not repeated. No network, no build artefact, nothing the package needs to function. | **deny** |
+
+Written with `npm install-scripts approve esbuild --allow-scripts-pin` and
+`npm install-scripts deny core-js`, which produced in `package.json`:
+
+```json
+"allowScripts": {
+  "esbuild@0.27.7": true,
+  "core-js": false,
+  "fsevents": false
+}
+```
+
+The esbuild entry is **pinned to the exact version** deliberately: the approval
+covers the code that was actually reviewed, so a future version bump re-raises
+the prompt instead of silently inheriting consent for a script nobody has read.
+The core-js denial is intentionally left **unpinned** — the decision is about
+what that postinstall is for, which does not change with the version.
+
+`npm install-scripts approve --all` was NOT used and must not be: it grants
+blanket consent to every current and future transitive install script, which is
+the exact supply-chain exposure this npm feature exists to close.
+
+**`package-lock.json` is unchanged** — `allowScripts` lives only in
+`package.json`. Verified byte-identical to HEAD after the policy was written and
+after a fresh `npm ci`.
+
+**Gates after a fresh `npm ci` with the policy in force:** 2135 tests pass (203
+files, 5 skipped), `eslint` clean, `tsc` 0 errors, `vite build` succeeds on
+`v24.20.0`. `./node_modules/.bin/esbuild --version` reports `0.27.7`, confirming
+the approved script ran and provisioned a working binary.
+
+### `fsevents` — denied, because the rebuild would be redundant
+
+`fsevents@2.3.3` (direct) and `fsevents@2.3.2` (Playwright's) are macOS-only
+(`os: ["darwin"]`, `optional: true`), which is why they appeared in the local
+`npm ci` output but never in the Vercel build log — Vercel's Linux builders do
+not install them. That is the whole reason Vercel listed 2 packages and macOS
+listed 4.
+
+Their install script is a `node-gyp` rebuild. **It is denied**, because both
+packages already ship a working prebuilt binary in their npm tarball, so the
+rebuild would only reproduce what is already on disk while granting a compile
+step consent it does not need:
+
+| Package | `fsevents.node` shipped in the tarball |
+| --- | --- |
+| `fsevents@2.3.3` | 163 626 bytes — Mach-O **universal**, `x86_64` + `arm64` |
+| `fsevents@2.3.2` | 147 128 bytes — Mach-O **universal**, `x86_64` + `arm64` |
+
+Verified after a fresh `npm ci` with the denial in force, on Node v24.20.0:
+
+- **Both versions `require()` successfully** and expose the real native API
+  (`constants`, `getInfo`, `watch`; `watch` and `getInfo` are functions). A
+  binding that had failed to build would throw here.
+- **Both native watchers actually fire.** Each was pointed at a scratch
+  directory and a file was written into it; both delivered a real FSEvents
+  callback naming the changed path.
+- **The dev watcher works end to end.** `npm run dev` was started, a CSS rule was
+  appended to `src/index.css` on disk, and one second later the server logged
+  `hmr update /src/index.css` and the browser computed the new rule
+  (`outline-color: rgb(1, 2, 3)`) — proving the chain from FSEvents through
+  chokidar and Vite to the client. The edit was reverted; `src/index.css` is
+  byte-identical to HEAD.
+
+`npm install-scripts ls` now reports **"No packages with unreviewed install
+scripts."** and `npm ci` emits no install-script warnings at all.
+
+### Not touched: the chunk-size advisory
+
+`vite build` warns that chunks exceed 500 kB. `build.chunkSizeWarningLimit` was
+deliberately NOT raised — raising it hides the signal without changing the
+bundle. Code-splitting is a separate piece of work to be driven by profiling,
+not by warning suppression. Unrelated to the Node 24 migration.
+
+---
+
 ## 2026-08-28 — Node 24 migration (three distinct concerns)
 
 These are three separate runtimes that happen to share a version number. They
