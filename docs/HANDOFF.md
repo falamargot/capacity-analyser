@@ -48,7 +48,13 @@ Below `md` it stays the full-width sheet. Accessible name, dialog id,
 `aria-modal`, focus trap, Escape-to-close and focus-return are all unchanged.
 
 Diagnosis and evidence: `REVIEW_REPORT.md`, the two 2026-08-28 sections at the
-top. One test in the tree was left red by the requirement relocation and is fixed
+top. **The ENG/COMM return control** names its destination now: the rail cannot
+spare horizontal space, so the origin's short name (`ENG` / `COMM`) sits under
+the chevron inside the same 44 px square, which was already that tall. Both
+abbreviations are substrings of the accessible name, so speech input can act on
+what is written; `COMM` clears the content box by 6 px.
+
+One test in the tree was left red by the requirement relocation and is fixed
 here too: `revisit-p7a` changed the requirement without opening the setup panel,
 which is where the header lives on a phone — the same adjustment `revisit-p1`
 had already received.

@@ -1858,12 +1858,22 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
             <GlobalAppHeader className="revisit-global-header">
                 <nav aria-label="REVISIT navigation and scenarios"
                     className="revisit-context-rail flex min-w-0 items-start gap-2 px-2 py-2 sm:px-3 lg:px-4">
+                    {/* A bare chevron named the direction but never the
+                        destination, and the rail cannot spare the width for a
+                        word beside it. The height it already occupies was free:
+                        the origin's short name sits under the arrow inside the
+                        same 44 px square. `ENG` / `COMM` are substrings of the
+                        accessible name, so speech input can still act on what is
+                        written (WCAG 2.5.3). */}
                     {onExit && (
                         <button type="button" onClick={onExit}
                             aria-label={`Back to ${returnMode === 'commercial' ? 'Commercial' : 'Engineering'}`}
                             title={`Back to ${returnMode === 'commercial' ? 'Commercial' : 'Engineering'}`}
-                            className={`${REVISIT_PANEL} revisit-origin-return flex min-h-11 w-11 shrink-0 items-center justify-center px-2 text-[11px] font-black uppercase tracking-[0.1em] text-slate-400 hover:border-slate-500 hover:text-slate-100`}>
-                            <span aria-hidden="true" className="text-base">‹</span>
+                            className={`${REVISIT_PANEL} revisit-origin-return flex min-h-11 w-11 shrink-0 flex-col items-center justify-center gap-0.5 px-0.5 font-black uppercase text-slate-300 hover:border-slate-500 hover:text-slate-100`}>
+                            <span aria-hidden="true" className="text-[13px] leading-none">‹</span>
+                            <span aria-hidden="true" className="text-[9px] leading-none tracking-[0.02em]">
+                                {returnMode === 'commercial' ? 'COMM' : 'ENG'}
+                            </span>
                         </button>
                     )}
                     <div className="min-w-0 flex-1">
