@@ -1884,8 +1884,10 @@ depuis cette machine alors que TCP/80 servait les données, d'où un repli HTTP
 (69 caractères et somme de contrôle modulo 10 sur chaque ligne d'éléments,
 volumes plancher) ; `CELESTRAK_ALLOW_HTTP=false` le refuse. Deux effets de bord
 consignés : EUTELSAT 139 WEST A (28187) a quitté le groupe « active » de
-CelesTrak — le roster passe à 679 et son mapping de couverture dans
-`satelliteService` est mort, décision à prendre — et la ladder de `fetchTLE`
+CelesTrak — le roster passe à 679, son override GEO et son alias de couverture
+`E139WA` ont été retirés, mais ses assets restent dans `public/`
+(`coverage/28187.json`, `coverage-prebuilt/28187.*` ≈ 3,4 Mo, plus quatre plans
+de fréquence) et ne sont plus référencés — et la ladder de `fetchTLE`
 choisit désormais entre cache périmé et fichier embarqué **par époque TLE**
 (`fresherCatalogue`), l'ordre des barreaux étant un mauvais proxy de fraîcheur
 dans les deux sens.

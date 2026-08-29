@@ -60,11 +60,16 @@ const CACHE_KEYS = {
 
 type CoverageManifest = Record<string, boolean>;
 
+/*
+ * EUTELSAT 139 WEST A (28187) was removed on 2026-08-29: CelesTrak dropped it
+ * from the active group, so no TLE reaches the application for it and the alias
+ * could only ever resolve a coverage file for a satellite that is never built.
+ * Its assets are still in `public/` — see the audit note in HANDOFF.
+ */
 const EUTELSAT_COVERAGE_FILE_BY_ALIAS: Record<string, string> = {
   E115WB: '40425',
   E117WA: '39122',
   E117WB: '41589',
-  E139WA: '28187',
   E16A: '37836',
   E172B: '42741',
   E174A: '28924',
