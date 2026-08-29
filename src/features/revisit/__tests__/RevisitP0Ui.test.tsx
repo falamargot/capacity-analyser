@@ -125,9 +125,12 @@ describe('REVISIT P0 presentation UI', () => {
                         latestMs: Date.UTC(2026, 7, 29, 6, 30),
                     },
                 }}
+                analysedSpec={defaultScenario(Date.UTC(2026, 7, 12)).reference}
+                mode="HLD"
                 isRunning={false}
                 error={null}
                 onReMeasure={() => undefined}
+                onAdoptFittedShell={() => undefined}
                 onClose={() => undefined}
             />
         ));
@@ -139,8 +142,9 @@ describe('REVISIT P0 presentation UI', () => {
         expect(text).toContain('TLE shell characterisation');
         expect(text).toContain('Nothing here changes the analysed constellation');
 
-        // The fit, with a subject.
+        // The fit, with a subject: the comparison names the model it is against.
         expect(text).toContain('12 × 53');
+        expect(text).toContain('vs HLD');
         expect(text).toContain('+5 sats/plane');
         expect(text).toContain('+60 total');
         expect(text).toContain('248 km');
@@ -152,6 +156,59 @@ describe('REVISIT P0 presentation UI', () => {
         expect(text).toContain('2026-08-29 08:55 UTC');
         expect(text).toContain('645 OneWeb objects');
         expect(text).toContain('Re-measuring can return different figures');
+    });
+
+    /*
+     * The comparison follows the analysed model. Pinned because the previous
+     * behaviour — always comparing to the HLD — was reported as a bug: someone
+     * editing a 17 × 37 shell saw `vs HLD 12 × 48` and concluded the panel had
+     * not registered their edits.
+     *
+     * The weight of the differing figures is pinned with it: bold is what makes
+     * "what is different" answerable without reading four numbers.
+     */
+    it('compares against the edited model, and weights what differs', async () => {
+        const edited = {
+            ...defaultScenario(Date.UTC(2026, 7, 12)).reference,
+            planes: 17, satsPerPlane: 37,
+        };
+        await act(async () => root?.render(
+            <TleComparisonDialog
+                fit={{
+                    spec: {
+                        pattern: 'STAR', planes: 12, satsPerPlane: 53,
+                        inclinationDeg: 87.9, altitudeKm: 1198.9,
+                        phasingF: 1, fudge: 1,
+                    },
+                    satellitesUsed: 636, satellitesExcluded: 9, planesDetected: 12,
+                    planePopulations: [53], raanRmsDeg: 0.06, argLatRmsDeg: 1.88,
+                    altitudeRmsKm: 13.9, inclinationRmsDeg: 0.02, alongTrackRmsKm: 248,
+                    notes: [],
+                }}
+                provenance={null}
+                analysedSpec={edited}
+                mode="CUSTOM"
+                isRunning={false}
+                error={null}
+                onReMeasure={() => undefined}
+                onAdoptFittedShell={() => undefined}
+                onClose={() => undefined}
+            />
+        ));
+
+        const text = document.body.textContent ?? '';
+        expect(text).toContain('vs your model');
+        expect(text).toContain('17 × 37');
+        expect(text).toContain('\u22125 planes');
+        expect(text).toContain('+16 sats/plane');
+
+        // Planes, sats/plane and altitude differ; the inclination does not.
+        const bold = [...document.querySelectorAll('.font-bold')].map((e) => e.textContent);
+        expect(bold).toEqual(['12', '53', '1198.9 km']);
+
+        // Adoption is offered, and it lands in "Edit a copy" — never as a model.
+        expect([...document.querySelectorAll('button')]
+            .some((button) => button.textContent === 'Use fitted shell')).toBe(true);
     });
 
     /*
@@ -171,9 +228,12 @@ describe('REVISIT P0 presentation UI', () => {
             <TleComparisonDialog
                 fit={null}
                 provenance={null}
+                analysedSpec={defaultScenario(Date.UTC(2026, 7, 12)).reference}
+                mode="HLD"
                 isRunning
                 error={null}
                 onReMeasure={() => undefined}
+                onAdoptFittedShell={() => undefined}
                 onClose={() => undefined}
             />
         ));
@@ -190,9 +250,12 @@ describe('REVISIT P0 presentation UI', () => {
             <TleComparisonDialog
                 fit={null}
                 provenance={null}
+                analysedSpec={defaultScenario(Date.UTC(2026, 7, 12)).reference}
+                mode="HLD"
                 isRunning
                 error={null}
                 onReMeasure={() => undefined}
+                onAdoptFittedShell={() => undefined}
                 onClose={onClose}
             />
         ));

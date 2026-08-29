@@ -371,7 +371,7 @@ describe('REVISIT P1 functional UI', () => {
         expect(onChange).not.toHaveBeenCalled();
 
         const apply = [...container.querySelectorAll('button')]
-            .find((button) => button.textContent?.includes('Apply geometry'))!;
+            .find((button) => button.textContent?.includes('Apply instrument geometry'))!;
         await act(async () => apply.click());
         expect(onChange).toHaveBeenCalledTimes(1);
         expect(onChange.mock.calls[0][0].payload.shape).toBe('RECTANGLE');

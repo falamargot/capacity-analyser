@@ -146,7 +146,7 @@ test.describe('REVISIT P1 requirement contract', () => {
 
     await expect(page.getByRole('combobox', { name: 'Instrument preset' })).toHaveValue('STANDARD');
     await expect(page.getByText(/Changes are staged locally/)).toBeVisible();
-    await page.getByRole('button', { name: 'Apply geometry' }).click();
+    await page.getByRole('button', { name: 'Apply instrument geometry' }).click();
     await expect(page.getByRole('combobox', { name: 'Instrument preset' })).toHaveValue('CUSTOM');
   });
 

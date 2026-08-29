@@ -37,11 +37,27 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 import { createPortal } from 'react-dom';
 import type { WalkerFit } from '../calibration/fitWalker';
 import type { CalibrationProvenance } from '../hooks/useOneWebCalibration';
-import { DEFAULT_PROFILE } from '../domain/referenceProfiles';
+import type { ReferenceMode } from '../domain/referenceProfiles';
+import type { WalkerSpec } from '../domain/types';
 import { REVISIT_MENU_SURFACE } from './revisitTheme';
 
 export interface TleComparisonDialogProps {
     fit: WalkerFit | null;
+    /**
+     * The constellation actually being analysed, and which model it is.
+     *
+     * The comparison used to be pinned to the HLD profile whatever was on
+     * screen, on the reasoning that a catalogue fit and hand-entered numbers
+     * are unrelated quantities. In use that reads as a bug: someone editing a
+     * 17 × 37 shell sees `vs HLD 12 × 48` and concludes the panel has not
+     * noticed their edits. And the question they are actually asking — how far
+     * is the constellation I am simulating from the real fleet — is a good one.
+     * So the comparison follows the analysed model, and says which it is.
+     */
+    analysedSpec: WalkerSpec;
+    mode: ReferenceMode;
+    /** Replace the analysed constellation with the fitted shell, as a copy. */
+    onAdoptFittedShell: () => void;
     provenance: CalibrationProvenance | null;
     isRunning: boolean;
     error: string | null;
@@ -132,8 +148,22 @@ const Row: React.FC<{ label: string; children: React.ReactNode; title?: string }
     </div>
 );
 
+/**
+ * One figure of the fitted shell, emphasised when it differs from the analysed
+ * model.
+ *
+ * Weight carries the meaning here because the eye finds it before it finds a
+ * number: four values, one of them bold, answers "what is different" without
+ * being read. Colour is deliberately not used — the difference is neither good
+ * nor bad, and this panel already spends amber on data provenance.
+ */
+const Value: React.FC<{ differs: boolean; children: React.ReactNode }> = ({ differs, children }) => (
+    <span className={differs ? 'font-bold text-slate-100' : undefined}>{children}</span>
+);
+
 export const TleComparisonDialog: React.FC<TleComparisonDialogProps> = ({
-    fit, provenance, isRunning, error, onReMeasure, onClose, anchorRef,
+    fit, provenance, analysedSpec, mode, isRunning, error,
+    onReMeasure, onAdoptFittedShell, onClose, anchorRef,
 }) => {
     const panelRef = useRef<HTMLElement | null>(null);
     const [position, setPosition] = useState<React.CSSProperties | null>(null);
@@ -166,7 +196,22 @@ export const TleComparisonDialog: React.FC<TleComparisonDialogProps> = ({
 
     if (typeof document === 'undefined') return null;
 
-    const hld = DEFAULT_PROFILE.spec;
+    /*
+     * The four figures a fit can be compared on. The ladder, the seam and the
+     * spares are absent by construction — a single-epoch fit cannot recover
+     * them — so they are not compared, only mentioned in the tooltip.
+     */
+    const delta = fit && {
+        planes: fit.spec.planes - analysedSpec.planes,
+        satsPerPlane: fit.spec.satsPerPlane - analysedSpec.satsPerPlane,
+        total: fit.spec.planes * fit.spec.satsPerPlane
+            - analysedSpec.planes * analysedSpec.satsPerPlane,
+        altitudeKm: fit.spec.altitudeKm - analysedSpec.altitudeKm,
+        inclinationDeg: fit.spec.inclinationDeg - analysedSpec.inclinationDeg,
+    };
+    const identical = delta !== null && delta !== undefined
+        && delta.planes === 0 && delta.satsPerPlane === 0
+        && Math.abs(delta.altitudeKm) < 0.05 && Math.abs(delta.inclinationDeg) < 0.005;
 
     return createPortal(
         /*
@@ -255,23 +300,47 @@ export const TleComparisonDialog: React.FC<TleComparisonDialogProps> = ({
 
                             <div className="space-y-1 border-t border-slate-700/50 pt-2">
                                 <Row label="Fitted shell">
-                                    {fit.spec.planes} × {fit.spec.satsPerPlane} ·{' '}
-                                    {fit.spec.altitudeKm.toFixed(1)} km ·{' '}
-                                    {fit.spec.inclinationDeg.toFixed(2)}°
+                                    <Value differs={delta!.planes !== 0}>{fit.spec.planes}</Value>
+                                    {' × '}
+                                    <Value differs={delta!.satsPerPlane !== 0}>
+                                        {fit.spec.satsPerPlane}
+                                    </Value>
+                                    {' · '}
+                                    <Value differs={Math.abs(delta!.altitudeKm) >= 0.05}>
+                                        {fit.spec.altitudeKm.toFixed(1)} km
+                                    </Value>
+                                    {' · '}
+                                    <Value differs={Math.abs(delta!.inclinationDeg) >= 0.005}>
+                                        {fit.spec.inclinationDeg.toFixed(2)}°
+                                    </Value>
                                 </Row>
                                 <Row
-                                    label="vs HLD"
-                                    title={`The Walker shell fitted to the TLE set, against ${DEFAULT_PROFILE.label}. The fitted shell carries no plane-altitude ladder, no RAAN seam and no spares — a single-epoch fit cannot recover them.`}
+                                    label={mode === 'HLD' ? 'vs HLD' : 'vs your model'}
+                                    title={
+                                        'The Walker shell fitted to the TLE set, against the '
+                                        + 'constellation currently being analysed. The fitted shell '
+                                        + 'carries no plane-altitude ladder, no RAAN seam and no '
+                                        + 'spares — a single-epoch fit cannot recover them, so those '
+                                        + 'are not compared.'
+                                    }
                                 >
-                                    {hld.planes} × {hld.satsPerPlane} · {hld.altitudeKm} km ·{' '}
-                                    {hld.inclinationDeg}° → {signed(fit.spec.planes - hld.planes)} planes,{' '}
-                                    {signed(fit.spec.satsPerPlane - hld.satsPerPlane)} sats/plane
-                                    {' '}({signed(
-                                        fit.spec.planes * fit.spec.satsPerPlane
-                                        - hld.planes * hld.satsPerPlane,
-                                    )} total),{' '}
-                                    {signed(fit.spec.altitudeKm - hld.altitudeKm, 1)} km,{' '}
-                                    {signed(fit.spec.inclinationDeg - hld.inclinationDeg, 2)}°
+                                    {/* Same precision as the fitted row above: an
+                                        adopted shell otherwise prints its raw
+                                        1198.8724056359597 km against the fit's
+                                        1198.9, and two numbers that ARE the same
+                                        value look like a discrepancy. */}
+                                    {analysedSpec.planes} × {analysedSpec.satsPerPlane} ·{' '}
+                                    {analysedSpec.altitudeKm.toFixed(1)} km ·{' '}
+                                    {analysedSpec.inclinationDeg.toFixed(2)}°
+                                    {identical
+                                        ? ' → identical'
+                                        : <>
+                                            {' → '}{signed(delta!.planes)} planes,{' '}
+                                            {signed(delta!.satsPerPlane)} sats/plane
+                                            {' '}({signed(delta!.total)} total),{' '}
+                                            {signed(delta!.altitudeKm, 1)} km,{' '}
+                                            {signed(delta!.inclinationDeg, 2)}°
+                                        </>}
                                 </Row>
                                 <Row label="Satellites">
                                     {fit.satellitesUsed} used · {fit.planesDetected} planes
@@ -325,6 +394,18 @@ export const TleComparisonDialog: React.FC<TleComparisonDialogProps> = ({
                                         Re-measuring can return different figures: the catalogue changes,
                                         and so can the source it is served from.
                                     </p>
+                                    {mode === 'CUSTOM' && (
+                                        /*
+                                          * In CUSTOM the analysed numbers are the user's own. The
+                                          * comparison above is still against them — that is the
+                                          * question being asked — but the MEASUREMENT is of the
+                                          * real catalogue and owes nothing to those numbers.
+                                          */
+                                        <p className="text-[11px] leading-4 text-amber-200/70">
+                                            The measurement itself is of the catalogue; your parameters
+                                            affect only the comparison.
+                                        </p>
+                                    )}
                                 </div>
                             )}
 
@@ -346,7 +427,24 @@ export const TleComparisonDialog: React.FC<TleComparisonDialogProps> = ({
                     )}
                 </div>
 
-                <footer className="flex items-center justify-between gap-2 border-t border-slate-700/70 px-4 py-3">
+                <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-700/70 px-4 py-3">
+                    {/*
+                      * Adoption lands in "Edit a copy", never as a reference:
+                      * the fitted shell has no ladder, no seam and no spares, so
+                      * presenting it as a named model would be the very claim
+                      * D2 removed. As a custom constellation it is exactly what
+                      * it is — numbers the user chose, sourced from the fit.
+                      */}
+                    {fit && !isRunning && !identical && (
+                        <button
+                            type="button"
+                            onClick={onAdoptFittedShell}
+                            title="Replace the analysed Walker parameters with the fitted shell, as a custom constellation. The plane-altitude ladder, the RAAN seam and the spares are not part of a fit and will be lost."
+                            className="min-h-10 rounded border border-sky-400/40 bg-sky-400/10 px-3 text-[11px] font-black uppercase tracking-[0.08em] text-sky-200 transition-colors hover:border-sky-400/70 hover:text-sky-100"
+                        >
+                            Use fitted shell
+                        </button>
+                    )}
                     <button
                         type="button"
                         onClick={onReMeasure}

@@ -320,8 +320,18 @@ const PayloadGeometryEditor: React.FC<AdvancedDrawerProps> = ({ scenario, onChan
                 </Field>
             </div>
 
-            <p className="mt-1.5 text-[11px] leading-3 text-slate-500">
-                Changes are staged locally to avoid recomputing the analysis and full payload sweep on every keystroke.
+            {/*
+              * Name the scope. These two buttons sit at the bottom of a long
+              * panel and read as "apply everything above", so editing Planes P
+              * and finding Apply geometry still greyed out looks like a bug —
+              * reported as one. The Walker fields commit as they are typed;
+              * only this block is staged, because a half-typed half-angle
+              * would otherwise recompute the sweep on every keystroke.
+              */}
+            <p className="mt-1.5 text-[11px] leading-4 text-slate-500">
+                Instrument geometry only — the Walker parameters above apply as you type.
+                These fields are staged to avoid recomputing the analysis and the full
+                payload sweep on every keystroke.
             </p>
             {!validation.ok && (
                 <p className="mt-1.5 rounded border border-red-400/40 bg-red-500/10 px-2 py-1 text-[12px] leading-4 text-red-200">
@@ -343,7 +353,7 @@ const PayloadGeometryEditor: React.FC<AdvancedDrawerProps> = ({ scenario, onChan
                     onClick={() => onChange({ ...scenario, payload: draft })}
                     className="rounded border border-amber-400/40 bg-amber-500/10 px-2 py-1 text-[11px] font-black uppercase tracking-[0.1em] text-amber-200 disabled:opacity-40"
                 >
-                    Apply geometry
+                    Apply instrument geometry
                 </button>
             </div>
         </div>
@@ -396,6 +406,24 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
 
     const setSelection = (patch: Partial<typeof selection>) =>
         onChange({ ...scenario, selection: { ...selection, ...patch } });
+
+    /*
+     * Take the fitted shell as the analysed constellation — as a COPY, never as
+     * a model. `referenceWithPatch` is bypassed deliberately: this is not a
+     * patch of the current spec but a wholesale replacement, and the ladder,
+     * seam and spares must not survive it. A fit has none of the three, so
+     * carrying them over would attach HLD structure to non-HLD numbers.
+     */
+    const adoptFittedShell = () => {
+        const fitted = model?.fit?.spec;
+        if (!fitted) return;
+        model?.onModeChange('CUSTOM');
+        onChange({
+            ...scenario,
+            reference: fitted,
+            selection: reconcileSelection(fitted, selection),
+        });
+    };
 
     /*
      * The measurement opens its own surface rather than growing this panel.
@@ -770,9 +798,12 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                 <TleComparisonDialog
                     fit={model.fit}
                     provenance={model.provenance}
+                    analysedSpec={reference}
+                    mode={model.mode}
                     isRunning={model.isRunning}
                     error={model.error}
                     onReMeasure={model.onCompareToTleSet}
+                    onAdoptFittedShell={adoptFittedShell}
                     onClose={() => setTleDialogOpen(false)}
                     anchorRef={compareButtonRef}
                 />
