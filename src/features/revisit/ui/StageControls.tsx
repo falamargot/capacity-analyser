@@ -63,7 +63,7 @@ export function StageControls<K extends string>({
             data-revisit-stage-controls
             open={open}
             onToggle={(event) => setOpen(event.currentTarget.open)}
-            className={`pointer-events-auto ${REVISIT_PANEL} w-[min(15rem,calc(100vw-1rem))] p-1.5`}
+            className={`pointer-events-auto ${REVISIT_PANEL} w-auto max-w-[min(15rem,calc(100vw-1rem))] p-1.5 md:w-[min(15rem,calc(100vw-1rem))]`}
         >
             <summary
                 className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 px-1 md:hidden"

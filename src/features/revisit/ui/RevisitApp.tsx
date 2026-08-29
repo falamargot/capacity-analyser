@@ -2044,7 +2044,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                   <div className="pointer-events-none absolute left-0 top-0 z-40 flex flex-col items-start justify-between md:static md:z-20">
                     {/* One group, so `justify-between` pushes only the
                         readiness status to the foot of the rail. */}
-                    <div className="flex flex-col items-start">
+                    <div className="flex flex-row items-start gap-2 md:flex-col md:gap-0">
                         <StageControls
                             toggles={TOGGLES}
                             toggleState={options}
@@ -2060,15 +2060,20 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                             onClick={() => togglePanel('workspace')}
                             aria-expanded={compactPanel === 'workspace'}
                             aria-controls="revisit-scenario-workspace-drawer"
-                            className={`${REVISIT_PANEL} pointer-events-auto mt-2 flex min-h-11 w-[min(15rem,calc(100vw-1rem))] items-center gap-2 px-2.5 text-left text-[12px] font-black uppercase tracking-[0.12em] md:min-h-9 ${compactPanel === 'workspace'
+                            className={`${REVISIT_PANEL} pointer-events-auto flex min-h-11 w-auto max-w-[calc(100vw-1rem)] items-center gap-2 px-2.5 text-left text-[12px] font-black uppercase tracking-[0.12em] md:mt-2 md:min-h-9 md:w-[min(15rem,calc(100vw-1rem))] ${compactPanel === 'workspace'
                                 ? 'border-sky-400/50 bg-sky-500/15 text-sky-200'
                                 : 'border-slate-700 text-slate-400 hover:border-sky-400/40 hover:text-sky-200'}`}
                         >
                             {/* The visible text IS the accessible name: a
                                 separate `aria-label` would leave speech input
                                 unable to act on the words on screen. */}
-                            <span aria-hidden="true" className="text-base leading-none">▤</span>
-                            <span className="truncate">Scenario workspace</span>
+                            <span aria-hidden="true" className="hidden text-base leading-none md:inline">▤</span>
+                            {/* Below `md` the launcher sits beside DISPLAY on one
+                                rail row, so it carries a single short label and
+                                drops the glyph. `hidden` (display:none) keeps the
+                                unused variant out of the accessible name. */}
+                            <span className="truncate md:hidden">Workspace</span>
+                            <span className="hidden truncate md:inline">Scenario workspace</span>
                         </button>
                     </div>
                     {/* A status, beside the toolbar rather than inside it. */}

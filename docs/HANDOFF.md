@@ -2,6 +2,29 @@
 
 _Last updated 2026-08-28._
 
+## 2026-08-29 — Compact rail: Workspace launcher moved beside DISPLAY
+
+Below `md` the scenario launcher no longer sits on its own row under the
+display disclosure. The rail row is `flex-row` on a phone and `md:flex-col`
+above it; `StageControls` sizes to its content below `md` (`w-auto` capped at
+`max-w-[min(15rem,…)]`) instead of claiming the full 15rem, so the launcher
+fits beside it. The launcher label is one word — `Workspace` — with the glyph
+and the full `Scenario workspace` wording restored at `md`. Both variants are
+real text (`hidden` / `md:hidden`), so the accessible name stays equal to the
+visible text at each breakpoint; no `aria-label` was added.
+
+Consequence for tests: the launcher's accessible name is viewport-dependent, so
+every e2e locator for it is now `name: /^(scenario )?workspace$/i` (12 call
+sites across p0, p2a, p2b, p2b-b2, p2b-b3, p7b, p7e, accessibility). The drawer
+titles (`Scenario workspace` dialog, `Saved scenario workspace` region, `Close
+scenario workspace`) are unchanged.
+
+Validated: 601 unit tests green, tsc clean, browser-checked at 375 px (launcher
+right of DISPLAY, drawer opens) and at desktop (unchanged). Note observed while
+checking: at desktop the DISPLAY disclosure can mount closed — its `open` seed
+races the viewport — which reproduces on `main` without this change and is not
+caused by it.
+
 ## 2026-08-28 — Per-target requirements: three live consequences fixed, launcher moved
 
 The working tree's per-target requirement split (`targetRequirementsMs.

@@ -79,7 +79,8 @@ test.describe('REVISIT P7E commercial progressive disclosure', () => {
   test('names the opportunity, branches before editing, and hides JSON', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop-chromium', 'Workspace contract is viewport-independent');
 
-    await page.getByRole('button', { name: 'Scenario workspace' }).click();
+    await page.getByRole('button', { name: /^(scenario )?workspace
+i }).click();
     const workspace = page.getByRole('region', { name: 'Saved scenario workspace' });
     await expect(workspace).toBeVisible();
 

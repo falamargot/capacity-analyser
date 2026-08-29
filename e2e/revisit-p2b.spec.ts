@@ -44,7 +44,8 @@ test.describe('REVISIT P2b-A custom areas', () => {
     await expect(page.getByRole('region', { name: 'Area result summary' }))
       .toContainText('Least-covered cell', { timeout: 60_000 });
 
-    await page.getByRole('button', { name: 'Scenario workspace' }).click();
+    await page.getByRole('button', { name: /^(scenario )?workspace
+i }).click();
     const workspace = page.getByRole('region', { name: 'Saved scenario workspace' });
     await workspace.getByLabel('Scenario name').fill('Polygon demo');
     await workspace.getByRole('button', { name: 'Save', exact: true }).click();
@@ -52,7 +53,8 @@ test.describe('REVISIT P2b-A custom areas', () => {
     await page.getByRole('button', { name: 'Define area target' }).click();
     await area.getByRole('button', { name: 'Remove' }).click();
     await expect(page.getByText('Area · Channel AOI')).toHaveCount(0);
-    await page.getByRole('button', { name: 'Scenario workspace' }).click();
+    await page.getByRole('button', { name: /^(scenario )?workspace
+i }).click();
     await workspace.getByRole('button', { name: 'Load', exact: true }).click();
     await page.getByRole('button', { name: 'Define area target' }).click();
     await expect(area.getByLabel('Custom area name')).toHaveValue('Channel AOI');

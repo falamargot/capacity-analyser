@@ -20,7 +20,8 @@ test.beforeEach(async ({ page }) => {
 test.describe('REVISIT P2a product workflow', () => {
   test('saves, restores and shares a named scenario', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop-chromium', 'Persistence contract is viewport-independent');
-    await page.getByRole('button', { name: 'Scenario workspace' }).click();
+    await page.getByRole('button', { name: /^(scenario )?workspace
+i }).click();
     const workspace = page.getByRole('region', { name: 'Saved scenario workspace' });
     await expect(workspace.locator('summary', { hasText: 'Technical exports' })).toBeVisible();
     await workspace.locator('summary', { hasText: 'Technical exports' }).click();
@@ -41,7 +42,8 @@ test.describe('REVISIT P2a product workflow', () => {
     await page.getByRole('button', { name: 'Close scenario workspace' }).click();
     await page.getByRole('combobox', { name: 'Target', exact: true }).selectOption('Singapore');
     await expect(page.getByRole('combobox', { name: 'Target', exact: true })).toHaveValue('Singapore');
-    await page.getByRole('button', { name: 'Scenario workspace' }).click();
+    await page.getByRole('button', { name: /^(scenario )?workspace
+i }).click();
     await workspace.getByRole('button', { name: 'Load', exact: true }).click();
     await expect(page.getByRole('combobox', { name: 'Target', exact: true })).toHaveValue('London');
   });
@@ -55,7 +57,8 @@ test.describe('REVISIT P2a product workflow', () => {
    */
   test('exports a qualified result PDF', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop-chromium', 'Export contract is viewport-independent');
-    await page.getByRole('button', { name: 'Scenario workspace' }).click();
+    await page.getByRole('button', { name: /^(scenario )?workspace
+i }).click();
     const workspace = page.getByRole('region', { name: 'Saved scenario workspace' });
     const downloadPromise = page.waitForEvent('download');
     await workspace.getByRole('button', { name: 'Export customer summary' }).click();
@@ -76,7 +79,8 @@ test.describe('REVISIT P2a product workflow', () => {
     * workspace` control serves every viewport — so this is the desktop path,
     * not a compact-only one.
     */
-    await page.getByRole('button', { name: 'Scenario workspace' }).click();
+    await page.getByRole('button', { name: /^(scenario )?workspace
+i }).click();
     await expect(page.getByRole('dialog', { name: 'Scenario workspace' })).toBeVisible();
     await expect(page.getByRole('region', { name: 'Saved scenario workspace' })).toBeVisible();
     const dimensions = await page.evaluate(() => ({

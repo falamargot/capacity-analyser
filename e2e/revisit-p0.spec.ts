@@ -93,7 +93,8 @@ test.describe('REVISIT P0 demonstration contract', () => {
     // Reset is a scenario operation and lives in the workspace drawer now,
     // two-step, rather than one pixel from the drawer opener in the toolbar.
     await openRevisitStageControls(page);
-    await page.getByRole('button', { name: 'Scenario workspace' }).click();
+    await page.getByRole('button', { name: /^(scenario )?workspace
+i }).click();
     const reset = page.getByRole('button', { name: /Reset scenario/ });
     await reset.click();
     await page.getByRole('button', { name: /Confirm reset/ }).click();

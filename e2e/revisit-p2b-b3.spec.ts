@@ -28,7 +28,8 @@ test.describe('REVISIT P2b-B3 scenario workspace', () => {
     await areaPanel.getByRole('button', { name: 'Apply list' }).click();
     await expect(page.getByLabel('Active result context')).toContainText('North Sea', { timeout: 60_000 });
 
-    const launcher = page.getByRole('button', { name: 'Scenario workspace' });
+    const launcher = page.getByRole('button', { name: /^(scenario )?workspace
+i });
     await launcher.click();
     const drawer = page.getByRole('dialog', { name: 'Scenario workspace' });
     await expect(drawer).toBeVisible();
@@ -65,7 +66,8 @@ test.describe('REVISIT P2b-B3 scenario workspace', () => {
     // carry globe display toggles only. Below `md` the panel is still the
     // full-width sheet: a 432 px popup on a 390 px phone is an edge drawer
     // with extra steps, so the width contract below is unchanged.
-    await page.getByRole('button', { name: 'Scenario workspace' }).click();
+    await page.getByRole('button', { name: /^(scenario )?workspace
+i }).click();
     await expect(page.getByRole('dialog', { name: 'Scenario workspace' })).toBeVisible();
     const dimensions = await page.evaluate(() => ({
       drawerWidth: document.querySelector('[data-testid="scenario-workspace-drawer"] aside')?.getBoundingClientRect().width,
