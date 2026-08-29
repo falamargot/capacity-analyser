@@ -439,6 +439,49 @@ describe('REVISIT P1 functional UI', () => {
         expect(button()).toBeUndefined();
     });
 
+    /*
+     * Bold means one thing: this value is no longer the reference. Every Walker
+     * field used to be bold, which made seven emphasised numbers that said
+     * nothing; the point of Custom HLD is to see at a glance what was changed.
+     */
+    it('emphasises only the Walker values that differ from the HLD', async () => {
+        const scenario = defaultScenario(Date.UTC(2026, 7, 12));
+        const model = {
+            mode: 'CUSTOM' as const,
+            profile: null, fit: null, provenance: null,
+            isRunning: false, error: null,
+            onModeChange: () => undefined,
+            onCompareToTleSet: () => undefined,
+            onCopyHldIntoCustom: () => undefined,
+        };
+        // The Walker fieldset only: the stride, geometry and window fields are
+        // not compared against anything, so they keep their own weight.
+        const bold = () => [...container.querySelector('fieldset')!
+            .querySelectorAll('input, select')]
+            .filter((element) => element.className.includes('font-bold'))
+            .map((element) => (element as HTMLInputElement).value);
+
+        await act(async () => root?.render(
+            <AdvancedDrawer
+                scenario={scenario} onChange={() => undefined} model={model} variant="menu"
+            />
+        ));
+        expect(bold()).toEqual([]);
+
+        await act(async () => root?.render(
+            <AdvancedDrawer
+                scenario={{
+                    ...scenario,
+                    reference: { ...scenario.reference, planes: 17, altitudeKm: 550 },
+                }}
+                onChange={() => undefined}
+                model={model}
+                variant="menu"
+            />
+        ));
+        expect(bold()).toEqual(['17', '550']);
+    });
+
     it('turns the KPI into a truthful comparison without replacing worst-case', async () => {
         const statistics: GapStatistics = {
             maxGapMs: 3 * 3600_000,

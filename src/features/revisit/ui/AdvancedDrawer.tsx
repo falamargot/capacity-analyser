@@ -53,6 +53,23 @@ const fieldClass =
     'w-full rounded border border-slate-600 bg-slate-900/70 px-1.5 py-1 text-[12px] '
     + 'font-bold text-slate-100 outline-none focus:border-amber-400/70';
 
+/** `fieldClass` without a weight, for fields that set their own. */
+const fieldBaseClass =
+    'w-full rounded border border-slate-600 bg-slate-900/70 px-1.5 py-1 text-[12px] '
+    + 'outline-none focus:border-amber-400/70';
+
+/**
+ * Weight as the signal for "this is not the reference any more".
+ *
+ * Every Walker field used to be bold, which made the seven of them one block of
+ * emphasis saying nothing. Bold now means exactly one thing — this value differs
+ * from the HLD profile — so a Custom constellation shows at a glance which two
+ * or three numbers were actually changed, and a Custom that has drifted back to
+ * the reference shows none.
+ */
+const walkerFieldClass = (differs: boolean) =>
+    `${fieldBaseClass} ${differs ? 'font-bold text-slate-100' : 'font-medium text-slate-400'}`;
+
 export const MAX_ADVANCED_PLANES = 24;
 export const MAX_ADVANCED_SATS_PER_PLANE = 64;
 
@@ -616,7 +633,9 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                     >
                         <Field label="Pattern">
                             <select
-                                className={fieldClass}
+                                className={walkerFieldClass(
+                                    reference.pattern !== DEFAULT_PROFILE.spec.pattern
+                                )}
                                 value={reference.pattern}
                                 onChange={(e) => setReference({ pattern: e.target.value as WalkerPattern })}
                             >
@@ -626,7 +645,10 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                         </Field>
                         <Field label="Planes P">
                             <input
-                                type="number" min={1} max={MAX_ADVANCED_PLANES} step={1} className={fieldClass}
+                                type="number" min={1} max={MAX_ADVANCED_PLANES} step={1}
+                                className={walkerFieldClass(
+                                    reference.planes !== DEFAULT_PROFILE.spec.planes
+                                )}
                                 value={reference.planes}
                                 onChange={(e) => setReference({
                                     planes: Math.round(bounded(
@@ -637,7 +659,10 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                         </Field>
                         <Field label="Sats / plane S">
                             <input
-                                type="number" min={1} max={MAX_ADVANCED_SATS_PER_PLANE} step={1} className={fieldClass}
+                                type="number" min={1} max={MAX_ADVANCED_SATS_PER_PLANE} step={1}
+                                className={walkerFieldClass(
+                                    reference.satsPerPlane !== DEFAULT_PROFILE.spec.satsPerPlane
+                                )}
                                 value={reference.satsPerPlane}
                                 onChange={(e) => setReference({
                                     satsPerPlane: Math.round(bounded(
@@ -649,7 +674,10 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                         </Field>
                         <Field label="Inclination °">
                             <input
-                                type="number" min={0} max={180} step={0.1} className={fieldClass}
+                                type="number" min={0} max={180} step={0.1}
+                                className={walkerFieldClass(
+                                    reference.inclinationDeg !== DEFAULT_PROFILE.spec.inclinationDeg
+                                )}
                                 value={reference.inclinationDeg}
                                 onChange={(e) => setReference({
                                     inclinationDeg: bounded(
@@ -660,7 +688,10 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                         </Field>
                         <Field label="Altitude km">
                             <input
-                                type="number" min={200} max={2000} step={10} className={fieldClass}
+                                type="number" min={200} max={2000} step={10}
+                                className={walkerFieldClass(
+                                    reference.altitudeKm !== DEFAULT_PROFILE.spec.altitudeKm
+                                )}
                                 value={reference.altitudeKm}
                                 onChange={(e) => setReference({
                                     altitudeKm: bounded(
@@ -673,7 +704,10 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                             Number.isInteger(reference.phasingF) ? undefined : 'non-standard Walker'
                         }>
                             <input
-                                type="number" step={1} className={fieldClass}
+                                type="number" step={1}
+                                className={walkerFieldClass(
+                                    reference.phasingF !== DEFAULT_PROFILE.spec.phasingF
+                                )}
                                 value={reference.phasingF}
                                 onChange={(e) => {
                                     if (e.target.value.trim() === '') return;
@@ -684,7 +718,10 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                         </Field>
                         <Field label="Fudge" hint="scales the RAAN step">
                             <input
-                                type="number" min={0.1} max={2} step={0.01} className={fieldClass}
+                                type="number" min={0.1} max={2} step={0.01}
+                                className={walkerFieldClass(
+                                    reference.fudge !== DEFAULT_PROFILE.spec.fudge
+                                )}
                                 value={reference.fudge}
                                 onChange={(e) => setReference({
                                     fudge: bounded(e.target.value, 0.1, 2, reference.fudge),
