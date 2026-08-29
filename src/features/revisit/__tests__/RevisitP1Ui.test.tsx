@@ -415,7 +415,7 @@ describe('REVISIT P1 functional UI', () => {
             />
         ));
         const button = () => [...container.querySelectorAll('button')]
-            .find((element) => element.textContent === 'Copy HLD values into Custom');
+            .find((element) => element.textContent === 'Copy HLD values');
         expect(button()).toBeUndefined();
 
         // Custom, values edited: the copy is offered.

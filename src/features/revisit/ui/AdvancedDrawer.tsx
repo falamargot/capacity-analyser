@@ -224,7 +224,12 @@ const PayloadGeometryEditor: React.FC<AdvancedDrawerProps> = ({ scenario, onChan
     };
 
     return (
-        <div className="border-t border-slate-700/60 pt-2.5">
+        /*
+         * Enclosed, because this block owns two buttons and the Analysis window
+         * follows it: with only a top rule, Discard/Apply read as the footer of
+         * everything above rather than as the footer of these fields.
+         */
+        <div className="rounded border border-slate-700/60 p-2.5">
             <div className="mb-1.5 flex items-center justify-between gap-2">
                 <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
                     Instrument geometry
@@ -327,17 +332,21 @@ const PayloadGeometryEditor: React.FC<AdvancedDrawerProps> = ({ scenario, onChan
             </div>
 
             {/*
-              * Name the scope. These two buttons sit at the bottom of a long
-              * panel and read as "apply everything above", so editing Planes P
-              * and finding Apply geometry still greyed out looks like a bug —
-              * reported as one. The Walker fields commit as they are typed;
-              * only this block is staged, because a half-typed half-angle
-              * would otherwise recompute the sweep on every keystroke.
+              * Name the scope, and say why this block alone is staged.
+              *
+              * The reason given here used to be the recompute cost, and that
+              * was wrong: `useRevisitAnalysis` already debounces at 300 ms and
+              * invalidates superseded requests, and the Walker fields trigger
+              * the same work without being staged. The real reason is
+              * validation shape — a FOV is a coupled specification checked as a
+              * whole by `validateFovSpec`, so an emptied half-angle is invalid
+              * in a way a Walker field cannot be, every one of those being
+              * clamped per field by `bounded`.
               */}
             <p className="mt-1.5 text-[11px] leading-4 text-slate-500">
                 Instrument geometry only — the Walker parameters above apply as you type.
-                These fields are staged to avoid recomputing the analysis and the full
-                payload sweep on every keystroke.
+                These fields are staged because a field of view is validated as a whole:
+                a half-typed angle would otherwise be published as a real geometry.
             </p>
             {!validation.ok && (
                 <p className="mt-1.5 rounded border border-red-400/40 bg-red-500/10 px-2 py-1 text-[12px] leading-4 text-red-200">
@@ -351,7 +360,7 @@ const PayloadGeometryEditor: React.FC<AdvancedDrawerProps> = ({ scenario, onChan
                     onClick={() => setDraft(seed)}
                     className="rounded px-2 py-1 text-[11px] font-black uppercase tracking-[0.1em] text-slate-400 disabled:opacity-40"
                 >
-                    Revert
+                    Discard edits
                 </button>
                 <button
                     type="button"
@@ -514,21 +523,6 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                                         ? 'Hide TLE comparison'
                                         : 'Compare with available TLE data'}
                             </button>
-                            {/*
-                              * The only path that discards Custom's values, and
-                              * it is explicit. Offered only in Custom, because
-                              * in HLD the values already ARE the reference.
-                              */}
-                            {model.mode === 'CUSTOM' && !matchesHldProfile && (
-                                <button
-                                    type="button"
-                                    onClick={model.onCopyHldIntoCustom}
-                                    title="Replace your custom parameters with the HLD reference, ladder, seam and spares included. This discards the values you entered."
-                                    className="mb-2 w-full rounded border border-slate-600 px-2 py-1 text-[11px] font-black uppercase tracking-[0.08em] text-slate-400 transition-colors hover:border-amber-400/50 hover:text-amber-200"
-                                >
-                                    Copy HLD values into Custom
-                                </button>
-                            )}
                             {model.error && (
                                 <p className="mb-2 text-[11px] leading-3 text-red-300">{model.error}</p>
                             )}
@@ -590,6 +584,22 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                             >
                                 Custom to edit
                             </span>
+                        )}
+                        {/*
+                          * Beside the fields it rewrites, not under the model
+                          * selector: it acts on these Walker values, and read
+                          * from the top of the panel it looked like a third way
+                          * of choosing a model.
+                          */}
+                        {model?.mode === 'CUSTOM' && !matchesHldProfile && (
+                            <button
+                                type="button"
+                                onClick={model.onCopyHldIntoCustom}
+                                title="Replace these values with the HLD reference, plane-altitude ladder, RAAN seam and spares included. This discards the parameters you entered."
+                                className="rounded border border-slate-600 px-1.5 py-0.5 text-[11px] font-black uppercase tracking-[0.08em] text-slate-400 transition-colors hover:border-amber-400/50 hover:text-amber-200"
+                            >
+                                Copy HLD values
+                            </button>
                         )}
                         {matchesHldProfile && model?.mode === 'CUSTOM' && (
                             <span
