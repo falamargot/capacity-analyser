@@ -82,6 +82,60 @@ describe('REVISIT P0 presentation UI', () => {
         expect(container.textContent).not.toContain('RMS along-track');
     });
 
+    /*
+     * D2 (2026-08-29). The live-TLE fit is a diagnostic, never the analysed
+     * model. The regression it guards is semantic, not visual: while the fit
+     * could be adopted as the reference, a fitted shell — no ladder, no seam,
+     * no spares — was presented at the same rank as the HLD profile, and the
+     * panel gave a reader no way to tell a reference from a measurement about
+     * one. So the fit must render ALONGSIDE the HLD provenance line, under a
+     * heading that denies it is the model.
+     */
+    it('shows the TLE fit as a diagnostic beside the analysed model, not as one', async () => {
+        const scenario = defaultScenario(Date.UTC(2026, 7, 12));
+        await act(async () => root?.render(
+            <ModelProvenance
+                mode="HLD"
+                profile={referenceProfileFor(scenario.reference)}
+                fit={{
+                    // A fit never reproduces the ladder, the seam or the spares;
+                    // 12 × 53 is what the real catalogue yielded on 2026-08-29.
+                    spec: {
+                        pattern: 'STAR', planes: 12, satsPerPlane: 53,
+                        inclinationDeg: 87.88, altitudeKm: 1198.9,
+                        phasingF: 1, fudge: 1,
+                    },
+                    satellitesUsed: 636,
+                    satellitesExcluded: 15,
+                    planesDetected: 12,
+                    planePopulations: [53],
+                    raanRmsDeg: 0.42,
+                    argLatRmsDeg: 1.1,
+                    altitudeRmsKm: 3.4,
+                    inclinationRmsDeg: 0.02,
+                    alongTrackRmsKm: 145,
+                    notes: [],
+                }}
+            />
+        ));
+
+        // The analysed model is still the HLD profile, and still says so.
+        expect(container.textContent).toContain('OneWeb Gen1 (HLD reference)');
+        // The fit appears, disclaimed in the same breath, and named for what it
+        // measures: the fleet against the BEST-FIT shell, not against the HLD.
+        expect(container.textContent).toContain('TLE shell characterisation');
+        expect(container.textContent).toContain('not the analysed model');
+        expect(container.textContent).toContain('Real fleet vs perfect shell');
+        expect(container.textContent).toContain('not trajectory-validated');
+
+        // The fitted topology is on screen with its deltas: a residual whose
+        // subject is missing cannot be read against a 12 × 48 Characteristics
+        // block.
+        expect(container.textContent).toContain('Fitted shell 12 × 53');
+        expect(container.textContent).toContain('+5 sats/plane');
+        expect(container.textContent).toContain('+60 total');
+    });
+
     it('offers play, pause, stepping, speed and an absolute UTC timestamp', async () => {
         const startMs = Date.UTC(2026, 7, 12, 12);
         const onSeek = vi.fn();

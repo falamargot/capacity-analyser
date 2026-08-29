@@ -1099,16 +1099,16 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
 
     /** The pre-meeting check. Reads the same signals the notice does. */
     const readinessSignals = useMemo<ReadinessSignal[]>(() => {
-        const modelNeedsNetwork = referenceMode === 'MEASURED';
         return [
             {
+                // Always READY: the analysed model is parametric in every mode,
+                // so no demonstration depends on reaching CelesTrak (the TLE
+                // fit is an optional diagnostic and blocks nothing).
                 label: 'Orbital model',
-                state: modelNeedsNetwork && !calibration.fit ? 'PENDING' : 'READY',
-                detail: modelNeedsNetwork
-                    ? calibration.fit
-                        ? 'Measured from the live fleet — already fetched.'
-                        : 'Measured from the live fleet — needs the network.'
-                    : 'Validated reference profile — no network needed.',
+                state: 'READY',
+                detail: referenceMode === 'HLD'
+                    ? 'HLD reference profile — no network needed.'
+                    : 'Custom parameters — no network needed.',
             },
             {
                 label: 'Scenario',
@@ -1642,22 +1642,29 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
      * CUSTOM only unlocks the fields — it deliberately does not touch the spec,
      * so the current numbers become the starting point for editing.
      */
-    const handleReferenceModeChange = useCallback(async (next: ReferenceMode) => {
+    const handleReferenceModeChange = useCallback((next: ReferenceMode) => {
         setReferenceRestored(false);
         if (next === 'CUSTOM') {
             setReferenceMode('CUSTOM');
             return;
         }
-        if (next === 'HLD') {
-            applyReference(DEFAULT_PROFILE.spec);
-            setReferenceMode('HLD');
-            return;
-        }
-        const fit = calibration.fit ?? await calibration.calibrate();
-        if (!fit) return;
-        applyReference(fit.spec);
-        setReferenceMode('MEASURED');
-    }, [applyReference, calibration]);
+        applyReference(DEFAULT_PROFILE.spec);
+        setReferenceMode('HLD');
+    }, [applyReference]);
+
+    /**
+     * The live-TLE fit, as a diagnostic (D2, 2026-08-29).
+     *
+     * It deliberately does NOT call `applyReference`: the fitted shell answers
+     * "has the real fleet drifted from this Walker geometry", which is a
+     * measurement ABOUT the reference, not a rival reference. Adopting it used
+     * to put a shell with no ladder, no seam and no spares on the same footing
+     * as the HLD profile, and nothing on screen said the two were different
+     * kinds of object.
+     */
+    const handleCompareToTleSet = useCallback(() => {
+        void calibration.calibrate();
+    }, [calibration]);
 
 
     const explanation = useMemo(
@@ -1939,6 +1946,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                                 mode: referenceMode,
                                 isRestored: referenceRestored,
                                 onModeChange: handleReferenceModeChange,
+                                onCompareToTleSet: handleCompareToTleSet,
                                 fit: calibration.fit,
                                 isRunning: calibration.isRunning,
                                 error: calibration.error,

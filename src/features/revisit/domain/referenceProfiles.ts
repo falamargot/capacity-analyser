@@ -247,7 +247,7 @@ export function fitMatchesReference(fit: WalkerSpec, reference: WalkerSpec): boo
  * versioned JSON and exported to PDF, so a field there would force a schema
  * version bump and a migration for what is a UI-only fact.
  */
-export type ReferenceMode = 'HLD' | 'MEASURED' | 'CUSTOM';
+export type ReferenceMode = 'HLD' | 'CUSTOM';
 
 /**
  * The subject of the customer question — WHOSE fleet the answer is about.
@@ -258,17 +258,15 @@ export type ReferenceMode = 'HLD' | 'MEASURED' | 'CUSTOM';
  * can be simulating a 6 × 20 shell at 550 km while the sentence — and the
  * exported customer summary — puts Eutelsat's name on it.
  *
- * `MEASURED` keeps the name because it is fitted from the live OneWeb fleet,
- * but says so: it is a single-epoch mean-element fit, not the published design,
- * and `isAuthoritative` on the profile records the same distinction for
- * anything else that needs to decide what may be quoted.
+ * There is deliberately no third case. The live-TLE fit is a DIAGNOSTIC — it
+ * answers "does the fleet still look like this Walker shell", and it is never
+ * adopted as the analysed reference — so it can never be the subject of the
+ * customer question. See `docs/REVISIT_MODEL_SEMANTICS_DECISION_2026-08-29.md`.
  */
 export function fleetSubject(mode: ReferenceMode): string {
     switch (mode) {
         case 'HLD':
             return 'the Eutelsat LEO fleet';
-        case 'MEASURED':
-            return 'the Eutelsat LEO fleet, as currently measured,';
         case 'CUSTOM':
             return 'this custom constellation';
     }
@@ -277,10 +275,9 @@ export function fleetSubject(mode: ReferenceMode): string {
 /**
  * The mode a loaded specification represents.
  *
- * A persisted snapshot carries no fit, so a measured shell necessarily reads
- * back as CUSTOM — the numbers are preserved exactly, only the provenance claim
- * is not, which is the honest outcome rather than a restored assertion we cannot
- * re-verify without re-measuring.
+ * Two cases only: the specification either IS the reference profile, structure
+ * included, or it is the user's own. The live-TLE fit never enters here — it is
+ * never applied to the scenario.
  */
 export function referenceModeFor(spec: WalkerSpec): ReferenceMode {
     return walkerSpecsEqual(spec, DEFAULT_PROFILE.spec) ? 'HLD' : 'CUSTOM';

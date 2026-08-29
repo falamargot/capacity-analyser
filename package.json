@@ -26,6 +26,7 @@
     "test:e2e": "playwright test",
     "test:e2e:update": "playwright test --update-snapshots",
     "test:perf": "node scripts/run-perf-tests.mjs",
+    "bench:propagators": "tsx scripts/bench-propagators.ts",
     "preview": "vite preview"
   },
   "dependencies": {

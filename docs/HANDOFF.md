@@ -1857,6 +1857,23 @@ the token was simply never reaching the module instance that mattered.
 
 ---
 
+## REVISIT — sémantique du modèle et flotte réelle (2026-08-29)
+
+Revue du triptyque `OneWeb / Measured / Custom` : trois objets de nature
+différente (source de référence / méthode de calibration / action d'édition)
+présentés au même rang. Corrigé : `ReferenceMode` n'a plus que
+`HLD | CUSTOM`, le fit TLE est descendu en action de diagnostic
+(`Compare with latest TLE set`) qui n'adopte plus la coquille ajustée, et le
+badge `Validated model` devient `HLD reference profile`. L'intégration de la flotte ENG est **suspendue** :
+le blocage n'est pas le coût de SGP4 — mesuré à ~4 s pour 651 sats × 72 h @ 10 s,
+soit 6 à 9× Kepler+J2 et non trois ordres de grandeur (`npm run
+bench:propagators`) — mais l'absence de règle d'affectation des payloads et
+trois questions de contrat métier à faire trancher.
+
+Tout est dans `docs/REVISIT_MODEL_SEMANTICS_DECISION_2026-08-29.md`.
+
+---
+
 ## Restart instructions
 
 A new Claude Code session should begin by reading:

@@ -425,16 +425,13 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
     const headerModelBadge = modelBadge(model?.mode);
     // The tooltip names what is loaded. Repeating the badge label the button
     // already shows would say nothing, so each mode contributes the fact the
-    // label omits: the profile version, the fitted shell, or simply that the
-    // numbers are the user's own.
-    const modelSummary = model?.mode === 'MEASURED'
-        ? `shell fitted to the live fleet — ${reference.planes} × ${reference.satsPerPlane}`
-            + ` · ${displayAltitudeKm(reference.altitudeKm)} km`
-        : model?.mode === 'CUSTOM'
-            ? 'hand-entered parameters'
-            : model?.profile
-                ? `${model.profile.label} v${model.profile.version}`
-                : headerModelBadge.label;
+    // label omits: the profile version, or simply that the numbers are the
+    // user's own.
+    const modelSummary = model?.mode === 'CUSTOM'
+        ? 'hand-entered parameters'
+        : model?.profile
+            ? `${model.profile.label} v${model.profile.version}`
+            : headerModelBadge.label;
     const sliderIndex = Math.max(0, payloadCounts.indexOf(currentPayloadCount));
     const activeSatelliteCount = reference.planes * reference.satsPerPlane;
     const spareSatelliteCount = (reference.sparesPerPlane ?? [])

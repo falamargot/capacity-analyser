@@ -36,7 +36,7 @@ test.describe('REVISIT P0 demonstration contract', () => {
     await expect(page.getByText('Demo story')).toHaveCount(0);
     await expect(page.getByRole('combobox', { name: 'Demo scenario' })).toHaveCount(0);
     await expect(page.getByText(/telecom workspace is preserved/i)).toHaveCount(0);
-    await expect(page.getByText('Validated model')).toHaveCount(1);
+    await expect(page.getByText('HLD reference profile')).toHaveCount(1);
     await expect(page.getByText(/not yet calibrated/i)).toHaveCount(0);
 
     // One panel owns the model: the chip and the settings button open the same one.

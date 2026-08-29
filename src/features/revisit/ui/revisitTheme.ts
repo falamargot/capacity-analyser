@@ -122,14 +122,16 @@ import type { ReferenceMode } from '../domain/referenceProfiles';
  * The model badge — one vocabulary, two surfaces (header chip and sidebar
  * summary), so they cannot drift apart.
  *
- * The distinction the badge must carry is PROVENANCE, not quality. Before the
- * third state existed, adopting a live-TLE fit dropped the badge to the amber
- * "Custom constellation" fallback, because `referenceProfileFor` resolves a
- * named profile by exact structural equality and a fit never reproduces a
- * profile's per-plane ladder, seam and spares. Pressing the button that makes
- * the model MORE faithful to the real fleet therefore read as a downgrade.
+ * The distinction the badge must carry is PROVENANCE, not quality, and there
+ * are exactly two provenances: the published HLD reference, or the user's own
+ * numbers. A third state existed while the live-TLE fit could be adopted as the
+ * analysed reference; it was removed with the adoption itself, because a fitted
+ * shell presented alongside the HLD reads as a second, comparable constellation
+ * when it is a diagnostic (decision D2, 2026-08-29).
  *
- * "Custom" now means what it says: someone edited a parameter by hand.
+ * "Validated model" was also retired here: it conflated validation of the
+ * PROPAGATOR (real — GMAT, SGP4) with authority of the HLD DATA (partly
+ * assumed, e.g. the spare distribution).
  */
 export interface ModelBadge {
     label: string;
@@ -141,14 +143,6 @@ export interface ModelBadge {
 }
 
 export function modelBadge(mode: ReferenceMode | undefined): ModelBadge {
-    if (mode === 'MEASURED') {
-        return {
-            label: 'Measured from live fleet',
-            chip: 'border-sky-400/35 bg-sky-400/10 text-sky-200',
-            text: 'text-sky-200',
-            dot: 'bg-sky-400',
-        };
-    }
     if (mode === 'CUSTOM') {
         return {
             label: 'Custom constellation',
@@ -158,7 +152,7 @@ export function modelBadge(mode: ReferenceMode | undefined): ModelBadge {
         };
     }
     return {
-        label: 'Validated model',
+        label: 'HLD reference profile',
         chip: 'border-lime-400/35 bg-lime-400/10 text-lime-200',
         text: 'text-lime-200',
         dot: 'bg-lime-400',

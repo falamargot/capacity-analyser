@@ -62,8 +62,6 @@ describe('buildRevisitResultSheet — the commercial narrative', () => {
         ).question;
 
         expect(ask('HLD')).toContain('Can the Eutelsat LEO fleet observe');
-        expect(ask('MEASURED')).toContain('as currently measured');
-        expect(ask('MEASURED')).toContain('Eutelsat');
         expect(ask('CUSTOM')).toContain('Can this custom constellation observe');
         expect(ask('CUSTOM')).not.toContain('Eutelsat');
     });

@@ -71,6 +71,11 @@ export interface ConstellationModelProps {
      */
     isRestored?: boolean;
     onModeChange: (mode: ReferenceMode) => void;
+    /**
+     * Run the live-TLE fit as a DIAGNOSTIC. It never becomes the analysed
+     * reference — see `docs/REVISIT_MODEL_SEMANTICS_DECISION_2026-08-29.md` D2.
+     */
+    onCompareToTleSet: () => void;
     profile: ReferenceProfile | null;
     fit: WalkerFit | null;
     isRunning: boolean;
@@ -83,23 +88,26 @@ const sectionLabel = 'text-[11px] font-black uppercase tracking-[0.12em] text-sl
  * Short labels, explanation on hover. The panel has to stay readable at a
  * glance in a live demonstration; the detail belongs to whoever asks for it.
  */
+/**
+ * Two options, because there are two THINGS here: a reference to analyse, and
+ * an edit of it. The live-TLE fit used to sit alongside them as a third button,
+ * which read as a third comparable constellation — it is neither a reference
+ * nor an edit, it is a measurement ABOUT the reference, and it now lives in its
+ * own action below (decision D2, 2026-08-29).
+ */
 const MODE_OPTIONS: Array<{ id: ReferenceMode; label: string; title: string }> = [
     {
         id: 'HLD',
-        label: 'OneWeb',
+        label: 'OneWeb Gen1 · HLD',
         title: 'OneWeb Gen1 HLD reference profile — the published design, carrying its '
-            + 'plane-altitude ladder, RAAN seam and spare distribution.',
-    },
-    {
-        id: 'MEASURED',
-        label: 'Measured',
-        title: 'Walker shell fitted to the real OneWeb fleet from live TLE. '
-            + 'Single-epoch mean elements — not trajectory-validated.',
+            + 'plane-altitude ladder, RAAN seam and spare distribution. The spare '
+            + 'distribution per plane is an assumption; the HLD gives only a fleet total.',
     },
     {
         id: 'CUSTOM',
-        label: 'Custom',
-        title: 'Your own parameters. Editable below.',
+        label: 'Edit a copy',
+        title: 'Unlock the fields and edit the current numbers. Nothing external '
+            + 'vouches for the result — it becomes your own constellation.',
     },
 ];
 
@@ -403,7 +411,6 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                             >
                                 {MODE_OPTIONS.map((option) => {
                                     const active = model.mode === option.id;
-                                    const busy = model.isRunning && option.id === 'MEASURED';
                                     return (
                                         <button
                                             key={option.id}
@@ -411,17 +418,36 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                                             role="radio"
                                             aria-checked={active}
                                             title={option.title}
-                                            disabled={model.isRunning}
                                             onClick={() => model.onModeChange(option.id)}
                                             className={`flex-1 rounded border px-2 py-1 text-[12px] font-black uppercase tracking-[0.08em] transition-colors disabled:opacity-60 ${active
                                                 ? 'border-amber-400/60 bg-amber-400/15 text-amber-100'
                                                 : 'border-slate-600 text-slate-400 hover:border-slate-500 hover:text-slate-200'}`}
                                         >
-                                            {busy ? 'Measuring…' : option.label}
+                                            {option.label}
                                         </button>
                                     );
                                 })}
                             </div>
+                            {/*
+                              * A diagnostic, deliberately NOT a fourth radio: it
+                              * measures how far the real fleet has drifted from
+                              * the shell being analysed, and changes nothing
+                              * about what is analysed. The wording avoids
+                              * "live" and "latest" — the TLE ladder may
+                              * legitimately serve a stale cache or the bundled
+                              * file, and on a filtered network it always does.
+                              */}
+                            <button
+                                type="button"
+                                onClick={model.onCompareToTleSet}
+                                disabled={model.isRunning}
+                                title="Fit a perfect Walker shell to the OneWeb TLE data currently available — live, cached, or the bundled file — and report the residual. Diagnostic only: the analysed constellation is not changed."
+                                className="mb-2 w-full rounded border border-slate-600 px-2 py-1 text-[11px] font-black uppercase tracking-[0.08em] text-slate-400 transition-colors hover:border-sky-400/50 hover:text-sky-200 disabled:opacity-60"
+                            >
+                                {model.isRunning
+                                    ? 'Comparing…'
+                                    : 'Compare with available TLE data'}
+                            </button>
                             {model.error && (
                                 <p className="mb-2 text-[11px] leading-3 text-red-300">{model.error}</p>
                             )}

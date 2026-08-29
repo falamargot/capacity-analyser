@@ -23,7 +23,7 @@
 
 import React from 'react';
 import type { WalkerFit } from '../calibration/fitWalker';
-import type { ReferenceMode, ReferenceProfile } from '../domain/referenceProfiles';
+import { DEFAULT_PROFILE, type ReferenceMode, type ReferenceProfile } from '../domain/referenceProfiles';
 import { REVISIT_LABEL } from './revisitTheme';
 
 export interface ModelProvenanceProps {
@@ -52,6 +52,44 @@ const ENGINE_CLAIMS = [
     // not the fleet's altitude at all.
     'Altitude datum GMAT-checked at 1200 km · engine claim, not this model’s altitude',
 ] as const;
+
+/** Signed difference, written the way a reader compares two figures. */
+const signed = (value: number, digits = 0): string =>
+    `${value >= 0 ? '+' : '\u2212'}${Math.abs(value).toFixed(digits)}`;
+
+/**
+ * The fitted shell against the HLD reference, in the fit's own parameters.
+ *
+ * Without this line the panel showed three numbers that could not be read
+ * together — `645 real satellites`, `248 km RMS` and a Characteristics block
+ * saying `12 × 48`. The fit's own topology (12 × 53 on the current catalogue)
+ * was nowhere on screen, so the residual had no subject.
+ *
+ * The baseline is always the HLD profile, never the analysed scenario: the fit
+ * characterises the real catalogue, and comparing it to a set of hand-edited
+ * numbers would compare two things that have nothing to do with each other.
+ */
+const FitVsHld: React.FC<{ fit: WalkerFit }> = ({ fit }) => {
+    const hld = DEFAULT_PROFILE.spec;
+    const { planes, satsPerPlane, altitudeKm, inclinationDeg } = fit.spec;
+    const deltaSats = planes * satsPerPlane - hld.planes * hld.satsPerPlane;
+    return (
+        <p
+            className="mt-0.5 text-[11px] leading-4 text-slate-400"
+            title={`The Walker shell fitted to the TLE set, and how it differs from ${DEFAULT_PROFILE.label}. The fitted shell carries no plane-altitude ladder, no RAAN seam and no spares — those cannot be recovered from a single-epoch fit.`}
+        >
+            Fitted shell {planes} × {satsPerPlane} · {altitudeKm.toFixed(1)} km
+            {' · '}{inclinationDeg.toFixed(2)}°
+            <span className="block text-slate-500">
+                vs HLD {hld.planes} × {hld.satsPerPlane} · {hld.altitudeKm} km ·{' '}
+                {hld.inclinationDeg}° → {signed(planes - hld.planes)} planes,{' '}
+                {signed(satsPerPlane - hld.satsPerPlane)} sats/plane ({signed(deltaSats)} total),{' '}
+                {signed(altitudeKm - hld.altitudeKm, 1)} km,{' '}
+                {signed(inclinationDeg - hld.inclinationDeg, 2)}°
+            </span>
+        </p>
+    );
+};
 
 export const ModelProvenance: React.FC<ModelProvenanceProps> = ({
     mode, profile, fit, isRestored = false,
@@ -94,8 +132,24 @@ export const ModelProvenance: React.FC<ModelProvenanceProps> = ({
                 )
             )}
 
-            {mode === 'MEASURED' && fit && (
-                <>
+            {/*
+              * The fit is a DIAGNOSTIC and is shown as one: it sits BELOW the
+              * provenance of the analysed model, in its own block, whatever
+              * that model is. It is never the analysed model itself (D2), so it
+              * is not a `mode` branch — a fitted shell displayed at the same
+              * rank as the reference reads as a second constellation.
+              */}
+            {fit && (
+                <div className="mt-1.5 border-t border-slate-700/50 pt-1.5">
+                    {/*
+                      * "Fleet drift check" was wrong in a way that mattered: the
+                      * residual is measured against the BEST-FIT Walker shell,
+                      * not against the HLD profile, so it does not say how far
+                      * the fleet has drifted from the reference design.
+                      */}
+                    <p className="text-[11px] font-black uppercase tracking-[0.08em] text-slate-500">
+                        TLE shell characterisation · not the analysed model
+                    </p>
                     {/*
                       * "Fit vs OneWeb TLE · N km RMS" reads as trajectory
                       * validation. It is not, and the qualifier is part of the
@@ -109,7 +163,21 @@ export const ModelProvenance: React.FC<ModelProvenanceProps> = ({
                     </p>
                     <p className="mt-0.5 text-slate-400">
                         {fit.satellitesUsed} real satellites · {fit.planesDetected} planes
+                        {fit.satellitesExcluded > 0 && ` · ${fit.satellitesExcluded} excluded`}
                     </p>
+                    <FitVsHld fit={fit} />
+                    {mode === 'CUSTOM' && (
+                        /*
+                         * In CUSTOM the analysed numbers are the user's own, and
+                         * nothing above this block relates to the catalogue. Say
+                         * so, rather than leave a measurement sitting under an
+                         * unrelated constellation as if it qualified it.
+                         */
+                        <p className="mt-0.5 text-[11px] leading-4 text-amber-200/70">
+                            Independent of your custom parameters · measured against
+                            the {DEFAULT_PROFILE.label}
+                        </p>
+                    )}
                     <p
                         className="mt-0.5 text-[11px] leading-3 text-slate-500"
                         title="Root-mean-square deviation of the real fleet from the fitted shell, per axis."
@@ -134,7 +202,7 @@ export const ModelProvenance: React.FC<ModelProvenanceProps> = ({
                             </ul>
                         </details>
                     )}
-                </>
+                </div>
             )}
         </div>
     </div>
