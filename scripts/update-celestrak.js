@@ -93,6 +93,7 @@ function buildTLELine2({
 function applyGeoPositionOverrides(content) {
   const lines = content.split('\n');
   const patchedLines = [...lines];
+  const applied = new Set();
 
   for (let i = 0; i + 2 < lines.length; i += 3) {
     const nameLine = lines[i]?.trim();
@@ -131,6 +132,24 @@ function applyGeoPositionOverrides(content) {
       `[TLE Override] ${override.name} (${noradId}) forced to ${override.targetLongitudeDeg.toFixed(1)}° `
       + `using synthetic GEO line 2. ${override.reason}`
     );
+    applied.add(noradId);
+  }
+
+  /*
+   * An override exists because someone decided that satellite must be shown.
+   * When CelesTrak drops it from the active group — retired, graveyarded,
+   * renamed — the patch loop simply never fires and the satellite disappears
+   * from the bundled file without a word. Measured 2026-08-29: EUTELSAT 139
+   * WEST A (28187) left the active group and the roster went 680 → 679 with
+   * nothing in the output saying so. Say it.
+   */
+  for (const [noradId, override] of Object.entries(GEO_POSITION_OVERRIDES)) {
+    if (applied.has(noradId)) continue;
+    console.warn(
+      `[TLE Override] ${override.name} (${noradId}) is NOT in this payload — no longer in `
+      + 'CelesTrak\'s active group. It is absent from the written file; remove the override '
+      + 'or source its elements elsewhere if it must still be displayed.'
+    );
   }
 
   return patchedLines.join('\n');
@@ -160,6 +179,105 @@ function buildCompactStatus(records) {
   return map;
 }
 
+// ─── Transport ────────────────────────────────────────────────────────────────
+
+/**
+ * How long a single CelesTrak request may take before it is abandoned.
+ *
+ * Without a deadline a dropped SYN hangs for the OS connect timeout — around 75
+ * seconds per request on macOS — so a run on a network that blocks the host
+ * looks frozen rather than failed.
+ */
+const REQUEST_TIMEOUT_MS = 20_000;
+
+/**
+ * Whether an HTTPS transport failure may be retried over plain HTTP.
+ *
+ * WHY THIS EXISTS. Measured 2026-08-29 on the development network: TCP/443 to
+ * celestrak.org is silently dropped (SYN unanswered, connect times out) while
+ * TCP/80 to the same host is open and serves the data. TLS to other hosts is
+ * unaffected, so it is a per-host filter, not a broken machine. Without a
+ * fallback this script cannot refresh the bundled catalogue at all from here,
+ * and the application then measures against a file months old — the failure
+ * that prompted this.
+ *
+ * WHY IT IS SAFE ENOUGH, AND WHAT MAKES IT SO. Plain HTTP is unauthenticated,
+ * so the mitigation is not the transport but the VALIDATION below: a TLE set is
+ * accepted only if every element line carries a correct modulo-10 checksum and
+ * the set is plausibly sized, and a SATCAT CSV only if its header and volume
+ * match what the endpoint really serves. Injected or corrupted content fails
+ * those checks and nothing is written. The data is public and read-only, and
+ * the output is a development asset reviewed in git before it ships.
+ *
+ * Set CELESTRAK_ALLOW_HTTP=false to refuse the fallback outright.
+ */
+const ALLOW_HTTP_FALLBACK =
+  String(process.env.CELESTRAK_ALLOW_HTTP ?? 'true').toLowerCase() !== 'false';
+
+/**
+ * Fetch text from CelesTrak, degrading to HTTP only on a TRANSPORT failure.
+ *
+ * An HTTP status error (403, 404, 500) is NOT retried: the host answered, and
+ * repeating the request over a weaker transport would not change its answer —
+ * it would only hide a rate-limit or a moved endpoint behind a second failure.
+ */
+async function fetchCelestrakText(httpsUrl) {
+  try {
+    const response = await fetch(httpsUrl, { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return { text: await response.text(), viaHttp: false };
+  } catch (httpsError) {
+    const status = /^HTTP \d{3}$/.test(httpsError.message);
+    if (status || !ALLOW_HTTP_FALLBACK) throw httpsError;
+
+    const httpUrl = httpsUrl.replace(/^https:/, 'http:');
+    console.warn(
+      `[net] HTTPS failed (${httpsError.message}). Retrying over plain HTTP: ${httpUrl}\n`
+      + '      The payload is validated before anything is written; set '
+      + 'CELESTRAK_ALLOW_HTTP=false to refuse this.'
+    );
+    const response = await fetch(httpUrl, { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+    if (!response.ok) throw new Error(`HTTP ${response.status} (over http)`);
+    return { text: await response.text(), viaHttp: true };
+  }
+}
+
+// ─── Validation ───────────────────────────────────────────────────────────────
+
+/** Fewer filtered satellites than this means a truncated or wrong payload. */
+const MIN_EXPECTED_SATELLITES = 300;
+/** The real SATCAT holds tens of thousands of rows; far fewer is not it. */
+const MIN_EXPECTED_SATCAT_ROWS = 10_000;
+
+/**
+ * Reject a TLE set that is not one.
+ *
+ * The checksum is the load-bearing check: every TLE line ends with a modulo-10
+ * digit over the line's own characters, so a corrupted or fabricated element
+ * line fails it unless the forger also recomputed it. Combined with the shape
+ * and volume checks, this is what makes the HTTP fallback above acceptable
+ * rather than merely convenient.
+ */
+function assertPlausibleTLESet(filteredText, satelliteCount) {
+  if (satelliteCount < MIN_EXPECTED_SATELLITES) {
+    throw new Error(
+      `only ${satelliteCount} EUTELSAT/ONEWEB satellites in the payload `
+      + `(expected at least ${MIN_EXPECTED_SATELLITES}) — refusing to overwrite`
+    );
+  }
+  const lines = filteredText.split('\n');
+  for (let i = 1; i < lines.length; i += 3) {
+    for (const line of [lines[i], lines[i + 1]]) {
+      if (!line || line.length !== 69) {
+        throw new Error(`malformed element line (length ${line?.length ?? 0}, expected 69)`);
+      }
+      if (tleChecksum(line.slice(0, 68)) !== Number(line[68])) {
+        throw new Error(`TLE checksum mismatch on: ${line.slice(0, 30)}…`);
+      }
+    }
+  }
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function update() {
@@ -169,15 +287,21 @@ async function update() {
   let noradIds = new Set();
   try {
     console.log('[TLE] Fetching active TLE data from CelesTrak…');
-    const tleResp = await fetch('https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=tle');
-    if (!tleResp.ok) throw new Error(`HTTP ${tleResp.status}`);
+    const { text: tleRaw, viaHttp } = await fetchCelestrakText(
+      'https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=tle'
+    );
 
-    const tleRaw = await tleResp.text();
     const { filteredText, noradIds: ids } = filterTLEs(tleRaw);
+    // Validate BEFORE the overrides: they synthesise one element set of their
+    // own, so checking afterwards would test this script rather than the feed.
+    assertPlausibleTLESet(filteredText, ids.size);
     const patchedText = applyGeoPositionOverrides(filteredText);
     noradIds = ids;
     fs.writeFileSync(TARGET_TLE_FILE, patchedText);
-    console.log(`[TLE] Wrote ${noradIds.size} satellites to ${TARGET_TLE_FILE}`);
+    console.log(
+      `[TLE] Wrote ${noradIds.size} satellites to ${TARGET_TLE_FILE}`
+      + `${viaHttp ? ' (fetched over plain HTTP, checksums verified)' : ''}`
+    );
   } catch (err) {
     console.error('[TLE] Failed:', err.message, '— existing celestrak.txt unchanged.');
     overallOk = false;
@@ -198,11 +322,14 @@ async function update() {
   //   0 OBJECT_NAME | 2 NORAD_CAT_ID | 4 OPS_STATUS_CODE | 8 DECAY_DATE
   try {
     console.log('[SATCAT] Fetching SATCAT CSV from CelesTrak…');
-    const satcatResp = await fetch('https://celestrak.org/pub/satcat.csv');
-    if (!satcatResp.ok) throw new Error(`HTTP ${satcatResp.status}`);
-
-    const csvText = await satcatResp.text();
+    const { text: csvText } = await fetchCelestrakText('https://celestrak.org/pub/satcat.csv');
     const csvLines = csvText.trim().split('\n');
+    if (csvLines.length < MIN_EXPECTED_SATCAT_ROWS) {
+      throw new Error(
+        `only ${csvLines.length} CSV rows (expected at least ${MIN_EXPECTED_SATCAT_ROWS}) `
+        + '— refusing to overwrite'
+      );
+    }
     // Parse header to locate column indices dynamically (defensive)
     const header = csvLines[0].split(',');
     const COL_NAME   = header.indexOf('OBJECT_NAME');
