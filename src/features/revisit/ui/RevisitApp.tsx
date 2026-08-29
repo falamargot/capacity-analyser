@@ -1702,6 +1702,14 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         [inspectedScenario, inspectedAnalysis, sweep]
     );
 
+    /*
+     * The window belongs to the scenario, so editing it from the ribbon is the
+     * same state change it always was — only the surface moved.
+     */
+    const handleAnalysisWindowChange = useCallback((next: RevisitScenario['window']) => {
+        setScenario((current) => ({ ...current, window: next }));
+    }, []);
+
     const getTimeMs = useCallback(() => clock.getTimeMs(), [clock]);
     const handleSeek = useCallback((ms: number) => {
         const previousSpeed = clock.getSnapshot().speed;
@@ -2311,6 +2319,8 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                         statistics={analysis?.statistics ?? null}
                         windowStartMs={scenario.window.startMs}
                         windowHours={scenario.window.durationHours}
+                        analysisWindow={scenario.window}
+                        onAnalysisWindowChange={handleAnalysisWindowChange}
                         getTimeMs={getTimeMs}
                         onSeek={handleSeek}
                         analysisContext={analysisContext}

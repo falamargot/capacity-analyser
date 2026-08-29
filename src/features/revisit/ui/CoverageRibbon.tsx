@@ -10,7 +10,8 @@ import type { SimulationSpeed } from '../../../time/SimulationClock';
 import type { AreaAnalysis } from '../analysis/areaAnalysis';
 import { computeGaps, formatGap } from '../analysis/gapStatistics';
 import { REFERENCE_POINT_ID, type RevisitAnalysisContext } from '../domain/analysisTargets';
-import type { AccessInterval, GapStatistics } from '../domain/types';
+import type { AccessInterval, AnalysisWindow, GapStatistics } from '../domain/types';
+import { AnalysisWindowControl } from './AnalysisWindowControl';
 import { REVISIT_COLORS, REVISIT_LABEL, REVISIT_OUTCOME, REVISIT_PANEL } from './revisitTheme';
 
 export interface CoverageRibbonLane {
@@ -46,6 +47,14 @@ interface CoverageRibbonProps {
     areaAnalysis?: AreaAnalysis | null;
     windowStartMs: number;
     windowHours: number;
+    /**
+     * The analysis window and its editor, when the host provides them.
+     *
+     * Optional so the ribbon still renders standalone in tests and in surfaces
+     * that only display a timeline; the control appears where it can act.
+     */
+    analysisWindow?: AnalysisWindow;
+    onAnalysisWindowChange?: (window: AnalysisWindow) => void;
     getTimeMs: () => number;
     onSeek: (ms: number) => void;
     speed: SimulationSpeed;
@@ -99,7 +108,8 @@ function longestInteriorGap(
 
 export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
     intervals, statistics, pointLanes, targetLanes, areaAnalysis,
-    windowStartMs, windowHours, getTimeMs, onSeek,
+    windowStartMs, windowHours, analysisWindow, onAnalysisWindowChange,
+    getTimeMs, onSeek,
     speed, onSetSpeed, analysisContext = 'POINTS',
     referenceTargetName = 'Primary target',
     requirementMs = 2 * 3600_000, comparisonIsComputing = false, comparisonError = null,
@@ -269,6 +279,18 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                                     : `${windowHours} h analysis window · one access lane per point`}
                             </div>
                         </div>
+                        {/*
+                          * The window lives here, beside the axis it defines:
+                          * this timeline runs 00:00 → 72:00 because Duration
+                          * says 72. It used to sit in Constellation settings,
+                          * whose subtitle had to end with "and analysis window".
+                          */}
+                        {analysisWindow && onAnalysisWindowChange && (
+                            <AnalysisWindowControl
+                                window={analysisWindow}
+                                onChange={onAnalysisWindowChange}
+                            />
+                        )}
                         {analysisContext === 'AREA' && areaAnalysis?.worstCell && (
                             <span className="text-[11px] font-bold tabular-nums text-sky-200">
                                 {areaAnalysis.worstCell.target.latDeg.toFixed(2)}° · {areaAnalysis.worstCell.target.lonDeg.toFixed(2)}°

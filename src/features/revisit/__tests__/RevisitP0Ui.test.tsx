@@ -8,6 +8,7 @@ import { RevisitHeader } from '../ui/RevisitHeader';
 import { CoverageRibbon } from '../ui/CoverageRibbon';
 import { ModelProvenance } from '../ui/ModelProvenance';
 import { TleComparisonDialog } from '../ui/TleComparisonDialog';
+import { AnalysisWindowControl } from '../ui/AnalysisWindowControl';
 import { referenceProfileFor } from '../domain/referenceProfiles';
 import type { GapStatistics } from '../domain/types';
 
@@ -278,6 +279,46 @@ describe('REVISIT P0 presentation UI', () => {
             .find((button) => button.textContent === 'Close');
         await act(async () => close?.click());
         expect(onClose).toHaveBeenCalledTimes(3);
+    });
+
+    /*
+     * The analysis window left Constellation settings for the coverage ribbon,
+     * beside the axis the duration defines. Two things are pinned:
+     *
+     *  - the collapsed summary states both values, so the window can be checked
+     *    without opening anything — it is a demonstration surface;
+     *  - the engine's own warnings surface here. A step above 60 s can miss
+     *    whole passes and the revisit figure then comes out too large with no
+     *    error anywhere, so the one place that edits it must say so.
+     */
+    it('summarises the analysis window and carries the engine\'s warnings', async () => {
+        const onChange = vi.fn();
+        await act(async () => root?.render(
+            <AnalysisWindowControl
+                window={{ startMs: Date.UTC(2026, 7, 12), durationHours: 72, stepSeconds: 10 }}
+                onChange={onChange}
+            />
+        ));
+        expect(container.textContent).toContain('Window · 72 h · 10 s');
+
+        const open = () => container.querySelector<HTMLButtonElement>(
+            '[aria-label="Analysis window settings"]'
+        )!;
+        await act(async () => open().click());
+        const step = document.querySelector<HTMLInputElement>('input[aria-label="Step s"]')!;
+        expect(step.value).toBe('10');
+
+        // A coarse step is not refused — it is stated. The engine's own
+        // validateWindow supplies the wording, so the two cannot drift apart.
+        await act(async () => root?.render(
+            <AnalysisWindowControl
+                window={{ startMs: Date.UTC(2026, 7, 12), durationHours: 12, stepSeconds: 90 }}
+                onChange={onChange}
+            />
+        ));
+        const text = document.body.textContent ?? '';
+        expect(text).toContain('can miss passes entirely');
+        expect(text).toContain('the revisit figure is confidently wrong');
     });
 
     it('offers play, pause, stepping, speed and an absolute UTC timestamp', async () => {

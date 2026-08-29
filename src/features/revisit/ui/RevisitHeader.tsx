@@ -560,7 +560,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                             aria-label="Constellation model and settings"
                             title={model
                                 ? `Constellation model, characteristics and evidence. Currently: ${modelSummary}.`
-                                : 'Walker model, hosted-payload topology, instrument geometry and analysis window'}
+                                : 'Walker model, hosted-payload topology and instrument geometry'}
                             aria-haspopup="dialog"
                             aria-expanded={constellationMenuOpen}
                             onClick={() => setConstellationMenuOpen((open) => !open)}

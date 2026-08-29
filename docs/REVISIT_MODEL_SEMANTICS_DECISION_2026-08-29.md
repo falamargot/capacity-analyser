@@ -243,6 +243,32 @@ supplémentaire était un péage — et la croix de fermeture du panneau TLE est
 retirée : Échap, `Close` et le scrim (en feuille) suffisaient, la quatrième
 affordance ne faisait que concurrencer celle du pied.
 
+## 5 quater. La fenêtre d'analyse rejoint le ruban (D8)
+
+`Duration h` et `Step s` vivaient sous `Constellation settings`, dont le
+sous-titre devait se terminer par « and analysis window » — l'aveu qu'ils n'y
+étaient pas chez eux. Ils décrivent le **calcul**, pas la constellation, et la
+durée est littéralement l'axe du ruban de couverture : la timeline va de 00:00 à
+72:00 parce que ce champ dit 72.
+
+Les deux restent ensemble bien qu'ils ne soient pas de même nature — la durée
+décrit ce qu'on observe, le pas est un réglage d'exactitude numérique. Les
+séparer serait pire : `validateWindow` les juge ensemble, et la règle qui compte
+(le pas doit être très inférieur à la passe la plus courte) dépend de la durée et
+de l'instrument. C'est le libellé qui porte la distinction que la disposition ne
+peut pas porter : *« sampling accuracy, not display »*.
+
+Replié, le contrôle affiche `Window · 72 h · 10 s` — vérifiable sans rien ouvrir,
+ce qui est la contrainte d'une surface de démonstration — et un `!` ambre quand
+`validateWindow` émet un avertissement.
+
+Deux détails d'implémentation qui ont coûté un aller-retour, donc notés : le
+popover est **portalé et en position fixe**, parce que la section du ruban est
+`overflow: hidden` (obligatoire, la timeline dessine jusqu'à ses bords) et
+clippait entièrement un panneau en flux — mesuré visible dans le DOM, absent de
+l'écran ; et il s'ouvre **vers le haut**, le ruban étant collé au bas de la
+fenêtre. Vérifié à 1280 px et à 375 px.
+
 ## 6. Décisions en attente
 
 - **D3 — MEASURED n'est pas redondant avec SGP4** et ne doit pas être supprimé :

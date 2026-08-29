@@ -25,7 +25,6 @@ import type { FovSpec, RevisitScenario, WalkerPattern, WalkerSpec } from '../dom
 import { validateFovSpec } from '../domain/inputValidation';
 import { swathKmForFov } from '../domain/presets';
 import { fovForDisplay } from './fovDisplay';
-import { MAX_STEP_SECONDS, MAX_WINDOW_HOURS } from '../analysis/accessIntervals';
 import { referenceWithPatch } from '../domain/referenceEditing';
 import {
     DEFAULT_PROFILE, walkerSpecsEqual,
@@ -395,7 +394,7 @@ const PayloadGeometryEditor: React.FC<AdvancedDrawerProps> = ({ scenario, onChan
 export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
     scenario, onChange, model, variant = 'panel',
 }) => {
-    const { reference, selection, window: analysisWindow } = scenario;
+    const { reference, selection } = scenario;
     // Only Custom may edit. HLD and Measured are records of something external,
     // so an editable field there would invite a value the label then denies.
     const fieldsLocked = model ? model.mode !== 'CUSTOM' : false;
@@ -822,45 +821,6 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
 
                 <PayloadGeometryEditor scenario={scenario} onChange={onChange} />
 
-                <div className="border-t border-slate-700/60 pt-2.5">
-                    <p className="mb-1.5 text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
-                        Analysis window
-                    </p>
-                    <div className="grid grid-cols-2 gap-2">
-                        <Field label="Duration h" hint="below 24 h is unreliable">
-                            <input
-                                type="number" min={1} max={MAX_WINDOW_HOURS} step={1} className={fieldClass}
-                                value={analysisWindow.durationHours}
-                                onChange={(e) => onChange({
-                                    ...scenario,
-                                    window: {
-                                        ...analysisWindow,
-                                        durationHours: bounded(
-                                            e.target.value, 1, MAX_WINDOW_HOURS,
-                                            analysisWindow.durationHours
-                                        ),
-                                    },
-                                })}
-                            />
-                        </Field>
-                        <Field label="Step s" hint="must be ≪ shortest pass">
-                            <input
-                                type="number" min={1} max={MAX_STEP_SECONDS} step={1} className={fieldClass}
-                                value={analysisWindow.stepSeconds}
-                                onChange={(e) => onChange({
-                                    ...scenario,
-                                    window: {
-                                        ...analysisWindow,
-                                        stepSeconds: bounded(
-                                            e.target.value, 1, MAX_STEP_SECONDS,
-                                            analysisWindow.stepSeconds
-                                        ),
-                                    },
-                                })}
-                            />
-                        </Field>
-                    </div>
-                </div>
                     </div>
                 </section>
 
@@ -891,7 +851,7 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                         Constellation settings
                     </p>
                     <p className="mt-0.5 text-[11px] text-slate-500">
-                        Walker model, hosted-payload topology, instrument geometry and analysis window
+                        Walker model, hosted-payload topology and instrument geometry
                     </p>
                 </div>
                 {content}

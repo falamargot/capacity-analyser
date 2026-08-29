@@ -1857,6 +1857,20 @@ the token was simply never reaching the module instance that mattered.
 
 ---
 
+## REVISIT — panneau constellation, suite (2026-08-29)
+
+`Custom HLD` (ex-`Edit a copy`) est une constellation qui **garde ses valeurs**
+entre deux passages par le HLD ; seul `Copy HLD values`, à côté des champs qu'il
+réécrit, les écrase. Le gras dans le fieldset Walker signifie exactement « cette
+valeur diffère du HLD ». `Expert settings` n'est plus replié. La fenêtre
+d'analyse (`Duration h`, `Step s`) a quitté `Constellation settings` pour un
+popover accroché au ruban de couverture — `AnalysisWindowControl`, portalé et
+en position fixe parce que le ruban est `overflow: hidden`, ouvert vers le haut
+parce qu'il est en bas de l'écran. Détails et justifications dans
+`docs/REVISIT_MODEL_SEMANTICS_DECISION_2026-08-29.md`.
+
+---
+
 ## REVISIT — sémantique du modèle et flotte réelle (2026-08-29)
 
 Revue du triptyque `OneWeb / Measured / Custom` : trois objets de nature

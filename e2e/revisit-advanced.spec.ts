@@ -59,6 +59,8 @@ test.describe('REVISIT Advanced stabilization', () => {
     await inclination.fill('999', { force: true });
     await expect(inclination).toHaveValue('180');
 
+    // The window moved to the coverage ribbon, beside the axis it defines.
+    await page.getByRole('button', { name: 'Analysis window settings' }).click();
     const duration = page.getByRole('spinbutton', { name: /Duration h/ });
     await duration.fill('99999', { force: true });
     await expect(duration).toHaveValue('240');
