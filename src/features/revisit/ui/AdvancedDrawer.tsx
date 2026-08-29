@@ -205,10 +205,22 @@ function sparesOf(perPlane?: number[]) {
     };
 }
 
-const Field: React.FC<{ label: string; hint?: string; children: React.ReactNode }> = ({
-    label, hint, children,
+/**
+ * A labelled control, with the explanation on hover.
+ *
+ * `hint` is the one-glance qualifier printed under the field; `title` is the
+ * sentence that says what the parameter IS. They are separate because the hint
+ * has to stay short enough to sit in a three-column grid, and the meaning of
+ * `Fudge` or `Plane shift z` does not fit in three words. The title is set on
+ * the whole label, so hovering anywhere on the field — legend or input —
+ * produces it.
+ */
+const Field: React.FC<{
+    label: string; hint?: string; title?: string; children: React.ReactNode;
+}> = ({
+    label, hint, title, children,
 }) => (
-    <label className="flex flex-col gap-1">
+    <label className="flex flex-col gap-1" title={title}>
         <span className="text-[11px] font-black uppercase tracking-[0.1em] text-slate-500">
             {label}
         </span>
@@ -255,7 +267,10 @@ const PayloadGeometryEditor: React.FC<AdvancedDrawerProps> = ({ scenario, onChan
                 </span>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                <Field label="FOV shape">
+                <Field
+                    label="FOV shape"
+                    title="The footprint the instrument projects on the ground: an ellipse (a conical sensor) or a rectangle (a framing sensor). It sets how the two half-angles below are interpreted."
+                >
                     <select
                         aria-label="FOV shape"
                         className={fieldClass}
@@ -268,7 +283,11 @@ const PayloadGeometryEditor: React.FC<AdvancedDrawerProps> = ({ scenario, onChan
                         <option value="RECTANGLE">Rectangle</option>
                     </select>
                 </Field>
-                <Field label="Half-angle 1 °" hint="semi-axis / half-width">
+                <Field
+                    label="Half-angle 1 °"
+                    hint="semi-axis / half-width"
+                    title="Half the sensor opening on the first axis, measured from the boresight — the semi-axis of the ellipse, or half the width of the rectangle. Wider means a larger footprint and more frequent access."
+                >
                     <input
                         aria-label="FOV half-angle 1"
                         type="number" min={0.01} max={89.9} step={0.1} className={fieldClass}
@@ -279,7 +298,11 @@ const PayloadGeometryEditor: React.FC<AdvancedDrawerProps> = ({ scenario, onChan
                         }))}
                     />
                 </Field>
-                <Field label="Half-angle 2 °" hint="semi-axis / half-height">
+                <Field
+                    label="Half-angle 2 °"
+                    hint="semi-axis / half-height"
+                    title="The same opening on the perpendicular axis. Equal to half-angle 1 gives a circular cone; different values give an elongated footprint."
+                >
                     <input
                         aria-label="FOV half-angle 2"
                         type="number" min={0.01} max={89.9} step={0.1} className={fieldClass}
@@ -290,7 +313,10 @@ const PayloadGeometryEditor: React.FC<AdvancedDrawerProps> = ({ scenario, onChan
                         }))}
                     />
                 </Field>
-                <Field label="Along-track bias °">
+                <Field
+                    label="Along-track bias °"
+                    title="Tilt of the boresight away from nadir, along the direction of flight. Positive looks ahead of the satellite, negative behind — a way to see a target earlier or later in the pass."
+                >
                     <input
                         aria-label="Along-track bias"
                         type="number" min={-90} max={90} step={0.1} className={fieldClass}
@@ -300,7 +326,10 @@ const PayloadGeometryEditor: React.FC<AdvancedDrawerProps> = ({ scenario, onChan
                         ))}
                     />
                 </Field>
-                <Field label="Cross-track bias °">
+                <Field
+                    label="Cross-track bias °"
+                    title="Tilt of the boresight away from nadir, perpendicular to the flight direction. It offsets the swath sideways, reaching targets the ground track does not pass over."
+                >
                     <input
                         aria-label="Cross-track bias"
                         type="number" min={-90} max={90} step={0.1} className={fieldClass}
@@ -310,7 +339,11 @@ const PayloadGeometryEditor: React.FC<AdvancedDrawerProps> = ({ scenario, onChan
                         ))}
                     />
                 </Field>
-                <Field label="Clocking °" hint="rotation about boresight">
+                <Field
+                    label="Clocking °"
+                    hint="rotation about boresight"
+                    title="Rotation of the footprint about the (biased) boresight. Only matters when the two half-angles differ: it decides whether an elongated footprint lies along track or across it."
+                >
                     <input
                         aria-label="FOV clocking"
                         type="number" step={1} className={fieldClass}
@@ -321,7 +354,11 @@ const PayloadGeometryEditor: React.FC<AdvancedDrawerProps> = ({ scenario, onChan
                         }))}
                     />
                 </Field>
-                <Field label="Elevation mask °" hint="optional ground mask">
+                <Field
+                    label="Elevation mask °"
+                    hint="optional ground mask"
+                    title="Minimum elevation above the target's horizon for an access to count. Models terrain, buildings or a link budget that fails at grazing angles. Optional, and not part of the original brief."
+                >
                     <div className="flex items-center gap-1.5">
                         <input
                             aria-label="Enable elevation mask"
@@ -630,7 +667,10 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                         disabled={fieldsLocked}
                         className={`m-0 grid grid-cols-3 gap-2 border-0 p-0 ${fieldsLocked ? 'opacity-70' : ''}`}
                     >
-                        <Field label="Pattern">
+                        <Field
+                            label="Pattern"
+                            title="Walker STAR folds every plane into 180° of right ascension — near-polar coverage, planes converging at the poles, which is what OneWeb flies. Walker DELTA spreads them over 360°, favouring mid latitudes."
+                        >
                             <select
                                 className={walkerFieldClass(
                                     reference.pattern !== DEFAULT_PROFILE.spec.pattern
@@ -642,7 +682,10 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                                 <option value="DELTA">DELTA</option>
                             </select>
                         </Field>
-                        <Field label="Planes P">
+                        <Field
+                            label="Planes P"
+                            title="Number of orbital planes. More planes spread the constellation in longitude, which shortens the wait between passes at a given latitude."
+                        >
                             <input
                                 type="number" min={1} max={MAX_ADVANCED_PLANES} step={1}
                                 className={walkerFieldClass(
@@ -656,7 +699,10 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                                 })}
                             />
                         </Field>
-                        <Field label="Sats / plane S">
+                        <Field
+                            label="Sats / plane S"
+                            title="Satellites evenly spaced within each plane. More satellites per plane shorten the wait between two passes along the same ground track."
+                        >
                             <input
                                 type="number" min={1} max={MAX_ADVANCED_SATS_PER_PLANE} step={1}
                                 className={walkerFieldClass(
@@ -671,7 +717,10 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                                 })}
                             />
                         </Field>
-                        <Field label="Inclination °">
+                        <Field
+                            label="Inclination °"
+                            title="Angle between the orbital plane and the equator. It sets the highest latitude reachable and where coverage concentrates: 87.9° is near-polar, so passes pile up at high latitudes and thin out at the equator."
+                        >
                             <input
                                 type="number" min={0} max={180} step={0.1}
                                 className={walkerFieldClass(
@@ -685,7 +734,10 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                                 })}
                             />
                         </Field>
-                        <Field label="Altitude km">
+                        <Field
+                            label="Altitude km"
+                            title="Height above the WGS84 equatorial radius. It drives the orbital period, the horizon distance and therefore the swath: higher means fewer, longer passes over a wider footprint."
+                        >
                             <input
                                 type="number" min={200} max={2000} step={10}
                                 className={walkerFieldClass(
@@ -699,9 +751,13 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                                 })}
                             />
                         </Field>
-                        <Field label="Phasing f" hint={
-                            Number.isInteger(reference.phasingF) ? undefined : 'non-standard Walker'
-                        }>
+                        <Field
+                            label="Phasing f"
+                            hint={
+                                Number.isInteger(reference.phasingF) ? undefined : 'non-standard Walker'
+                            }
+                            title="Relative phasing between planes: each plane is offset from the previous one by f × 360/(P×S) in position along the orbit. It staggers the satellites so neighbouring planes do not cross the same latitude at the same instant. A non-integer value is outside the Walker convention."
+                        >
                             <input
                                 type="number" step={1}
                                 className={walkerFieldClass(
@@ -715,7 +771,11 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                                 }}
                             />
                         </Field>
-                        <Field label="Fudge" hint="scales the RAAN step">
+                        <Field
+                            label="Fudge"
+                            hint="scales the RAAN step"
+                            title="Scales the spacing between planes. 1 spreads them evenly over the pattern span; below 1 packs them into a narrower band of right ascension, concentrating coverage at the cost of leaving a gap elsewhere."
+                        >
                             <input
                                 type="number" min={0.1} max={2} step={0.01}
                                 className={walkerFieldClass(
@@ -727,7 +787,10 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                                 })}
                             />
                         </Field>
-                        <Field label="Total">
+                        <Field
+                            label="Total"
+                            title="P × S — the active satellites this shell carries. Spares are not counted: they carry no payload."
+                        >
                             <div className="px-1.5 py-1 text-[12px] font-bold text-slate-400">
                                 {reference.planes * reference.satsPerPlane} sats
                             </div>
@@ -767,7 +830,11 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                     </p>
                     <div className="grid grid-cols-3 gap-2">
                         {/* Divisors only — an illegal stride cannot be expressed. */}
-                        <Field label="Plane stride x" hint={`divisors of ${reference.planes}`}>
+                        <Field
+                            label="Plane stride x"
+                            hint={`divisors of ${reference.planes}`}
+                            title="Take one plane in every x. Only divisors of P are offered, so the selected planes stay evenly spread instead of bunching."
+                        >
                             <select
                                 className={fieldClass}
                                 value={selection.planeStride}
@@ -778,7 +845,11 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                                 ))}
                             </select>
                         </Field>
-                        <Field label="Sat stride y" hint={`divisors of ${reference.satsPerPlane}`}>
+                        <Field
+                            label="Sat stride y"
+                            hint={`divisors of ${reference.satsPerPlane}`}
+                            title="Within each selected plane, take one satellite in every y. Only divisors of S are offered, for the same reason."
+                        >
                             <select
                                 className={fieldClass}
                                 value={selection.satStride}
@@ -789,7 +860,11 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                                 ))}
                             </select>
                         </Field>
-                        <Field label="Plane shift z" hint={`0 … ${reference.satsPerPlane - 1}`}>
+                        <Field
+                            label="Plane shift z"
+                            hint={`0 … ${reference.satsPerPlane - 1}`}
+                            title="Offset the choice by z slots more in each successive selected plane, producing a staircase rather than a column of payloads. Has no effect when z is a multiple of y."
+                        >
                             <input
                                 type="number" min={0} max={reference.satsPerPlane - 1} step={1}
                                 className={fieldClass}

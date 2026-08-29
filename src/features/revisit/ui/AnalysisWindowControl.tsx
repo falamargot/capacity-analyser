@@ -138,7 +138,10 @@ export const AnalysisWindowControl: React.FC<AnalysisWindowControlProps> = ({
                         Analysis window
                     </p>
                     <div className="grid grid-cols-2 gap-2">
-                        <label className="flex flex-col gap-1">
+                        <label
+                            className="flex flex-col gap-1"
+                            title="How long the analysis propagates, and what the timeline below spans. A Walker ground track repeats over a repeat cycle rather than a day, so a window under 24 h reports a revisit figure that is confidently wrong."
+                        >
                             <span className="text-[11px] font-black uppercase tracking-[0.1em] text-slate-500">
                                 Duration h
                             </span>
@@ -158,7 +161,10 @@ export const AnalysisWindowControl: React.FC<AnalysisWindowControlProps> = ({
                                 what the timeline spans · below {MIN_RELIABLE_WINDOW_HOURS} h is unreliable
                             </span>
                         </label>
-                        <label className="flex flex-col gap-1">
+                        <label
+                            className="flex flex-col gap-1"
+                            title="How often visibility is sampled. Each transition found is then refined by bisection, so this does not set the precision of the access times — it only has to be short enough not to miss a pass. A pass can last tens of seconds; one shorter than the step is not found at all, and the revisit figure comes out too large with no error shown."
+                        >
                             <span className="text-[11px] font-black uppercase tracking-[0.1em] text-slate-500">
                                 Step s
                             </span>

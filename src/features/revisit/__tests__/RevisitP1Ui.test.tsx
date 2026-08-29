@@ -482,6 +482,30 @@ describe('REVISIT P1 functional UI', () => {
         expect(bold()).toEqual(['17', '550']);
     });
 
+    /*
+     * Every editable field explains itself on hover. Not decoration: this panel
+     * is read by people who are not orbital engineers, and "Fudge",
+     * "Phasing f" and "Plane shift z" are unguessable from their labels.
+     *
+     * Asserted as a count over the fieldsets rather than field by field, so a
+     * field added later without a title fails here instead of shipping mute.
+     */
+    it('explains every editable parameter on hover', async () => {
+        const scenario = defaultScenario(Date.UTC(2026, 7, 12));
+        await act(async () => root?.render(
+            <AdvancedDrawer scenario={scenario} onChange={() => undefined} variant="menu" />
+        ));
+
+        const labelled = [...container.querySelectorAll('label')];
+        const withControl = labelled.filter((label) => label.querySelector('input, select'));
+        expect(withControl.length).toBeGreaterThan(10);
+
+        const mute = withControl
+            .filter((label) => !label.getAttribute('title'))
+            .map((label) => label.textContent?.slice(0, 24));
+        expect(mute).toEqual([]);
+    });
+
     it('turns the KPI into a truthful comparison without replacing worst-case', async () => {
         const statistics: GapStatistics = {
             maxGapMs: 3 * 3600_000,
