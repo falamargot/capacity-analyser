@@ -78,6 +78,11 @@ export interface ConstellationModelProps {
      * reference — see `docs/REVISIT_MODEL_SEMANTICS_DECISION_2026-08-29.md` D2.
      */
     onCompareToTleSet: () => void;
+    /**
+     * Overwrite Custom HLD with the reference profile, deliberately. Switching
+     * models never does this on its own — Custom keeps its own values.
+     */
+    onCopyHldIntoCustom: () => void;
     profile: ReferenceProfile | null;
     fit: WalkerFit | null;
     /** What the current `fit` was measured from — source, instant, epoch span. */
@@ -109,9 +114,10 @@ const MODE_OPTIONS: Array<{ id: ReferenceMode; label: string; title: string }> =
     },
     {
         id: 'CUSTOM',
-        label: 'Edit a copy',
-        title: 'Unlock the fields and edit the current numbers. Nothing external '
-            + 'vouches for the result — it becomes your own constellation.',
+        label: 'Custom HLD',
+        title: 'Your own editable constellation, seeded from the HLD. It keeps its '
+            + 'own values: switching to the HLD reference and back does not '
+            + 'overwrite them. Nothing external vouches for the result.',
     },
 ];
 
@@ -508,6 +514,21 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                                         ? 'Hide TLE comparison'
                                         : 'Compare with available TLE data'}
                             </button>
+                            {/*
+                              * The only path that discards Custom's values, and
+                              * it is explicit. Offered only in Custom, because
+                              * in HLD the values already ARE the reference.
+                              */}
+                            {model.mode === 'CUSTOM' && !matchesHldProfile && (
+                                <button
+                                    type="button"
+                                    onClick={model.onCopyHldIntoCustom}
+                                    title="Replace your custom parameters with the HLD reference, ladder, seam and spares included. This discards the values you entered."
+                                    className="mb-2 w-full rounded border border-slate-600 px-2 py-1 text-[11px] font-black uppercase tracking-[0.08em] text-slate-400 transition-colors hover:border-amber-400/50 hover:text-amber-200"
+                                >
+                                    Copy HLD values into Custom
+                                </button>
+                            )}
                             {model.error && (
                                 <p className="mb-2 text-[11px] leading-3 text-red-300">{model.error}</p>
                             )}
@@ -543,14 +564,18 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                     )}
                 </div>
 
-                <details className="revisit-expert-settings border-t border-slate-700/60 pt-2">
-                    <summary className="flex min-h-11 cursor-pointer items-center gap-2 text-[11px] font-black uppercase tracking-[0.12em] text-slate-400 hover:text-amber-200 md:min-h-0">
+                {/*
+                  * Open, always. This was a `<details>` behind a summary, on the
+                  * reasoning that a demonstration audience should not meet a
+                  * form. In practice everyone who opens this panel is here to
+                  * read or change these fields, and a second click to reach
+                  * them is a second click every time. The section keeps its
+                  * heading and its rule, so the panel still reads as two
+                  * blocks — what the model is, and what it is made of.
+                  */}
+                <section className="revisit-expert-settings border-t border-slate-700/60 pt-2">
+                    <p className="flex min-h-11 items-center gap-2 text-[11px] font-black uppercase tracking-[0.12em] text-slate-400 md:min-h-0">
                         Expert settings
-                    </summary>
-                    <p className="mt-1 text-[11px] leading-4 text-slate-500">
-                        Walker parameters, hosted-payload topology, instrument
-                        geometry and the analysis window. Editing these changes
-                        what is simulated, not how it is presented.
                     </p>
                     <div className="mt-2 space-y-3">
                     <div>
@@ -790,7 +815,7 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                     </div>
                 </div>
                     </div>
-                </details>
+                </section>
 
             {/* Portalled, so its place in this tree is irrelevant — it is here
                 because this is where its launcher lives. */}

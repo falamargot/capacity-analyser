@@ -43,12 +43,9 @@ test.describe('REVISIT P7E commercial progressive disclosure', () => {
     await expect(summary).toContainText('12 planes × 48 satellites');
     await expect(summary).toContainText('Walker STAR');
 
-    // Everything an engineer needs is present and closed.
+    // Everything an engineer needs is present, and open: this section is no
+    // longer a disclosure, because everyone who opens this panel came for it.
     const expert = panel.locator('.revisit-expert-settings');
-    await expect(expert).not.toHaveAttribute('open', /.*/);
-    await expect(panel.getByRole('combobox', { name: 'Plane stride x' })).toBeHidden();
-
-    await expert.locator('summary').click();
     await expect(panel.getByRole('combobox', { name: 'Plane stride x' })).toBeVisible();
     await expect(expert).toContainText('Instrument geometry');
     await expect(expert).toContainText('Analysis window');

@@ -1628,6 +1628,23 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     }, []);
 
     /**
+     * The Custom HLD constellation, remembered across visits to the reference.
+     *
+     * The two buttons are two constellations, not one constellation and a lock.
+     * Without this, editing Custom to 17 × 37, glancing at the HLD and coming
+     * back silently restored 12 × 48 — the edits were not stored anywhere, only
+     * the scenario was, and switching to HLD overwrote it. Losing work to a
+     * navigation is never acceptable, and least of all in front of an audience.
+     *
+     * A ref rather than state: nothing renders from it, and writing it during
+     * the effect below must not schedule a second pass.
+     */
+    const customReferenceRef = useRef<WalkerSpec | null>(null);
+    useEffect(() => {
+        if (referenceMode === 'CUSTOM') customReferenceRef.current = scenario.reference;
+    }, [referenceMode, scenario.reference]);
+
+    /**
      * The one entry point for choosing a model.
      *
      * HLD is the only faithful way back to the reference profile: re-typing
@@ -1635,21 +1652,34 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
      * drops the per-plane altitude ladder, the RAAN seam and the spares as soon
      * as planes or altitude change, and no field can put them back.
      *
-     * MEASURED reaches the network when no fit is cached yet (D1). On failure the
-     * mode is left untouched, so the panel never claims a model it does not have;
-     * `calibration.error` carries the reason.
-     *
-     * CUSTOM only unlocks the fields — it deliberately does not touch the spec,
-     * so the current numbers become the starting point for editing.
+     * CUSTOM restores what Custom last held, or — the first time — leaves the
+     * current numbers in place, so it opens as a copy of whatever was on screen.
+     * Overwriting Custom with the HLD values is a separate, deliberate action
+     * (`handleCopyHldIntoCustom`), never a side effect of switching.
      */
     const handleReferenceModeChange = useCallback((next: ReferenceMode) => {
         setReferenceRestored(false);
         if (next === 'CUSTOM') {
+            if (customReferenceRef.current) applyReference(customReferenceRef.current);
             setReferenceMode('CUSTOM');
             return;
         }
         applyReference(DEFAULT_PROFILE.spec);
         setReferenceMode('HLD');
+    }, [applyReference]);
+
+    /**
+     * Copy the HLD reference into Custom HLD, on purpose.
+     *
+     * This is the only path that discards Custom's own values, and it carries
+     * the complete profile — ladder, seam and spares included — so the copy is
+     * the reference exactly, not a re-typed lookalike.
+     */
+    const handleCopyHldIntoCustom = useCallback(() => {
+        applyReference(DEFAULT_PROFILE.spec);
+        customReferenceRef.current = DEFAULT_PROFILE.spec;
+        setReferenceMode('CUSTOM');
+        setReferenceRestored(false);
     }, [applyReference]);
 
     /**
@@ -1680,6 +1710,8 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     }, [clock]);
 
     const handleResetScenario = useCallback(() => {
+        // A reset is a fresh start, so Custom starts empty too.
+        customReferenceRef.current = null;
         const resetScenario = defaultScenario(epochRef.current);
         setScenario(resetScenario);
         setReferenceMode(referenceModeFor(resetScenario.reference));
@@ -1947,6 +1979,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                                 isRestored: referenceRestored,
                                 onModeChange: handleReferenceModeChange,
                                 onCompareToTleSet: handleCompareToTleSet,
+                                onCopyHldIntoCustom: handleCopyHldIntoCustom,
                                 fit: calibration.fit,
                                 provenance: calibration.provenance,
                                 isRunning: calibration.isRunning,

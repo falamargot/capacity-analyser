@@ -54,7 +54,6 @@ test.describe('REVISIT P0 demonstration contract', () => {
 
     // The fields themselves, and the profile detail a fitted shell cannot
     // carry, are one disclosure away and still exactly as they were.
-    await settings.locator('.revisit-expert-settings summary').click();
     // HLD is a record of something external, so its fields are not editable.
     await expect(settings.getByLabel('Planes P')).toBeDisabled();
     await expect(settings).toContainText('1175–1219 km');

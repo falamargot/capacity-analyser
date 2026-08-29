@@ -13,7 +13,6 @@ const openAdvanced = async (page: import('@playwright/test').Page) => {
   // Since Programme 7E the panel opens on Model + Evidence; the Walker fields,
   // strides, instrument geometry and window are behind `Expert settings`, which
   // is what every test in this file is about.
-  await dialog.locator('.revisit-expert-settings summary').click();
   await expect(page.getByRole('spinbutton', { name: 'Planes P' })).toBeVisible();
   // The characteristics are read-only for the HLD reference and the measured
   // shell — they are records of something external. Editing is a Custom-mode

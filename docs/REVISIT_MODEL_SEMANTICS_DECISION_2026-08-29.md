@@ -217,6 +217,32 @@ Vérifié en navigateur : repli puis dépli conservent l'horodatage
 `2026-08-29 09:54 UTC` sans repasser par `Measuring…`, le clic dans le panneau
 latéral ne ferme pas les réglages, forme `flyout` à 1280 px et `sheet` à 375 px.
 
+## 5 ter. Deux constellations, pas une constellation et un verrou (D7)
+
+`Edit a copy` devient **`Custom HLD`**, et surtout cesse d'être un simple
+déverrouillage de champs : c'est une constellation qui **conserve ses propres
+valeurs**. Auparavant, éditer Custom à 17 × 37, jeter un œil au HLD puis revenir
+restaurait silencieusement 12 × 48 — les éditions n'étaient stockées nulle part,
+seul le scénario l'était, et passer en HLD l'écrasait. Perdre du travail par une
+navigation n'est jamais acceptable, encore moins en démonstration.
+`customReferenceRef` (RevisitApp) mémorise le spec Custom ; `Reset scenario` le
+vide.
+
+L'écrasement reste possible, mais **explicite** : `Copy HLD values into Custom`,
+offert seulement en Custom et seulement quand les valeurs diffèrent réellement.
+Il copie le profil complet — ladder, seam et spares inclus — donc la copie est
+la référence, pas un sosie retapé.
+
+Corollaire : `Use fitted shell` n'apparaît plus qu'en Custom. Ailleurs les champs
+Walker sont en lecture seule, et un bouton qui les réécrit serait soit inerte,
+soit un changement de modèle sous une étiquette qui dit le contraire.
+
+Deux nettoyages d'ergonomie du même lot : `Expert settings` n'est plus un
+`<details>` replié — tout le monde ouvre ce panneau pour ces champs, le clic
+supplémentaire était un péage — et la croix de fermeture du panneau TLE est
+retirée : Échap, `Close` et le scrim (en feuille) suffisaient, la quatrième
+affordance ne faisait que concurrencer celle du pied.
+
 ## 6. Décisions en attente
 
 - **D3 — MEASURED n'est pas redondant avec SGP4** et ne doit pas être supprimé :

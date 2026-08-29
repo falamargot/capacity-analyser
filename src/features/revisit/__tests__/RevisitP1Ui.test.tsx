@@ -378,6 +378,67 @@ describe('REVISIT P1 functional UI', () => {
         expect(onChange.mock.calls[0][0].payload.biasDeg.alongTrack).toBe(4);
     });
 
+    /*
+     * Custom HLD keeps its own values, so the ONLY path that replaces them with
+     * the reference is this button. It exists because the alternative — the
+     * mode switch quietly restoring 12 × 48 — lost work to a navigation.
+     *
+     * Offered only in Custom, and only while the values actually differ: in HLD
+     * the values already are the reference, and a button that would change
+     * nothing is noise.
+     */
+    it('offers the HLD copy only in Custom, and only when it would change something', async () => {
+        const scenario = defaultScenario(Date.UTC(2026, 7, 12));
+        const onCopyHldIntoCustom = vi.fn();
+        const model = {
+            mode: 'CUSTOM' as const,
+            profile: null,
+            fit: null,
+            provenance: null,
+            isRunning: false,
+            error: null,
+            onModeChange: () => undefined,
+            onCompareToTleSet: () => undefined,
+            onCopyHldIntoCustom,
+        };
+        const edited = {
+            ...scenario,
+            reference: { ...scenario.reference, planes: 17, satsPerPlane: 37 },
+        };
+
+        // `variant="menu"` renders the panel body directly; the default variant
+        // is the collapsed Advanced section and would test the disclosure.
+        // Custom, values identical to the HLD: nothing to copy.
+        await act(async () => root?.render(
+            <AdvancedDrawer
+                scenario={scenario} onChange={() => undefined} model={model} variant="menu"
+            />
+        ));
+        const button = () => [...container.querySelectorAll('button')]
+            .find((element) => element.textContent === 'Copy HLD values into Custom');
+        expect(button()).toBeUndefined();
+
+        // Custom, values edited: the copy is offered.
+        await act(async () => root?.render(
+            <AdvancedDrawer
+                scenario={edited} onChange={() => undefined} model={model} variant="menu"
+            />
+        ));
+        await act(async () => button()!.click());
+        expect(onCopyHldIntoCustom).toHaveBeenCalledTimes(1);
+
+        // HLD: never, the values are the reference already.
+        await act(async () => root?.render(
+            <AdvancedDrawer
+                scenario={edited}
+                onChange={() => undefined}
+                model={{ ...model, mode: 'HLD' }}
+                variant="menu"
+            />
+        ));
+        expect(button()).toBeUndefined();
+    });
+
     it('turns the KPI into a truthful comparison without replacing worst-case', async () => {
         const statistics: GapStatistics = {
             maxGapMs: 3 * 3600_000,

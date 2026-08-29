@@ -248,7 +248,11 @@ export const TleComparisonDialog: React.FC<TleComparisonDialogProps> = ({
                     ? `pointer-events-auto absolute flex flex-col overflow-hidden rounded-xl border border-sky-400/30 text-slate-100 shadow-[0_28px_70px_rgba(0,0,0,0.55)] ${REVISIT_MENU_SURFACE}`
                     : `absolute inset-0 flex flex-col border-0 text-slate-100 ${REVISIT_MENU_SURFACE}`}
             >
-                <header className="flex items-start justify-between gap-3 border-b border-slate-700/70 px-4 py-3">
+                {/* No close cross here: Escape, the Close button and — on the
+                    sheet — the scrim already dismiss this panel. A fourth
+                    affordance in the corner only competes with the one in the
+                    footer. */}
+                <header className="border-b border-slate-700/70 px-4 py-3">
                     <div className="min-w-0">
                         <h2
                             id="revisit-tle-comparison-title"
@@ -266,12 +270,6 @@ export const TleComparisonDialog: React.FC<TleComparisonDialogProps> = ({
                             analysed constellation.
                         </p>
                     </div>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        aria-label="Close TLE comparison"
-                        className="min-h-10 min-w-10 shrink-0 rounded border border-slate-700 text-lg text-slate-300 hover:border-sky-400/50 hover:text-white"
-                    >×</button>
                 </header>
 
                 <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3">
@@ -429,13 +427,20 @@ export const TleComparisonDialog: React.FC<TleComparisonDialogProps> = ({
 
                 <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-700/70 px-4 py-3">
                     {/*
-                      * Adoption lands in "Edit a copy", never as a reference:
+                      * Adoption lands in Custom HLD, never as a reference:
                       * the fitted shell has no ladder, no seam and no spares, so
                       * presenting it as a named model would be the very claim
                       * D2 removed. As a custom constellation it is exactly what
                       * it is — numbers the user chose, sourced from the fit.
                       */}
-                    {fit && !isRunning && !identical && (
+                    {/*
+                      * Only in CUSTOM. Everywhere else the Walker fields are
+                      * read-only — the HLD is a record of something external —
+                      * so a button that rewrites them would either be inert or
+                      * would silently change the model out from under its own
+                      * label. Adoption is an edit, and edits live in Custom HLD.
+                      */}
+                    {fit && !isRunning && !identical && mode === 'CUSTOM' && (
                         <button
                             type="button"
                             onClick={onAdoptFittedShell}

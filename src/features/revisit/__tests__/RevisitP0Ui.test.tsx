@@ -206,7 +206,8 @@ describe('REVISIT P0 presentation UI', () => {
         const bold = [...document.querySelectorAll('.font-bold')].map((e) => e.textContent);
         expect(bold).toEqual(['12', '53', '1198.9 km']);
 
-        // Adoption is offered, and it lands in "Edit a copy" — never as a model.
+        // Adoption is offered in CUSTOM, where the fields are writable, and it
+        // lands in Custom HLD — never as a model.
         expect([...document.querySelectorAll('button')]
             .some((button) => button.textContent === 'Use fitted shell')).toBe(true);
     });

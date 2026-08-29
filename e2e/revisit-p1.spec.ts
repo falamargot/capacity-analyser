@@ -135,7 +135,6 @@ test.describe('REVISIT P1 requirement contract', () => {
     const settings = page.getByRole('dialog', { name: 'Advanced constellation settings' });
     await expect(settings).toBeVisible();
     // Instrument geometry lives behind `Expert settings` since Programme 7E.
-    await settings.locator('.revisit-expert-settings summary').click();
 
     await page.getByRole('combobox', { name: 'FOV shape' }).selectOption('RECTANGLE');
     await page.getByRole('spinbutton', { name: 'Along-track bias' }).fill('4', { force: true });
