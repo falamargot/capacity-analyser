@@ -54,7 +54,16 @@ function useClickOutside(
     useEffect(() => {
         if (!enabled) return;
         const handlePointerDown = (event: PointerEvent) => {
-            if (!ref.current?.contains(event.target as Node)) onOutside();
+            const target = event.target as Node;
+            if (ref.current?.contains(target)) return;
+            /*
+             * A panel may own a flyout that is portalled out of its subtree —
+             * the constellation panel's TLE characterisation is one. It is
+             * visually part of the panel and must not dismiss it, so it opts
+             * out by marking its own root.
+             */
+            if (target instanceof Element && target.closest('[data-revisit-panel-flyout]')) return;
+            onOutside();
         };
         document.addEventListener('pointerdown', handlePointerDown);
         return () => document.removeEventListener('pointerdown', handlePointerDown);
@@ -583,6 +592,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                         <div
                             role="dialog"
                             aria-label="Advanced constellation settings"
+                            data-revisit-constellation-panel
                             className={`absolute left-0 top-[calc(100%+0.35rem)] z-[80] max-h-[min(74vh,42rem)] w-[min(36rem,calc(100vw-1rem))] overflow-y-auto rounded-lg border border-amber-400/35 ${REVISIT_MENU_SURFACE} shadow-2xl`}
                         >
                             <AdvancedDrawer

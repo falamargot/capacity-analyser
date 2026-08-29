@@ -1,15 +1,24 @@
 /**
  * TleComparisonDialog — the live-TLE characterisation, on its own surface.
  *
- * ── WHY A DIALOG AND NOT A PANEL BLOCK ──────────────────────────────────────
+ * ── WHY A SIDE PANEL AND NOT A MODAL ───────────────────────────────────────
  * This measurement writes nothing. It changes no Walker parameter, no scenario,
- * no reported revisit — it reads a catalogue and reports what shape it has.
- * Transient information belongs on a transient surface, and putting it inline
- * in `Constellation settings` created three problems at once: it occupied a
- * third of a settings panel with something that is not a setting, it could be
- * opened but never closed (nothing was wired to `reset()`), and it sat directly
- * under a Characteristics block it had no relation to, inviting the reader to
- * take `12 × 53` as the constellation being simulated.
+ * no reported revisit — it reads a catalogue and reports what shape it has. It
+ * was first inline in `Constellation settings`, which was wrong twice: it filled
+ * a third of a settings panel with something that is not a setting, and it could
+ * be opened and never closed.
+ *
+ * The modal that replaced it was wrong differently: it dimmed and blurred the
+ * very panel the reader needs beside it. `12 × 53` is meaningless unless
+ * `12 × 48` is legible at the same moment, and a modal makes the comparison a
+ * memory exercise. So this is a NON-MODAL flyout hanging off the right edge of
+ * the constellation panel: no backdrop, no focus trap, the panel stays open,
+ * readable and interactive, and the button toggles the flyout open and shut.
+ *
+ * Staying open costs one thing, paid in `RevisitHeader`: the panel dismisses
+ * itself on any pointer-down outside its subtree, and this flyout is portalled
+ * out of it. It marks itself `data-revisit-panel-flyout`, which that handler
+ * treats as inside.
  *
  * ── WHY PROVENANCE IS PART OF THE RESULT, NOT A FOOTNOTE ────────────────────
  * The `fetchTLE` ladder degrades silently — live, fresh cache, stale cache,
@@ -19,9 +28,9 @@
  * cache refresh). Without the rung and the instant on screen, that reads as an
  * unreliable tool rather than as a changing catalogue.
  *
- * Below `md` this is a full-screen sheet rather than an anchored popup: the
- * content is a dozen figures and a caveat list, and a 432 px popup on a 390 px
- * phone is a sheet with extra steps.
+ * Below `md`, and wherever the panel leaves no room beside it, this falls back
+ * to a full-screen sheet: a 420 px flyout on a 375 px phone is a sheet with
+ * extra steps.
  */
 
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -39,14 +48,17 @@ export interface TleComparisonDialogProps {
     /** Run the measurement again against whatever the ladder serves now. */
     onReMeasure: () => void;
     onClose: () => void;
-    /** The launcher, so the popup hangs off it above `md`. */
+    /** The launcher — used to locate the panel this flyout hangs off. */
     anchorRef?: React.RefObject<HTMLElement | null>;
 }
 
-/** Popup width at `md` and above, px. */
-const POPUP_WIDTH = 420;
+/** Flyout width beside the panel, px. */
+const FLYOUT_WIDTH = 420;
 const GUTTER = 12;
-const MIN_POPUP_HEIGHT = 280;
+/** Space between the constellation panel and the flyout, px. */
+const OFFSET = 8;
+/** Below this much free height beside the panel, the sheet is honest instead. */
+const MIN_FLYOUT_HEIGHT = 280;
 
 /** How each ladder rung must be described. Never "live" unless it was. */
 const SOURCE_LABEL: Record<CalibrationProvenance['source'], string> = {
@@ -67,26 +79,46 @@ const UTC = (ms: number): string => new Date(ms).toISOString().replace('T', ' ')
 
 /** Signed difference, written the way a reader compares two figures. */
 const signed = (value: number, digits = 0): string =>
-    `${value >= 0 ? '+' : '−'}${Math.abs(value).toFixed(digits)}`;
+    `${value >= 0 ? '+' : '\u2212'}${Math.abs(value).toFixed(digits)}`;
 
-function anchoredPosition(anchor: HTMLElement | null): React.CSSProperties | null {
-    if (!anchor || typeof window === 'undefined') return null;
+/**
+ * Where the flyout sits beside the constellation panel, or `null` for the sheet.
+ *
+ * The anchor is the PANEL, not the button: the flyout is an extension of that
+ * surface and must align with its top edge, not with a control halfway down it.
+ * The button is only the handle used to find the panel in the DOM, because the
+ * panel is owned by `RevisitHeader` and passing a ref down two component
+ * boundaries to position a child of a child buys nothing.
+ *
+ * Right by preference, left when the right edge would overflow, sheet when
+ * neither side has room — a flyout squeezed into 120 px is worse than a sheet.
+ */
+function flyoutPosition(button: HTMLElement | null): React.CSSProperties | null {
+    if (!button || typeof window === 'undefined') return null;
     if (typeof window.matchMedia !== 'function') return null;
     if (!window.matchMedia('(min-width: 768px)').matches) return null;
 
-    const rect = anchor.getBoundingClientRect();
+    const panel = button.closest<HTMLElement>('[data-revisit-constellation-panel]') ?? button;
+    const rect = panel.getBoundingClientRect();
     if (rect.width === 0 && rect.height === 0) return null;
 
-    const width = Math.min(POPUP_WIDTH, window.innerWidth - GUTTER * 2);
-    const left = Math.min(
-        Math.max(rect.left, GUTTER),
-        Math.max(GUTTER, window.innerWidth - width - GUTTER),
-    );
+    const width = Math.min(FLYOUT_WIDTH, window.innerWidth - GUTTER * 2);
+    const rightEdge = rect.right + OFFSET + width + GUTTER;
+    const leftFits = rect.left - OFFSET - width >= GUTTER;
+    const left = rightEdge <= window.innerWidth
+        ? rect.right + OFFSET
+        : leftFits
+            ? rect.left - OFFSET - width
+            : null;
+    if (left === null) return null;
+
     const top = Math.max(GUTTER, Math.min(
-        rect.bottom + 8,
-        window.innerHeight - GUTTER - MIN_POPUP_HEIGHT,
+        rect.top,
+        window.innerHeight - GUTTER - MIN_FLYOUT_HEIGHT,
     ));
-    return { top, left, width, maxHeight: window.innerHeight - top - GUTTER };
+    const maxHeight = window.innerHeight - top - GUTTER;
+    if (maxHeight < MIN_FLYOUT_HEIGHT) return null;
+    return { top, left, width, maxHeight };
 }
 
 const Row: React.FC<{ label: string; children: React.ReactNode; title?: string }> = ({
@@ -107,7 +139,7 @@ export const TleComparisonDialog: React.FC<TleComparisonDialogProps> = ({
     const [position, setPosition] = useState<React.CSSProperties | null>(null);
 
     const reposition = useCallback(
-        () => setPosition(anchoredPosition(anchorRef?.current ?? null)),
+        () => setPosition(flyoutPosition(anchorRef?.current ?? null)),
         [anchorRef],
     );
     useLayoutEffect(() => {
@@ -116,38 +148,20 @@ export const TleComparisonDialog: React.FC<TleComparisonDialogProps> = ({
         return () => window.removeEventListener('resize', reposition);
     }, [reposition]);
 
+    /*
+     * Escape closes, and that is the whole keyboard contract. No focus trap and
+     * no autofocus: this panel is NOT modal — the constellation settings beside
+     * it stay operable, and stealing focus out of a field the user was editing
+     * to a panel they only asked to read would be a regression, not a courtesy.
+     */
     useEffect(() => {
-        const returnFocusTo = document.activeElement instanceof HTMLElement
-            ? document.activeElement : null;
-        const panel = panelRef.current;
-        panel?.querySelector<HTMLElement>('[data-dialog-autofocus]')?.focus();
-
         const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
-                event.preventDefault();
-                onClose();
-                return;
-            }
-            if (event.key !== 'Tab' || !panel) return;
-            const focusable = [...panel.querySelectorAll<HTMLElement>(
-                'button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
-            )].filter((element) => !element.hidden && element.offsetParent !== null);
-            if (focusable.length === 0) return;
-            const first = focusable[0];
-            const last = focusable[focusable.length - 1];
-            if (event.shiftKey && document.activeElement === first) {
-                event.preventDefault();
-                last.focus();
-            } else if (!event.shiftKey && document.activeElement === last) {
-                event.preventDefault();
-                first.focus();
-            }
+            if (event.key !== 'Escape') return;
+            event.preventDefault();
+            onClose();
         };
         document.addEventListener('keydown', handleKeyDown);
-        return () => {
-            document.removeEventListener('keydown', handleKeyDown);
-            returnFocusTo?.focus();
-        };
+        return () => document.removeEventListener('keydown', handleKeyDown);
     }, [onClose]);
 
     if (typeof document === 'undefined') return null;
@@ -155,22 +169,38 @@ export const TleComparisonDialog: React.FC<TleComparisonDialogProps> = ({
     const hld = DEFAULT_PROFILE.spec;
 
     return createPortal(
-        <div className="revisit-shell fixed inset-0 z-[110]" data-testid="tle-comparison-dialog">
-            <button
-                type="button"
-                aria-label="Dismiss TLE comparison"
-                onClick={onClose}
-                className="absolute inset-0 h-full w-full cursor-default bg-slate-950/65 backdrop-blur-[2px]"
-            />
+        /*
+         * `pointer-events-none` on the wrapper with `pointer-events-auto` on the
+         * panel: the flyout is an overlay in the layer sense only. Everything it
+         * does not cover — the constellation panel, the globe, the timeline —
+         * keeps receiving clicks, which is what "non-modal" has to mean in
+         * practice and not only in the ARIA attribute.
+         */
+        <div
+            className={position
+                ? 'revisit-shell pointer-events-none fixed inset-0 z-[85]'
+                : 'revisit-shell fixed inset-0 z-[85]'}
+            data-testid="tle-comparison-dialog"
+            data-revisit-panel-flyout
+        >
+            {/* Only the sheet gets a scrim: at that size it does cover the panel,
+                so there is nothing behind it left to read. */}
+            {!position && (
+                <button
+                    type="button"
+                    aria-label="Dismiss TLE comparison"
+                    onClick={onClose}
+                    className="absolute inset-0 h-full w-full cursor-default bg-slate-950/65 backdrop-blur-[2px]"
+                />
+            )}
             <aside
                 ref={panelRef}
-                role="dialog"
-                aria-modal="true"
+                role="region"
                 aria-labelledby="revisit-tle-comparison-title"
-                data-revisit-dialog-shape={position ? 'popup' : 'sheet'}
+                data-revisit-dialog-shape={position ? 'flyout' : 'sheet'}
                 style={position ?? undefined}
                 className={position
-                    ? `absolute flex flex-col overflow-hidden rounded-xl border border-sky-400/30 text-slate-100 shadow-[0_28px_70px_rgba(0,0,0,0.55)] ${REVISIT_MENU_SURFACE}`
+                    ? `pointer-events-auto absolute flex flex-col overflow-hidden rounded-xl border border-sky-400/30 text-slate-100 shadow-[0_28px_70px_rgba(0,0,0,0.55)] ${REVISIT_MENU_SURFACE}`
                     : `absolute inset-0 flex flex-col border-0 text-slate-100 ${REVISIT_MENU_SURFACE}`}
             >
                 <header className="flex items-start justify-between gap-3 border-b border-slate-700/70 px-4 py-3">
@@ -193,7 +223,6 @@ export const TleComparisonDialog: React.FC<TleComparisonDialogProps> = ({
                     </div>
                     <button
                         type="button"
-                        data-dialog-autofocus
                         onClick={onClose}
                         aria-label="Close TLE comparison"
                         className="min-h-10 min-w-10 shrink-0 rounded border border-slate-700 text-lg text-slate-300 hover:border-sky-400/50 hover:text-white"

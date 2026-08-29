@@ -453,13 +453,22 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                             <button
                                 type="button"
                                 ref={compareButtonRef}
+                                aria-expanded={tleDialogOpen}
                                 onClick={() => {
+                                    // A toggle, not a re-run. Collapsing and
+                                    // expanding a reading must not re-hit the
+                                    // network; `Re-measure` inside the panel is
+                                    // where a fresh measurement is asked for.
+                                    if (tleDialogOpen) {
+                                        setTleDialogOpen(false);
+                                        return;
+                                    }
                                     // Open first, measure second: the fetch can
                                     // take seconds on a filtered network, and a
                                     // button that does nothing visible for that
                                     // long gets clicked again.
                                     setTleDialogOpen(true);
-                                    model.onCompareToTleSet();
+                                    if (!model.fit) model.onCompareToTleSet();
                                 }}
                                 disabled={model.isRunning}
                                 title="Fit a perfect Walker shell to the OneWeb TLE data currently available — live, cached, or the bundled file — and report the residual. Diagnostic only: the analysed constellation is not changed."
@@ -467,7 +476,9 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                             >
                                 {model.isRunning
                                     ? 'Comparing…'
-                                    : 'Compare with available TLE data'}
+                                    : tleDialogOpen
+                                        ? 'Hide TLE comparison'
+                                        : 'Compare with available TLE data'}
                             </button>
                             {model.error && (
                                 <p className="mb-2 text-[11px] leading-3 text-red-300">{model.error}</p>

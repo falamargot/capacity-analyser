@@ -154,6 +154,35 @@ describe('REVISIT P0 presentation UI', () => {
         expect(text).toContain('Re-measuring can return different figures');
     });
 
+    /*
+     * Non-modality is load-bearing, not a style choice: the reader compares
+     * `12 × 53` in this panel against `12 × 48` in the settings panel behind it,
+     * and a modal turns that into a memory exercise. Two things carry it, and
+     * both are pinned here because breaking either is invisible until someone
+     * demonstrates the tool:
+     *
+     *  - no `aria-modal`, so assistive technology does not hide the rest;
+     *  - `data-revisit-panel-flyout`, which `RevisitHeader.useClickOutside`
+     *    treats as inside the constellation panel. Without it, the first click
+     *    into this flyout dismisses the panel it is explaining.
+     */
+    it('is a non-modal flyout that the constellation panel treats as its own', async () => {
+        await act(async () => root?.render(
+            <TleComparisonDialog
+                fit={null}
+                provenance={null}
+                isRunning
+                error={null}
+                onReMeasure={() => undefined}
+                onClose={() => undefined}
+            />
+        ));
+
+        const root_ = document.querySelector('[data-testid="tle-comparison-dialog"]');
+        expect(root_?.hasAttribute('data-revisit-panel-flyout')).toBe(true);
+        expect(document.querySelector('[aria-modal="true"]')).toBeNull();
+    });
+
     /* The measurement is reversible: it can be closed, by three routes. */
     it('closes on Escape, on the backdrop and on its own buttons', async () => {
         const onClose = vi.fn();

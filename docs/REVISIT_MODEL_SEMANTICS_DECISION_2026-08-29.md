@@ -194,6 +194,29 @@ ne le dise. `npm run update-celestrak` rafraîchit le fichier.
 
 `ModelProvenance` ne porte plus que les affirmations sur le modèle analysé.
 
+**Correction D6.1 — non modal.** Le premier jet était une modale : elle assombrit
+et floute le panneau que le lecteur doit justement avoir sous les yeux. `12 × 53`
+n'a de sens que si `12 × 48` est lisible au même instant ; une modale transforme
+la comparaison en exercice de mémoire. C'est donc un **panneau latéral non modal**
+accroché au bord droit de `Constellation settings` (à gauche si le bord droit
+déborde, feuille plein écran s'il ne reste de place ni d'un côté ni de l'autre,
+et sous `md`) : pas de fond assombri, pas de piège à focus, pas de vol de focus,
+`pointer-events` rendus à tout ce qu'il ne couvre pas.
+
+Le panneau de réglages **reste ouvert quoi qu'il arrive** — y compris au clic
+dans le panneau latéral. Cela se paie d'une ligne dans `RevisitHeader` :
+`useClickOutside` ferme le panneau à tout pointeur hors de son sous-arbre, et le
+panneau latéral est portalé hors de celui-ci ; il se marque
+`data-revisit-panel-flyout`, que ce gestionnaire traite comme intérieur.
+
+Le bouton est un **interrupteur** (`Compare with available TLE data` ↔
+`Hide TLE comparison`, `aria-expanded`) et ne relance **pas** la mesure au
+repli/dépli : seul `Re-measure`, dans le panneau, refait un appel réseau.
+
+Vérifié en navigateur : repli puis dépli conservent l'horodatage
+`2026-08-29 09:54 UTC` sans repasser par `Measuring…`, le clic dans le panneau
+latéral ne ferme pas les réglages, forme `flyout` à 1280 px et `sheet` à 375 px.
+
 ## 6. Décisions en attente
 
 - **D3 — MEASURED n'est pas redondant avec SGP4** et ne doit pas être supprimé :

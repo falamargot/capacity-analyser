@@ -1870,9 +1870,10 @@ soit 6 à 9× Kepler+J2 et non trois ordres de grandeur (`npm run
 bench:propagators`) — mais l'absence de règle d'affectation des payloads et
 trois questions de contrat métier à faire trancher.
 
-La mesure a ensuite quitté le panneau pour son propre dialogue
-(`TleComparisonDialog` — popup au-dessus de `md`, feuille plein écran en
-dessous), avec source, horodatage et plage d'époques TLE. Ce qui a révélé que le
+La mesure a ensuite quitté le panneau pour sa propre surface
+(`TleComparisonDialog` — panneau latéral **non modal** ouvert à droite de
+`Constellation settings`, qui reste ouvert et lisible ; feuille plein écran sous
+`md`), avec source, horodatage et plage d'époques TLE. Ce qui a révélé que le
 fichier `public/celestrak.txt` embarqué date du 23–24 mars 2026.
 
 Tout est dans `docs/REVISIT_MODEL_SEMANTICS_DECISION_2026-08-29.md`.
