@@ -16,7 +16,7 @@
  * does nothing mid-demo costs more than the feature is worth.
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import CollapsibleSection from '../../../components/layout/CollapsibleSection';
 import {
     divisorsOf, payloadCount, reconcileSelection, validateSelection,
@@ -32,8 +32,10 @@ import {
     type ReferenceMode, type ReferenceProfile,
 } from '../domain/referenceProfiles';
 import { ModelProvenance } from './ModelProvenance';
+import { TleComparisonDialog } from './TleComparisonDialog';
 import { displayAltitudeKm, displayInclinationDeg } from './revisitTheme';
 import type { WalkerFit } from '../calibration/fitWalker';
+import type { CalibrationProvenance } from '../hooks/useOneWebCalibration';
 
 interface AdvancedDrawerProps {
     scenario: RevisitScenario;
@@ -78,6 +80,8 @@ export interface ConstellationModelProps {
     onCompareToTleSet: () => void;
     profile: ReferenceProfile | null;
     fit: WalkerFit | null;
+    /** What the current `fit` was measured from — source, instant, epoch span. */
+    provenance: CalibrationProvenance | null;
     isRunning: boolean;
     error: string | null;
 }
@@ -393,6 +397,15 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
     const setSelection = (patch: Partial<typeof selection>) =>
         onChange({ ...scenario, selection: { ...selection, ...patch } });
 
+    /*
+     * The measurement opens its own surface rather than growing this panel.
+     * Closing it keeps the last fit in the hook, so re-opening is instant — the
+     * dialog carries the instant it was measured at, which is what makes a kept
+     * result readable rather than misleading.
+     */
+    const [tleDialogOpen, setTleDialogOpen] = useState(false);
+    const compareButtonRef = useRef<HTMLButtonElement | null>(null);
+
     const validation = validateSelection(reference, selection);
     // z = 0 satisfies the degeneracy rule trivially and is the expected baseline,
     // so only warn when the user has actually set a shift that does nothing.
@@ -439,7 +452,15 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                               */}
                             <button
                                 type="button"
-                                onClick={model.onCompareToTleSet}
+                                ref={compareButtonRef}
+                                onClick={() => {
+                                    // Open first, measure second: the fetch can
+                                    // take seconds on a filtered network, and a
+                                    // button that does nothing visible for that
+                                    // long gets clicked again.
+                                    setTleDialogOpen(true);
+                                    model.onCompareToTleSet();
+                                }}
                                 disabled={model.isRunning}
                                 title="Fit a perfect Walker shell to the OneWeb TLE data currently available — live, cached, or the bundled file — and report the residual. Diagnostic only: the analysed constellation is not changed."
                                 className="mb-2 w-full rounded border border-slate-600 px-2 py-1 text-[11px] font-black uppercase tracking-[0.08em] text-slate-400 transition-colors hover:border-sky-400/50 hover:text-sky-200 disabled:opacity-60"
@@ -476,7 +497,6 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                         <div className="mt-2 border-t border-slate-700/50 pt-2">
                             <ModelProvenance
                                 profile={model.profile}
-                                fit={model.fit}
                                 mode={model.mode}
                                 isRestored={model.isRestored}
                             />
@@ -732,6 +752,20 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                 </div>
                     </div>
                 </details>
+
+            {/* Portalled, so its place in this tree is irrelevant — it is here
+                because this is where its launcher lives. */}
+            {model && tleDialogOpen && (
+                <TleComparisonDialog
+                    fit={model.fit}
+                    provenance={model.provenance}
+                    isRunning={model.isRunning}
+                    error={model.error}
+                    onReMeasure={model.onCompareToTleSet}
+                    onClose={() => setTleDialogOpen(false)}
+                    anchorRef={compareButtonRef}
+                />
+            )}
         </div>
     );
 

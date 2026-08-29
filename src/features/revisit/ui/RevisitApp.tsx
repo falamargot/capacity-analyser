@@ -1948,6 +1948,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                                 onModeChange: handleReferenceModeChange,
                                 onCompareToTleSet: handleCompareToTleSet,
                                 fit: calibration.fit,
+                                provenance: calibration.provenance,
                                 isRunning: calibration.isRunning,
                                 error: calibration.error,
                             }}

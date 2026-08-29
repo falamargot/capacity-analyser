@@ -286,6 +286,40 @@ async function fetchBundledTLE(operator: 'EUTELSAT' | 'ONEWEB'): Promise<string>
  * get `CELESTRAK_FETCH_TIMEOUT_MS`; there is no test-only branch in the code
  * under test.
  */
+/**
+ * Which rung of the `fetchTLE` ladder actually served the data.
+ *
+ * ── WHY THIS IS RECORDED ────────────────────────────────────────────────────
+ * The ladder degrades silently by design — that is what keeps the application
+ * booting on a filtered network — but a caller that PRESENTS the data cannot
+ * inherit that silence. REVISIT's TLE comparison publishes numbers measured
+ * from this catalogue, and two runs ten minutes apart can legitimately differ
+ * (cache expiry, a live fetch replacing the bundled file). Without the rung and
+ * the instant, that difference is unexplainable on screen and reads as the tool
+ * being unreliable.
+ *
+ * `'bundled'` in particular must never be described as live: the file ships
+ * with the build and can be weeks old.
+ */
+export type TleSource = 'live' | 'cache-fresh' | 'cache-stale' | 'bundled';
+
+export interface TleProvenance {
+  source: TleSource;
+  /** When this fetch resolved, ms. NOT the age of the data it returned. */
+  retrievedAtMs: number;
+}
+
+const tleProvenance = new Map<string, TleProvenance>();
+
+function recordTleProvenance(operator: 'EUTELSAT' | 'ONEWEB', source: TleSource): void {
+  tleProvenance.set(operator, { source, retrievedAtMs: Date.now() });
+}
+
+/** Provenance of the most recent successful `fetchTLE` for this operator. */
+export function getTleProvenance(operator: 'EUTELSAT' | 'ONEWEB'): TleProvenance | null {
+  return tleProvenance.get(operator) ?? null;
+}
+
 export async function fetchTLE(
   operator: 'EUTELSAT' | 'ONEWEB',
   cacheKey: string,
@@ -294,12 +328,15 @@ export async function fetchTLE(
   if (FORCE_LOCAL_CELESTRAK) {
     try {
       log(`[TLE] VITE_FORCE_LOCAL_CELESTRAK=true -> serving ${operator} TLEs from bundled static file.`);
-      return await fetchBundledTLE(operator);
+      const bundled = await fetchBundledTLE(operator);
+      recordTleProvenance(operator, 'bundled');
+      return bundled;
     } catch (fileError) {
       console.warn(`[TLE] Bundled static file failed for ${operator}:`, fileError);
       const stale = await readFromCache(cacheKey);
       if (stale) {
         console.warn(`[TLE] Falling back to cached ${operator} TLEs because bundled static file is unavailable.`);
+        recordTleProvenance(operator, 'cache-stale');
         return stale;
       }
       return '';
@@ -311,6 +348,7 @@ export async function fetchTLE(
     const cached = await readFromCache(cacheKey);
     if (cached) {
       log(`[TLE Cache] Serving fresh ${operator} TLEs from IndexedDB.`);
+      recordTleProvenance(operator, 'cache-fresh');
       return cached;
     }
   }
@@ -323,6 +361,7 @@ export async function fetchTLE(
       const text = await resp.text();
       if (text.trim().length > 100) { // Sanity check: not an error page
         void writeToCache(cacheKey, text); // async write — don't block returning TLE text
+        recordTleProvenance(operator, 'live');
         return text;
       }
     }
@@ -334,12 +373,15 @@ export async function fetchTLE(
     const stale = await readFromCache(cacheKey);
     if (stale) {
       console.warn(`[TLE Cache] Using stale ${operator} TLEs from IndexedDB (age > ${TLE_CACHE_TTL_MS / 60000} min).`);
+      recordTleProvenance(operator, 'cache-stale');
       return stale;
     }
 
     // 4. Last resort: bundled static file
     console.warn(`[TLE Cache] Falling back to bundled static file for ${operator}.`);
-    return await fetchBundledTLE(operator);
+    const bundled = await fetchBundledTLE(operator);
+    recordTleProvenance(operator, 'bundled');
+    return bundled;
   }
 }
 

@@ -155,6 +155,45 @@ après l'action, et le diagnostic s'affiche sous
 13,9 km RMS*, avec ses 5 caveats. Le contraste avec les 576 slots du HLD est
 maintenant lisible comme une mesure, non comme une variante.
 
+## 5 bis. La mesure passe sur sa propre surface (D6, 2026-08-29)
+
+Le bloc inline restait un défaut d'UX même corrigé : il occupait un tiers d'un
+panneau de **réglages** avec quelque chose qui n'en est pas un, et surtout
+**il pouvait s'ouvrir sans jamais se refermer** — `useOneWebCalibration.reset()`
+existait mais n'était câblé à aucun bouton, et `Reset scenario` ne le touchait
+pas. Une action qui ajoute de l'information sans action symétrique pour la
+retirer est un piège en démonstration.
+
+`TleComparisonDialog` : popup ancré au bouton au-dessus de `md`, **feuille
+plein écran en dessous** (le contenu fait une douzaine de chiffres plus une
+liste de caveats ; un popup de 420 px sur un téléphone de 375 px est une feuille
+avec des étapes en plus). Ouverture immédiate au clic avec `Measuring…` à
+l'intérieur — la mesure peut prendre 5 s et un bouton sans retour visible se
+fait recliquer. Fermeture Échap / clic sur le fond / croix / bouton `Close`,
+focus rendu au lanceur. `Re-measure` est **dans** le dialogue : c'est là que le
+second clic a un sens.
+
+Rejeté : l'affichage tant que le bouton est maintenu. Le contenu n'est pas
+lisible d'un coup d'œil et les caveats ne se déplient pas sans relâcher ; on ne
+peut ni copier ni citer ; le délai réseau casse le geste ; et surtout un maintien
+n'a **pas d'équivalent clavier**, et l'appui long au tactile est déjà pris par le
+menu système. Une information réservée à la souris maintenue est une information
+que certains utilisateurs ne peuvent pas obtenir.
+
+**Provenance affichée, et non déductible autrement.** `satelliteService` publie
+désormais le barreau de la ladder qui a réellement servi (`live` / `cache-fresh`
+/ `cache-stale` / `bundled`) et l'instant du fetch ; le hook y ajoute la plage
+d'époques TLE et la taille du catalogue avant filtrage. Le dialogue les affiche
+et dit explicitement qu'une nouvelle mesure peut différer.
+
+Cela a immédiatement produit un fait qu'aucun écran ne montrait : en
+environnement de développement, CelesTrak est injoignable, la source est le
+**fichier embarqué**, et ses époques TLE datent du **23–24 mars 2026** — cinq
+mois. Les 248 km RMS étaient donc mesurés sur un catalogue périmé sans que rien
+ne le dise. `npm run update-celestrak` rafraîchit le fichier.
+
+`ModelProvenance` ne porte plus que les affirmations sur le modèle analysé.
+
 ## 6. Décisions en attente
 
 - **D3 — MEASURED n'est pas redondant avec SGP4** et ne doit pas être supprimé :

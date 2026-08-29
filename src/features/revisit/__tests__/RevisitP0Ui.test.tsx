@@ -7,6 +7,7 @@ import { defaultScenario } from '../domain/presets';
 import { RevisitHeader } from '../ui/RevisitHeader';
 import { CoverageRibbon } from '../ui/CoverageRibbon';
 import { ModelProvenance } from '../ui/ModelProvenance';
+import { TleComparisonDialog } from '../ui/TleComparisonDialog';
 import { referenceProfileFor } from '../domain/referenceProfiles';
 import type { GapStatistics } from '../domain/types';
 
@@ -68,7 +69,6 @@ describe('REVISIT P0 presentation UI', () => {
             <ModelProvenance
                 mode="HLD"
                 profile={referenceProfileFor(scenario.reference)}
-                fit={null}
             />
         ));
 
@@ -84,19 +84,19 @@ describe('REVISIT P0 presentation UI', () => {
 
     /*
      * D2 (2026-08-29). The live-TLE fit is a diagnostic, never the analysed
-     * model. The regression it guards is semantic, not visual: while the fit
-     * could be adopted as the reference, a fitted shell — no ladder, no seam,
-     * no spares — was presented at the same rank as the HLD profile, and the
-     * panel gave a reader no way to tell a reference from a measurement about
-     * one. So the fit must render ALONGSIDE the HLD provenance line, under a
-     * heading that denies it is the model.
+     * model, and it now lives on its own surface. Two properties are pinned
+     * here because losing either recreates a defect that shipped:
+     *
+     *  - the fitted topology and its deltas must be present. Without them the
+     *    panel showed `645 real satellites` and `248 km RMS` beside a
+     *    Characteristics block reading 12 × 48, and the residual had no subject.
+     *  - the source and the instant must be present. The fetchTLE ladder
+     *    degrades silently, so two measurements minutes apart can legitimately
+     *    disagree; unexplained, that reads as an unreliable tool.
      */
-    it('shows the TLE fit as a diagnostic beside the analysed model, not as one', async () => {
-        const scenario = defaultScenario(Date.UTC(2026, 7, 12));
+    it('reports the fitted shell, its deltas, and what it was measured from', async () => {
         await act(async () => root?.render(
-            <ModelProvenance
-                mode="HLD"
-                profile={referenceProfileFor(scenario.reference)}
+            <TleComparisonDialog
                 fit={{
                     // A fit never reproduces the ladder, the seam or the spares;
                     // 12 × 53 is what the real catalogue yielded on 2026-08-29.
@@ -106,34 +106,85 @@ describe('REVISIT P0 presentation UI', () => {
                         phasingF: 1, fudge: 1,
                     },
                     satellitesUsed: 636,
-                    satellitesExcluded: 15,
+                    satellitesExcluded: 9,
                     planesDetected: 12,
                     planePopulations: [53],
-                    raanRmsDeg: 0.42,
-                    argLatRmsDeg: 1.1,
-                    altitudeRmsKm: 3.4,
+                    raanRmsDeg: 0.06,
+                    argLatRmsDeg: 1.88,
+                    altitudeRmsKm: 13.9,
                     inclinationRmsDeg: 0.02,
-                    alongTrackRmsKm: 145,
-                    notes: [],
+                    alongTrackRmsKm: 248,
+                    notes: ['9 satellites were more than 25 km off the median shell'],
                 }}
+                provenance={{
+                    source: 'bundled',
+                    retrievedAtMs: Date.UTC(2026, 7, 29, 8, 55),
+                    catalogueSatellites: 645,
+                    epochRangeMs: {
+                        earliestMs: Date.UTC(2026, 7, 28, 18, 0),
+                        latestMs: Date.UTC(2026, 7, 29, 6, 30),
+                    },
+                }}
+                isRunning={false}
+                error={null}
+                onReMeasure={() => undefined}
+                onClose={() => undefined}
             />
         ));
 
-        // The analysed model is still the HLD profile, and still says so.
-        expect(container.textContent).toContain('OneWeb Gen1 (HLD reference)');
-        // The fit appears, disclaimed in the same breath, and named for what it
-        // measures: the fleet against the BEST-FIT shell, not against the HLD.
-        expect(container.textContent).toContain('TLE shell characterisation');
-        expect(container.textContent).toContain('not the analysed model');
-        expect(container.textContent).toContain('Real fleet vs perfect shell');
-        expect(container.textContent).toContain('not trajectory-validated');
+        // Portalled to the body, so read the document rather than the container.
+        const text = document.body.textContent ?? '';
 
-        // The fitted topology is on screen with its deltas: a residual whose
-        // subject is missing cannot be read against a 12 × 48 Characteristics
-        // block.
-        expect(container.textContent).toContain('Fitted shell 12 × 53');
-        expect(container.textContent).toContain('+5 sats/plane');
-        expect(container.textContent).toContain('+60 total');
+        // It denies being the analysed model, at the top and not in a footnote.
+        expect(text).toContain('TLE shell characterisation');
+        expect(text).toContain('Nothing here changes the analysed constellation');
+
+        // The fit, with a subject.
+        expect(text).toContain('12 × 53');
+        expect(text).toContain('+5 sats/plane');
+        expect(text).toContain('+60 total');
+        expect(text).toContain('248 km');
+        expect(text).toContain('not trajectory-validated');
+
+        // What it was measured from. The bundled file must never read as live.
+        expect(text).toContain('file bundled with this build');
+        expect(text).not.toContain('CelesTrak, live');
+        expect(text).toContain('2026-08-29 08:55 UTC');
+        expect(text).toContain('645 OneWeb objects');
+        expect(text).toContain('Re-measuring can return different figures');
+    });
+
+    /* The measurement is reversible: it can be closed, by three routes. */
+    it('closes on Escape, on the backdrop and on its own buttons', async () => {
+        const onClose = vi.fn();
+        await act(async () => root?.render(
+            <TleComparisonDialog
+                fit={null}
+                provenance={null}
+                isRunning
+                error={null}
+                onReMeasure={() => undefined}
+                onClose={onClose}
+            />
+        ));
+
+        expect(document.body.textContent).toContain('Measuring…');
+
+        await act(async () => {
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+        });
+        expect(onClose).toHaveBeenCalledTimes(1);
+
+        const backdrop = document.querySelector<HTMLButtonElement>(
+            '[aria-label="Dismiss TLE comparison"]'
+        );
+        await act(async () => backdrop?.click());
+        expect(onClose).toHaveBeenCalledTimes(2);
+
+        const close = [...document.querySelectorAll('button')]
+            .find((button) => button.textContent === 'Close');
+        await act(async () => close?.click());
+        expect(onClose).toHaveBeenCalledTimes(3);
     });
 
     it('offers play, pause, stepping, speed and an absolute UTC timestamp', async () => {
