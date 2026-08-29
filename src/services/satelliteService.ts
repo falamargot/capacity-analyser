@@ -287,6 +287,63 @@ async function fetchBundledTLE(operator: 'EUTELSAT' | 'ONEWEB'): Promise<string>
  * under test.
  */
 /**
+ * The newest TLE epoch in a catalogue, ms, or `null` if it holds none.
+ *
+ * Reads the epoch field of line 1 (columns 19–32: two-digit year, then day of
+ * year with fraction) rather than building a satrec: this runs on the fallback
+ * path, where the point is to choose a file quickly, not to propagate it.
+ */
+export function newestTleEpochMs(text: string): number | null {
+  let newest: number | null = null;
+  for (const rawLine of text.split('\n')) {
+    const line = rawLine.trimEnd();
+    if (!line.startsWith('1 ') || line.length < 32) continue;
+    const twoDigitYear = Number(line.slice(18, 20));
+    const dayOfYear = Number(line.slice(20, 32));
+    if (!Number.isFinite(twoDigitYear) || !Number.isFinite(dayOfYear)) continue;
+    // The TLE two-digit year pivots at 57 — the convention the format itself
+    // fixes, not a guess about this catalogue.
+    const year = twoDigitYear < 57 ? 2000 + twoDigitYear : 1900 + twoDigitYear;
+    const ms = Date.UTC(year, 0, 1) + (dayOfYear - 1) * 86_400_000;
+    if (newest === null || ms > newest) newest = ms;
+  }
+  return newest;
+}
+
+/**
+ * Choose between the two offline candidates by the age of the DATA, not by a
+ * fixed rung order.
+ *
+ * ── WHY THIS IS NOT SIMPLY "BUNDLED BEFORE STALE CACHE" ─────────────────────
+ * The original ladder always preferred the stale cache, which was wrong the day
+ * `public/celestrak.txt` was refreshed: on 2026-08-29 the bundled file carried
+ * epochs five months newer than a cache entry that was merely past its 30-minute
+ * TTL. But the reverse rule is wrong just as often — a cache written by a
+ * successful live fetch two hours ago is fresher than a bundled file shipped
+ * with a build from last month, and preferring the file would throw away the
+ * better data.
+ *
+ * Neither fixed order is right because rung position is a proxy for freshness,
+ * and a bad one. The TLE epochs are the freshness, so they decide. A candidate
+ * whose epochs cannot be read loses to one whose can; if neither can be read,
+ * the cache wins, because it was at least fetched from CelesTrak at some point.
+ */
+export function fresherCatalogue(
+  staleCache: string | null,
+  bundled: string | null,
+): { text: string; source: Extract<TleSource, 'cache-stale' | 'bundled'> } | null {
+  if (!staleCache) return bundled ? { text: bundled, source: 'bundled' } : null;
+  if (!bundled) return { text: staleCache, source: 'cache-stale' };
+
+  const cacheEpoch = newestTleEpochMs(staleCache);
+  const bundledEpoch = newestTleEpochMs(bundled);
+  if (bundledEpoch !== null && (cacheEpoch === null || bundledEpoch > cacheEpoch)) {
+    return { text: bundled, source: 'bundled' };
+  }
+  return { text: staleCache, source: 'cache-stale' };
+}
+
+/**
  * Which rung of the `fetchTLE` ladder actually served the data.
  *
  * ── WHY THIS IS RECORDED ────────────────────────────────────────────────────
@@ -369,19 +426,28 @@ export async function fetchTLE(
   } catch (apiError) {
     console.warn(`[TLE Cache] CelesTrak API failed for ${operator}:`, apiError);
 
-    // 3. Stale cache fallback
+    // 3. Offline candidates: the stale cache and the bundled file. Both are
+    //    gathered before either is chosen, because the choice is made on the
+    //    age of their contents rather than on which rung they sit.
     const stale = await readFromCache(cacheKey);
-    if (stale) {
-      console.warn(`[TLE Cache] Using stale ${operator} TLEs from IndexedDB (age > ${TLE_CACHE_TTL_MS / 60000} min).`);
-      recordTleProvenance(operator, 'cache-stale');
-      return stale;
-    }
+    const bundled = await fetchBundledTLE(operator).catch((fileError) => {
+      console.warn(`[TLE] Bundled static file unavailable for ${operator}:`, fileError);
+      return null;
+    });
 
-    // 4. Last resort: bundled static file
-    console.warn(`[TLE Cache] Falling back to bundled static file for ${operator}.`);
-    const bundled = await fetchBundledTLE(operator);
-    recordTleProvenance(operator, 'bundled');
-    return bundled;
+    const chosen = fresherCatalogue(stale, bundled);
+    if (!chosen) {
+      throw apiError;
+    }
+    const epochMs = newestTleEpochMs(chosen.text);
+    const epochNote = epochMs === null ? 'no readable epoch' : new Date(epochMs).toISOString().slice(0, 10);
+    console.warn(
+      chosen.source === 'cache-stale'
+        ? `[TLE Cache] Using stale ${operator} TLEs from IndexedDB (age > ${TLE_CACHE_TTL_MS / 60000} min; newest epoch ${epochNote}).`
+        : `[TLE] Using the bundled static file for ${operator} (newest epoch ${epochNote}) — newer than the cached set.`
+    );
+    recordTleProvenance(operator, chosen.source);
+    return chosen.text;
   }
 }
 
