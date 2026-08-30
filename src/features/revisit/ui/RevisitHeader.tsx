@@ -50,24 +50,39 @@ function useClickOutside(
     ref: React.RefObject<HTMLElement | null>,
     onOutside: () => void,
     enabled: boolean,
+    /**
+     * Controls that must not dismiss this panel although they sit outside it.
+     *
+     * The constellation panel uses it for the payload slider: dragging the
+     * slider is an edit of the very configuration the panel is displaying, and
+     * closing the panel mid-drag threw away the reader's place in it — the
+     * counts it shows (`12 payloads — 2 planes × 6`) are exactly what the drag
+     * is changing.
+     */
+    keepOpenSelector?: string,
 ): void {
     useEffect(() => {
         if (!enabled) return;
         const handlePointerDown = (event: PointerEvent) => {
             const target = event.target as Node;
             if (ref.current?.contains(target)) return;
+            if (!(target instanceof Element)) {
+                onOutside();
+                return;
+            }
             /*
              * A panel may own a flyout that is portalled out of its subtree —
              * the constellation panel's TLE characterisation is one. It is
              * visually part of the panel and must not dismiss it, so it opts
              * out by marking its own root.
              */
-            if (target instanceof Element && target.closest('[data-revisit-panel-flyout]')) return;
+            if (target.closest('[data-revisit-panel-flyout]')) return;
+            if (keepOpenSelector && target.closest(keepOpenSelector)) return;
             onOutside();
         };
         document.addEventListener('pointerdown', handlePointerDown);
         return () => document.removeEventListener('pointerdown', handlePointerDown);
-    }, [ref, onOutside, enabled]);
+    }, [ref, onOutside, enabled, keepOpenSelector]);
 }
 
 interface RevisitHeaderProps {
@@ -465,7 +480,10 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
     const closeConstellationMenus = useCallback(() => {
         setConstellationMenuOpen(false);
     }, []);
-    useClickOutside(constellationMenuRef, closeConstellationMenus, constellationMenuOpen);
+    useClickOutside(
+        constellationMenuRef, closeConstellationMenus, constellationMenuOpen,
+        '.revisit-payload-slider, [data-revisit-payload-step]',
+    );
     const stepPayload = (delta: number) => {
         const next = payloadCounts[Math.min(Math.max(sliderIndex + delta, 0), payloadCounts.length - 1)];
         if (next !== undefined && next !== currentPayloadCount) onPayloadCountChange(next);
@@ -506,7 +524,13 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                         {setupOpen ? '⌃' : '⌄'}
                     </span>
                 </button>
-                <div className="flex shrink-0 items-center gap-1 rounded-lg border border-slate-600/70 bg-slate-400/5 px-1">
+                {/* Stepping the payload count is an edit of what the
+                    constellation panel is displaying, so it must not dismiss
+                    it — same reasoning as the slider. */}
+                <div
+                    data-revisit-payload-step
+                    className="flex shrink-0 items-center gap-1 rounded-lg border border-slate-600/70 bg-slate-400/5 px-1"
+                >
                     <button
                         type="button"
                         aria-label="One payload fewer"

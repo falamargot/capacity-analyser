@@ -619,6 +619,56 @@ describe('REVISIT P1 functional UI', () => {
         expect(container.textContent).toContain('yours in either model');
     });
 
+    /*
+     * The payload slider edits the very configuration the constellation panel
+     * is displaying, so it must not dismiss it: the panel's own line reads
+     * "12 payloads — 2 planes × 6", and closing it mid-drag threw away the
+     * reader's place in what the drag was changing. Everything else outside
+     * still closes it, which is why the exemption is a narrow selector rather
+     * than "ignore the header".
+     */
+    it('keeps the constellation panel open while the payload slider moves', async () => {
+        await act(async () => root?.render(
+            <RevisitHeader
+                scenario={defaultScenario(Date.UTC(2026, 7, 12))}
+                payloadCounts={[12, 24, 48]}
+                currentPayloadCount={12}
+                onPayloadCountChange={() => undefined}
+                targetNames={['London']}
+                onTargetChange={() => undefined}
+                spreadNote={null}
+                model={{
+                    mode: 'HLD', profile: null, fit: null, provenance: null,
+                    isRunning: false, error: null,
+                    onModeChange: () => undefined,
+                    onCompareToTleSet: () => undefined,
+                    onCopyHldIntoCustom: () => undefined,
+                }}
+            />
+        ));
+
+        const open = container.querySelector<HTMLButtonElement>(
+            '[aria-label="Constellation model and settings"]'
+        )!;
+        await act(async () => open.click());
+        const panel = () => container.querySelector('[data-revisit-constellation-panel]');
+        expect(panel()).not.toBeNull();
+
+        const down = (element: Element) => act(async () => {
+            element.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+        });
+
+        await down(container.querySelector('.revisit-payload-slider')!);
+        expect(panel()).not.toBeNull();
+
+        await down(container.querySelector('[data-revisit-payload-step]')!);
+        expect(panel()).not.toBeNull();
+
+        // Anything else still dismisses it.
+        await down(document.body);
+        expect(panel()).toBeNull();
+    });
+
     it('turns the KPI into a truthful comparison without replacing worst-case', async () => {
         const statistics: GapStatistics = {
             maxGapMs: 3 * 3600_000,
