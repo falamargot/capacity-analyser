@@ -1904,7 +1904,10 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         <div className="revisit-shell relative isolate flex h-dvh w-screen flex-col overflow-hidden bg-[#05070D] text-slate-100 transition-colors light:bg-slate-100 light:text-slate-950">
             <GlobalAppHeader className="revisit-global-header">
                 <nav aria-label="REVISIT navigation and scenarios"
-                    className="revisit-context-rail flex min-w-0 items-start gap-2 px-2 py-2 sm:px-3 lg:px-4">
+                    /* `items-stretch`, so the return control is as tall as the
+                       rail beside it instead of a 44 px square floating at the
+                       top of a header three times that height. */
+                    className="revisit-context-rail flex min-w-0 items-stretch gap-2 px-2 py-2 sm:px-3 lg:px-4">
                     {/* A bare chevron named the direction but never the
                         destination, and the rail cannot spare the width for a
                         word beside it. The height it already occupies was free:
@@ -1916,7 +1919,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                         <button type="button" onClick={onExit}
                             aria-label={`Back to ${returnMode === 'commercial' ? 'Commercial' : 'Engineering'}`}
                             title={`Back to ${returnMode === 'commercial' ? 'Commercial' : 'Engineering'}`}
-                            className={`${REVISIT_PANEL} revisit-origin-return flex min-h-11 w-11 shrink-0 flex-col items-center justify-center gap-0.5 px-0.5 font-black uppercase text-slate-300 hover:border-slate-500 hover:text-slate-100`}>
+                            className={`${REVISIT_PANEL} revisit-origin-return flex min-h-11 w-11 shrink-0 self-stretch flex-col items-center justify-center gap-0.5 px-0.5 font-black uppercase text-slate-300 hover:border-slate-500 hover:text-slate-100`}>
                             <span aria-hidden="true" className="text-[13px] leading-none">‹</span>
                             <span aria-hidden="true" className="text-[9px] leading-none tracking-[0.02em]">
                                 {returnMode === 'commercial' ? 'COMM' : 'ENG'}

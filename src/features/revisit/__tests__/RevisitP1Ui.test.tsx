@@ -510,34 +510,29 @@ describe('REVISIT P1 functional UI', () => {
     });
 
     /*
-     * The three structural rows are the HLD's evidence — the ladder, the seam
-     * and the spares that separate the profile from seven identical scalars.
-     * Editing planes or altitude drops all three, and the panel then showed
-     * three labels against three em dashes: read as "not filled in yet" rather
-     * than "this shell does not have them", and three lines of nothing in a
-     * panel that has to stay legible.
+     * The ladder, the seam and the spares are the HLD's evidence — what
+     * separates the profile from seven identical scalars — and they are shown
+     * nowhere else in the application. They are no longer three rows of their
+     * own: the summary sentence already says "per-plane altitude ladder" and
+     * "58 across 12 planes spare", so the exact figures moved to its hover,
+     * where they belong to whoever asks rather than to everyone who opens the
+     * panel. This pins that they are still reachable, and that an edited shell
+     * says so rather than going quiet.
      */
-    it('replaces the structural rows with one line once they are gone', async () => {
+    it('keeps the structural figures on the summary, and reports their loss', async () => {
         const scenario = defaultScenario(Date.UTC(2026, 7, 12));
-        const model = {
-            mode: 'HLD' as const,
-            profile: null, fit: null, provenance: null,
-            isRunning: false, error: null,
-            onModeChange: () => undefined,
-            onCompareToTleSet: () => undefined,
-            onCopyHldIntoCustom: () => undefined,
-        };
+        const summary = () => container.querySelector('.revisit-characteristics-summary');
 
         await act(async () => root?.render(
-            <AdvancedDrawer
-                scenario={scenario} onChange={() => undefined} model={model} variant="menu"
-            />
+            <AdvancedDrawer scenario={scenario} onChange={() => undefined} variant="menu" />
         ));
-        expect(container.textContent).toContain('Plane altitudes');
-        expect(container.textContent).toContain('1175–1219 km');
-        expect(container.textContent).not.toContain('Uniform shell');
+        expect(summary()?.textContent).toContain('per-plane altitude ladder');
+        const detail = summary()?.getAttribute('title') ?? '';
+        expect(detail).toContain('1175–1219 km');
+        expect(detail).toContain('seam 12.525°');
+        expect(detail).toContain('58 across 12 planes');
 
-        // `referenceWithPatch` drops the arrays as soon as the plane count moves.
+        // `referenceWithPatch` drops all three as soon as the plane count moves.
         await act(async () => root?.render(
             <AdvancedDrawer
                 scenario={{
@@ -545,13 +540,11 @@ describe('REVISIT P1 functional UI', () => {
                     reference: referenceWithPatch(scenario.reference, { planes: 15 }),
                 }}
                 onChange={() => undefined}
-                model={{ ...model, mode: 'CUSTOM' }}
                 variant="menu"
             />
         ));
-        expect(container.textContent).not.toContain('Plane altitudes');
-        expect(container.textContent).not.toContain('RAAN spacing');
-        expect(container.textContent).toContain('Uniform shell');
+        expect(summary()?.textContent).not.toContain('per-plane altitude ladder');
+        expect(summary()?.getAttribute('title')).toContain('Uniform shell');
     });
 
     /*

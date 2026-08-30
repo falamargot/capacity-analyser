@@ -1857,6 +1857,18 @@ the token was simply never reaching the module instance that mattered.
 
 ---
 
+## Piège CSS à connaître (2026-08-30)
+
+`.capacity-header [class*='border-slate-']` (index.css) écrase **toute** bordure
+`border-slate-*` du header en `--neutral-rule` — slate à 16 % — avec
+`!important`. Un cadre censé être visible y mesure `rgba(148,163,184,0.11)`
+quelle que soit la classe demandée, et une valeur arbitraire Tailwind
+(`border-[#4a5a72]`) n'y change rien tant que la classe reste dans le motif. La
+seule forme qui passe est une couleur **inline** (`style={{ borderColor }}`) —
+c'est ce qu'utilise la carte `Instrument geometry`.
+
+---
+
 ## REVISIT — panneau constellation, suite (2026-08-29)
 
 `Custom HLD` (ex-`Edit a copy`) est une constellation qui **garde ses valeurs**

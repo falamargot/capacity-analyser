@@ -153,16 +153,6 @@ const NO_PROFILE_DETAIL =
     + 'elements at one epoch, and editing planes or altitude discards it because it cannot '
     + 'be re-derived for a different plane count.';
 
-const DetailRow: React.FC<{ label: string; value: string; title: string }> = ({
-    label, value, title,
-}) => (
-    <div className="flex items-baseline justify-between gap-2" title={title}>
-        <span className="text-[11px] font-black uppercase tracking-[0.08em] text-slate-500">
-            {label}
-        </span>
-        <span className="text-[12px] font-bold text-slate-300">{value}</span>
-    </div>
-);
 
 /** `1175–1219 km · 12 planes`, full ladder on hover. */
 function altitudeLadderOf(values?: number[]) {
@@ -283,7 +273,22 @@ const PayloadGeometryEditor: React.FC<AdvancedDrawerProps> = ({ scenario, onChan
          * follows it: with only a top rule, Discard/Apply read as the footer of
          * everything above rather than as the footer of these fields.
          */
-        <div className="rounded border border-slate-700/60 p-2.5">
+        /*
+         * A visible card, not a hairline.
+         *
+         * The colour is written as an arbitrary value rather than `border-slate-600`
+         * on purpose: `.capacity-header [class*='border-slate-']` flattens every
+         * slate border in this header to `--neutral-rule` — 16 % slate — with
+         * `!important`, which is why the frame reported as invisible measured
+         * `rgba(148,163,184,0.11)` however dark a slate class it was given. An
+         * inline colour is the one form that neither the pattern match nor the
+         * `!important` can reach. The tint does most of the work; the edge only
+         * has to close it.
+         */
+        <div
+            className="rounded-lg border bg-slate-900/40 p-2.5"
+            style={{ borderColor: '#4a5a72' }}
+        >
             <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
                 <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
                     Instrument geometry
@@ -490,6 +495,19 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
         spares ? `${spares.summary} spare` : null,
     ].filter(Boolean).join(' · ');
 
+    /**
+     * The three arrays in full, for the hover: they are what makes the HLD
+     * profile a different object from seven identical scalars, and a fitted or
+     * edited shell has none of them.
+     */
+    const structureDetail = [
+        altitudeLadder ? `Plane altitudes — ${altitudeLadder.summary}` : null,
+        raanSpacing ? `RAAN spacing — ${raanSpacing.summary}` : null,
+        spares ? `Spares — ${spares.summary}` : null,
+    ].filter(Boolean).join('\n')
+        || 'Uniform shell: no per-plane altitude ladder, no RAAN seam, no spares. '
+            + NO_PROFILE_DETAIL;
+
     /** Editing the constellation must leave the selection legal. */
     const setReference = (patch: Partial<typeof reference>) => {
         const nextReference = referenceWithPatch(reference, patch);
@@ -625,7 +643,20 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                             </span>
                         )}
                     </div>
-                    <p className="revisit-characteristics-summary mb-2 text-[12px] leading-5 text-slate-300">
+                    {/*
+                      * The ladder, the seam and the spares used to have three
+                      * rows of their own below the fields. They said what this
+                      * sentence already says — "per-plane altitude ladder",
+                      * "58 across 12 planes spare" — in three more lines, and
+                      * their exact figures belong to whoever asks rather than
+                      * to everyone who opens the panel. So they moved onto this
+                      * sentence's hover, which is the only place they were
+                      * legible anyway.
+                      */}
+                    <p
+                        className="revisit-characteristics-summary mb-2 text-[12px] leading-5 text-slate-300"
+                        title={structureDetail}
+                    >
                         {characteristicsSummary}
                     </p>
                     {model && (
@@ -825,57 +856,6 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                         </Field>
                     </fieldset>
 
-                    {/*
-                      * The three arrays a reference profile carries and a fitted
-                      * shell does not. Shown nowhere before this panel, yet they
-                      * are what makes the HLD profile a different object from a
-                      * look-alike with the same seven scalars. Summarised, with
-                      * the full values on hover rather than on screen.
-                      */}
-                    {model && (altitudeLadder || raanSpacing || spares) && (
-                        <div className="mt-2 space-y-0.5 border-t border-slate-700/50 pt-2">
-                            {altitudeLadder && (
-                                <DetailRow
-                                    label="Plane altitudes"
-                                    value={altitudeLadder.summary}
-                                    title={altitudeLadder.full}
-                                />
-                            )}
-                            {raanSpacing && (
-                                <DetailRow
-                                    label="RAAN spacing"
-                                    value={raanSpacing.summary}
-                                    title={raanSpacing.full}
-                                />
-                            )}
-                            {spares && (
-                                <DetailRow
-                                    label="Spares"
-                                    value={spares.summary}
-                                    title={spares.full}
-                                />
-                            )}
-                        </div>
-                    )}
-                    {/*
-                      * One line instead of three empty ones. Editing planes or
-                      * altitude drops all three arrays — `referenceWithPatch`
-                      * cannot carry a per-plane ladder across a change in the
-                      * number of planes — and the panel then showed three
-                      * labels against three em dashes, which reads as "not
-                      * filled in yet" rather than "this shell does not have
-                      * them". It is not nothing to report, either: the
-                      * simulated constellation really has become a uniform
-                      * shell, so the fact is stated once and quietly.
-                      */}
-                    {model && !altitudeLadder && !raanSpacing && !spares && (
-                        <p
-                            className="mt-2 border-t border-slate-700/50 pt-2 text-[11px] leading-4 text-slate-500"
-                            title={NO_PROFILE_DETAIL}
-                        >
-                            Uniform shell · no per-plane altitude ladder, RAAN seam or spares
-                        </p>
-                    )}
                     </div>
                 <div className="border-t border-slate-700/60 pt-2.5">
                     <p className="mb-1.5 text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
