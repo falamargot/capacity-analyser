@@ -649,7 +649,7 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                                 type="button"
                                 onClick={model.onCopyHldIntoCustom}
                                 title="Replace these values with the HLD reference, plane-altitude ladder, RAAN seam and spares included. This discards the parameters you entered."
-                                className="rounded border border-slate-600 px-1.5 py-0.5 text-[11px] font-black uppercase tracking-[0.08em] text-slate-400 transition-colors hover:border-amber-400/50 hover:text-amber-200"
+                                className="inline-flex items-center justify-center rounded-md border border-amber-400/60 bg-amber-500/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-amber-50 shadow-sm shadow-amber-500/10 transition-all hover:border-amber-300 hover:bg-amber-500/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/70"
                             >
                                 Copy HLD values
                             </button>
@@ -804,24 +804,49 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                       * look-alike with the same seven scalars. Summarised, with
                       * the full values on hover rather than on screen.
                       */}
-                    {model && (
+                    {model && (altitudeLadder || raanSpacing || spares) && (
                         <div className="mt-2 space-y-0.5 border-t border-slate-700/50 pt-2">
-                            <DetailRow
-                                label="Plane altitudes"
-                                value={altitudeLadder?.summary ?? '—'}
-                                title={altitudeLadder?.full ?? NO_PROFILE_DETAIL}
-                            />
-                            <DetailRow
-                                label="RAAN spacing"
-                                value={raanSpacing?.summary ?? '—'}
-                                title={raanSpacing?.full ?? NO_PROFILE_DETAIL}
-                            />
-                            <DetailRow
-                                label="Spares"
-                                value={spares?.summary ?? '—'}
-                                title={spares?.full ?? NO_PROFILE_DETAIL}
-                            />
+                            {altitudeLadder && (
+                                <DetailRow
+                                    label="Plane altitudes"
+                                    value={altitudeLadder.summary}
+                                    title={altitudeLadder.full}
+                                />
+                            )}
+                            {raanSpacing && (
+                                <DetailRow
+                                    label="RAAN spacing"
+                                    value={raanSpacing.summary}
+                                    title={raanSpacing.full}
+                                />
+                            )}
+                            {spares && (
+                                <DetailRow
+                                    label="Spares"
+                                    value={spares.summary}
+                                    title={spares.full}
+                                />
+                            )}
                         </div>
+                    )}
+                    {/*
+                      * One line instead of three empty ones. Editing planes or
+                      * altitude drops all three arrays — `referenceWithPatch`
+                      * cannot carry a per-plane ladder across a change in the
+                      * number of planes — and the panel then showed three
+                      * labels against three em dashes, which reads as "not
+                      * filled in yet" rather than "this shell does not have
+                      * them". It is not nothing to report, either: the
+                      * simulated constellation really has become a uniform
+                      * shell, so the fact is stated once and quietly.
+                      */}
+                    {model && !altitudeLadder && !raanSpacing && !spares && (
+                        <p
+                            className="mt-2 border-t border-slate-700/50 pt-2 text-[11px] leading-4 text-slate-500"
+                            title={NO_PROFILE_DETAIL}
+                        >
+                            Uniform shell · no per-plane altitude ladder, RAAN seam or spares
+                        </p>
                     )}
                     </div>
                 <div className="border-t border-slate-700/60 pt-2.5">

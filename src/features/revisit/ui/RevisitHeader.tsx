@@ -593,7 +593,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                             role="dialog"
                             aria-label="Advanced constellation settings"
                             data-revisit-constellation-panel
-                            className={`absolute left-0 top-[calc(100%+0.35rem)] z-[80] max-h-[min(74vh,42rem)] w-[min(36rem,calc(100vw-1rem))] overflow-y-auto rounded-lg border border-amber-400/35 ${REVISIT_MENU_SURFACE} shadow-2xl`}
+                            className={`absolute left-0 top-[calc(100%+0.35rem)] z-[80] max-h-[min(70vh,calc(100vh-6rem))] w-[min(36rem,calc(100vw-1rem))] overflow-y-auto rounded-lg border border-amber-400/35 md:max-h-[min(80vh,calc(100vh-5rem))] xl:max-h-[min(88vh,calc(100vh-4rem))] ${REVISIT_MENU_SURFACE} shadow-2xl`}
                         >
                             <AdvancedDrawer
                                 scenario={scenario}

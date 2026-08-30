@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defaultScenario } from '../domain/presets';
 import type { GapStatistics } from '../domain/types';
 import { AdvancedDrawer } from '../ui/AdvancedDrawer';
+import { referenceWithPatch } from '../domain/referenceEditing';
 import { RevisitHeader } from '../ui/RevisitHeader';
 import { RevisitKpiPanel } from '../ui/RevisitKpiPanel';
 
@@ -424,6 +425,8 @@ describe('REVISIT P1 functional UI', () => {
                 scenario={edited} onChange={() => undefined} model={model} variant="menu"
             />
         ));
+        expect(button()?.className).toContain('bg-amber-500/15');
+        expect(button()?.className).toContain('text-amber-50');
         await act(async () => button()!.click());
         expect(onCopyHldIntoCustom).toHaveBeenCalledTimes(1);
 
@@ -504,6 +507,51 @@ describe('REVISIT P1 functional UI', () => {
             .filter((label) => !label.getAttribute('title'))
             .map((label) => label.textContent?.slice(0, 24));
         expect(mute).toEqual([]);
+    });
+
+    /*
+     * The three structural rows are the HLD's evidence — the ladder, the seam
+     * and the spares that separate the profile from seven identical scalars.
+     * Editing planes or altitude drops all three, and the panel then showed
+     * three labels against three em dashes: read as "not filled in yet" rather
+     * than "this shell does not have them", and three lines of nothing in a
+     * panel that has to stay legible.
+     */
+    it('replaces the structural rows with one line once they are gone', async () => {
+        const scenario = defaultScenario(Date.UTC(2026, 7, 12));
+        const model = {
+            mode: 'HLD' as const,
+            profile: null, fit: null, provenance: null,
+            isRunning: false, error: null,
+            onModeChange: () => undefined,
+            onCompareToTleSet: () => undefined,
+            onCopyHldIntoCustom: () => undefined,
+        };
+
+        await act(async () => root?.render(
+            <AdvancedDrawer
+                scenario={scenario} onChange={() => undefined} model={model} variant="menu"
+            />
+        ));
+        expect(container.textContent).toContain('Plane altitudes');
+        expect(container.textContent).toContain('1175–1219 km');
+        expect(container.textContent).not.toContain('Uniform shell');
+
+        // `referenceWithPatch` drops the arrays as soon as the plane count moves.
+        await act(async () => root?.render(
+            <AdvancedDrawer
+                scenario={{
+                    ...scenario,
+                    reference: referenceWithPatch(scenario.reference, { planes: 15 }),
+                }}
+                onChange={() => undefined}
+                model={{ ...model, mode: 'CUSTOM' }}
+                variant="menu"
+            />
+        ));
+        expect(container.textContent).not.toContain('Plane altitudes');
+        expect(container.textContent).not.toContain('RAAN spacing');
+        expect(container.textContent).toContain('Uniform shell');
     });
 
     it('turns the KPI into a truthful comparison without replacing worst-case', async () => {
