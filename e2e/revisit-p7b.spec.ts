@@ -51,8 +51,7 @@ test.describe('REVISIT P7B presentation safety', () => {
     expect(await openCount()).toBe(1);
 
     // The workspace is a separate header action and remains modal.
-    await page.getByRole('button', { name: /^(scenario )?workspace
-i }).click();
+    await page.getByRole('button', { name: /^(scenario )?workspace$/i }).click();
     await expect(workspace).toBeVisible();
     await expect(analysis).toBeHidden();
     await expect(stage).toBeVisible();

@@ -21,7 +21,10 @@
  * *counts* rather than ladder rows.
  */
 
-import React, { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import React, {
+    useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent,
+} from 'react';
+import { createPortal } from 'react-dom';
 import type { RevisitScenario } from '../domain/types';
 import {
     FOV_PRESET_SWATH_KM, fovPresetNameFor, fovPresets, swathKmForFov, type FovPresetName,
@@ -422,10 +425,30 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
     const addReferenceMenuRef = useRef<HTMLDivElement>(null);
     const addTargetMenuRef = useRef<HTMLDivElement>(null);
     const constellationMenuRef = useRef<HTMLDivElement>(null);
+    const constellationLauncherRef = useRef<HTMLButtonElement>(null);
     const [areaMenuOpen, setAreaMenuOpen] = useState(false);
     const [addReferenceMenuOpen, setAddReferenceMenuOpen] = useState(false);
     const [addTargetMenuOpen, setAddTargetMenuOpen] = useState(false);
     const [constellationMenuOpen, setConstellationMenuOpen] = useState(false);
+    /**
+     * Where the constellation panel sits on a phone, or `null` for the desktop
+     * layout that hangs it off its launcher.
+     *
+     * ── WHY THIS IS MEASURED, AND PORTALLED ─────────────────────────────────
+     * `left-0` anchors the panel to its launcher, which on a phone sits ~70 px
+     * in from the left inside the two-column setup grid: a 359 px panel then
+     * ran 57 px past the right edge of a 375 px viewport. `position: fixed`
+     * does not fix it either — the header carries `backdrop-blur`, which makes
+     * it the containing block for fixed descendants, so `inset-x-2` resolved
+     * against the launcher's card and produced a 132 px sliver. Both measured.
+     *
+     * Portalling to the body escapes that containing block, and the coordinates
+     * are read from the launcher. It costs one thing, paid for in
+     * `useClickOutside`: the panel is no longer inside the ref's subtree, so it
+     * marks itself and is treated as inside.
+     */
+    const [constellationMenuPosition, setConstellationMenuPosition] =
+        useState<React.CSSProperties | null>(null);
     const { reference, target, payload } = scenario;
     const presetName = useMemo(
         () => fovPresetNameFor(reference.altitudeKm, payload),
@@ -480,9 +503,47 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
     const closeConstellationMenus = useCallback(() => {
         setConstellationMenuOpen(false);
     }, []);
+    const positionConstellationMenu = useCallback(() => {
+        const launcher = constellationLauncherRef.current;
+        if (!launcher || typeof window === 'undefined') return;
+        /*
+         * Only the phone layout needs rescuing; `sm` and up anchor correctly.
+         * A missing `matchMedia` counts as desktop rather than as phone: jsdom
+         * has none, and defaulting the other way would portal the panel out of
+         * its container in every test that renders this header.
+         */
+        if (typeof window.matchMedia !== 'function'
+            // A zero-width viewport is a hidden pane, not a phone. Observed
+            // while verifying: it produced a 2 px panel.
+            || window.innerWidth === 0
+            || window.matchMedia('(min-width: 640px)').matches) {
+            setConstellationMenuPosition(null);
+            return;
+        }
+        const rect = launcher.getBoundingClientRect();
+        const top = rect.bottom + 6;
+        setConstellationMenuPosition({
+            position: 'fixed',
+            left: 8,
+            width: Math.max(0, window.innerWidth - 16),
+            top,
+            maxHeight: Math.max(160, window.innerHeight - top - 8),
+        });
+    }, []);
+    useLayoutEffect(() => {
+        if (!constellationMenuOpen) return;
+        positionConstellationMenu();
+        window.addEventListener('resize', positionConstellationMenu);
+        return () => window.removeEventListener('resize', positionConstellationMenu);
+    }, [constellationMenuOpen, positionConstellationMenu]);
+
     useClickOutside(
         constellationMenuRef, closeConstellationMenus, constellationMenuOpen,
-        '.revisit-payload-slider, [data-revisit-payload-step]',
+        /* Every control that edits what this panel displays: the payload count
+           and the instrument preset. Not the whole header — the globe, the
+           timeline and the target controls must still dismiss it. */
+        '.revisit-payload-slider, [data-revisit-payload-step], [data-revisit-payload-swath],'
+        + ' [data-revisit-constellation-panel]',
     );
     const stepPayload = (delta: number) => {
         const next = payloadCounts[Math.min(Math.max(sliderIndex + delta, 0), payloadCounts.length - 1)];
@@ -581,6 +642,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                           */}
                         <button
                             type="button"
+                            ref={constellationLauncherRef}
                             aria-label="Constellation model and settings"
                             title={model
                                 ? `Constellation model, characteristics and evidence. Currently: ${modelSummary}.`
@@ -613,19 +675,32 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                         </button>
                     </div>
                     {constellationMenuOpen && (
-                        <div
-                            role="dialog"
-                            aria-label="Advanced constellation settings"
-                            data-revisit-constellation-panel
-                            className={`absolute left-0 top-[calc(100%+0.35rem)] z-[80] max-h-[min(70vh,calc(100vh-6rem))] w-[min(36rem,calc(100vw-1rem))] overflow-y-auto rounded-lg border border-amber-400/35 md:max-h-[min(80vh,calc(100vh-5rem))] xl:max-h-[min(88vh,calc(100vh-4rem))] ${REVISIT_MENU_SURFACE} shadow-2xl`}
-                        >
-                            <AdvancedDrawer
-                                scenario={scenario}
-                                onChange={onAdvancedScenarioChange}
-                                model={model}
-                                variant="menu"
-                            />
-                        </div>
+                        (() => {
+                            const body = (
+                                <div
+                                    role="dialog"
+                                    aria-label="Advanced constellation settings"
+                                    data-revisit-constellation-panel
+                                    style={constellationMenuPosition ?? undefined}
+                                    className={constellationMenuPosition
+                                        ? `revisit-shell z-[80] overflow-y-auto rounded-lg border border-amber-400/35 ${REVISIT_MENU_SURFACE} shadow-2xl`
+                                        : `absolute left-0 top-[calc(100%+0.35rem)] z-[80] max-h-[min(70vh,calc(100vh-6rem))] w-[min(36rem,calc(100vw-1rem))] overflow-y-auto rounded-lg border border-amber-400/35 md:max-h-[min(80vh,calc(100vh-5rem))] xl:max-h-[min(88vh,calc(100vh-4rem))] ${REVISIT_MENU_SURFACE} shadow-2xl`}
+                                >
+                                    <AdvancedDrawer
+                                        scenario={scenario}
+                                        onChange={onAdvancedScenarioChange}
+                                        model={model}
+                                        variant="menu"
+                                    />
+                                </div>
+                            );
+                            // Portalled only when the phone layout is in force:
+                            // on the desktop the launcher anchoring is correct,
+                            // and staying in flow keeps focus order natural.
+                            return constellationMenuPosition && typeof document !== 'undefined'
+                                ? createPortal(body, document.body)
+                                : body;
+                        })()
                     )}
                 </div>
             </Panel>

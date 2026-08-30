@@ -623,11 +623,12 @@ describe('REVISIT P1 functional UI', () => {
      * The payload slider edits the very configuration the constellation panel
      * is displaying, so it must not dismiss it: the panel's own line reads
      * "12 payloads — 2 planes × 6", and closing it mid-drag threw away the
-     * reader's place in what the drag was changing. Everything else outside
-     * still closes it, which is why the exemption is a narrow selector rather
-     * than "ignore the header".
+     * reader's place in what the drag was changing. The same holds for the
+     * swath preset, which writes the instrument angles the panel displays.
+     * Everything else outside still closes it, which is why the exemption is a
+     * narrow selector rather than "ignore the header".
      */
-    it('keeps the constellation panel open while the payload slider moves', async () => {
+    it('stays open while the header edits what it displays', async () => {
         await act(async () => root?.render(
             <RevisitHeader
                 scenario={defaultScenario(Date.UTC(2026, 7, 12))}
@@ -636,6 +637,7 @@ describe('REVISIT P1 functional UI', () => {
                 onPayloadCountChange={() => undefined}
                 targetNames={['London']}
                 onTargetChange={() => undefined}
+                onInstrumentPresetChange={() => undefined}
                 spreadNote={null}
                 model={{
                     mode: 'HLD', profile: null, fit: null, provenance: null,
@@ -662,6 +664,10 @@ describe('REVISIT P1 functional UI', () => {
         expect(panel()).not.toBeNull();
 
         await down(container.querySelector('[data-revisit-payload-step]')!);
+        expect(panel()).not.toBeNull();
+
+        // The swath preset writes the instrument the panel is showing.
+        await down(container.querySelector('[data-revisit-payload-swath]')!);
         expect(panel()).not.toBeNull();
 
         // Anything else still dismisses it.

@@ -1164,7 +1164,12 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
             },
         ];
     }, [
-        referenceMode, calibration.fit, renderValidation, activeMainThreadFallback,
+        // `calibration.fit` left this list when the Orbital model row stopped
+        // depending on it: the analysed model is parametric in every mode, so
+        // the fit no longer decides READY vs PENDING. A dependency the body
+        // does not read is not free — it recomputes this list on every
+        // measurement and, as here, fails `react-hooks/exhaustive-deps`.
+        referenceMode, renderValidation, activeMainThreadFallback,
         activeResultError, activeResult, activeResultIsComputing, analysisContext,
         sweepError, sweep, isSweeping, isConfigurationSettling,
     ]);
@@ -1919,7 +1924,26 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                         <button type="button" onClick={onExit}
                             aria-label={`Back to ${returnMode === 'commercial' ? 'Commercial' : 'Engineering'}`}
                             title={`Back to ${returnMode === 'commercial' ? 'Commercial' : 'Engineering'}`}
-                            className={`${REVISIT_PANEL} revisit-origin-return flex min-h-11 w-11 shrink-0 self-stretch flex-col items-center justify-center gap-0.5 px-0.5 font-black uppercase text-slate-300 hover:border-slate-500 hover:text-slate-100`}>
+                            /*
+                             * Reads as a button, not as a chevron to hunt for.
+                             * Same square, same place — only the chrome changes.
+                             *
+                             * It deliberately does NOT use `REVISIT_PANEL`: that
+                             * constant carries `border-slate-700/70`, and
+                             * `.capacity-header [class*='border-slate-']`
+                             * flattens any such border in this header to 16 %
+                             * slate with `!important` — which beats an inline
+                             * colour. Without a `border-slate-*` class in the
+                             * list the rule no longer matches and the inline
+                             * colour stands. Measured: 0.16 alpha before,
+                             * #6b7c99 after.
+                             *
+                             * `max-h` caps the stretch. On a phone the rail is
+                             * the whole expanded setup block — measured 520 px —
+                             * and a 44 × 520 px column is a rail, not a button.
+                             */
+                            style={{ borderColor: '#6b7c99' }}
+                            className="revisit-origin-return flex min-h-11 max-h-[4.5rem] w-11 shrink-0 self-stretch flex-col items-center justify-center gap-0.5 rounded-xl border bg-slate-700/70 px-0.5 font-black uppercase text-slate-100 shadow-lg backdrop-blur-sm transition-colors hover:bg-slate-600/80 hover:text-white">
                             <span aria-hidden="true" className="text-[13px] leading-none">‹</span>
                             <span aria-hidden="true" className="text-[9px] leading-none tracking-[0.02em]">
                                 {returnMode === 'commercial' ? 'COMM' : 'ENG'}

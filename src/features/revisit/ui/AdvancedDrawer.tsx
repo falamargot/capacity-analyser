@@ -301,6 +301,15 @@ const PayloadGeometryEditor: React.FC<AdvancedDrawerProps> = ({ scenario, onChan
                     <span className="ml-2 font-semibold normal-case tracking-normal text-slate-600">
                         yours in either model
                     </span>
+                    {/*
+                      * Says where the other half of this instrument lives. The
+                      * header's swath selector writes these same angles — it is
+                      * the one-gesture form of them — and without this line the
+                      * two look like two instruments that happen to agree.
+                      */}
+                    <span className="ml-2 block font-semibold normal-case tracking-normal text-slate-600 sm:ml-0">
+                        the header's swath preset writes these angles
+                    </span>
                 </p>
                 <span className="text-[11px] text-slate-500 tabular-nums">
                     ≈ {Math.round(swathKmForFov(scenario.reference.altitudeKm, draft))} km swath

@@ -25,8 +25,7 @@ test.describe('REVISIT P2b-B2 contextual results', () => {
     await expect(analysis.getByRole('region', { name: 'Area coverage' })).toHaveCount(0);
     await expect(page.getByRole('region', { name: 'Saved scenario workspace' })).toHaveCount(0);
 
-    await page.getByRole('button', { name: /^(scenario )?workspace
-i }).click();
+    await page.getByRole('button', { name: /^(scenario )?workspace$/i }).click();
     await expect(page.getByRole('dialog', { name: 'Scenario workspace' })).toBeVisible();
     await page.getByRole('button', { name: 'Close scenario workspace' }).click();
 

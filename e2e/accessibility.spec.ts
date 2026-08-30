@@ -91,8 +91,7 @@ test.describe('critical accessibility gate', () => {
           await areaPanel.getByRole('button', { name: 'Apply list' }).click();
           await expect(page.getByRole('region', { name: 'Area result summary' })).toContainText('Least-covered cell', { timeout: 60_000 });
           analyses.push(await analyzeAccessibility(page));
-          await page.getByRole('button', { name: /^(scenario )?workspace
-i }).click();
+          await page.getByRole('button', { name: /^(scenario )?workspace$/i }).click();
           analyses.push(await analyzeAccessibility(page));
         }
         const blocking = analyses.flatMap((results) => results.violations).filter((violation) => (
