@@ -387,19 +387,30 @@ const PayloadGeometryEditor: React.FC<AdvancedDrawerProps> = ({ scenario, onChan
             {/*
               * Name the scope, and say why this block alone is staged.
               *
-              * The reason given here used to be the recompute cost, and that
-              * was wrong: `useRevisitAnalysis` already debounces at 300 ms and
-              * invalidates superseded requests, and the Walker fields trigger
-              * the same work without being staged. The real reason is
-              * validation shape — a FOV is a coupled specification checked as a
-              * whole by `validateFovSpec`, so an emptied half-angle is invalid
-              * in a way a Walker field cannot be, every one of those being
-              * clamped per field by `bounded`.
+              * Two wrong reasons have stood here, so the real one is worth
+              * stating carefully.
+              *
+              *   1. "Avoid recomputing on every keystroke" — false.
+              *      `useRevisitAnalysis` already debounces at 300 ms and
+              *      invalidates superseded requests, and the Walker fields
+              *      cause the same work without being staged.
+              *   2. "A half-typed angle would be published" — nearly false.
+              *      Every input here is clamped by `bounded`, so an emptied
+              *      field lands on its minimum rather than on nothing. Only the
+              *      bias can reach an invalid state, at exactly ±90°, which
+              *      `validateFovSpec` rejects.
+              *
+              * What actually justifies it: these six angles are ONE instrument.
+              * The swath readout above recomputes from the draft as you type,
+              * so the block is a small solver — set shape, both half-angles and
+              * the biases against a live ≈ km figure, then commit the
+              * instrument you meant. Applying each keystroke would publish five
+              * instruments nobody designed on the way to the sixth.
               */}
             <p className="mt-1.5 text-[11px] leading-4 text-slate-500">
                 Instrument geometry only — the Walker parameters above apply as you type.
-                These fields are staged because a field of view is validated as a whole:
-                a half-typed angle would otherwise be published as a real geometry.
+                These angles describe one instrument, so they are staged: tune them against
+                the swath figure above, then apply the geometry you meant.
             </p>
             {!validation.ok && (
                 <p className="mt-1.5 rounded border border-red-400/40 bg-red-500/10 px-2 py-1 text-[12px] leading-4 text-red-200">
