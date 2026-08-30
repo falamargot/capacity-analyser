@@ -221,7 +221,6 @@ export const TARGET_PRESETS: Target[] = [
     { kind: 'POINT', name: 'Singapore', latDeg: 1.3521, lonDeg: 103.8198 },
     { kind: 'POINT', name: 'Cape Town', latDeg: -33.9249, lonDeg: 18.4241 },
     { kind: 'POINT', name: 'London', latDeg: 51.5074, lonDeg: -0.1278 },
-    { kind: 'POINT', name: 'Longyearbyen', latDeg: 78.2232, lonDeg: 15.6267 },
 ];
 
 export const DEFAULT_TARGET = TARGET_PRESETS[2];

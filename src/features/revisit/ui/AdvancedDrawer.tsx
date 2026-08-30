@@ -311,8 +311,15 @@ const PayloadGeometryEditor: React.FC<AdvancedDrawerProps> = ({ scenario, onChan
                         the header's swath preset writes these angles
                     </span>
                 </p>
-                <span className="text-[11px] text-slate-500 tabular-nums">
-                    ≈ {Math.round(swathKmForFov(scenario.reference.altitudeKm, draft))} km swath
+                {/* The one derived number in this block, weighted like the
+                    payload count above it: both are the figure the reader is
+                    actually steering towards. */}
+                <span className="text-[11px] text-slate-400 tabular-nums">
+                    ≈{' '}
+                    <span className="font-black text-amber-300">
+                        {Math.round(swathKmForFov(scenario.reference.altitudeKm, draft))}
+                    </span>
+                    {' '}km swath
                 </span>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">

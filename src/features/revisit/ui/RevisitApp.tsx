@@ -1938,12 +1938,16 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                              * colour stands. Measured: 0.16 alpha before,
                              * #6b7c99 after.
                              *
-                             * `max-h` caps the stretch. On a phone the rail is
-                             * the whole expanded setup block — measured 520 px —
-                             * and a 44 × 520 px column is a rail, not a button.
+                             * It stretches to the rail, whatever the rail's
+                             * height happens to be — the header grows with a
+                             * spread note, with the target list, and with the
+                             * expanded setup block on a phone. A cap was tried
+                             * and removed: a control that stops short of the
+                             * surface it belongs to reads as unrelated to it,
+                             * which is how it came to be hard to find.
                              */
                             style={{ borderColor: '#6b7c99' }}
-                            className="revisit-origin-return flex min-h-11 max-h-[4.5rem] w-11 shrink-0 self-stretch flex-col items-center justify-center gap-0.5 rounded-xl border bg-slate-700/70 px-0.5 font-black uppercase text-slate-100 shadow-lg backdrop-blur-sm transition-colors hover:bg-slate-600/80 hover:text-white">
+                            className="revisit-origin-return flex min-h-11 w-11 shrink-0 self-stretch flex-col items-center justify-center gap-0.5 rounded-xl border bg-slate-700/70 px-0.5 font-black uppercase text-slate-100 shadow-lg backdrop-blur-sm transition-colors hover:bg-slate-600/80 hover:text-white">
                             <span aria-hidden="true" className="text-[13px] leading-none">‹</span>
                             <span aria-hidden="true" className="text-[9px] leading-none tracking-[0.02em]">
                                 {returnMode === 'commercial' ? 'COMM' : 'ENG'}

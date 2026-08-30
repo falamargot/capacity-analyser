@@ -818,7 +818,11 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
             <Arrow />
 
             <Panel label="Analysis target" className="relative z-40 min-w-0 md:min-w-[260px] md:max-w-[320px]">
-                    <div className="space-y-1" role="group" aria-label="Analysis targets">
+                    {/* `space-y-0`: the swap pill sits ON the seam between
+                        Primary and Secondary and supplies the only separation
+                        those two blocks need, so a gap as well as the pill
+                        spent header height on nothing. */}
+                    <div className="space-y-0" role="group" aria-label="Analysis targets">
                         {!hasReferenceTarget ? (
                             <div ref={addReferenceMenuRef} className="relative">
                                 <p className="mb-2 text-[11px] leading-4 text-slate-400">
@@ -943,6 +947,37 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                     className="h-11 w-11 shrink-0 rounded text-slate-500 hover:bg-rose-400/10 hover:text-rose-300 md:h-7 md:w-7">×</button>
                             </div>
                         </div>
+                        )}
+
+                        {/*
+                          * Straddling the two blocks, the way the engineering
+                          * header swaps Site A and Site B. As a full-width bar
+                          * under the list it named an action without showing
+                          * what it acted on; sitting on the seam between
+                          * Primary and Secondary, the two things it exchanges
+                          * are above and below it. The negative margin is what
+                          * puts it ON the seam rather than in a row of its own.
+                          */}
+                        {orderedSecondaryTargetIds.length > 0 && (
+                            <div className="relative z-10 -my-3 flex justify-center">
+                                <button
+                                    type="button"
+                                    aria-label="Swap Primary and Secondary targets"
+                                    title={canSwapTargetRoles
+                                        ? 'Make the Secondary target Primary and the Primary target Secondary'
+                                        : 'Define both targets before swapping their roles'}
+                                    disabled={!canSwapTargetRoles}
+                                    onClick={onSwapTargetRoles}
+                                    style={{ borderColor: '#6b7c99' }}
+                                    className="flex h-7 w-7 items-center justify-center rounded-full border bg-slate-800 text-[13px] font-black leading-none text-slate-200 shadow transition-colors hover:bg-slate-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                    {/* Vertical, because the two blocks it
+                                        exchanges are stacked: a sideways arrow
+                                        described a swap that does not happen on
+                                        this axis. */}
+                                    <span aria-hidden="true">⇅</span>
+                                </button>
+                            </div>
                         )}
 
                         {orderedSecondaryTargetIds.map((secondaryId) => {
@@ -1071,21 +1106,6 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                 >×</button>
                             </div>
                         )})}
-                        {orderedSecondaryTargetIds.length > 0 && (
-                            <button
-                                type="button"
-                                aria-label="Swap Primary and Secondary targets"
-                                title={canSwapTargetRoles
-                                    ? 'Make the Secondary target Primary and the Primary target Secondary'
-                                    : 'Define both targets before swapping their roles'}
-                                disabled={!canSwapTargetRoles}
-                                onClick={onSwapTargetRoles}
-                                className="flex min-h-11 w-full items-center justify-center gap-1.5 rounded border border-slate-700 px-2 text-[11px] font-black uppercase tracking-[0.08em] text-slate-300 hover:border-slate-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 md:min-h-7"
-                            >
-                                <span aria-hidden="true">⇄</span>
-                                Swap roles
-                            </button>
-                        )}
                         {orderedSecondaryTargetIds.length < MAX_SECONDARY_TARGETS && (
                             <div ref={addTargetMenuRef} className="relative">
                                 <button
