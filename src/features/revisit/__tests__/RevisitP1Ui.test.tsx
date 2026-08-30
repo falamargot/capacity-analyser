@@ -554,6 +554,78 @@ describe('REVISIT P1 functional UI', () => {
         expect(container.textContent).toContain('Uniform shell');
     });
 
+    /*
+     * Two undo levels, and they answer different questions. "Discard edits"
+     * goes back to the instrument currently applied — it can only act on a
+     * staged edit. "Reset to standard" goes back to the instrument the scenario
+     * opens with, which is reachable even when nothing is staged, and that is
+     * the whole point of it being there.
+     *
+     * Reset loads the draft rather than publishing, so a geometry still reaches
+     * the scenario by exactly one route: Apply.
+     */
+    it('offers a reset to the standard instrument, distinct from discarding edits', async () => {
+        const scenario = defaultScenario(Date.UTC(2026, 7, 12));
+        const applied = {
+            ...scenario,
+            payload: { ...scenario.payload, halfAngle1Deg: 25, halfAngle2Deg: 25 },
+        };
+        const onChange = vi.fn();
+        await act(async () => root?.render(
+            <AdvancedDrawer scenario={applied} onChange={onChange} variant="menu" />
+        ));
+
+        const button = (label: string) => [...container.querySelectorAll('button')]
+            .find((element) => element.textContent === label) as HTMLButtonElement;
+
+        // Nothing staged: discarding has nothing to do, resetting does.
+        expect(button('Discard edits').disabled).toBe(true);
+        expect(button('Reset to standard').disabled).toBe(false);
+
+        await act(async () => button('Reset to standard').click());
+        // The draft moved; the scenario did not.
+        expect(onChange).not.toHaveBeenCalled();
+        const halfAngle = container.querySelector<HTMLInputElement>(
+            '[aria-label="FOV half-angle 1"]'
+        )!;
+        expect(Number(halfAngle.value)).toBeCloseTo(16.13, 2);
+
+        await act(async () => button('Apply instrument geometry').click());
+        expect(onChange).toHaveBeenCalledTimes(1);
+        expect(onChange.mock.calls[0][0].payload.halfAngle1Deg).toBeCloseTo(16.13, 2);
+    });
+
+    /*
+     * The instrument is the user's in both models, so it must not read as
+     * locked when the Walker fields are. The Walker fieldset carries `disabled`
+     * in HLD; the payload fields never do.
+     */
+    it('leaves the instrument editable while the Walker fields are locked', async () => {
+        const scenario = defaultScenario(Date.UTC(2026, 7, 12));
+        await act(async () => root?.render(
+            <AdvancedDrawer
+                scenario={scenario}
+                onChange={() => undefined}
+                variant="menu"
+                model={{
+                    mode: 'HLD', profile: null, fit: null, provenance: null,
+                    isRunning: false, error: null,
+                    onModeChange: () => undefined,
+                    onCompareToTleSet: () => undefined,
+                    onCopyHldIntoCustom: () => undefined,
+                }}
+            />
+        ));
+
+        expect(container.querySelector('fieldset')!.disabled).toBe(true);
+        const halfAngle = container.querySelector<HTMLInputElement>(
+            '[aria-label="FOV half-angle 1"]'
+        )!;
+        expect(halfAngle.closest('fieldset')).toBeNull();
+        expect(halfAngle.disabled).toBe(false);
+        expect(container.textContent).toContain('yours in either model');
+    });
+
     it('turns the KPI into a truthful comparison without replacing worst-case', async () => {
         const statistics: GapStatistics = {
             maxGapMs: 3 * 3600_000,

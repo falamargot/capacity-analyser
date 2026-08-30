@@ -23,7 +23,7 @@ import {
 } from '../domain/subConstellation';
 import type { FovSpec, RevisitScenario, WalkerPattern, WalkerSpec } from '../domain/types';
 import { validateFovSpec } from '../domain/inputValidation';
-import { swathKmForFov } from '../domain/presets';
+import { fovPresets, swathKmForFov } from '../domain/presets';
 import { fovForDisplay } from './fovDisplay';
 import { referenceWithPatch } from '../domain/referenceEditing';
 import {
@@ -48,14 +48,25 @@ interface AdvancedDrawerProps {
     variant?: 'panel' | 'menu';
 }
 
-const fieldClass =
+/**
+ * Editable fields look editable, and locked ones look locked.
+ *
+ * The Walker fieldset is `disabled` in HLD — those values are a record of
+ * something external — but the only sign of it was a blanket `opacity-70` on
+ * the group, which dimmed the whole panel without saying which parts a reader
+ * could act on. The disabled variants below carry that meaning per control:
+ * flatter background, no border highlight, dimmer text, not-allowed cursor.
+ */
+const editableChrome =
     'w-full rounded border border-slate-600 bg-slate-900/70 px-1.5 py-1 text-[12px] '
-    + 'font-bold text-slate-100 outline-none focus:border-amber-400/70';
+    + 'outline-none focus:border-amber-400/70 '
+    + 'disabled:cursor-not-allowed disabled:border-slate-700/70 disabled:bg-slate-900/30 '
+    + 'disabled:text-slate-500';
+
+const fieldClass = `${editableChrome} font-bold text-slate-100`;
 
 /** `fieldClass` without a weight, for fields that set their own. */
-const fieldBaseClass =
-    'w-full rounded border border-slate-600 bg-slate-900/70 px-1.5 py-1 text-[12px] '
-    + 'outline-none focus:border-amber-400/70';
+const fieldBaseClass = editableChrome;
 
 /**
  * Weight as the signal for "this is not the reference any more".
@@ -67,7 +78,7 @@ const fieldBaseClass =
  * the reference shows none.
  */
 const walkerFieldClass = (differs: boolean) =>
-    `${fieldBaseClass} ${differs ? 'font-bold text-slate-100' : 'font-medium text-slate-400'}`;
+    `${fieldBaseClass} ${differs ? 'font-bold text-slate-100' : 'font-medium text-slate-200'}`;
 
 export const MAX_ADVANCED_PLANES = 24;
 export const MAX_ADVANCED_SATS_PER_PLANE = 64;
@@ -221,7 +232,7 @@ const Field: React.FC<{
     label, hint, title, children,
 }) => (
     <label className="flex flex-col gap-1" title={title}>
-        <span className="text-[11px] font-black uppercase tracking-[0.1em] text-slate-500">
+        <span className="text-[11px] font-black uppercase tracking-[0.1em] text-slate-400">
             {label}
         </span>
         {children}
@@ -244,6 +255,21 @@ const PayloadGeometryEditor: React.FC<AdvancedDrawerProps> = ({ scenario, onChan
      * drawer opened, before anybody had edited anything.
      */
     const dirty = JSON.stringify(draft) !== JSON.stringify(seed);
+    /*
+     * The instrument the scenario opens with — the Standard preset, solved at
+     * the CURRENT altitude rather than at the 1200 km it was first built for.
+     * "Initial" has to mean the same instrument, not the same angles: the same
+     * 700 km swath needs a different half-angle at 550 km.
+     *
+     * It loads the draft rather than publishing, so a geometry still reaches
+     * the scenario by exactly one route — Apply — and the swath readout shows
+     * what is about to be committed.
+     */
+    const defaultFov = useMemo(
+        () => fovForDisplay(fovPresets(scenario.reference.altitudeKm).STANDARD),
+        [scenario.reference.altitudeKm]
+    );
+    const isDefault = JSON.stringify(draft) === JSON.stringify(defaultFov);
     const setBias = (axis: 'alongTrack' | 'crossTrack', value: number) => {
         setDraft((current) => ({
             ...current,
@@ -258,9 +284,18 @@ const PayloadGeometryEditor: React.FC<AdvancedDrawerProps> = ({ scenario, onChan
          * everything above rather than as the footer of these fields.
          */
         <div className="rounded border border-slate-700/60 p-2.5">
-            <div className="mb-1.5 flex items-center justify-between gap-2">
+            <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
                 <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
                     Instrument geometry
+                    {/*
+                      * The one block in this panel that is yours in every mode.
+                      * The Walker fields lock in HLD — they are a record of
+                      * something external — and nothing said the payload does
+                      * not, so the whole panel read as locked.
+                      */}
+                    <span className="ml-2 font-semibold normal-case tracking-normal text-slate-600">
+                        yours in either model
+                    </span>
                 </p>
                 <span className="text-[11px] text-slate-500 tabular-nums">
                     ≈ {Math.round(swathKmForFov(scenario.reference.altitudeKm, draft))} km swath
@@ -384,44 +419,26 @@ const PayloadGeometryEditor: React.FC<AdvancedDrawerProps> = ({ scenario, onChan
                 </Field>
             </div>
 
-            {/*
-              * Name the scope, and say why this block alone is staged.
-              *
-              * Two wrong reasons have stood here, so the real one is worth
-              * stating carefully.
-              *
-              *   1. "Avoid recomputing on every keystroke" — false.
-              *      `useRevisitAnalysis` already debounces at 300 ms and
-              *      invalidates superseded requests, and the Walker fields
-              *      cause the same work without being staged.
-              *   2. "A half-typed angle would be published" — nearly false.
-              *      Every input here is clamped by `bounded`, so an emptied
-              *      field lands on its minimum rather than on nothing. Only the
-              *      bias can reach an invalid state, at exactly ±90°, which
-              *      `validateFovSpec` rejects.
-              *
-              * What actually justifies it: these six angles are ONE instrument.
-              * The swath readout above recomputes from the draft as you type,
-              * so the block is a small solver — set shape, both half-angles and
-              * the biases against a live ≈ km figure, then commit the
-              * instrument you meant. Applying each keystroke would publish five
-              * instruments nobody designed on the way to the sixth.
-              */}
-            <p className="mt-1.5 text-[11px] leading-4 text-slate-500">
-                Instrument geometry only — the Walker parameters above apply as you type.
-                These angles describe one instrument, so they are staged: tune them against
-                the swath figure above, then apply the geometry you meant.
-            </p>
             {!validation.ok && (
                 <p className="mt-1.5 rounded border border-red-400/40 bg-red-500/10 px-2 py-1 text-[12px] leading-4 text-red-200">
                     {validation.errors.join('; ')}
                 </p>
             )}
-            <div className="mt-2 flex justify-end gap-2">
+            <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
+                <button
+                    type="button"
+                    disabled={isDefault}
+                    onClick={() => setDraft(defaultFov)}
+                    title="Load the instrument the scenario opens with — the Standard preset, solved at the current altitude. Nothing is applied until you press Apply instrument geometry."
+                    className="mr-auto rounded px-2 py-1 text-[11px] font-black uppercase tracking-[0.1em] text-slate-400 hover:text-sky-200 disabled:opacity-40 disabled:hover:text-slate-400"
+                >
+                    Reset to standard
+                </button>
                 <button
                     type="button"
                     disabled={!dirty}
                     onClick={() => setDraft(seed)}
+                    title="Drop the edits staged here and go back to the instrument currently applied."
                     className="rounded px-2 py-1 text-[11px] font-black uppercase tracking-[0.1em] text-slate-400 disabled:opacity-40"
                 >
                     Discard edits
@@ -676,7 +693,7 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                     </div>
                     <fieldset
                         disabled={fieldsLocked}
-                        className={`m-0 grid grid-cols-3 gap-2 border-0 p-0 ${fieldsLocked ? 'opacity-70' : ''}`}
+                        className="m-0 grid grid-cols-3 gap-2 border-0 p-0"
                     >
                         <Field
                             label="Pattern"
