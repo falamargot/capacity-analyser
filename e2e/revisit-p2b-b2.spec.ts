@@ -38,8 +38,12 @@ test.describe('REVISIT P2b-B2 contextual results', () => {
     // later UX increment rather than part of this target-model change.
     expect(areaHeaderHeight).toBeLessThanOrEqual(pointsHeaderHeight + 60);
     await expect(analysis.getByRole('region', { name: 'Area result summary' })).toBeVisible();
-    // The cell distribution is supporting evidence in the consolidated Analysis view.
-    await expect(analysis.getByRole('region', { name: 'Area cell distribution' })).toBeVisible();
+    // The cell distribution is the evidence behind the recommendation, so it
+    // lives under "Why this recommendation?" inside the Recommended
+    // configuration card — the same place a Point's value curve lives.
+    await expect(analysis.getByLabel('Recommended configuration'))
+      .toContainText('Why this recommendation?');
+    await expect(analysis.getByRole('region', { name: 'Area cell distribution' })).toHaveCount(0);
     await expect(analysis.getByRole('button', { name: 'Data', exact: true })).toHaveCount(0);
     await expect(analysis.getByRole('region', { name: 'Target comparison' })).toHaveCount(0);
     await expect(analysis.getByText('Sizing evidence')).toHaveCount(0);
@@ -100,7 +104,8 @@ test.describe('REVISIT P2b-B2 contextual results', () => {
     // cannot be open at the same time as the editor on a phone.
     await openRevisitAnalysis(page);
     await expect(page.getByRole('region', { name: 'Customer result' })).toBeVisible();
-    await expect(page.getByRole('region', { name: 'Area cell distribution' })).toBeVisible();
+    await expect(page.getByLabel('Recommended configuration'))
+      .toContainText('Why this recommendation?');
     await expect(page.getByRole('button', { name: 'Data', exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Advanced', exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Setup', exact: true })).toHaveCount(0);

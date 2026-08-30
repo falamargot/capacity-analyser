@@ -343,10 +343,21 @@ describe('presets — the entry moment', () => {
         expect(defaultScenario(EPOCH).window.durationHours).toBe(72);
     });
 
-    it('offers targets spanning the equator to the high Arctic, both hemispheres', () => {
+    /*
+     * The presets exist to make one contrast visible without anyone having to
+     * ask for it: a near-polar shell serves a northern city far better than the
+     * equator. That needs an equatorial target, a mid-latitude target and both
+     * hemispheres — which is what is asserted.
+     *
+     * The northern bound was `> 70` while Longyearbyen (78.2°) was in the set;
+     * it was removed on 2026-08-30, and the bound follows the set rather than
+     * the set following the bound. The contrast still holds at London's 51.5°,
+     * with less margin.
+     */
+    it('offers targets spanning the equator to northern mid-latitudes, both hemispheres', () => {
         const lats = TARGET_PRESETS.map((t) => t.latDeg);
         expect(Math.min(...lats)).toBeLessThan(-30);   // southern mid-latitude
-        expect(Math.max(...lats)).toBeGreaterThan(70); // high Arctic
+        expect(Math.max(...lats)).toBeGreaterThan(45); // northern mid-latitude
         expect(lats.some((l) => Math.abs(l) < 5)).toBe(true); // equatorial
         // Every preset target is reachable by the default near-polar shell.
         expect(lats.every((l) => Math.abs(l) < DEFAULT_REFERENCE.inclinationDeg)).toBe(true);

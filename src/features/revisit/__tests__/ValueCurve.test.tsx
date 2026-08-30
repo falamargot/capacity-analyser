@@ -148,7 +148,7 @@ describe('ValueCurve current-selection coherence', () => {
         expect(container.textContent).toContain('Current configuration');
         expect(container.textContent).not.toContain('Current manual split');
         expect(container.textContent).toContain('Minimum tested balanced configuration');
-        expect(container.textContent).toContain('Show exact topology points');
+        expect(container.textContent).toContain('Show every measured count');
     });
 
     it('uses evidence-only labels when embedded under the canonical recommendation', async () => {
@@ -211,9 +211,9 @@ describe('ValueCurve current-selection coherence', () => {
         ));
 
         const toggle = [...container.querySelectorAll('button')]
-            .find((button) => button.textContent?.includes('Show exact topology points'))!;
+            .find((button) => button.textContent?.includes('Show every measured count'))!;
         await act(async () => toggle.click());
         expect(container.textContent).toContain('exact topology points');
-        expect(container.textContent).toContain('Show executive envelope');
+        expect(container.textContent).toContain('Show best per budget');
     });
 });

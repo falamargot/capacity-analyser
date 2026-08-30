@@ -918,18 +918,6 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         requirementMs, assumedSwathKm, referenceMode,
     ]);
 
-    /** States the basis out loud once more than one target is in the set. */
-    const customerComparisonNote = useMemo(() => {
-        // Empty editable rows are not customer targets yet. Count only located
-        // points and a geometrically defined Area.
-        const hasComparison = comparisonPoints.length > 0
-            || Boolean(comparisonArea && comparisonArea.boundary.length >= 3);
-        const targetCount = 1 + (hasComparison ? 1 : 0);
-        return targetCount > 1
-            ? `Comparing ${targetCount} customer targets against the same fleet configuration.`
-            : null;
-    }, [comparisonPoints.length, comparisonArea]);
-
     const customerMaxGapMs = analysisContext === 'AREA'
         ? displayedAreaAnalysis?.worstCell?.statistics.maxGapMs ?? null
         : inspectedAnalysis?.statistics.maxGapMs ?? null;
@@ -2244,7 +2232,6 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                                 <CustomerResultCard
                                     targetRole={activeTargetRole ?? 'REFERENCE'}
                                     question={customerQuestion}
-                                    comparisonNote={customerComparisonNote}
                                     currentPayloadCount={currentPayloadCount}
                                     fleetSize={scenario.reference.planes * scenario.reference.satsPerPlane}
                                     currentMaxGapMs={customerMaxGapMs}
@@ -2255,9 +2242,6 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                                         : 'Maximum revisit gap'}
                                     requirementMs={requirementMs}
                                     sizing={customerSizing}
-                                    applyNote={selectedPointId === REFERENCE_POINT_ID
-                                        ? null
-                                        : 'Optimises the shared topology for the secondary target, so the primary target stops driving it.'}
                                     onApply={handleApplyRecommendation}
                                     onUndo={canUndoRecommendation ? handleUndoRecommendation : undefined}
                                     onRetrySizing={activeSizingError ? retrySweep : undefined}
@@ -2282,7 +2266,21 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                                             embedded
                                         />
                                     )}
-                                    recommendedConfigurationDetail={analysisContext === 'POINTS' && inspectedPoint ? (
+                                    /*
+                                      * One "why" per mode, in the same place.
+                                      * Area used to answer it in a separate
+                                      * `Cells vs requirement` card beside the
+                                      * recommendation; it is the same kind of
+                                      * evidence the value curve is for a Point,
+                                      * so it goes under the same disclosure.
+                                      */
+                                    recommendedConfigurationDetail={analysisContext === 'AREA' ? (
+                                        <AreaDistributionPanel
+                                            analysis={displayedAreaAnalysis}
+                                            requirementMs={requirementMs}
+                                            embedded
+                                        />
+                                    ) : analysisContext === 'POINTS' && inspectedPoint ? (
                                         <ValueCurve
                                             key={resetRevision}
                                             targetRole={activeTargetRole ?? 'REFERENCE'}
@@ -2301,11 +2299,6 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                                         />
                                     ) : null}
                                 />
-                            )}
-                            {analysisContext === 'AREA' && (
-                                <div className={`revisit-result-${(activeTargetRole ?? 'REFERENCE').toLowerCase()}`}>
-                                    <AreaDistributionPanel analysis={displayedAreaAnalysis} requirementMs={requirementMs} />
-                                </div>
                             )}
                             {analysisContext === 'POINTS' && inspectedPoint && (
                                 <div className={`revisit-result-${(activeTargetRole ?? 'REFERENCE').toLowerCase()}`}>

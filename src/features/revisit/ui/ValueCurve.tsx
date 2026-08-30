@@ -333,13 +333,22 @@ export const ValueCurve: React.FC<ValueCurveProps> = ({
             )}
 
             {sweep && (
+                /*
+                 * "Executive envelope" named the audience, not the curve, and
+                 * left the reader to guess what it filtered. Both labels now
+                 * say what will be drawn: the best gap reachable within each
+                 * budget, or every measured count as it actually came out.
+                 */
                 <button
                     type="button"
                     className="mt-1 rounded text-[11px] font-bold uppercase tracking-[0.08em] text-sky-300 hover:text-sky-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300"
                     aria-pressed={showExactTopologies}
+                    title={showExactTopologies
+                        ? 'Keep only the counts that improve on every smaller budget, so the curve reads "best achievable with up to X payloads". Every point is still a measured sweep result — dominated counts are filtered, never smoothed.'
+                        : 'Plot every payload count the sweep measured, in order. The curve can rise: at 87.9° a concentrated split can beat a larger, more spread one.'}
                     onClick={() => setShowExactTopologies((shown) => !shown)}
                 >
-                    {showExactTopologies ? 'Show executive envelope' : 'Show exact topology points'}
+                    {showExactTopologies ? 'Show best per budget' : 'Show every measured count'}
                 </button>
             )}
 

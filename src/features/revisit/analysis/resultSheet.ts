@@ -57,12 +57,24 @@ export interface RevisitResultSheetModel {
  */
 export type SizingOutcome = 'NONE' | 'ADDITIONAL_PAYLOADS' | 'SAME_BUDGET_RESPLIT';
 
-/** Shared vocabulary with `CustomerResultCard`, so the screen and the PDF agree. */
+/**
+ * Shared vocabulary with `CustomerResultCard`, so the screen and the PDF agree.
+ *
+ * Shortened on 2026-08-30 with the screen badges: `FURTHER ENGINEERING
+ * ASSESSMENT REQUIRED` (38 characters) and `ADDITIONAL PAYLOADS REQUIRED` (28)
+ * wrapped in a pill beside a heading and in the PDF's verdict box. The wording
+ * had to stay in the same register — neither reads as a fault in the tool — and
+ * both are said in full in the sentence underneath.
+ *
+ * The two sides must move together: a divergence here is a document and a
+ * screen making different claims about the same result, which is the defect
+ * this function exists to prevent.
+ */
 export function customerVerdict(meets: boolean, outcome: SizingOutcome): string {
     if (meets) return 'REQUIREMENT COVERED';
-    if (outcome === 'ADDITIONAL_PAYLOADS') return 'ADDITIONAL PAYLOADS REQUIRED';
+    if (outcome === 'ADDITIONAL_PAYLOADS') return 'MORE PAYLOADS REQUIRED';
     if (outcome === 'SAME_BUDGET_RESPLIT') return 'RECONFIGURATION REQUIRED';
-    return 'FURTHER ENGINEERING ASSESSMENT REQUIRED';
+    return 'ASSESSMENT REQUIRED';
 }
 
 /**

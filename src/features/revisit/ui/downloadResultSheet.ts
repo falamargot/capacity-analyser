@@ -54,7 +54,7 @@ export async function downloadRevisitResultSheet(model: RevisitResultSheetModel)
         ? [22, 101, 52]
         // Both actionable shortfalls read the same: there is a measured answer,
         // it just is not the configuration on screen. Only "no answer" is grey.
-        : model.verdict === 'ADDITIONAL PAYLOADS REQUIRED'
+        : model.verdict === 'MORE PAYLOADS REQUIRED'
             || model.verdict === 'RECONFIGURATION REQUIRED'
             ? [194, 65, 12]
             : [71, 85, 105];

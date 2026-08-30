@@ -76,7 +76,7 @@ test.describe('REVISIT P7A commercial result framing', () => {
     // until it lands the card says so rather than proposing a stale figure.
     const apply = card.getByRole('button', { name: 'Apply recommended configuration' });
     await expect(apply).toBeVisible({ timeout: 120_000 });
-    await expect(card).toContainText('Additional payloads required');
+    await expect(card).toContainText('More payloads required');
     await expect(card.locator('.revisit-customer-status')).toHaveClass(/text-orange-200/);
 
     const before = await payloadCount.inputValue();

@@ -165,7 +165,7 @@ describe('REVISIT result sheet', () => {
         );
         expect(sheet.title).toContain('area');
         expect(sheet.metrics[0]).toEqual({ label: 'Least-covered cell', value: '4 h' });
-        expect(sheet.verdict).toBe('FURTHER ENGINEERING ASSESSMENT REQUIRED');
+        expect(sheet.verdict).toBe('ASSESSMENT REQUIRED');
         expect(sheet.assumptions.map((row) => row.label)).toContain('Area grid');
         expect(sheet.caveats.join(' ')).toMatch(/not an average timeline/i);
     });

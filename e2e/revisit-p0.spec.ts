@@ -73,9 +73,9 @@ test.describe('REVISIT P0 demonstration contract', () => {
     await expect(evidence.getByLabel('Sizing evidence legend')).toContainText('Current');
     await expect(evidence).not.toContainText('Minimum tested balanced configuration:');
 
-    await evidence.getByRole('button', { name: 'Show exact topology points' }).click();
+    await evidence.getByRole('button', { name: 'Show every measured count' }).click();
     await expect(page.getByText('exact topology points · lower is better')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Show executive envelope' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Show best per budget' })).toBeVisible();
   });
 
   test('supports presenter reset and explicit simulation time controls', async ({ page }) => {

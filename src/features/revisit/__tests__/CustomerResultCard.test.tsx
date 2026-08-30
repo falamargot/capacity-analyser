@@ -141,7 +141,7 @@ describe('CustomerResultCard', () => {
         expect(container.textContent).toContain('the payloads already flown, redistributed');
         expect(container.textContent).toContain('no additional payloads required');
         // The two statements that must never appear together.
-        expect(container.textContent).not.toContain('Additional payloads required');
+        expect(container.textContent).not.toContain('More payloads required');
         expect(container.textContent).not.toContain('Met by the current configuration');
         expect(container.textContent).not.toMatch(/\+\d+/);
 
@@ -168,11 +168,15 @@ describe('CustomerResultCard', () => {
         expect(container.textContent).not.toContain('the payloads already flown');
     });
 
-    it('carries the apply note only where there is something to apply', async () => {
-        const note = 'Optimises the shared topology for the secondary target.';
-        await renderCard({ sizing: { kind: 'BEYOND_RANGE' }, applyNote: note, onApply: vi.fn() });
-        expect(container.textContent).not.toContain(note);
-
+    /*
+     * The apply note is gone (2026-08-30). It explained that applying a
+     * secondary target's recommendation retunes the SHARED topology, which is
+     * true and is a real consequence — but it was a paragraph under a button on
+     * a card that already carries a question, a verdict, six figures and a
+     * chart. The card is read out loud in front of an audience, and the note
+     * was the line that never got read.
+     */
+    it('offers the apply control without a paragraph under it', async () => {
         await renderCard({
             sizing: {
                 kind: 'RETOPOLOGY',
@@ -180,10 +184,33 @@ describe('CustomerResultCard', () => {
                 split: { planes: 6, perPlane: 8 },
                 maxGapMs: 1.9 * HOUR,
             },
-            applyNote: note,
             onApply: vi.fn(),
         });
-        expect(container.textContent).toContain(note);
+
+        // Not a paragraph under the button — a title ON it, so the
+        // consequence survives without spending a line of the card.
+        const apply = container.querySelector('.revisit-apply-recommended')!;
+        expect(apply).not.toBeNull();
+        expect(container.textContent).not.toContain('Optimises the shared topology');
+        expect(apply.getAttribute('title')).toContain('shared topology');
+    });
+
+    /* A secondary target's recommendation retunes what the primary flies, and
+       that is the half a presenter gets asked about. */
+    it('warns on the control that a secondary recommendation retunes the shared topology', async () => {
+        await renderCard({
+            targetRole: 'COMPARISON',
+            sizing: {
+                kind: 'RETOPOLOGY',
+                payloadCount: 48,
+                split: { planes: 6, perPlane: 8 },
+                maxGapMs: 1.9 * HOUR,
+            },
+            onApply: vi.fn(),
+        });
+
+        expect(container.querySelector('.revisit-apply-recommended')?.getAttribute('title'))
+            .toContain('the primary target stops driving it');
     });
 
     it('keeps sizing evidence inside Recommended configuration', async () => {
@@ -207,7 +234,7 @@ describe('CustomerResultCard', () => {
             sizing: { kind: 'RECOMMENDED', payloadCount: 36, additionalPayloads: 24 },
         });
 
-        expect(container.textContent).toContain('Additional payloads required');
+        expect(container.textContent).toContain('More payloads required');
         expect(container.textContent).not.toContain('MISSES');
         expect(container.querySelector('.revisit-customer-status')?.className)
             .toContain('text-orange-200');
@@ -216,8 +243,10 @@ describe('CustomerResultCard', () => {
     it('reports a covered requirement without proposing anything', async () => {
         await renderCard({ currentMaxGapMs: 1.5 * HOUR, sizing: { kind: 'COVERED' } });
 
+        // The badge is the whole message here: the sentence that repeated it
+        // under a "Requirement covered" pill is gone.
         expect(container.textContent).toContain('Requirement covered');
-        expect(container.textContent).toContain('no additional payloads required');
+        expect(container.textContent).not.toContain('Met by the current configuration');
         expect(container.querySelector('.revisit-apply-recommended')).toBeNull();
         expect(container.querySelector('.revisit-customer-status')?.className)
             .toContain('text-lime-200');
@@ -242,7 +271,7 @@ describe('CustomerResultCard', () => {
         await renderCard({ sizing: { kind: 'BEYOND_RANGE' } });
 
         expect(container.textContent).toContain('No configuration on the tested payload range');
-        expect(container.textContent).toContain('Further engineering assessment required');
+        expect(container.textContent).toContain('Assessment required');
         expect(container.textContent).not.toContain('Calculating fleet sizing');
     });
 
@@ -274,7 +303,7 @@ describe('CustomerResultCard', () => {
         });
 
         expect(container.textContent).toContain('never in view over the analysis window');
-        expect(container.textContent).toContain('Further engineering assessment required');
+        expect(container.textContent).toContain('Assessment required');
         // Nothing to size against — the whole block is absent, not empty.
         expect(container.textContent).not.toContain('Recommended configuration');
     });
@@ -291,11 +320,22 @@ describe('CustomerResultCard', () => {
         expect(onUndo).toHaveBeenCalledTimes(1);
     });
 
-    it('states the comparison basis when more than one target is in the set', async () => {
+    /*
+     * The verdict now heads Recommended configuration instead of sitting under
+     * the question. It was a claim before the reader had the figures, and the
+     * card is read top to bottom out loud: question, what is flown, what it
+     * achieves, then the verdict on it.
+     */
+    it('carries the verdict at the head of the recommendation, not under the question', async () => {
         await renderCard({
-            comparisonNote: 'Comparing 3 customer targets against the same fleet configuration.',
+            currentMaxGapMs: HOUR,
+            requirementMs: 2 * HOUR,
+            sizing: { kind: 'COVERED' },
         });
 
-        expect(container.textContent).toContain('Comparing 3 customer targets');
+        const recommended = container.querySelector('[aria-label="Recommended configuration"]')!;
+        expect(recommended.textContent).toContain('Requirement covered');
+        // And it is not said twice: the sentence that repeated the badge is gone.
+        expect(container.textContent).not.toContain('no additional payloads required');
     });
 });

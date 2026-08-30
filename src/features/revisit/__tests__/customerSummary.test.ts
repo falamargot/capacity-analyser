@@ -24,9 +24,9 @@ const HOUR = 3600_000;
 describe('customerVerdict', () => {
     it('uses the same four phrases as the customer result card', () => {
         expect(customerVerdict(true, 'NONE')).toBe('REQUIREMENT COVERED');
-        expect(customerVerdict(false, 'ADDITIONAL_PAYLOADS')).toBe('ADDITIONAL PAYLOADS REQUIRED');
+        expect(customerVerdict(false, 'ADDITIONAL_PAYLOADS')).toBe('MORE PAYLOADS REQUIRED');
         expect(customerVerdict(false, 'SAME_BUDGET_RESPLIT')).toBe('RECONFIGURATION REQUIRED');
-        expect(customerVerdict(false, 'NONE')).toBe('FURTHER ENGINEERING ASSESSMENT REQUIRED');
+        expect(customerVerdict(false, 'NONE')).toBe('ASSESSMENT REQUIRED');
     });
 
     /* A covered requirement never depends on whether a recommendation exists. */
@@ -86,7 +86,7 @@ describe('buildRevisitResultSheet — the commercial narrative', () => {
             { recommendedPayloadCount: analysis.payloadCount + 24 },
         );
 
-        expect(sheet.verdict).toBe('ADDITIONAL PAYLOADS REQUIRED');
+        expect(sheet.verdict).toBe('MORE PAYLOADS REQUIRED');
         expect(sheet.recommendation).toContain(`${analysis.payloadCount + 24} payload-equipped satellites`);
         expect(sheet.recommendation).toContain('+24');
         expect(sheet.meets).toBe(false);
@@ -102,7 +102,7 @@ describe('buildRevisitResultSheet — the commercial narrative', () => {
             { recommendedPayloadCount: null },
         );
 
-        expect(sheet.verdict).toBe('FURTHER ENGINEERING ASSESSMENT REQUIRED');
+        expect(sheet.verdict).toBe('ASSESSMENT REQUIRED');
         expect(sheet.recommendation).toContain('No configuration on the tested payload range');
     });
 
@@ -143,7 +143,7 @@ describe('buildRevisitResultSheet — the commercial narrative', () => {
             { recommendedPayloadCount: analysis.payloadCount },
         );
 
-        expect(sheet.verdict).toBe('FURTHER ENGINEERING ASSESSMENT REQUIRED');
+        expect(sheet.verdict).toBe('ASSESSMENT REQUIRED');
         expect(sheet.recommendation).toContain('No configuration on the tested payload range');
     });
 

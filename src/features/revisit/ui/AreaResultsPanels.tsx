@@ -115,18 +115,35 @@ export const AreaResultSummary: React.FC<AreaResultsProps> = ({
     );
 };
 
-export const AreaDistributionPanel: React.FC<Pick<AreaResultsProps, 'analysis' | 'requirementMs'>> = ({
-    analysis, requirementMs,
+/**
+ * Where the cell distribution lives.
+ *
+ * `embedded` renders the content alone, with no card and no disclosure of its
+ * own: in Area mode it is the evidence behind the recommendation, exactly as
+ * the value curve is for a Point, so it belongs under the SAME
+ * `Why this recommendation?` disclosure inside the Recommended configuration
+ * card rather than in a separate `Cells vs requirement` card beside it. Two
+ * analysis modes, one place to ask "why".
+ */
+export const AreaDistributionPanel: React.FC<
+    Pick<AreaResultsProps, 'analysis' | 'requirementMs'> & { embedded?: boolean }
+> = ({
+    analysis, requirementMs, embedded = false,
 }) => {
     const counts = useMemo(() => areaCounts(analysis, requirementMs), [analysis, requirementMs]);
-    if (!analysis) return (
+    const emptyNote = (
+        <p className="mt-2 text-[12px] leading-4 text-slate-400">
+            Define a valid area to see the compliant, failing and never-seen cells.
+        </p>
+    );
+    if (!analysis) return embedded ? emptyNote : (
         <section className={REVISIT_PANEL} aria-label="Area cell distribution">
             <details className="group px-3 py-2.5">
                 <summary className="flex min-h-9 cursor-pointer list-none items-center justify-between gap-3">
                     <span className={REVISIT_LABEL}>Cells vs requirement</span>
                     <span aria-hidden="true" className="text-slate-500 transition-transform group-open:rotate-90">›</span>
                 </summary>
-                <p className="mt-2 text-[12px] leading-4 text-slate-400">Define a valid area to see the compliant, failing and never-seen cells.</p>
+                {emptyNote}
             </details>
         </section>
     );
@@ -137,13 +154,8 @@ export const AreaDistributionPanel: React.FC<Pick<AreaResultsProps, 'analysis' |
         { label: 'Never seen', count: counts.never, color: 'bg-red-500', text: REVISIT_OUTCOME.error.text },
         { label: 'Unmeasured', count: counts.unmeasured, color: 'bg-red-800', text: REVISIT_OUTCOME.error.text },
     ];
-    return (
-        <section className={REVISIT_PANEL} aria-label="Area cell distribution">
-          <details className="group px-3 py-2.5">
-            <summary className="flex min-h-9 cursor-pointer list-none items-center justify-between gap-3">
-              <span className={REVISIT_LABEL}>Cells vs requirement</span>
-              <span aria-hidden="true" className="text-slate-500 transition-transform group-open:rotate-90">›</span>
-            </summary>
+    const body = (
+        <>
             <div className="mt-2 flex h-3 overflow-hidden rounded bg-slate-800" aria-label={`${counts.meets} of ${analysis.cells.length} cells meet the requirement`}>
                 {categories.filter((category) => category.count > 0).map((category) => (
                     <span key={category.label} className={category.color} style={{ width: `${category.count / total * 100}%` }} title={`${category.label}: ${category.count}`} />
@@ -161,6 +173,19 @@ export const AreaDistributionPanel: React.FC<Pick<AreaResultsProps, 'analysis' |
                 Regular latitude/longitude grid · mean is over cells, not area-weighted.
             </p>
             {analysis.warnings.map((warning) => <p key={warning} className="mt-1 text-[11px] leading-3 text-amber-200">{warning}</p>)}
+        </>
+    );
+
+    if (embedded) return body;
+
+    return (
+        <section className={REVISIT_PANEL} aria-label="Area cell distribution">
+          <details className="group px-3 py-2.5">
+            <summary className="flex min-h-9 cursor-pointer list-none items-center justify-between gap-3">
+              <span className={REVISIT_LABEL}>Cells vs requirement</span>
+              <span aria-hidden="true" className="text-slate-500 transition-transform group-open:rotate-90">›</span>
+            </summary>
+            {body}
           </details>
         </section>
     );
