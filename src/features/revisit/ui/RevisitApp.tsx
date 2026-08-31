@@ -779,6 +779,22 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     }, [hasReferenceTarget, referenceArea, referenceSweep, scenario.selection, currentPayloadCount, selectionSource]);
 
     /**
+     * The split the CURRENT payload count is flown in.
+     *
+     * Derived from the strides rather than read off the sweep: it describes what
+     * is on screen, which is true whether or not a sweep has landed. The header
+     * builds the same pair for its own caption; both come from the same two
+     * divisions, so they cannot disagree.
+     */
+    const currentSplit = useMemo(() => ({
+        planes: scenario.reference.planes / scenario.selection.planeStride,
+        perPlane: scenario.reference.satsPerPlane / scenario.selection.satStride,
+    }), [
+        scenario.reference.planes, scenario.reference.satsPerPlane,
+        scenario.selection.planeStride, scenario.selection.satStride,
+    ]);
+
+    /**
      * The header's sub-label. Only ever states what the sweep measured — while it
      * is in flight this says nothing rather than repeating the ladder's guess.
      */
@@ -938,6 +954,11 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         return 'Every gap in this window touches a boundary and is discarded.';
     }, [customerMaxGapMs, analysisContext, customArea, displayedAreaAnalysis, inspectedAnalysis]);
 
+    /** What the analysis column is currently about — the second header line. */
+    const activeResultSubject = analysisContext === 'AREA'
+        ? displayedAreaAnalysis?.area.name ?? customArea?.name ?? 'No area selected'
+        : inspectedPoint?.name ?? 'Location required';
+
     const customerSizing = useMemo<CustomerSizing>(() => resolveCustomerSizing({
         currentMaxGapMs: customerMaxGapMs,
         requirementMs,
@@ -992,8 +1013,25 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
      *    target, applying is a deliberate optimisation FOR that target, so it is
      *    `manual` — otherwise the reference sweep reconciles the choice away on
      *    its next landing and the button would appear to do nothing.
+     *
+     * ── AN AREA DOES NOT GO THROUGH `selectionForPayloadCount` ──────────────
+     * That helper resolves a split from the POINT sweep's measured best at a
+     * payload count. An area search verified ONE configuration over all of its
+     * cells; the point sweep's winner at the same count is a different
+     * configuration that nobody ran over that grid, and adopting it would
+     * silently replace a claim backed by 55 cell runs with one backed by none.
+     * So the verified strides are applied verbatim, and the provenance is
+     * `manual` for the same reason a secondary target's is: the reference
+     * sweep would otherwise reconcile them away on its next landing (P2,
+     * 2026-08-31).
      */
     const handleApplyRecommendation = useCallback(() => {
+        if (customerSizing.kind === 'AREA_VERIFIED') {
+            const verified = customerSizing.selection;
+            setSelectionSource('manual');
+            setScenario((current) => ({ ...current, selection: verified }));
+            return;
+        }
         if (customerSizing.kind !== 'RECOMMENDED' && customerSizing.kind !== 'RETOPOLOGY') return;
         const count = customerSizing.payloadCount;
         setSelectionSource(selectedPointId === REFERENCE_POINT_ID ? 'auto' : 'manual');
@@ -2379,6 +2417,23 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                                     ? 'revisit-target-comparison'
                                     : ''} sticky top-8 z-[19] grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-l-4 px-3 py-2 md:top-0`}
                         >
+                            {/*
+                              * P8 (2026-09-01): two lines, because all three
+                              * segments earn their place and one line could not
+                              * hold them — `Point result · Primary target ·
+                              * 62.97°N 28.1…` truncated at every width tested.
+                              *
+                              * Nothing here was safe to drop. The ROLE is what
+                              * `Active result context` announces to a screen
+                              * reader and what nine e2e specs read to know which
+                              * target owns the column; the NAME is the only
+                              * thing distinguishing one secondary point from
+                              * another, which `revisit-p2c-a` pins by asserting
+                              * `Singapore` here. So the kicker keeps the kind
+                              * and the role, and the subject gets a line of its
+                              * own — which is also what finally makes the Point
+                              * and Area headers the same shape.
+                              */}
                             <div className="min-w-0">
                                 <div className={`truncate text-[11px] font-black uppercase tracking-[0.12em] ${activeTargetRole === 'REFERENCE'
                                     ? 'text-amber-300'
@@ -2388,9 +2443,17 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                                     {!hasReferenceTarget
                                         ? 'No target selected'
                                         : analysisContext === 'AREA'
-                                        ? `Area result · ${displayedAreaAnalysis?.area.name ?? customArea?.name ?? 'No area selected'}`
-                                        : `Point result · ${inspectedPointRole} · ${inspectedPoint?.name ?? 'Location required'}`}
+                                            ? 'Area result'
+                                            : `Point result · ${inspectedPointRole}`}
                                 </div>
+                                {hasReferenceTarget && (
+                                    <div
+                                        title={activeResultSubject}
+                                        className="truncate text-[12px] font-semibold leading-4 text-slate-200"
+                                    >
+                                        {activeResultSubject}
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -2403,13 +2466,14 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                                     targetRole={activeTargetRole ?? 'REFERENCE'}
                                     question={customerQuestion}
                                     currentPayloadCount={currentPayloadCount}
+                                    currentSplit={currentSplit}
                                     fleetSize={scenario.reference.planes * scenario.reference.satsPerPlane}
                                     currentMaxGapMs={customerMaxGapMs}
                                     currentIsComputing={customerIsComputing}
                                     currentUnavailableReason={customerUnavailableReason}
                                     currentMetricLabel={analysisContext === 'AREA'
-                                        ? 'Maximum revisit gap · least-covered cell'
-                                        : 'Maximum revisit gap'}
+                                        ? 'Maximum gap · least-covered cell'
+                                        : 'Maximum gap'}
                                     requirementMs={requirementMs}
                                     sizing={customerSizing}
                                     onApply={handleApplyRecommendation}

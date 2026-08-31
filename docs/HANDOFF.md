@@ -2,15 +2,164 @@
 
 _Last updated 2026-08-31._
 
-## 2026-08-31 — GUI clarification proposal (not implemented)
+## 2026-09-01 — GUI clarification P3, P4, P5, P7, P8 implemented
+
+The rest of `docs/REVISIT_UI_CLARIFICATION_2026-08-31.md`. All eight items are
+now done.
+
+- **P3** — the two "versus one" claims. `ValueCurve`'s footer read `12 payloads
+  over 6 planes beats 1 plane by 75% on revisit`, four hundred pixels below
+  `Vs 1 payload: 76% shorter worst-case`: one compares 12 payloads to ONE, the
+  other compares two splits of the SAME twelve. It now names both splits and
+  drops "beats" — `At 12 payloads, 4 × 3 measures 73% better than 1 × 12.` —
+  so the fixed payload count is visible inside the sentence.
+- **P4** — one name per concept. `Maximum revisit gap` → **`Maximum gap`** in
+  the card, the KPI panel and the PDF (the table and mobile strip already said
+  it); `Customer requirement` and `Revisit requirement` → **`Requirement`**,
+  including the `Requirement for {Primary,Secondary} target` accessible names,
+  which five e2e specs address the select by.
+- **P5** — `Current configuration` states its split. It printed a count and a
+  fleet denominator while the split lived in 10 px grey under the slider, so
+  once P1 made the recommendation state its own, the reader was comparing a
+  described configuration against an undescribed one. Derived from the strides,
+  not from the sweep, so it is true before any sweep lands. The slider keeps
+  `— measured best of 6 splits at this count`: that qualifies the control.
+- **P7** — the area coverage table hides `Never seen` and `Unmeasured` at zero.
+  `Meets` and `Misses` always stay; a zero in either is an answer.
+- **P8** — the result header is two lines: `POINT RESULT · PRIMARY TARGET` over
+  the subject, and `AREA RESULT` over the area name, which finally makes the two
+  the same shape. `Basis` in the compare table fits `Least-covered cell`.
+
+### Three deviations from the written proposal, and why
+
+1. **`GOAL` became `VERDICT`, not `VS REQUIREMENT`.** The proposed heading needs
+   ~88 px at 11 px uppercase; its cells (`MEETS` / `MISSES`) need ~45. The
+   sidecar is a fixed 400 px, so the difference comes straight out of the target
+   name. `Verdict` names exactly what the cells hold — which was the whole
+   complaint about `Goal` — and the comparison basis is already in the panel's
+   subtitle.
+2. **The result header kept the target name.** The proposal was to drop it. That
+   would have broken `revisit-p2c-a`, which asserts `Singapore` there to prove
+   the selected point owns the column — and the ROLE could not go either, since
+   this element is `Active result context` and nine specs plus every screen
+   reader read it. Neither was droppable, so the line was split in two.
+3. **Widening `Basis` alone was a regression.** It cut the target column from
+   ~128 px to 52 px and clipped `Primary · London`, which fitted before. Every
+   column is now sized to its own contents (`7rem` / `4.5rem` / `3.75rem`) and
+   the sidecar's gutters went from `gap-2` to `gap-1.5` to buy back the last six
+   pixels. Measured in the browser at 1920 × 1080, not estimated.
+
+### Gates
+
+`tsc` and `lint` clean, `npm test` 2142 pass.
+
+**The 18 visual baselines DID move this time, and were regenerated.** 12 of them
+failed first — the two-line header, the two new composition lines and the
+retuned table are well past the suite's `maxDiffPixelRatio: 0.01`, unlike the
+P1/P6 text change that slipped under it. One golden was opened and read before
+regenerating (`desktop-1440x900-dark`) to confirm it records the intended
+layout and a settled result: `Maximum gap 3 h 26 min` in Current over
+`Maximum gap 1 h 19 min` in Recommended, which is the P6 comparison working. A
+clean re-run without the flag then passed 18/18.
+
+## 2026-08-31 — GUI clarification P1, P2, P6 implemented
+
+From `docs/REVISIT_UI_CLARIFICATION_2026-08-31.md`. P3, P4, P5, P7 and P8 remain
+open and are described there.
+
+### P1 — the recommendation now states what it buys
+
+`CustomerSizing.RECOMMENDED` gained `split` and `maxGapMs`, read from the same
+sweep point the count already comes from (`resolveCustomerSizing` hoists that
+lookup above the branch, so `RECOMMENDED` and `RETOPOLOGY` describe the same
+measured configuration). The card's only actionable state used to print a count
+and a fleet denominator and stop — neither the topology its button was about to
+apply, nor the revisit that topology achieves.
+
+Both fields are nullable and the card omits the line when they are null: the
+input allows a `recommendedPayloadCount` with no matching sweep point, and
+nothing may be shown that was not measured.
+
+### P2 — a verified area recommendation is applicable
+
+`offersApply` now covers `AREA_VERIFIED`, and `CustomerSizing.AREA_VERIFIED`
+carries the `selection` the search verified.
+
+**The trap, and why the area does not share the point's code path.**
+`selectionForPayloadCount` resolves a split from the POINT sweep's measured best
+at a payload count. Going through it here would have replaced a claim backed by
+a run over every cell with one backed by none. Browser-verified on a 36-cell
+area: the search verified `6 × 8` (worst cell 1 h 54); the point sweep's best at
+the same 48 payloads is `12 × 4`. After `Apply`, the area reads **1 h 54** and
+`Requirement covered`, and the header independently reports
+`manual split — 12 planes × 4 measured better (42% better)` — i.e. the adopted
+split is the verified one, and the app says out loud that the primary point
+would prefer another. Provenance is `manual` for the same reason a secondary
+target's is: `reconcileToMeasuredBest` would otherwise undo it on its next
+landing.
+
+### P6 — Current and Recommended are now one comparison
+
+The three recommendation states share `RecommendedHeadline` /
+`RecommendedComposition` / `RecommendedMeasurement`. The measurement is a `<dl>`
+row carrying the **current block's own label** (`Maximum revisit gap`, or
+`Maximum revisit gap · least-covered cell` for an area), in the same shape and
+weight as the current figure one card above — so `12 h 06 → 1 h 54` reads as one
+collapse instead of a labelled row against a 12 px grey fragment.
+
+Consequence for `RETOPOLOGY`: the measurement moved out of the cost sentence,
+which now states the cost alone (`12 fewer payloads than the current
+configuration.` / `The payloads already flown, redistributed — no additional
+payloads required.`). The composition line lost its duplicate `— N fewer` tail.
+That line is `revisit-customer-secondary` and is **hidden on a short stage**, so
+the tests assert the saving on the visible sentence, not on the card's text as a
+whole.
+
+### Two residual defects, found by re-reading the screen after the above landed
+
+Both on the AREA screen, both when the verified answer costs **nothing or less**
+— an area proposing 36 payloads while 48 are flown:
+
+1. **The saving was never stated.** The `+N` chip only renders a cost, and the
+   saving sentence had been added to `RETOPOLOGY` alone, so the block printed
+   `Reconfiguration required`, `36`, `12 planes × 3` and left the reader to
+   subtract. The sentence is now a shared `RecommendedCost` component used by
+   BOTH states, which is what stops them drifting again.
+2. **The badge's tooltip asserted the opposite of the numbers beside it.**
+   `additionalPayloads <= 0` was answered with a single title claiming the
+   answer was found "at the payload count already flown — the same budget,
+   split differently". That is simply false of 36 against 48. There are three
+   cases, not two; the verdict word is shared, the explanation cannot be.
+
+Browser-verified on both branches: 48 flown / 48 verified gives `The payloads
+already flown, redistributed — no additional payloads required.` with the
+same-budget tooltip; 64 flown / 48 verified gives `16 fewer payloads than the
+current configuration.` with `…it uses fewer payloads than are flown today — a
+different split, not a larger fleet.`
+
+### Gates
+
+`tsc` and `lint` clean, `npm test` 2142 pass, `revisit-p7a` + `revisit-p7c` 7/7.
+
+**The 18 visual baselines pass unchanged, and that is a gate limitation rather
+than evidence of no change.** The captured state (London, 12 payloads, sweep
+settled) is exactly the `RECOMMENDED` block that gained two lines — confirmed
+rendering in the browser. At `maxDiffPixelRatio: 0.01` a two-line text change in
+one sidebar card is below the suite's sensitivity. The goldens were therefore
+left as they are; the DOM-level contract for these lines lives in
+`CustomerResultCard.test.tsx` and `customerSizing.test.ts`, which do fail when
+the lines are removed.
+
+## 2026-08-31 — GUI clarification proposal (P3–P8 still open)
 
 `docs/REVISIT_UI_CLARIFICATION_2026-08-31.md` — eight findings read from the
 Primary-point and Secondary-area screens of the same scenario, each checked
-against the code. Two are functional rather than cosmetic and head the list:
-the point recommendation states neither its split nor the revisit it achieves
-(the fields are missing from `CustomerSizing.RECOMMENDED` itself), and a
-verified AREA recommendation has no `Apply` control at all. Nothing has been
-implemented; the document carries the suggested order.
+against the code. **P1, P2 and P6 are done (see above).** Still open: P3 (two
+"versus one" claims 1 % apart meaning different things), P4 (one concept, three
+names — `REVISIT REQUIREMENT` / `Customer requirement` / `GOAL`), P5 (the
+current split lives under the slider, not beside the current result), P7 (zero
+rows in the area coverage table) and P8 (truncation, and one target identity
+written four ways).
 
 ## 2026-08-31 — Recommendation undo removed, and two recommendation defects fixed
 

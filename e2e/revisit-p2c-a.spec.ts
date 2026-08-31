@@ -55,9 +55,9 @@ test.describe('REVISIT P2c-A selected result', () => {
     // at. What the context still has to say — which target owns the result — is
     // asserted on the line above.
     await expect(analysis.getByLabel('Active result context')).toContainText('Singapore');
-    // Same reason: the settled figure is the card's `Maximum revisit gap`.
+    // Same reason: the settled figure is the card's `Maximum gap`.
     await expect(analysis.getByRole('region', { name: 'Customer result' }))
-      .toContainText('Maximum revisit gap', { timeout: 30_000 });
+      .toContainText('Maximum gap', { timeout: 30_000 });
 
     // Header selection and timeline selection both drive the same inspected id.
     await openRevisitSetup(page);

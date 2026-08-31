@@ -77,12 +77,13 @@ interface RevisitGlobeProps {
 }
 
 let targetReticleCanvas: HTMLCanvasElement | null = null;
-let comparisonSelectionHaloCanvas: HTMLCanvasElement | null = null;
+let secondaryTargetReticleCanvas: HTMLCanvasElement | null = null;
 
 /** Static screen-space reticle: crisp at any zoom and free of per-frame work.
  * The canvas is shared across entity rebuilds so Cesium can reuse its texture. */
-function createTargetReticle(): HTMLCanvasElement {
-    if (targetReticleCanvas) return targetReticleCanvas;
+function createTargetReticle(role: 'PRIMARY' | 'SECONDARY' = 'PRIMARY'): HTMLCanvasElement {
+    const cachedCanvas = role === 'PRIMARY' ? targetReticleCanvas : secondaryTargetReticleCanvas;
+    if (cachedCanvas) return cachedCanvas;
     const canvas = document.createElement('canvas');
     canvas.width = 64;
     canvas.height = 64;
@@ -90,10 +91,13 @@ function createTargetReticle(): HTMLCanvasElement {
     if (!context) return canvas;
 
     const centre = 32;
-    context.strokeStyle = REVISIT_COLORS.target;
-    context.fillStyle = REVISIT_COLORS.target;
+    const color = role === 'PRIMARY' ? REVISIT_COLORS.target : REVISIT_COLORS.comparison;
+    context.strokeStyle = color;
+    context.fillStyle = color;
     context.lineWidth = 1.5;
-    context.shadowColor = 'rgba(251, 191, 36, 0.6)';
+    context.shadowColor = role === 'PRIMARY'
+        ? 'rgba(251, 191, 36, 0.6)'
+        : 'rgba(56, 189, 248, 0.55)';
     context.shadowBlur = 4;
 
     for (const radius of [12, 23]) {
@@ -113,44 +117,9 @@ function createTargetReticle(): HTMLCanvasElement {
     context.beginPath();
     context.arc(centre, centre, 2.5, 0, Math.PI * 2);
     context.fill();
-    targetReticleCanvas = canvas;
-    return targetReticleCanvas;
-}
-
-/** Sky-blue diamond for Comparison, deliberately different from the Reference
- * crosshair while using the same role colour as the header and timeline. */
-function createComparisonSelectionHalo(): HTMLCanvasElement {
-    if (comparisonSelectionHaloCanvas) return comparisonSelectionHaloCanvas;
-    const canvas = document.createElement('canvas');
-    canvas.width = 64;
-    canvas.height = 64;
-    const context = canvas.getContext('2d');
-    if (!context) return canvas;
-
-    context.strokeStyle = REVISIT_COLORS.comparison;
-    context.fillStyle = REVISIT_COLORS.comparison;
-    context.lineWidth = 2;
-    context.shadowColor = 'rgba(56, 189, 248, 0.55)';
-    context.shadowBlur = 5;
-    context.beginPath();
-    context.moveTo(32, 5);
-    context.lineTo(59, 32);
-    context.lineTo(32, 59);
-    context.lineTo(5, 32);
-    context.closePath();
-    context.stroke();
-    context.beginPath();
-    context.moveTo(32, 19);
-    context.lineTo(45, 32);
-    context.lineTo(32, 45);
-    context.lineTo(19, 32);
-    context.closePath();
-    context.stroke();
-    context.beginPath();
-    context.arc(32, 32, 3, 0, Math.PI * 2);
-    context.fill();
-    comparisonSelectionHaloCanvas = canvas;
-    return comparisonSelectionHaloCanvas;
+    if (role === 'PRIMARY') targetReticleCanvas = canvas;
+    else secondaryTargetReticleCanvas = canvas;
+    return canvas;
 }
 
 export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
@@ -430,7 +399,7 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
                 eyeOffset: new Cartesian3(0, 0, -1_000),
             },
             label: {
-                text: `REFERENCE · ${target.name}`.toUpperCase(),
+                text: `PRIMARY · ${target.name}`.toUpperCase(),
                 // Concrete families only. Cesium rasterises label glyphs to a
                 // canvas atlas, and the CSS-level `system-ui` keyword does not
                 // resolve there reliably — it measured the full string but drew
@@ -464,22 +433,22 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
             return viewer.entities.add({
                 position: Cartesian3.fromDegrees(point.target.lonDeg, point.target.latDeg, 0),
                 billboard: {
-                    image: createComparisonSelectionHalo(),
+                    image: createTargetReticle('SECONDARY'),
                     color: Color.WHITE.withAlpha(selected ? 1 : 0.68),
-                    width: selected ? 54 : 40,
-                    height: selected ? 54 : 40,
+                    width: selected ? 68 : 52,
+                    height: selected ? 68 : 52,
                     eyeOffset: new Cartesian3(0, 0, -900),
                 },
                 label: {
-                    text: `COMPARISON · ${point.target.name}`.toUpperCase(),
-                    font: `${selected ? 700 : 600} ${selected ? 12 : 11}px Helvetica, Arial, sans-serif`,
+                    text: `SECONDARY · ${point.target.name}`.toUpperCase(),
+                    font: `${selected ? 700 : 600} ${selected ? 14 : 12}px Helvetica, Arial, sans-serif`,
                     fillColor: color,
                     outlineColor: Color.fromCssColorString('#05070D'),
                     outlineWidth: 3,
                     showBackground: true,
                     backgroundColor: Color.fromCssColorString('#05070D').withAlpha(selected ? 0.94 : 0.7),
-                    backgroundPadding: new Cartesian2(5, 3),
-                    pixelOffset: new Cartesian2(0, selected ? -38 : -31),
+                    backgroundPadding: new Cartesian2(7, 4),
+                    pixelOffset: new Cartesian2(0, -48),
                 },
             });
         });

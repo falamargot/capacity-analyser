@@ -51,6 +51,21 @@ export interface CustomerResultCardProps {
     currentPayloadCount: number;
     /** Payload-capable satellites in the active fleet — the `of 576` denominator. */
     fleetSize: number;
+    /**
+     * The split those payloads are flown in.
+     *
+     * `Current configuration` used to print the count and the fleet denominator
+     * and stop, while the split it refers to lived in 10 px grey under the
+     * payload slider, at the opposite corner of the screen. Once the
+     * recommendation started stating its own split (P1), the reader was
+     * comparing a described configuration against an undescribed one
+     * (P5, 2026-08-31).
+     *
+     * The provenance note that shares that slider caption — `measured best of 6
+     * splits at this count` — deliberately stays there: it qualifies the
+     * control, not the answer.
+     */
+    currentSplit?: { planes: number; perPlane: number } | null;
     currentMaxGapMs: number | null;
     currentIsComputing: boolean;
     /**
@@ -160,17 +175,33 @@ function customerStatus(
         };
     }
     if (sizing.kind === 'AREA_VERIFIED') {
-        return sizing.additionalPayloads > 0
-            ? {
+        if (sizing.additionalPayloads > 0) {
+            return {
                 text: 'More payloads required',
                 title: 'A configuration was measured to meet the requirement on every cell of this area. It costs additional payloads.',
                 className: REVISIT_OUTCOME.misses.badge,
-            }
-            : {
+            };
+        }
+        /*
+         * Three cases, not two. `additionalPayloads <= 0` used to be answered
+         * with a single title claiming the answer was found "at the payload
+         * count already flown — the same budget, split differently", which is
+         * simply FALSE of an area proposing 36 payloads where 48 are flown —
+         * the case on screen when this was found (2026-08-31). The verdict word
+         * is the same for both; the explanation behind it cannot be.
+         */
+        if (sizing.additionalPayloads < 0) {
+            return {
                 text: 'Reconfiguration required',
-                title: 'A configuration was measured to meet the requirement on every cell of this area, at the payload count already flown — the same budget, split differently.',
+                title: 'A configuration was measured to meet the requirement on every cell of this area, and it uses fewer payloads than are flown today — a different split, not a larger fleet.',
                 className: REVISIT_OUTCOME.misses.badge,
             };
+        }
+        return {
+            text: 'Reconfiguration required',
+            title: 'A configuration was measured to meet the requirement on every cell of this area, at the payload count already flown — the same budget, split differently.',
+            className: REVISIT_OUTCOME.misses.badge,
+        };
     }
     /*
      * A search that ran and found nothing IS an impasse, unlike one never run:
@@ -263,9 +294,123 @@ function estimatedSizingSeconds(cells: number): number {
     return Math.max(5, Math.round((3 + 2.5 * 0.018 * cells) / 5) * 5);
 }
 
+/**
+ * The three lines every recommendation is made of, in one place.
+ *
+ * `RECOMMENDED`, `RETOPOLOGY` and `AREA_VERIFIED` answer the same question and
+ * used to answer it in three different shapes: the point recommendation gave a
+ * count and nothing else, the re-split gave a split and a sentence, the area
+ * gave a split with its worst cell buried in 12 px grey beside it. A reader
+ * comparing `Current` with `Recommended` had to re-learn the layout each time,
+ * and on the area screen the figure that carries the argument — 10 h 26 → 1 h 1
+ * — was typeset as the smaller of the two (2026-08-31).
+ *
+ * So: headline, then what it is made of, then what it MEASURES — and the
+ * measurement uses the same label and the same `<dl>` shape as the current
+ * block directly above it, because the two are meant to be read as one
+ * comparison.
+ */
+function RecommendedHeadline({ value, unit, delta }: {
+    value: string;
+    unit: string;
+    /** The payload cost, when there is one. Never rendered for a saving. */
+    delta?: number;
+}) {
+    return (
+        <p className="mt-1 flex flex-wrap items-baseline gap-x-2 leading-none">
+            <span className="text-2xl font-black text-white tabular-nums">{value}</span>
+            <span className="text-[13px] font-semibold text-slate-300">{unit}</span>
+            {delta !== undefined && delta > 0 && (
+                /* The delta is what the recommendation COSTS, so it carries the
+                   miss colour the badge above it uses. In slate it read as one
+                   more neutral figure. */
+                <span className={`text-[13px] font-black tabular-nums ${REVISIT_OUTCOME.misses.text}`}>
+                    +{delta}
+                </span>
+            )}
+        </p>
+    );
+}
+
+/**
+ * What the recommendation is made of. Hidden on a short stage, so nothing that
+ * only appears here may be load-bearing — the cost sentence and the measured
+ * gap are both outside it, deliberately.
+ */
+function RecommendedComposition({ split, payloadCount, fleetSize }: {
+    split: { planes: number; perPlane: number } | null;
+    /** Omitted when the headline already IS the payload count. */
+    payloadCount?: number;
+    fleetSize: number;
+}) {
+    const parts = [
+        split ? `${split.planes} planes × ${split.perPlane} per plane` : null,
+        payloadCount !== undefined ? `${payloadCount} payload-equipped satellites` : null,
+        `within the ${fleetSize}-satellite active fleet`,
+    ].filter((part): part is string => part !== null);
+
+    return (
+        <p className="revisit-customer-secondary mt-0.5 text-[12px] leading-4 text-slate-400">
+            {parts.join(' · ')}
+        </p>
+    );
+}
+
+/**
+ * What the proposal COSTS, when it does not cost payloads.
+ *
+ * Shared by `RETOPOLOGY` and `AREA_VERIFIED` because they were drifting: the
+ * point re-split stated its saving and the verified area did not, so an area
+ * proposing 36 payloads against 48 flown printed `Reconfiguration required`,
+ * `36`, `12 planes × 3` — and left the reader to do the subtraction
+ * (2026-08-31).
+ *
+ * Renders nothing above the current count: there the `+N` chip on the headline
+ * has already said it, and saying it twice is how the two drifted in the first
+ * place.
+ *
+ * This is the only ALWAYS-VISIBLE statement of a saving — the composition line
+ * is `revisit-customer-secondary` and is hidden on a short stage — and it is
+ * deliberately not the `meets` lime: it sits under `Reconfiguration required`,
+ * and lime is the colour that says the requirement IS met.
+ */
+function RecommendedCost({ payloadCount, currentPayloadCount }: {
+    payloadCount: number;
+    currentPayloadCount: number;
+}) {
+    if (payloadCount > currentPayloadCount) return null;
+    return (
+        <p className="mt-1 text-[13px] leading-5 text-slate-200">
+            {payloadCount < currentPayloadCount
+                ? `${currentPayloadCount - payloadCount} fewer payloads than the current `
+                    + 'configuration.'
+                : 'The payloads already flown, redistributed — no additional payloads required.'}
+        </p>
+    );
+}
+
+/**
+ * The measured worst case of the proposal, in the shape the current block uses
+ * for its own — same label, same size, same alignment, one card apart.
+ */
+function RecommendedMeasurement({ label, maxGapMs }: {
+    label: string;
+    maxGapMs: number | null;
+}) {
+    if (maxGapMs === null) return null;
+    return (
+        <dl className="mt-2 text-[13px] leading-5">
+            <div className="flex items-baseline justify-between gap-3">
+                <dt className="text-slate-400">{label}</dt>
+                <dd className="font-black tabular-nums text-slate-100">{formatGap(maxGapMs)}</dd>
+            </div>
+        </dl>
+    );
+}
+
 function SizingBlock({
     sizing, status, question, targetRole, fleetSize, currentPayloadCount,
-    onApply, onRetrySizing, onSizeArea, areaCellCount, detail,
+    currentMetricLabel, onApply, onRetrySizing, onSizeArea, areaCellCount, detail,
 }: {
     /** Absent when nothing has been measured to put a verdict on. */
     status: Status | null;
@@ -274,6 +419,8 @@ function SizingBlock({
     sizing: CustomerSizing;
     fleetSize: number;
     currentPayloadCount: number;
+    /** The current block's metric label, reused so the two figures compare. */
+    currentMetricLabel: string;
     onApply?: () => void;
     onRetrySizing?: () => void;
     onSizeArea?: () => void;
@@ -283,12 +430,26 @@ function SizingBlock({
     if (sizing.kind === 'UNAVAILABLE') return null;
 
     /*
-     * Both proposals are applied by the same control, through the same helper
-     * (`selectionForPayloadCount`). Keeping one button rather than one per kind
-     * is what stops a measured recommendation from being un-actionable: the
-     * re-split case had no way to be adopted from this card at all.
+     * One control for every measured proposal. Keeping one button rather than
+     * one per kind is what stops a measured recommendation from being
+     * un-actionable — twice now:
+     *
+     *   - the re-split case had no way to be adopted from this card at all;
+     *   - `AREA_VERIFIED` had none either, so the screen that makes the
+     *     STRONGEST claim in the module — a configuration measured on every
+     *     cell of the grid, with its search evidence printed underneath — was
+     *     the one screen offering nothing to do about it, while a point
+     *     recommendation one click away offered a button on a weaker claim
+     *     (2026-08-31). The presenter had to read the split out loud and
+     *     reproduce it by hand in the Advanced drawer.
+     *
+     * The three are NOT applied through the same helper: see
+     * `handleApplyRecommendation`. An area adopts the strides its search
+     * verified over the grid, never the point sweep's best at that count.
      */
-    const offersApply = sizing.kind === 'RECOMMENDED' || sizing.kind === 'RETOPOLOGY';
+    const offersApply = sizing.kind === 'RECOMMENDED'
+        || sizing.kind === 'RETOPOLOGY'
+        || sizing.kind === 'AREA_VERIFIED';
 
     return (
         <div
@@ -364,23 +525,23 @@ function SizingBlock({
 
             {sizing.kind === 'AREA_VERIFIED' && (
                 <>
-                    <p className="mt-1 flex flex-wrap items-baseline gap-x-2 leading-none">
-                        <span className="text-2xl font-black text-white tabular-nums">
-                            {sizing.payloadCount}
-                        </span>
-                        <span className="text-[13px] font-semibold text-slate-300">
-                            payload-equipped satellites
-                        </span>
-                        {sizing.additionalPayloads > 0 && (
-                            <span className={`text-[13px] font-black tabular-nums ${REVISIT_OUTCOME.misses.text}`}>
-                                +{sizing.additionalPayloads}
-                            </span>
-                        )}
-                    </p>
-                    <p className="revisit-customer-secondary mt-0.5 text-[12px] leading-4 text-slate-400">
-                        {sizing.selectedPlanes} planes × {sizing.payloadsPerPlane} per plane ·
-                        {' '}worst cell {formatGap(sizing.worstCellGapMs)}
-                    </p>
+                    <RecommendedHeadline
+                        value={String(sizing.payloadCount)}
+                        unit="payload-equipped satellites"
+                        delta={sizing.additionalPayloads}
+                    />
+                    <RecommendedComposition
+                        split={{ planes: sizing.selectedPlanes, perPlane: sizing.payloadsPerPlane }}
+                        fleetSize={fleetSize}
+                    />
+                    {/* The worst cell was a 12 px fragment beside the split while
+                        the CURRENT worst cell was a labelled row — so the 10 h 26
+                        → 1 h 1 collapse, which is the entire argument, was
+                        typeset with its winning half the smaller of the two. */}
+                    <RecommendedMeasurement
+                        label={currentMetricLabel}
+                        maxGapMs={sizing.worstCellGapMs}
+                    />
                     {/*
                       * The scope of the claim, stated where the number is, not in
                       * a tooltip. "Verified" is what was done — every cell was
@@ -388,6 +549,10 @@ function SizingBlock({
                       * done: the probe ranks candidates on one cell, so a cheaper
                       * rung it ranked lower may also pass.
                       */}
+                    <RecommendedCost
+                        payloadCount={sizing.payloadCount}
+                        currentPayloadCount={currentPayloadCount}
+                    />
                     <p className="mt-1 text-[12px] leading-4 text-lime-200">
                         Verified on every cell of this area
                         {sizing.candidatesTried > 1
@@ -463,23 +628,21 @@ function SizingBlock({
 
             {sizing.kind === 'RECOMMENDED' && (
                 <>
-                    <p className="mt-1 flex flex-wrap items-baseline gap-x-2 leading-none">
-                        <span className="text-2xl font-black text-white tabular-nums">
-                            {sizing.payloadCount}
-                        </span>
-                        <span className="text-[13px] font-semibold text-slate-300">
-                            payload-equipped satellites
-                        </span>
-                        {/* The delta is what the recommendation COSTS, so it
-                            carries the miss colour the badge above it uses. In
-                            slate it read as one more neutral figure. */}
-                        <span className={`text-[13px] font-black tabular-nums ${REVISIT_OUTCOME.misses.text}`}>
-                            +{sizing.additionalPayloads}
-                        </span>
-                    </p>
-                    <p className="revisit-customer-secondary mt-0.5 text-[12px] leading-4 text-slate-400">
-                        within the {fleetSize}-satellite active fleet
-                    </p>
+                    <RecommendedHeadline
+                        value={String(sizing.payloadCount)}
+                        unit="payload-equipped satellites"
+                        delta={sizing.additionalPayloads}
+                    />
+                    {/* The split and the measured gap were BOTH absent here
+                        until 2026-08-31: this block proposed a payload count,
+                        carried the button that applies it, and never said which
+                        topology it was about to apply or what revisit it
+                        achieves. Both are measured; both are now stated. */}
+                    <RecommendedComposition split={sizing.split} fleetSize={fleetSize} />
+                    <RecommendedMeasurement
+                        label={currentMetricLabel}
+                        maxGapMs={sizing.maxGapMs}
+                    />
                 </>
             )}
 
@@ -490,48 +653,44 @@ function SizingBlock({
             */}
             {sizing.kind === 'RETOPOLOGY' && (
                 <>
-                    <p className="mt-1 flex flex-wrap items-baseline gap-x-2 leading-none">
-                        <span className="text-2xl font-black text-white tabular-nums">
-                            {sizing.split.planes} × {sizing.split.perPlane}
-                        </span>
-                        <span className="text-[13px] font-semibold text-slate-300">
-                            planes × payloads per plane
-                        </span>
-                    </p>
-                    <p className="revisit-customer-secondary mt-0.5 text-[12px] leading-4 text-slate-400">
-                        {sizing.payloadCount} payload-equipped satellites within the {fleetSize}-satellite
-                        active fleet — {sizing.payloadCount === currentPayloadCount
-                            ? 'the payloads already flown, redistributed'
-                            : `${currentPayloadCount - sizing.payloadCount} fewer than the current configuration`}.
-                    </p>
+                    <RecommendedHeadline
+                        value={`${sizing.split.planes} × ${sizing.split.perPlane}`}
+                        unit="planes × payloads per plane"
+                    />
+                    <RecommendedComposition
+                        split={null}
+                        payloadCount={sizing.payloadCount}
+                        fleetSize={fleetSize}
+                    />
+                    <RecommendedMeasurement
+                        label={currentMetricLabel}
+                        maxGapMs={sizing.maxGapMs}
+                    />
                     {/*
-                      * NOT the `meets` lime, and not "no additional payloads"
-                      * when the answer uses FEWER.
+                      * The COST, alone — the measurement above it is now a
+                      * labelled row like the current block's, so this line no
+                      * longer has to carry both.
                       *
-                      * This line states the COST of the recommendation. Above
-                      * it sits `Reconfiguration required`, which states the
-                      * verdict on what is FLOWN. Painted in lime — the
-                      * `Requirement covered` colour everywhere else in this
-                      * module — the two read as a contradiction: the badge said
-                      * the requirement is missed and the sentence under it
+                      * NOT the `meets` lime. Above this sits `Reconfiguration
+                      * required`, the verdict on what is FLOWN; painted in lime
+                      * — the `Requirement covered` colour everywhere else in
+                      * this module — the two read as a contradiction: the badge
+                      * says the requirement is missed and the sentence under it
                       * looked like the badge that says it is met (reported
                       * 2026-08-31). Slate is the neutral register and is
                       * covered in both themes (`index.css`, `.text-slate-200`).
                       *
                       * "No additional payloads required" is true of a re-split
                       * and badly understates a proposal that frees 58 of them,
-                      * so the two cases are worded separately. The count is
-                      * repeated from the line above on purpose: that line is
-                      * `revisit-customer-secondary` and is hidden on a short
-                      * stage, where this sentence is the only place the saving
-                      * is stated.
+                      * so the two cases are worded separately. This is the only
+                      * ALWAYS-VISIBLE statement of the saving: the composition
+                      * line above is `revisit-customer-secondary` and is hidden
+                      * on a short stage.
                       */}
-                    <p className="mt-1 text-[13px] leading-5 text-slate-200">
-                        Measured at {formatGap(sizing.maxGapMs)} over this target
-                        {sizing.payloadCount < currentPayloadCount
-                            ? `, with ${currentPayloadCount - sizing.payloadCount} fewer payloads.`
-                            : ' — no additional payloads required.'}
-                    </p>
+                    <RecommendedCost
+                        payloadCount={sizing.payloadCount}
+                        currentPayloadCount={currentPayloadCount}
+                    />
                 </>
             )}
 
@@ -565,8 +724,9 @@ function SizingBlock({
 
 export const CustomerResultCard: React.FC<CustomerResultCardProps> = ({
     targetRole = 'REFERENCE', question, currentPayloadCount, fleetSize,
+    currentSplit = null,
     currentMaxGapMs, currentIsComputing, currentUnavailableReason = null,
-    currentMetricLabel = 'Maximum revisit gap', requirementMs, sizing,
+    currentMetricLabel = 'Maximum gap', requirementMs, sizing,
     onApply, onRetrySizing, onSizeArea, areaCellCount = null, supportingMetrics = null,
     recommendedConfigurationDetail = null,
 }) => {
@@ -611,9 +771,7 @@ export const CustomerResultCard: React.FC<CustomerResultCardProps> = ({
                         payload-equipped satellites
                     </span>
                 </p>
-                <p className="revisit-customer-secondary mt-0.5 text-[12px] leading-4 text-slate-400">
-                    within the {fleetSize}-satellite active fleet
-                </p>
+                <RecommendedComposition split={currentSplit} fleetSize={fleetSize} />
 
                 <dl className="mt-2 space-y-1 text-[13px] leading-5">
                     <div className="flex items-baseline justify-between gap-3">
@@ -625,7 +783,7 @@ export const CustomerResultCard: React.FC<CustomerResultCardProps> = ({
                         </dd>
                     </div>
                     <div className="flex items-baseline justify-between gap-3">
-                        <dt className="text-slate-400">Customer requirement</dt>
+                        <dt className="text-slate-400">Requirement</dt>
                         <dd className="font-black tabular-nums text-slate-100">
                             {formatGap(requirementMs)}
                         </dd>
@@ -668,6 +826,7 @@ export const CustomerResultCard: React.FC<CustomerResultCardProps> = ({
                 targetRole={targetRole}
                 fleetSize={fleetSize}
                 currentPayloadCount={currentPayloadCount}
+                currentMetricLabel={currentMetricLabel}
                 onApply={onApply}
                 onRetrySizing={onRetrySizing}
                 onSizeArea={onSizeArea}

@@ -44,7 +44,7 @@ describe('REVISIT result sheet', () => {
         expect(sheet.recommendation).toMatch(/could not be calculated/i);
         expect(sheet.recommendation).not.toMatch(/No configuration/i);
         // The measured result above it is untouched by a sizing failure.
-        expect(sheet.metrics[0].label).toBe('Maximum revisit gap');
+        expect(sheet.metrics[0].label).toBe('Maximum gap');
     });
 
     it('still states the impossibility when the sweep actually completed', () => {
@@ -118,7 +118,7 @@ describe('REVISIT result sheet', () => {
         const sheet = buildRevisitResultSheet(
             scenario, analysis, 2 * 3600_000, [], new Date('2026-08-13T12:00:00Z')
         );
-        expect(sheet.metrics[0].label).toBe('Maximum revisit gap');
+        expect(sheet.metrics[0].label).toBe('Maximum gap');
         expect(sheet.assumptions.map((row) => row.label)).toEqual(expect.arrayContaining([
             'Hosted payloads', 'Host fleet', 'Orbit', 'FOV', 'Analysis window',
         ]));

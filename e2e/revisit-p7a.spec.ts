@@ -38,8 +38,8 @@ test.describe('REVISIT P7A commercial result framing', () => {
     await expect(card).toContainText(/with an assumed \d+ km IR swath/);
 
     await expect(card).toContainText('Current configuration');
-    await expect(card).toContainText('Maximum revisit gap');
-    await expect(card).toContainText('Customer requirement');
+    await expect(card).toContainText('Maximum gap');
+    await expect(card).toContainText('Requirement');
 
     // The requirement is component state, not part of the scenario: changing it
     // re-derives the answer with no recomputation and therefore no wait
@@ -48,7 +48,7 @@ test.describe('REVISIT P7A commercial result framing', () => {
     // the setup panel — and the panels are mutually exclusive (Programme 7B),
     // so the card has to be reopened to read the re-derived answer back.
     await openRevisitSetup(page);
-    await page.getByRole('combobox', { name: 'Revisit requirement' }).selectOption(String(24 * 3600_000));
+    await page.getByRole('combobox', { name: 'Requirement for Primary target' }).selectOption(String(24 * 3600_000));
     await openRevisitAnalysis(page);
     await expect(card).toContainText('at least every 24 h');
     await expect(card).toContainText('Requirement covered');
@@ -98,7 +98,7 @@ test.describe('REVISIT P7A commercial result framing', () => {
     // Before the area exists, the card asks the question and states what is
     // missing — it does not fall back to the primary point's figures.
     await expect(card).toContainText('Can every analysed cell in');
-    await expect(card).toContainText('Maximum revisit gap · least-covered cell');
+    await expect(card).toContainText('Maximum gap · least-covered cell');
     await expect(card).toContainText('Define an area to analyse');
     await expect(card.getByRole('button', { name: 'Apply recommended configuration' })).toHaveCount(0);
 

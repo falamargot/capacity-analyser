@@ -62,17 +62,17 @@ test.describe('REVISIT P7C freshness contract', () => {
   test('never shows the previous target’s number under the new target’s question', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop-chromium', 'Engine-freshness contract, not a layout one');
     const card = page.locator(CARD);
-    const gapOf = (text: string) => text.match(/Maximum revisit gap\s*\n?\s*([^\n]+)/)?.[1]?.trim();
+    const gapOf = (text: string) => text.match(/Maximum gap\s*\n?\s*([^\n]+)/)?.[1]?.trim();
 
     await expect(card).toContainText('London');
-    await expect(card).toContainText(/Maximum revisit gap\s*\n?\s*\d/, { timeout: 60_000 });
+    await expect(card).toContainText(/Maximum gap\s*\n?\s*\d/, { timeout: 60_000 });
     const londonGap = gapOf(await card.innerText());
     expect(londonGap).toBeTruthy();
 
     await startRecording(page);
     await page.getByRole('combobox', { name: 'Target', exact: true }).selectOption('Singapore');
     await expect(card).toContainText('Singapore');
-    await expect(card).toContainText(/Maximum revisit gap\s*\n?\s*\d/, { timeout: 60_000 });
+    await expect(card).toContainText(/Maximum gap\s*\n?\s*\d/, { timeout: 60_000 });
     const frames = await stopRecording(page);
 
     // The identity change must have been observable at all — otherwise the
@@ -101,7 +101,7 @@ test.describe('REVISIT P7C freshness contract', () => {
      * is why it only ever failed under a full-suite run.
      */
     const firstEmptyFigure = singaporeFrames.findIndex(
-      (frame) => /Maximum revisit gap\s*\n\s*(—|measuring…)/.test(frame)
+      (frame) => /Maximum gap\s*\n\s*(—|measuring…)/.test(frame)
     );
     expect(
       firstEmptyFigure,
@@ -110,7 +110,7 @@ test.describe('REVISIT P7C freshness contract', () => {
 
     const stale = singaporeFrames
       .slice(0, firstEmptyFigure)
-      .filter((frame) => /Maximum revisit gap\s*\n\s*\d/.test(frame));
+      .filter((frame) => /Maximum gap\s*\n\s*\d/.test(frame));
     expect(stale, `stale frames:\n${stale.slice(0, 3).join('\n---\n')}`).toEqual([]);
   });
 
@@ -128,7 +128,7 @@ test.describe('REVISIT P7C freshness contract', () => {
     await expect(card).not.toContainText('Calculating fleet sizing', { timeout: 60_000 });
 
     await startRecording(page);
-    await page.getByRole('combobox', { name: 'Revisit requirement' }).selectOption(String(24 * 3600_000));
+    await page.getByRole('combobox', { name: 'Requirement for Primary target' }).selectOption(String(24 * 3600_000));
     await expect(card).toContainText('at least every 24 h');
     await expect(card).toContainText('Requirement covered');
     const frames = await stopRecording(page);
@@ -145,16 +145,16 @@ test.describe('REVISIT P7C freshness contract', () => {
   test('keeps the headline readable across a continuous change', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop-chromium', 'Engine-freshness contract, not a layout one');
     const card = page.locator(CARD);
-    await expect(card).toContainText(/Maximum revisit gap\s*\n?\s*\d/, { timeout: 60_000 });
+    await expect(card).toContainText(/Maximum gap\s*\n?\s*\d/, { timeout: 60_000 });
 
     await startRecording(page);
     const slider = page.getByRole('slider', { name: 'Number of hosted payloads' });
     for (let step = 0; step < 3; step += 1) await slider.press('ArrowRight');
-    await expect(card).toContainText(/Maximum revisit gap\s*\n?\s*\d/, { timeout: 60_000 });
+    await expect(card).toContainText(/Maximum gap\s*\n?\s*\d/, { timeout: 60_000 });
     const frames = await stopRecording(page);
 
     // The subject never changed, so no frame may have lost the figure.
-    const blanked = frames.filter((frame) => /Maximum revisit gap\s*\n\s*(—|measuring…)/.test(frame));
+    const blanked = frames.filter((frame) => /Maximum gap\s*\n\s*(—|measuring…)/.test(frame));
     expect(blanked, `blanked frames:\n${blanked.slice(0, 3).join('\n---\n')}`).toEqual([]);
   });
 
@@ -168,9 +168,9 @@ test.describe('REVISIT P7C freshness contract', () => {
     await area.getByLabel('Custom area name').fill('Customer AOI');
     await pasteAreaBoundary(area, '15, 35\n15, 45\n25, 45\n25, 35');
     await expect(summary).toContainText('Least-covered cell', { timeout: 60_000 });
-    await expect(card).toContainText(/Maximum revisit gap · least-covered cell\s*\n?\s*\d/, { timeout: 60_000 });
+    await expect(card).toContainText(/Maximum gap · least-covered cell\s*\n?\s*\d/, { timeout: 60_000 });
     const firstGap = (await card.innerText())
-      .match(/Maximum revisit gap · least-covered cell\s*\n?\s*([^\n]+)/)?.[1]?.trim();
+      .match(/Maximum gap · least-covered cell\s*\n?\s*([^\n]+)/)?.[1]?.trim();
     expect(firstGap).toBeTruthy();
 
     // A different polygon, far enough north that its worst cell cannot be the
@@ -180,7 +180,7 @@ test.describe('REVISIT P7C freshness contract', () => {
     await pasteAreaBoundary(area, '58, -10\n58, 10\n70, 10\n70, -10');
 
     // Immediately after applying, the old worst cell must already be gone.
-    await expect(card).not.toContainText(`Maximum revisit gap · least-covered cell\n${firstGap}`, {
+    await expect(card).not.toContainText(`Maximum gap · least-covered cell\n${firstGap}`, {
       timeout: 10_000,
     });
     await expect(summary).toContainText('Least-covered cell', { timeout: 60_000 });

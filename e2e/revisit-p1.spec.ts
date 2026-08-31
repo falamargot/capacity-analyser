@@ -27,9 +27,9 @@ test.beforeEach(async ({ page }) => {
 test.describe('REVISIT P1 requirement contract', () => {
   test('keeps one canonical target requirement beside the sensor swath', async ({ page }) => {
     const hostedPayloads = page.locator('[data-revisit-context-panel="hosted-payloads"]');
-    const requirement = page.getByRole('combobox', { name: 'Revisit requirement' });
+    const requirement = page.getByRole('combobox', { name: 'Requirement for Primary target' });
     await expect(requirement).toHaveCount(1);
-    await expect(hostedPayloads.getByRole('combobox', { name: 'Revisit requirement' })).toHaveValue('7200000');
+    await expect(hostedPayloads.getByRole('combobox', { name: 'Requirement for Primary target' })).toHaveValue('7200000');
 
     await requirement.selectOption('3600000');
     await openRevisitAnalysis(page);
@@ -38,12 +38,12 @@ test.describe('REVISIT P1 requirement contract', () => {
     // pass/fail pair moved beside the recommendation (Programme 7A).
     const card = page.getByRole('region', { name: 'Customer result' });
     await expect(card).toContainText('at least every 1 h');
-    await expect(card).toContainText('Customer requirement');
+    await expect(card).toContainText('Requirement');
 
     // A new Secondary target inherits the Primary threshold. The header still
     // exposes exactly one control, now explicitly attributed to Secondary.
     await addSecondaryArea(page);
-    await expect(hostedPayloads.getByRole('combobox', { name: 'Revisit requirement for Secondary target' }))
+    await expect(hostedPayloads.getByRole('combobox', { name: 'Requirement for Secondary target' }))
       .toHaveValue('3600000');
     await expect(page.getByRole('combobox', { name: 'Area requirement' })).toHaveCount(0);
   });
@@ -211,7 +211,7 @@ test.describe('REVISIT P1 requirement contract', () => {
     // block contributes only the secondary metrics row, so the maximum gap is
     // read from the card — which is the figure this test is about.
     await expect(panel.getByRole('region', { name: 'Customer result' }))
-      .toContainText('Maximum revisit gap');
+      .toContainText('Maximum gap');
     await expect(panel.locator('.revisit-kpi-secondary')).toContainText('Average revisit');
     const comparison = panel.getByLabel('Business comparison');
     // Gated on the sweep's own `isSweeping` flag, not the much faster

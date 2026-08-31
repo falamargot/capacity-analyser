@@ -165,7 +165,7 @@ export const RevisitKpiPanel: React.FC<RevisitKpiPanelProps> = ({
                 of the rest and never competes for width with them (UX §4.2). */}
             {!embedded && (
                 <div className={`revisit-kpi-headline ${verdict ? 'mt-3' : ''}`}>
-                    <Metric label="Maximum revisit gap" value={formatGap(maxGapMs)} tone="headline" />
+                    <Metric label="Maximum gap" value={formatGap(maxGapMs)} tone="headline" />
                 </div>
             )}
             <div className={`revisit-kpi-secondary flex items-end gap-5 ${embedded ? '' : 'mt-3 border-t border-slate-700/50 pt-2.5'}`}>

@@ -149,10 +149,10 @@ export const AreaDistributionPanel: React.FC<
     );
     const total = Math.max(analysis.cells.length, 1);
     const categories = [
-        { label: 'Meets', count: counts.meets, color: 'bg-lime-400', text: REVISIT_OUTCOME.meets.text },
-        { label: 'Misses', count: counts.misses, color: 'bg-orange-500', text: REVISIT_OUTCOME.misses.text },
-        { label: 'Never seen', count: counts.never, color: 'bg-red-500', text: REVISIT_OUTCOME.error.text },
-        { label: 'Unmeasured', count: counts.unmeasured, color: 'bg-red-800', text: REVISIT_OUTCOME.error.text },
+        { label: 'Meets', count: counts.meets, color: 'bg-lime-400', text: REVISIT_OUTCOME.meets.text, alwaysShown: true },
+        { label: 'Misses', count: counts.misses, color: 'bg-orange-500', text: REVISIT_OUTCOME.misses.text, alwaysShown: true },
+        { label: 'Never seen', count: counts.never, color: 'bg-red-500', text: REVISIT_OUTCOME.error.text, alwaysShown: false },
+        { label: 'Unmeasured', count: counts.unmeasured, color: 'bg-red-800', text: REVISIT_OUTCOME.error.text, alwaysShown: false },
     ];
     const body = (
         <>
@@ -161,8 +161,15 @@ export const AreaDistributionPanel: React.FC<
                     <span key={category.label} className={category.color} style={{ width: `${category.count / total * 100}%` }} title={`${category.label}: ${category.count}`} />
                 ))}
             </div>
+            {/*
+              * `Meets` and `Misses` always stay — a zero in either is a real
+              * answer about the area. `Never seen` and `Unmeasured` are
+              * exceptions, and when there are none they spent half of a
+              * four-line table reporting absence (P7, 2026-08-31). They come
+              * back the moment they are non-zero, which is when they matter.
+              */}
             <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1">
-                {categories.map((category) => (
+                {categories.filter((category) => category.alwaysShown || category.count > 0).map((category) => (
                     <div key={category.label} className="flex items-center justify-between text-[12px]">
                         <span className="text-slate-400">{category.label}</span>
                         <strong className={`tabular-nums ${category.text}`}>{category.count} · {Math.round(category.count / total * 100)}%</strong>

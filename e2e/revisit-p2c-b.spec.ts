@@ -93,12 +93,12 @@ test.describe('REVISIT P2c-B unified target set', () => {
 
     await targetSet.getByRole('button', { name: 'Add primary target' }).click();
     await targetSet.getByRole('menuitem', { name: 'Add Primary point target' }).click();
-    await hostedPayloads.getByRole('combobox', { name: 'Revisit requirement for Primary target' })
+    await hostedPayloads.getByRole('combobox', { name: 'Requirement for Primary target' })
       .selectOption(String(3600_000));
 
     await addSecondaryPoint(page);
     await page.getByRole('combobox', { name: 'Secondary target', exact: true }).selectOption('Singapore');
-    await hostedPayloads.getByRole('combobox', { name: 'Revisit requirement for Secondary target' })
+    await hostedPayloads.getByRole('combobox', { name: 'Requirement for Secondary target' })
       .selectOption(String(6 * 3600_000));
     const payloadCountBefore = await hostedPayloads.locator('[data-revisit-payload-count]').textContent();
 
@@ -107,12 +107,12 @@ test.describe('REVISIT P2c-B unified target set', () => {
     await expect(page.getByRole('combobox', { name: 'Target', exact: true })).toHaveValue('Singapore');
     await expect(page.getByRole('combobox', { name: 'Secondary target', exact: true })).toHaveValue('London');
     await expect(page.getByLabel('Active result context')).toContainText('Point result · Primary target');
-    await expect(hostedPayloads.getByRole('combobox', { name: 'Revisit requirement for Primary target' }))
+    await expect(hostedPayloads.getByRole('combobox', { name: 'Requirement for Primary target' }))
       .toHaveValue(String(6 * 3600_000));
     await expect(hostedPayloads.locator('[data-revisit-payload-count]')).toHaveText(payloadCountBefore ?? '');
 
     await targetSet.locator('button[aria-pressed]').filter({ hasText: 'Secondary target' }).click();
-    await expect(hostedPayloads.getByRole('combobox', { name: 'Revisit requirement for Secondary target' }))
+    await expect(hostedPayloads.getByRole('combobox', { name: 'Requirement for Secondary target' }))
       .toHaveValue(String(3600_000));
   });
 });

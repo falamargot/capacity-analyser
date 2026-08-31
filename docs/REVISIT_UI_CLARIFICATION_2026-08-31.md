@@ -9,7 +9,7 @@ Ordered by what costs the most in front of a customer.
 
 ---
 
-## P1 — The point recommendation never says what it buys · **Critical**
+## P1 — The point recommendation never says what it buys · **Critical** · **DONE 2026-08-31**
 
 `RECOMMENDED CONFIGURATION` on a point renders exactly two facts:
 
@@ -49,7 +49,7 @@ value-per-line change on the list.
 
 ---
 
-## P2 — A verified area recommendation cannot be applied · **Critical**
+## P2 — A verified area recommendation cannot be applied · **Critical** · **DONE 2026-08-31**
 
 `offersApply = sizing.kind === 'RECOMMENDED' || sizing.kind === 'RETOPOLOGY'`
 (`CustomerResultCard.tsx`). So the area screen shows a configuration measured on
@@ -73,7 +73,7 @@ is worse than either answer.
 
 ---
 
-## P3 — Two "versus one" claims, 1 % apart, meaning different things · **Major**
+## P3 — Two "versus one" claims, 1 % apart, meaning different things · **Major** · **DONE 2026-09-01**
 
 Same column, ~400 px apart:
 
@@ -94,7 +94,7 @@ stays with the fleet-size argument in the current block.
 
 ---
 
-## P4 — One concept, three names · **Major**
+## P4 — One concept, three names · **Major** · **DONE 2026-09-01**
 
 | Concept | Header | Result card | Compare table | Chart | PDF |
 |---|---|---|---|---|---|
@@ -111,7 +111,7 @@ with a verdict (`MISSES`).
 
 ---
 
-## P5 — The current split is not where the current result is · **Major**
+## P5 — The current split is not where the current result is · **Major** · **DONE 2026-09-01**
 
 `CURRENT CONFIGURATION` shows `12` and the fleet denominator. The split it
 refers to — `6 planes × 2 per plane` — lives in 10 px grey under the payload
@@ -126,7 +126,7 @@ the slider: that is provenance for the control, not part of the answer.
 
 ---
 
-## P6 — On the area screen, the deciding figure is the smallest text · **Major**
+## P6 — On the area screen, the deciding figure is the smallest text · **Major** · **DONE 2026-08-31**
 
 - Current: `Maximum revisit gap · least-covered cell` … `10 h 26 min` — labelled
   row, tabular, 13 px.
@@ -142,7 +142,7 @@ from the P1 restructure if the three states share one layout.
 
 ---
 
-## P7 — Zero rows that say nothing · **Minor**
+## P7 — Zero rows that say nothing · **Minor** · **DONE 2026-09-01**
 
 `Never seen 0 · 0%` and `Unmeasured 0 · 0%` take two of the four coverage lines
 to report absence. They matter a great deal when non-zero.
@@ -152,7 +152,7 @@ a zero there is information.
 
 ---
 
-## P8 — Truncation, and one identity written four ways · **Minor**
+## P8 — Truncation, and one identity written four ways · **Minor** · **DONE 2026-09-01**
 
 `POINT RESULT · PRIMARY TARGET · 62.97°N 28.1…`, `Least-cover…`,
 `Secondary · Secon…`. The same point is simultaneously `Custom point`
@@ -166,6 +166,27 @@ below it and in the header — leaving `POINT RESULT · PRIMARY TARGET`. Widen t
 two values and should never be truncated.
 
 ---
+
+## Status
+
+**All eight are implemented.** P1, P2 and P6 on 2026-08-31; P3, P4, P5, P7 and
+P8 on 2026-09-01. See `HANDOFF.md` for what changed and for the three places
+where the implementation deviated from the proposal above — each because the
+code or the layout said the proposal was wrong:
+
+- **P4** proposed renaming the compare column `GOAL` → `VS REQUIREMENT`. It
+  shipped as `VERDICT`: the longer heading needed ~88 px in a column whose cells
+  need ~45, and the sidecar's 400 px is a fixed budget it would have taken out
+  of the target name.
+- **P8** proposed dropping the coordinates from the result header, keeping
+  `POINT RESULT · PRIMARY TARGET`. That would have broken `revisit-p2c-a`, which
+  asserts the header names `Singapore` to prove the selected point owns the
+  column — the name is what distinguishes one secondary from another. The header
+  became two lines instead, keeping kind, role AND name.
+- **P8** also proposed widening `BASIS`. Doing that alone cut the target column
+  from ~128 px to 52 px and started clipping `Primary · London`, which had
+  fitted before; every column was then sized to its own contents and the
+  sidecar's gutters tightened to pay for it.
 
 ## Suggested order
 

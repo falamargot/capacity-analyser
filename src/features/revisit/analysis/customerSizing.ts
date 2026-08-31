@@ -39,7 +39,28 @@ import type { AreaSizingResult } from './areaSizing';
  */
 export type CustomerSizing =
     | { kind: 'COVERED' }
-    | { kind: 'RECOMMENDED'; payloadCount: number; additionalPayloads: number }
+    /**
+     * The requirement is met by ADDING payloads.
+     *
+     * `split` and `maxGapMs` describe what those payloads buy, and they used to
+     * be absent: the card said `36 payload-equipped satellites +24` and nothing
+     * else, so the block carrying the button stated neither the topology it was
+     * about to apply nor the revisit it achieves — while `RETOPOLOGY` and
+     * `AREA_VERIFIED`, the two rarer states, stated both (2026-08-31). They are
+     * read from the same sweep point the count comes from.
+     *
+     * Nullable because the input allows a `recommendedPayloadCount` with no
+     * matching sweep point. Nothing may be shown that was not measured, so the
+     * card omits the line rather than inventing one.
+     */
+    | {
+        kind: 'RECOMMENDED';
+        payloadCount: number;
+        additionalPayloads: number;
+        split: { planes: number; perPlane: number } | null;
+        /** Worst-case revisit the sweep MEASURED at that configuration, ms. */
+        maxGapMs: number | null;
+    }
     /**
      * The requirement is met at a payload count the fleet ALREADY carries — by
      * distributing those payloads across a different number of planes.
@@ -92,6 +113,15 @@ export type CustomerSizing =
     | {
         kind: 'AREA_VERIFIED';
         payloadCount: number;
+        /**
+         * The strides the search VERIFIED over the grid.
+         *
+         * Carried so `Apply` can adopt exactly what was measured. It may not go
+         * through `selectionForPayloadCount`, which resolves a split from the
+         * POINT sweep's best at that count — a configuration nobody ran over
+         * these cells (2026-08-31).
+         */
+        selection: SubConstellationSpec;
         selectedPlanes: number;
         payloadsPerPlane: number;
         /** Worst cell of the verified run — the figure the card may quote. */
@@ -173,6 +203,7 @@ export function resolveCustomerSizing(input: CustomerSizingInput): CustomerSizin
             return {
                 kind: 'AREA_VERIFIED',
                 payloadCount: verified.payloadCount,
+                selection: verified.selection,
                 selectedPlanes: verified.selectedPlanes,
                 payloadsPerPlane: verified.payloadsPerPlane,
                 worstCellGapMs: verified.worstCellGapMs,
@@ -204,9 +235,28 @@ export function resolveCustomerSizing(input: CustomerSizingInput): CustomerSizin
         // No answer yet is not the same as no answer at all.
         return isSweeping || !sweep ? { kind: 'COMPUTING' } : { kind: 'BEYOND_RANGE' };
     }
+    /*
+     * Hoisted above the branch below: BOTH outcomes describe the same measured
+     * configuration, and the `RECOMMENDED` half used to describe none of it.
+     */
+    const recommendedPoint = sweep?.points
+        .find((point) => point.payloadCount === recommended) ?? null;
+    const recommendedSplit = recommendedPoint
+        ? {
+            planes: recommendedPoint.best.selectedPlanes,
+            perPlane: recommendedPoint.best.payloadsPerPlane,
+        }
+        : null;
+
     const additionalPayloads = recommended - currentPayloadCount;
     if (additionalPayloads > 0) {
-        return { kind: 'RECOMMENDED', payloadCount: recommended, additionalPayloads };
+        return {
+            kind: 'RECOMMENDED',
+            payloadCount: recommended,
+            additionalPayloads,
+            split: recommendedSplit,
+            maxGapMs: recommendedPoint?.maxGapMs ?? null,
+        };
     }
     /*
      * The measured best at the CURRENT count already meets the requirement
@@ -246,10 +296,9 @@ export function resolveCustomerSizing(input: CustomerSizingInput): CustomerSizin
      * selection because `planeShift` is carried across unchanged by
      * `selectionForPayloadCount`, and is therefore not what applying changes.
      */
-    const recommendedPoint = sweep?.points
-        .find((point) => point.payloadCount === recommended) ?? null;
     if (
         recommendedPoint
+        && recommendedSplit
         && recommendedPoint.maxGapMs !== null
         && (recommendedPoint.best.selection.planeStride !== selection.planeStride
             || recommendedPoint.best.selection.satStride !== selection.satStride)
@@ -257,10 +306,7 @@ export function resolveCustomerSizing(input: CustomerSizingInput): CustomerSizin
         return {
             kind: 'RETOPOLOGY',
             payloadCount: recommended,
-            split: {
-                planes: recommendedPoint.best.selectedPlanes,
-                perPlane: recommendedPoint.best.payloadsPerPlane,
-            },
+            split: recommendedSplit,
             maxGapMs: recommendedPoint.maxGapMs,
         };
     }

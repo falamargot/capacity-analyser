@@ -348,8 +348,8 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                                 </div>
                                 {comparisonStatus}
                             </div>
-                            <div className="mt-3 grid grid-cols-[minmax(0,1fr)_4.5rem_5rem_4rem] gap-2 text-[11px] font-black uppercase tracking-wide text-slate-500">
-                                <span>Target</span><span>Basis</span><span>Maximum gap</span><span className="text-right">Goal</span>
+                            <div className="mt-3 grid grid-cols-[minmax(0,1fr)_7rem_4.5rem_3.75rem] gap-1.5 text-[11px] font-black uppercase tracking-wide text-slate-500">
+                                <span>Target</span><span>Basis</span><span>Maximum gap</span><span className="text-right">Verdict</span>
                             </div>
                         </div>
 
@@ -369,7 +369,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                                             key={lane.id}
                                             data-revisit-comparison-row={lane.id}
                                             onClick={() => onSelectTarget?.(lane.id)}
-                                            className={`grid h-7 cursor-pointer grid-cols-[minmax(0,1fr)_4.5rem_5rem_4rem] items-center gap-2 rounded px-1 text-[11px] tabular-nums transition-colors hover:bg-white/[0.05] ${lane.selected ? selectedTone : 'border-y border-l-[3px] border-transparent'}`}
+                                            className={`grid h-7 cursor-pointer grid-cols-[minmax(0,1fr)_7rem_4.5rem_3.75rem] items-center gap-1.5 rounded px-1 text-[11px] tabular-nums transition-colors hover:bg-white/[0.05] ${lane.selected ? selectedTone : 'border-y border-l-[3px] border-transparent'}`}
                                         >
                                             <button
                                                 type="button"
@@ -492,8 +492,8 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                             </span>
                         </summary>
                         <div className="overflow-x-auto pb-1">
-                            <div className="grid min-w-[22rem] grid-cols-[minmax(0,1fr)_6rem_5rem_4rem] gap-2 border-b border-slate-700/50 py-1 text-[11px] font-black uppercase tracking-wide text-slate-500">
-                                <span>Target</span><span>Basis</span><span>Maximum gap</span><span className="text-right">Goal</span>
+                            <div className="grid min-w-[22rem] grid-cols-[minmax(0,1fr)_7rem_4.5rem_3.75rem] gap-2 border-b border-slate-700/50 py-1 text-[11px] font-black uppercase tracking-wide text-slate-500">
+                                <span>Target</span><span>Basis</span><span>Maximum gap</span><span className="text-right">Verdict</span>
                             </div>
                             {targetRows.map((lane, index) => {
                                 const maxGapMs = lane.statistics?.maxGapMs ?? null;
@@ -508,7 +508,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                                         data-revisit-comparison-row={lane.id}
                                         onClick={() => onSelectTarget?.(lane.id)}
                                         aria-pressed={lane.selected}
-                                        className={`grid min-h-11 min-w-[22rem] w-full grid-cols-[minmax(0,1fr)_6rem_5rem_4rem] items-center gap-2 border-b border-slate-800/60 px-1 text-left text-[11px] tabular-nums ${lane.selected
+                                        className={`grid min-h-11 min-w-[22rem] w-full grid-cols-[minmax(0,1fr)_7rem_4.5rem_3.75rem] items-center gap-2 border-b border-slate-800/60 px-1 text-left text-[11px] tabular-nums ${lane.selected
                                             ? isReference ? 'border-l-[3px] border-l-amber-300/60 bg-amber-400/12' : 'border-l-[3px] border-l-sky-300/60 bg-sky-400/12'
                                             : 'border-l-[3px] border-l-transparent'}`}
                                     >

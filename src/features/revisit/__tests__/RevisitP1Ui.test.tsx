@@ -153,9 +153,9 @@ describe('REVISIT P1 functional UI', () => {
             '[data-revisit-context-panel="hosted-payloads"]'
         )!;
         expect(hostedPayloads.textContent).toContain('Assumed sensor swath');
-        expect(hostedPayloads.textContent).toContain('Revisit requirement');
+        expect(hostedPayloads.textContent).toContain('Requirement');
         const requirement = hostedPayloads.querySelector(
-            '[aria-label="Revisit requirement for Primary target"]'
+            '[aria-label="Requirement for Primary target"]'
         ) as HTMLSelectElement;
         expect(requirement.className).toContain('border-amber');
         await act(async () => change(requirement, String(6 * 3600_000)));
@@ -712,7 +712,7 @@ describe('REVISIT P1 functional UI', () => {
                 comparison={{ baselineMaxGapMs: 12 * 3600_000 }}
             />
         ));
-        expect(container.textContent).toContain('Maximum revisit gap');
+        expect(container.textContent).toContain('Maximum gap');
         expect(container.textContent).toContain('75% shorter worst-case');
         // `+24 payloads` is now `CustomerResultCard`'s, beside the control that
         // applies it (Programme 7A); repeating it here put the recommendation

@@ -64,9 +64,9 @@ describe('CustomerResultCard', () => {
 
         expect(container.textContent).toContain('Can the Eutelsat LEO fleet observe London');
         expect(container.textContent).toContain('Current configuration');
-        expect(container.textContent).toContain('Maximum revisit gap');
+        expect(container.textContent).toContain('Maximum gap');
         expect(container.textContent).toContain('6 h');
-        expect(container.textContent).toContain('Customer requirement');
+        expect(container.textContent).toContain('Requirement');
         expect(container.textContent).toContain('2 h');
     });
 
@@ -82,7 +82,7 @@ describe('CustomerResultCard', () => {
         expect(container.textContent).toContain('Fleet sizing could not be calculated');
         expect(container.textContent).toContain('The result above is unaffected');
         // The measured answer is still on screen — that is the whole point.
-        expect(container.textContent).toContain('Maximum revisit gap');
+        expect(container.textContent).toContain('Maximum gap');
         expect(container.textContent).toContain('6 h');
         // No payload recommendation is invented in its place.
         expect(container.textContent).not.toContain('Apply recommended configuration');
@@ -102,18 +102,46 @@ describe('CustomerResultCard', () => {
     it('states the recommendation and offers the action that applies it', async () => {
         const onApply = vi.fn();
         await renderCard({
-            sizing: { kind: 'RECOMMENDED', payloadCount: 36, additionalPayloads: 24 },
+            sizing: {
+                kind: 'RECOMMENDED', payloadCount: 36, additionalPayloads: 24,
+                split: { planes: 12, perPlane: 3 }, maxGapMs: 1.5 * HOUR,
+            },
             onApply,
         });
 
         expect(container.textContent).toContain('Recommended configuration');
         expect(container.textContent).toContain('36');
         expect(container.textContent).toContain('+24');
+        /*
+         * The block that carries the button must say what the button DOES.
+         * Until 2026-08-31 it printed the count and the fleet denominator and
+         * stopped: neither the topology it was about to apply nor the revisit
+         * that topology achieves — while the two rarer states, `RETOPOLOGY` and
+         * `AREA_VERIFIED`, stated both. The fields were not merely unrendered;
+         * `CustomerSizing.RECOMMENDED` did not carry them.
+         */
+        expect(container.textContent).toContain('12 planes × 3 per plane');
+        expect(container.textContent).toContain('1 h 30 min');
 
         const apply = container.querySelector<HTMLButtonElement>('.revisit-apply-recommended');
         expect(apply).not.toBeNull();
         await act(async () => apply?.click());
         expect(onApply).toHaveBeenCalledTimes(1);
+    });
+
+    /* Nothing measured, nothing stated: the count stands alone rather than
+       borrowing a split or a gap from anywhere. */
+    it('omits the split and the gap when the sweep point was not found', async () => {
+        await renderCard({
+            sizing: {
+                kind: 'RECOMMENDED', payloadCount: 36, additionalPayloads: 24,
+                split: null, maxGapMs: null,
+            },
+        });
+
+        expect(container.textContent).toContain('36');
+        expect(container.textContent).toContain('within the 576-satellite active fleet');
+        expect(container.textContent).not.toMatch(/planes × \d+ per plane/);
     });
 
     /*
@@ -138,15 +166,26 @@ describe('CustomerResultCard', () => {
         expect(container.textContent).toContain('Reconfiguration required');
         expect(container.textContent).toContain('6 × 8');
         expect(container.textContent).toContain('planes × payloads per plane');
-        expect(container.textContent).toContain('the payloads already flown, redistributed');
-        // A re-split at the SAME count genuinely costs nothing, so this is
-        // where the phrase belongs — and nowhere else (see the test below).
-        expect(container.textContent).toContain('no additional payloads required');
+        /*
+         * The cost sentence is the block's only ALWAYS-VISIBLE statement of
+         * what the proposal costs: the composition line beside it is
+         * `revisit-customer-secondary` and is hidden on a short stage. A
+         * re-split at the SAME count genuinely costs nothing, so this is where
+         * the phrase belongs — and nowhere else (see the test below).
+         */
+        const cost = [...container.querySelectorAll('p')]
+            .find((p) => p.textContent?.startsWith('The payloads already flown'))!;
+        expect(cost).toBeDefined();
+        expect(cost.textContent).toContain('no additional payloads required');
+        expect(cost.className).not.toContain('revisit-customer-secondary');
         // Never in the `Requirement covered` colour: the badge above says the
         // requirement is missed, and lime is what says it is met.
-        const cost = [...container.querySelectorAll('p')]
-            .find((p) => p.textContent?.includes('Measured at'))!;
         expect(cost.className).not.toContain('lime');
+        // P6: the measurement is a labelled row carrying the current block's
+        // own label, so the two worst cases read as one comparison.
+        const measured = container.querySelector('[aria-label="Recommended configuration"] dl > div')!;
+        expect(measured.textContent).toContain('Maximum gap');
+        expect(measured.textContent).toContain('1 h 54 min');
         // The two statements that must never appear together.
         expect(container.textContent).not.toContain('More payloads required');
         expect(container.textContent).not.toContain('Met by the current configuration');
@@ -171,7 +210,6 @@ describe('CustomerResultCard', () => {
         });
 
         expect(container.textContent).toContain('36 payload-equipped satellites');
-        expect(container.textContent).toContain('12 fewer than the current configuration');
         expect(container.textContent).not.toContain('the payloads already flown');
         /*
          * "No additional payloads required" is true here and badly understates
@@ -180,10 +218,15 @@ describe('CustomerResultCard', () => {
          * as "the current configuration is fine" — directly under
          * `Reconfiguration required`.
          *
-         * The saving is restated here rather than left to the line above,
-         * which is `revisit-customer-secondary` and hidden on a short stage.
+         * The saving must be stated OUTSIDE the composition line, which is
+         * `revisit-customer-secondary` and hidden on a short stage — so it is
+         * asserted on the visible sentence, not on the card's text as a whole.
          */
-        expect(container.textContent).toContain('with 12 fewer payloads');
+        const cost = [...container.querySelectorAll('p')]
+            .find((p) => p.textContent?.includes('fewer payloads'))!;
+        expect(cost).toBeDefined();
+        expect(cost.className).not.toContain('revisit-customer-secondary');
+        expect(cost.textContent).toBe('12 fewer payloads than the current configuration.');
         expect(container.textContent).not.toContain('no additional payloads required');
     });
 
@@ -250,7 +293,10 @@ describe('CustomerResultCard', () => {
      */
     it('frames a missed requirement as additional payloads, not as a failure', async () => {
         await renderCard({
-            sizing: { kind: 'RECOMMENDED', payloadCount: 36, additionalPayloads: 24 },
+            sizing: {
+                kind: 'RECOMMENDED', payloadCount: 36, additionalPayloads: 24,
+                split: { planes: 12, perPlane: 3 }, maxGapMs: 1.5 * HOUR,
+            },
         });
 
         expect(container.textContent).toContain('More payloads required');
@@ -331,12 +377,12 @@ describe('CustomerResultCard', () => {
     it('offers the measurement and nothing else until an area has been sized', async () => {
         await renderCard({
             question: 'Can every analysed cell in Customer AOI be observed at least every 2 h, with an assumed 700 km IR swath?',
-            currentMetricLabel: 'Maximum revisit gap · least-covered cell',
+            currentMetricLabel: 'Maximum gap · least-covered cell',
             sizing: { kind: 'AREA_NOT_SIZED' },
             onSizeArea: vi.fn(),
         });
 
-        expect(container.textContent).toContain('Maximum revisit gap · least-covered cell');
+        expect(container.textContent).toContain('Maximum gap · least-covered cell');
         expect(container.querySelector('.revisit-size-area')).not.toBeNull();
         // No verdict: nothing has been measured to put one on.
         expect(container.querySelector('.revisit-customer-status')).toBeNull();
@@ -354,7 +400,7 @@ describe('CustomerResultCard', () => {
      */
     it('keeps a verdict when the measurement cannot be offered', async () => {
         await renderCard({
-            currentMetricLabel: 'Maximum revisit gap · least-covered cell',
+            currentMetricLabel: 'Maximum gap · least-covered cell',
             sizing: { kind: 'AREA_NOT_SIZED' },
             onSizeArea: undefined,
         });
@@ -391,12 +437,13 @@ describe('CustomerResultCard', () => {
      */
     it('states the scope of a verified area sizing beside the number', async () => {
         await renderCard({
-            currentMetricLabel: 'Maximum revisit gap · least-covered cell',
+            currentMetricLabel: 'Maximum gap · least-covered cell',
             currentMaxGapMs: 3 * HOUR,
             requirementMs: 2 * HOUR,
             sizing: {
                 kind: 'AREA_VERIFIED',
                 payloadCount: 36,
+                selection: { planeStride: 2, satStride: 8, planeShift: 0 },
                 selectedPlanes: 6,
                 payloadsPerPlane: 6,
                 worstCellGapMs: 1.8 * HOUR,
@@ -411,6 +458,91 @@ describe('CustomerResultCard', () => {
         expect(container.textContent).toContain('Verified on every cell of this area');
         expect(container.textContent).toContain('Not proved minimal');
         expect(container.textContent).toContain('More payloads required');
+
+        /*
+         * P6: the worst cell of the PROPOSAL is a labelled row carrying the
+         * current block's own label, not a 12 px fragment beside the split.
+         * The 3 h → 1 h 48 collapse is the argument; both halves are now
+         * typeset as figures worth reading, one card apart.
+         */
+        const recommended = container.querySelector('[aria-label="Recommended configuration"]')!;
+        const rows = [...recommended.querySelectorAll('dl > div')];
+        expect(rows).toHaveLength(1);
+        expect(rows[0].textContent).toContain('Maximum gap · least-covered cell');
+        expect(rows[0].textContent).toContain('1 h 48 min');
+    });
+
+    /*
+     * P2 (2026-08-31). This is the strongest claim the module makes — a
+     * configuration measured on EVERY cell of the grid, with its search
+     * evidence printed underneath — and it was the one screen that offered
+     * nothing to do about it, while a point recommendation one click away
+     * offered a button on a weaker claim. The presenter had to read the split
+     * out loud and reproduce it by hand in the Advanced drawer.
+     */
+    it('offers the action that applies a verified area configuration', async () => {
+        const onApply = vi.fn();
+        await renderCard({
+            currentMetricLabel: 'Maximum gap · least-covered cell',
+            currentMaxGapMs: 3 * HOUR,
+            requirementMs: 2 * HOUR,
+            sizing: {
+                kind: 'AREA_VERIFIED',
+                payloadCount: 72,
+                selection: { planeStride: 1, satStride: 8, planeShift: 0 },
+                selectedPlanes: 12,
+                payloadsPerPlane: 6,
+                worstCellGapMs: 1.02 * HOUR,
+                candidatesTried: 3,
+                additionalPayloads: 60,
+            },
+            onApply,
+        });
+
+        const apply = container.querySelector<HTMLButtonElement>('.revisit-apply-recommended');
+        expect(apply).not.toBeNull();
+        await act(async () => apply?.click());
+        expect(onApply).toHaveBeenCalledTimes(1);
+    });
+
+    /*
+     * Found by re-reading the screen after P2/P6 landed (2026-08-31). The area
+     * proposed 36 payloads where 48 were flown and said so NOWHERE: the `+N`
+     * chip only renders a cost, and the saving sentence had been added to
+     * `RETOPOLOGY` alone. The reader was left to subtract. Worse, the badge's
+     * own tooltip asserted the opposite of the numbers beside it.
+     */
+    it('states the saving when a verified area answer uses fewer payloads', async () => {
+        await renderCard({
+            currentPayloadCount: 48,
+            currentMetricLabel: 'Maximum gap · least-covered cell',
+            currentMaxGapMs: 2 * HOUR + 21 * 60_000,
+            requirementMs: 2 * HOUR,
+            sizing: {
+                kind: 'AREA_VERIFIED',
+                payloadCount: 36,
+                selection: { planeStride: 1, satStride: 16, planeShift: 0 },
+                selectedPlanes: 12,
+                payloadsPerPlane: 3,
+                worstCellGapMs: HOUR + 59 * 60_000,
+                candidatesTried: 1,
+                additionalPayloads: -12,
+            },
+        });
+
+        const cost = [...container.querySelectorAll('p')]
+            .find((p) => p.textContent?.includes('fewer payloads'))!;
+        expect(cost).toBeDefined();
+        expect(cost.textContent).toBe('12 fewer payloads than the current configuration.');
+        // Not in the hidden line, and not in the colour that says "covered".
+        expect(cost.className).not.toContain('revisit-customer-secondary');
+        expect(cost.className).not.toContain('lime');
+
+        // The badge said "the same budget, split differently" over 36 against 48.
+        const badge = container.querySelector('.revisit-customer-status')!;
+        expect(badge.textContent).toBe('Reconfiguration required');
+        expect(badge.getAttribute('title')).toContain('fewer payloads than are flown today');
+        expect(badge.getAttribute('title')).not.toContain('the same budget');
     });
 
     /* A re-split costs nothing, so it must not say payloads are required. */
@@ -421,6 +553,7 @@ describe('CustomerResultCard', () => {
             sizing: {
                 kind: 'AREA_VERIFIED',
                 payloadCount: 12,
+                selection: { planeStride: 6, satStride: 8, planeShift: 0 },
                 selectedPlanes: 2,
                 payloadsPerPlane: 6,
                 worstCellGapMs: 1.9 * HOUR,
@@ -431,6 +564,11 @@ describe('CustomerResultCard', () => {
 
         expect(container.textContent).toContain('Reconfiguration required');
         expect(container.textContent).not.toMatch(/\+\d+/);
+        // The same sentence the point re-split uses, from the same component.
+        expect(container.textContent)
+            .toContain('The payloads already flown, redistributed — no additional payloads required.');
+        expect(container.querySelector('.revisit-customer-status')?.getAttribute('title'))
+            .toContain('the same budget');
     });
 
     it('reports the search phase while it runs', async () => {

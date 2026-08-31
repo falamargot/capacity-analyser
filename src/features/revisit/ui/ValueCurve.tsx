@@ -352,16 +352,33 @@ export const ValueCurve: React.FC<ValueCurveProps> = ({
                 </button>
             )}
 
-            {/* The comparison worth making out loud (design note §3.2). */}
+            {/*
+              * The comparison worth making out loud (design note §3.2) — about
+              * TOPOLOGY, at a fixed payload count.
+              *
+              * It used to read "12 payloads over 6 planes beats 1 plane by 75%
+              * on revisit", four hundred pixels below `Vs 1 payload: 76%
+              * shorter worst-case` in the same column. That one compares 12
+              * payloads against ONE payload; this one compares two ways of
+              * splitting the SAME twelve. Two unrelated arguments, worded
+              * almost identically, a percentage point apart — a customer who
+              * spots the difference asks which is right, and both are (P3,
+              * 2026-08-31).
+              *
+              * So it now names both splits in full and drops "beats": the
+              * sentence states what was measured against what, and the reader
+              * can see that the payload count does not change across it.
+              */}
             {sweep && (() => {
                 const here = sweep.points.find((p) => p.payloadCount === currentPayloadCount);
                 if (!here?.spreadAdvantage || here.alternatives.length === 0) return null;
                 const worst = here.alternatives[here.alternatives.length - 1];
                 return (
                     <p className="mt-1 text-[12px] leading-4 text-amber-200/80">
-                        {currentPayloadCount} payloads over {here.best.selectedPlanes} planes beats{' '}
-                        {worst.selectedPlanes} {worst.selectedPlanes === 1 ? 'plane' : 'planes'} by{' '}
-                        {(here.spreadAdvantage * 100).toFixed(0)}% on revisit.
+                        At {currentPayloadCount} payloads,{' '}
+                        {here.best.selectedPlanes} × {here.best.payloadsPerPlane} measures{' '}
+                        {(here.spreadAdvantage * 100).toFixed(0)}% better than{' '}
+                        {worst.selectedPlanes} × {worst.payloadsPerPlane}.
                     </p>
                 );
             })()}

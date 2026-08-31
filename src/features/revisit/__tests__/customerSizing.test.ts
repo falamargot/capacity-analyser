@@ -164,8 +164,37 @@ describe('resolveCustomerSizing', () => {
     });
 
     it('still charges for payloads when the answer genuinely costs some', () => {
+        // 72 is not a rung of this fixture's sweep, so there is no measured
+        // split and no measured gap to attach — and none is invented.
         expect(resolveCustomerSizing(input({ recommendedPayloadCount: 72 })))
-            .toEqual({ kind: 'RECOMMENDED', payloadCount: 72, additionalPayloads: 24 });
+            .toEqual({
+                kind: 'RECOMMENDED', payloadCount: 72, additionalPayloads: 24,
+                split: null, maxGapMs: null,
+            });
+    });
+
+    /*
+     * P1 (2026-08-31). `RECOMMENDED` used to carry the count and the delta and
+     * nothing else, so the card's only actionable state described neither the
+     * topology its button was about to apply nor the revisit that topology
+     * achieves — while `RETOPOLOGY` and `AREA_VERIFIED`, the two rarer states,
+     * described both. The measurement was in hand the whole time: it is the
+     * same sweep point the count comes from.
+     */
+    it('describes the configuration it is about to recommend', () => {
+        const sizing = resolveCustomerSizing(input({
+            currentPayloadCount: 24,
+            recommendedPayloadCount: 48,
+        }));
+
+        expect(sizing).toEqual({
+            kind: 'RECOMMENDED',
+            payloadCount: 48,
+            additionalPayloads: 24,
+            // The sweep's MEASURED winner at 48, not the ladder's ordering.
+            split: { planes: 6, perPlane: 8 },
+            maxGapMs: 1.9 * HOUR,
+        });
     });
 
     it('keeps the states that are not sizing answers intact', () => {

@@ -796,11 +796,11 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                     {requirementMs !== undefined && (
                         <label className="flex min-w-0 flex-col gap-0.5">
                             <span className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">
-                                Revisit requirement
+                                Requirement
                             </span>
                             <select
                                 data-revisit-requirement
-                                aria-label={`Revisit requirement for ${activeTargetRole === 'COMPARISON' ? 'Secondary target' : 'Primary target'}`}
+                                aria-label={`Requirement for ${activeTargetRole === 'COMPARISON' ? 'Secondary target' : 'Primary target'}`}
                                 value={requirementMs}
                                 disabled={!activeTargetRole}
                                 onChange={(event) => onRequirementChange(Number(event.target.value))}

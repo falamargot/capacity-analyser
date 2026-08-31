@@ -267,7 +267,7 @@ export function buildRevisitResultSheet(
             recommendedSplit, context.recommendedMaxGapMs ?? null,
         ),
         metrics: [
-            { label: 'Maximum revisit gap', value: formatGap(maxGap) },
+            { label: 'Maximum gap', value: formatGap(maxGap) },
             { label: 'Average revisit', value: formatGap(analysis.statistics.meanGapMs) },
             { label: 'Accesses', value: String(analysis.statistics.accessCount) },
             { label: 'Time in view', value: `${(analysis.statistics.fractionInView * 100).toFixed(1)}%` },
