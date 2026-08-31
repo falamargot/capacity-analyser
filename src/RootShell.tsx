@@ -1,13 +1,51 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import App from './App';
 import { RevisitApp } from './features/revisit/ui/RevisitApp';
 import { useAppModeState } from './hooks/useAppModeState';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { SimulationProvider } from './contexts/SimulationContext';
-import { SimulationClockProvider } from './contexts/SimulationClockContext';
+import {
+  SimulationClockProvider, useSimulationClock,
+} from './contexts/SimulationClockContext';
 import { completeModeTransition } from './utils/modeTransitionMetrics';
 import { RevisitErrorBoundary } from './features/revisit/ui/RevisitErrorBoundary';
 import { TelecomErrorBoundary } from './components/errors/TelecomErrorBoundary';
+import { normalizeClockAfterModeTransition } from './time/modeTransitionClock';
+import type { AppMode } from './hooks/useAppModeState';
+
+interface ModeViewportProps {
+  appMode: AppMode;
+  returnMode: Exclude<AppMode, 'revisit'>;
+  onModeChange: (mode: AppMode) => void;
+  onReturnFromRevisit: () => void;
+}
+
+/** Mounted across every view so a REVISIT exit can normalize the shared clock. */
+const ModeViewport: React.FC<ModeViewportProps> = ({
+  appMode, returnMode, onModeChange, onReturnFromRevisit,
+}) => {
+  const clock = useSimulationClock();
+  const previousModeRef = useRef(appMode);
+
+  useLayoutEffect(() => {
+    normalizeClockAfterModeTransition(previousModeRef.current, appMode, clock);
+    previousModeRef.current = appMode;
+  }, [appMode, clock]);
+
+  return appMode === 'revisit'
+    ? (
+      <RevisitErrorBoundary onExit={onReturnFromRevisit}>
+        <RevisitApp returnMode={returnMode} onExit={onReturnFromRevisit} />
+      </RevisitErrorBoundary>
+    )
+    : (
+      <TelecomErrorBoundary onSwitchToRevisit={() => onModeChange('revisit')}>
+        <SimulationProvider>
+          <App appMode={appMode} onAppModeChange={onModeChange} />
+        </SimulationProvider>
+      </TelecomErrorBoundary>
+    );
+};
 
 /**
  * The root shell — it owns which top-level view is mounted, and nothing else.
@@ -45,22 +83,12 @@ export const RootShell: React.FC = () => {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <SimulationClockProvider>
-        {appMode === 'revisit'
-          ? (
-            <RevisitErrorBoundary onExit={returnFromRevisit}>
-              <RevisitApp
-                returnMode={returnMode}
-                onExit={returnFromRevisit}
-              />
-            </RevisitErrorBoundary>
-          )
-          : (
-            <TelecomErrorBoundary onSwitchToRevisit={() => handleAppModeChange('revisit')}>
-              <SimulationProvider>
-                <App appMode={appMode} onAppModeChange={handleAppModeChange} />
-              </SimulationProvider>
-            </TelecomErrorBoundary>
-          )}
+        <ModeViewport
+          appMode={appMode}
+          returnMode={returnMode}
+          onModeChange={handleAppModeChange}
+          onReturnFromRevisit={returnFromRevisit}
+        />
       </SimulationClockProvider>
     </ThemeProvider>
   );

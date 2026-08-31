@@ -73,7 +73,9 @@ import {
 } from '../../../utils/sphericalGeometry';
 import { WGS84_A_KM, WGS84_F } from '../../../utils/wgs84Geometry';
 import type { EciState, FovSpec, Target } from '../domain/types';
-import { earthRotationRad, ecefToEci, geodeticToEcef } from '../propagation/keplerJ2';
+import {
+    EARTH_ROTATION_RATE_RAD_S, earthRotationRad, ecefToEci, geodeticToEcef, gmstRad,
+} from '../propagation/keplerJ2';
 
 /**
  * The FOV geometry, resolved once into the satellite body frame.
@@ -170,6 +172,136 @@ export function prepareFov(fov: FovSpec): PreparedFov {
 export function targetEciAt(target: Target, epochMs: number, tSeconds: number): Vec3 {
     const ecef = geodeticToEcef(target.latDeg, target.lonDeg, target.altitudeKm ?? 0);
     return ecefToEci(ecef, earthRotationRad(epochMs, tSeconds));
+}
+
+/**
+ * A target's position over one analysis window, without recomputing what does
+ * not change.
+ *
+ * ── WHAT THIS REPLACES ──────────────────────────────────────────────────────
+ * `targetEciAt` was the most expensive operation in the access loop — measured
+ * at 0.0433 µs against 0.0325 for `propagateState` — and it does not depend on
+ * the satellite. The loop calls it for every satellite at every step, so for P
+ * payload satellites the same value was computed P times. Worse, each call
+ * redid two things that are constant for the whole run: the WGS84 geodetic →
+ * ECEF conversion (constant per target) and the GMST series (constant per
+ * epoch).
+ *
+ * This keeps all three: the ECEF position, the epoch's GMST, and cos/sin of the
+ * Earth rotation angle at each GRID instant — the last living in an
+ * `EarthRotationGrid` shared across every satellite and, in the area path,
+ * across every cell of a batch.
+ *
+ * ── WHY IT IS BIT-IDENTICAL ─────────────────────────────────────────────────
+ * `at` and `atStep` evaluate exactly the expressions `targetEciAt` evaluates:
+ * θ = gmstRad(epoch) + ω·t, then x = ex·cos θ − ey·sin θ, y = ex·sin θ + ey·cos θ,
+ * z unchanged. Same operations, same order, same inputs — so the same floats.
+ * `accessIntervals.test.ts` pins that against the original path rather than
+ * trusting this paragraph.
+ *
+ * ── THE ONE RULE FOR CALLERS ────────────────────────────────────────────────
+ * The returned vector is REUSED. Read it, pass it to `isTargetInFov`, and never
+ * keep it: the next call overwrites it. `at` and `atStep` return different
+ * objects, so a grid sample stays valid across a bisection.
+ */
+export interface TargetTrack {
+    /** ECI at grid index `i`, where t = min(i · step, duration). */
+    atStep(index: number): Vec3;
+    /** ECI at an arbitrary instant — what bisection needs, between two steps. */
+    at(tSeconds: number): Vec3;
+}
+
+/**
+ * The Earth-rotation grid: cos/sin of θ at each sampled instant.
+ *
+ * It depends on the WINDOW alone — epoch, step, duration — and not on the
+ * target, so every track over the same window can share one. That sharing is
+ * not a micro-optimisation: the area path builds a track per cell of a batch,
+ * and a private table each would multiply this by the batch size. At a 1 s
+ * sampling step over 72 h the table is 259 201 samples — 4.1 MB — so twelve
+ * private copies would have put ~50 MB of Float64Array live in the worker for
+ * one batch of cells. One shared copy is 4.1 MB whatever the batch holds.
+ */
+export interface EarthRotationGrid {
+    cos: Float64Array;
+    sin: Float64Array;
+    /** Highest valid index; `atStep` falls back to direct evaluation beyond it. */
+    stepCount: number;
+    gmst0: number;
+    stepSeconds: number;
+    durationSeconds: number;
+}
+
+export function earthRotationGrid(
+    epochMs: number,
+    stepSeconds: number,
+    durationSeconds: number,
+): EarthRotationGrid {
+    const gmst0 = gmstRad(epochMs);
+    const stepCount = Math.ceil(durationSeconds / stepSeconds);
+    const cos = new Float64Array(stepCount + 1);
+    const sin = new Float64Array(stepCount + 1);
+    for (let index = 0; index <= stepCount; index += 1) {
+        // The same expression the access loop uses for `t`, so the grid matches
+        // sample for sample.
+        const t = Math.min(index * stepSeconds, durationSeconds);
+        const theta = gmst0 + EARTH_ROTATION_RATE_RAD_S * t;
+        cos[index] = Math.cos(theta);
+        sin[index] = Math.sin(theta);
+    }
+    return { cos, sin, stepCount, gmst0, stepSeconds, durationSeconds };
+}
+
+export function targetTrack(
+    target: Target,
+    epochMs: number,
+    stepSeconds: number,
+    durationSeconds: number,
+    /**
+     * A grid to share, when the caller has several targets over one window.
+     * Built here when absent, which is what a single-target call wants.
+     */
+    grid: EarthRotationGrid = earthRotationGrid(epochMs, stepSeconds, durationSeconds),
+): TargetTrack {
+    const ecef = geodeticToEcef(target.latDeg, target.lonDeg, target.altitudeKm ?? 0);
+    const { cos: cosTheta, sin: sinTheta, stepCount, gmst0 } = grid;
+
+    const gridOut: Vec3 = { x: 0, y: 0, z: ecef.z };
+    const freeOut: Vec3 = { x: 0, y: 0, z: ecef.z };
+
+    function atSeconds(tSeconds: number, out: Vec3): Vec3 {
+        const theta = gmst0 + EARTH_ROTATION_RATE_RAD_S * tSeconds;
+        const c = Math.cos(theta);
+        const s = Math.sin(theta);
+        out.x = ecef.x * c - ecef.y * s;
+        out.y = ecef.x * s + ecef.y * c;
+        return out;
+    }
+
+    return {
+        atStep(index: number): Vec3 {
+            /*
+             * Out of the table is not out of the window's mathematics: an index
+             * past the tabulated grid — a caller sharing a grid built for a
+             * shorter run — is evaluated directly rather than read as
+             * `undefined` and silently propagated as NaN, which would have
+             * reported "never in view" instead of raising anything.
+             */
+            if (index < 0 || index > stepCount) {
+                return atSeconds(
+                    Math.min(index * grid.stepSeconds, grid.durationSeconds), gridOut,
+                );
+            }
+            const c = cosTheta[index];
+            const s = sinTheta[index];
+            gridOut.x = ecef.x * c - ecef.y * s;
+            gridOut.y = ecef.x * s + ecef.y * c;
+            return gridOut;
+        },
+        at(tSeconds: number): Vec3 {
+            return atSeconds(tSeconds, freeOut);
+        },
+    };
 }
 
 /**

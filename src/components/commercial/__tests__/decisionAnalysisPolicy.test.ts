@@ -35,26 +35,12 @@ describe('Decision Support analytical scope', () => {
     })).toBe(true);
   });
 
-  it('builds cross-technology evidence in COMM and in the opt-in ENG workflow', () => {
+  it('builds cross-technology evidence only in COMM', () => {
     expect(shouldBuildGeoDecisionAnalysis({
       uiMode: 'commercial',
-      inspectorOpen: false,
-      objectiveSelected: false,
     })).toBe(true);
     expect(shouldBuildGeoDecisionAnalysis({
       uiMode: 'engineering',
-      inspectorOpen: true,
-      objectiveSelected: false,
-    })).toBe(true);
-    expect(shouldBuildGeoDecisionAnalysis({
-      uiMode: 'engineering',
-      inspectorOpen: false,
-      objectiveSelected: true,
-    })).toBe(true);
-    expect(shouldBuildGeoDecisionAnalysis({
-      uiMode: 'engineering',
-      inspectorOpen: false,
-      objectiveSelected: false,
     })).toBe(false);
   });
 });

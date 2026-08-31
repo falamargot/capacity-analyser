@@ -1,6 +1,134 @@
 # Handoff
 
-_Last updated 2026-08-28._
+_Last updated 2026-08-31._
+
+## 2026-08-31 — Code review of the working tree: two findings fixed
+
+1. **The card could render an empty verdict slot.** `AREA_NOT_SIZED` drops its
+   badge because the measurement control replaces it — but the control is
+   conditional on `onSizeArea`, which `RevisitApp` withholds when the analysis
+   has no `worstCell` (every cell unmeasured over the window: no cell to probe
+   from). The Recommended configuration block then printed the customer question
+   and nothing else. `customerStatus` now takes `canSizeArea`: with no control
+   the `Assessment required` verdict comes back, with a sentence saying the
+   search has no measured cell to start from.
+2. **The exported area sheet denied a measurement the screen had made.**
+   `buildAreaResultSheet` had no way to receive the sizing result, so a user who
+   measured 36 payloads and read `MORE PAYLOADS REQUIRED` on screen exported a
+   document saying `NOT SIZED` / "No payload count has been measured for this
+   area." `ResultSheetContext` gained `areaSizing`, and the sheet now states the
+   verified count, its split, its worst cell and the scope of the claim ("not
+   proved minimal", plus a caveat naming the candidates verified). A search that
+   ran and found nothing exports `ASSESSMENT REQUIRED` with its reason; only a
+   search never run exports `NOT SIZED`.
+
+The three remaining findings were then fixed too:
+
+3. **`onAreaEditorOpenChange` was an inline arrow**, so the header rebuilt
+   `setAreaMenuOpen`, `closeAreaMenu`, an effect and a document-level
+   click-outside listener on every render — every frame the simulation clock
+   produced. It is a `useCallback` now.
+4. **A measured sizing was discarded on changes it cannot depend on.**
+   `areaScenarioKey` folds in `scenario.selection`, but `sizeArea` replaces the
+   selection with each candidate it tries. The hook has its own
+   `areaSizingKey(scenario, area, requirementMs)`: reference, payload, window,
+   `selection.planeShift` (the probe sweep IS enumerated at the flown shift),
+   area and requirement. Nudging the payload slider now keeps the answer and
+   only re-derives the `+N` beside it — verified in the browser: 36 payloads
+   stays, `+24` becomes `+20`.
+5. **The Earth-rotation table is shared.** `earthRotationGrid(epoch, step,
+   duration)` is built once per batch and handed to every `targetTrack`; the
+   table depends on the window alone. A 12-cell batch at a 1 s step over 72 h
+   held ~50 MB of Float64Array, now 4.1 MB. `atStep` also evaluates directly
+   past the end of a table instead of reading `undefined` and propagating NaN,
+   which `isTargetInFov` would have reported as "never in view".
+
+Eight regression tests in total (2136 unit tests, lint and tsc clean). Not
+committed.
+
+**One e2e gate had to be re-based.** `revisit-advanced` "offers real
+cancellation while the first area grid is running" races the engine: it needs
+the grid to still be running when the click lands, and each optimisation has
+shortened that window (it passed alone and failed inside a batch). It now runs
+391 cells — the largest grid the validator accepts — at a 2 s sampling step,
+about seven times the original workload. A 1 s step is not usable: it also
+multiplies the point sweep, and the area run then sits behind "waiting for the
+final topology" past the timeout. Three consecutive isolated runs and a full
+batch pass.
+
+## 2026-08-31 — Polygon creation goes to the globe first (A–D)
+
+`+ Add target › Polygon` used to create an empty area and open its editor, whose
+first two fields were a pre-filled name and a derived grid spacing, with `Draw
+on globe` one button among three below them — and an error, in red, about the
+zero-vertex state the app had just created. Drawing cost a third click and
+closed the panel it had opened.
+
+- **A** — the menu now calls `handleCreateAreaTargetAndDraw(role)`: slot created,
+  drawing started, no panel. `Esc` on a session that created its own target
+  undoes the creation as well.
+- **B** — the drawing toolbar carries `Import or paste a boundary instead`. It
+  leaves drawing, keeps the empty draft, opens the editor with the coordinate
+  box expanded, and reopens the compact setup panel that drawing had closed.
+  The editor's open state moved to `RevisitApp` (the toolbar lives outside the
+  header); `areaEditorPasteExpanded` threads the expanded box down.
+- **C** — `AreaPanel` is the editor: `Area boundary` first, `Area settings`
+  (name, grid spacing) after it.
+- **D** — with no boundary the panel says what to do instead of what is missing.
+
+Two defects found on the way, both fixed: the Primary and Secondary area editors
+hung off one open flag and rendered **stacked** when both polygons existed (now
+gated by `areaTargetRole`); and on a phone the drawing toolbar shared its row
+with three buttons, wrapping its title over three lines (buttons take their own
+row under `sm`).
+
+Also: the `AREA_NOT_SIZED` control is now labelled `Measure payloads` — the long
+label wrapped onto two lines of capitals.
+
+e2e: `addSecondaryArea` reaches the editor through the toolbar link;
+`pasteAreaBoundary(scope, coords)` replaces the click-summary-then-fill pattern,
+which toggled the disclosure shut when it was already open. Three specs were
+stale against work already in the tree, not against this change, and were
+updated: `revisit-p2c-b` (removing Primary now promotes Secondary),
+`revisit-advanced` (area analysis got ~4× cheaper, so the cancellable run needs
+a 2 s sampling step), `revisit-p7a` (the area guardrail sentence was replaced by
+the measure control). `revisit-p2b-b2` "separates Points and Area results" fails
+identically at HEAD — pre-existing, untouched.
+
+Plan and rationale: `docs/REVISIT_TARGET_CREATION_UX_2026-08-31.md` §5. E and F
+(placement mode for the secondary point) are NOT implemented. 2128 unit tests,
+lint and tsc clean; desktop and mobile e2e green except the pre-existing
+failure above. Not committed.
+
+## 2026-08-31 — Area sizing: one element for the unsized state, and a state it lacked
+
+An area with no sizing showed a badge (`ASSESSMENT REQUIRED`), a sentence saying
+nothing had been measured, and a button offering to measure it — three
+statements of the same absence, the first of which claimed an impasse the tool
+could actually resolve.
+
+Now one element occupies the verdict slot, directly under the question:
+`MEASURE THE PAYLOADS NEEDED · N cells · about X s`. No badge (nothing has been
+measured to put one on), no sentence. While the search runs, the progress line
+is likewise the only content.
+
+That required a state the model did not have. `AREA_NOT_SIZED` covered both
+"never asked" and "searched, found nothing", so a completed failed search would
+have re-offered the button as if nothing had run. `resolveCustomerSizing` now
+returns `AREA_NOT_FOUND` for the second case (`stoppedAtCeiling`,
+`ruledOutByProbe`): it keeps its `Assessment required` badge, states the
+measured absence, offers no button, and `AreaSizingEvidence` below shows how far
+the search got.
+
+`customerVerdict` gained `NOT SIZED`, used by the area result sheet when the
+requirement is not met, so the exported document does not claim an impasse the
+screen does not.
+
+Files: `src/features/revisit/ui/CustomerResultCard.tsx`,
+`src/features/revisit/analysis/customerSizing.ts`,
+`src/features/revisit/analysis/resultSheet.ts`.
+Rationale and browser validation: `docs/REVISIT_AREA_SIZING_PLAN_2026-08-30.md`
+§3 sexies. 2128 tests, lint and tsc clean. Not committed.
 
 ## 2026-08-29 — Compact rail: Workspace launcher moved beside DISPLAY
 

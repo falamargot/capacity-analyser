@@ -1,5 +1,17 @@
 # Implementation Plan
 
+> **2026-08-30 — Dimensionner une zone (instruit, non implémenté).** En mode
+> polygone la carte reste sur `ASSESSMENT REQUIRED` même sur 4 cellules : le
+> garde-fou Programme 5b teste la nature de la cible, pas le coût. Méthode
+> retenue — sonder l'échelle sur la seule cellule la moins couverte, puis
+> vérifier le candidat par une analyse de zone à sortie anticipée : ~27× moins
+> sur 96 cellules, **à condition** que la sortie anticipée soit là. La revue de
+> calcul a aussi sorti deux optimisations moteur sûres et indépendantes — cache
+> de la position ECI de la cible par pas (~2×) et propagation partagée entre
+> cellules (~12× sur une analyse de zone) — à faire AVANT le reste. Plan complet,
+> modèle de coût mesuré, découpage et tests :
+> `docs/REVISIT_AREA_SIZING_PLAN_2026-08-30.md`.
+
 ## Objective
 
 Ship **REVISIT**, a third peer mode beside ENG and COMM, that answers one

@@ -20,6 +20,7 @@
 import { runRevisitScenario, type ConstellationCache } from '../analysis/runScenario';
 import { runPayloadSweep } from '../analysis/payloadSweep';
 import { analyseArea } from '../analysis/areaAnalysis';
+import { sizeArea } from '../analysis/areaSizing';
 import { compareRevisitTargets } from '../analysis/targetComparison';
 import type { RevisitWorkerInput, RevisitWorkerOutput } from './revisitProtocol';
 
@@ -29,7 +30,8 @@ self.addEventListener('message', (event: MessageEvent<RevisitWorkerInput>) => {
     const message = event.data;
     if (!message
         || (message.type !== 'analyse' && message.type !== 'sweep'
-            && message.type !== 'area' && message.type !== 'compare')) {
+            && message.type !== 'area' && message.type !== 'area-sizing'
+            && message.type !== 'compare')) {
         return;
     }
 
@@ -80,6 +82,46 @@ self.addEventListener('message', (event: MessageEvent<RevisitWorkerInput>) => {
                 ok: true,
                 kind: 'area',
                 area,
+            } satisfies RevisitWorkerOutput);
+            return;
+        }
+
+        if (message.type === 'area-sizing') {
+            const { target: _probeIgnored, ...rest } = scenario;
+
+            /*
+             * Throttled like the area run, and for the same reason: a 96-cell
+             * grid verified six times would otherwise post several hundred
+             * messages. The phase and candidate are part of the payload, so a
+             * bar that restarts per candidate still reads as forward motion.
+             */
+            let lastReported = -1;
+            let lastCandidate = -1;
+            const sizing = sizeArea(
+                rest, message.area, message.probeCell, message.requirementMs,
+                {
+                    onProgress: ({ phase, candidate, completed, total }) => {
+                        const stride = Math.max(1, Math.floor(total / 50));
+                        const newCandidate = candidate !== lastCandidate;
+                        if (!newCandidate && completed !== total
+                            && completed - lastReported < stride) return;
+                        lastReported = completed;
+                        lastCandidate = candidate;
+                        self.postMessage({
+                            kind: 'area-sizing-progress',
+                            requestId, timelineRevision, phase, candidate, completed, total,
+                        } satisfies RevisitWorkerOutput);
+                    },
+                },
+            );
+
+            self.postMessage({
+                requestId,
+                timelineRevision,
+                computeMs: performance.now() - startedAt,
+                ok: true,
+                kind: 'area-sizing',
+                sizing,
             } satisfies RevisitWorkerOutput);
             return;
         }

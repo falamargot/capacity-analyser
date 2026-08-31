@@ -29,11 +29,8 @@ export function activeTopologyNeedsDestination(args: {
 
 export function shouldBuildGeoDecisionAnalysis(args: {
   uiMode: UiMode;
-  inspectorOpen: boolean;
-  objectiveSelected: boolean;
 }): boolean {
-  // Decision Support is an opt-in cross-technology workflow. Once it is open
-  // or an objective is selected, never drop a candidate because a transient
-  // null route would be interpreted as "not deliverable".
-  return args.uiMode === 'commercial' || args.inspectorOpen || args.objectiveSelected;
+  // Cross-technology decision evidence belongs to COMM. ENG keeps its own
+  // selected-orbit analysis and must not pay for an unrequested customer layer.
+  return args.uiMode === 'commercial';
 }

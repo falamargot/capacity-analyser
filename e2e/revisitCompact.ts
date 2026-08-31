@@ -184,12 +184,46 @@ export async function openAreaEditor(page: Page): Promise<void> {
     await expect(editor).toBeVisible();
 }
 
-/** Create the unique Area row and leave its definition panel open. */
+/**
+ * Create the unique Area row and leave its definition panel open.
+ *
+ * `Polygon` now goes straight to the globe — manual drawing is the default
+ * path — so the editor is reached the way a user with a coordinate list reaches
+ * it: from the drawing toolbar, which is where import and paste live.
+ */
 export async function addSecondaryArea(page: Page): Promise<void> {
     await openRevisitSetup(page);
     await page.getByRole('button', { name: 'Add secondary target' }).click({ force: true });
     await page.getByRole('menuitem', { name: 'Add Secondary polygon target' }).click({ force: true });
+    await openAreaEditorFromDrawing(page);
     await expect(page.getByRole('dialog', { name: 'Define area target' })).toBeVisible();
+}
+
+
+/**
+ * Paste a boundary into an area editor and apply it.
+ *
+ * The coordinate box is a disclosure whose state depends on how the editor was
+ * reached — open when the user asked for "Import or paste a boundary instead",
+ * collapsed otherwise — so a spec that always clicks the summary toggled it
+ * shut half the time. Ask for the box, not for the click.
+ */
+export async function pasteAreaBoundary(scope: Locator, coordinates: string): Promise<void> {
+    const box = scope.getByLabel('Custom area coordinate list');
+    if (!(await box.isVisible())) {
+        await scope.getByText('Paste coordinate list', { exact: true }).click({ force: true });
+    }
+    await box.fill(coordinates);
+    await scope.getByRole('button', { name: 'Apply list' }).click();
+}
+
+/**
+ * Leave the polygon drawing toolbar for the editor. Drawing ends and the empty
+ * draft is kept, which is what "import or paste instead" means.
+ */
+export async function openAreaEditorFromDrawing(page: Page): Promise<void> {
+    await page.getByRole('button', { name: 'Import or paste', exact: true })
+        .click({ force: true });
 }
 
 /**

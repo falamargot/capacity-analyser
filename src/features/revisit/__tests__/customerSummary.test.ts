@@ -191,7 +191,7 @@ describe('buildAreaResultSheet — the guardrail travels with the document', () 
     it('never proposes a payload count for an area', () => {
         const sheet = buildAreaResultSheet(scenario, areaAnalysis, 2 * HOUR, new Date(EPOCH));
 
-        expect(sheet.recommendation).toContain('Area sizing has not been calculated');
+        expect(sheet.recommendation).toContain('No payload count has been measured');
         expect(sheet.recommendation).not.toMatch(/\+\d/);
         expect(sheet.recommendation).not.toMatch(/\d+ payload-equipped/);
     });

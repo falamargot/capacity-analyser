@@ -40,6 +40,7 @@ import {
 } from '../domain/selectionReconcile';
 import { useOneWebCalibration } from '../hooks/useOneWebCalibration';
 import { useAreaAnalysis } from '../hooks/useAreaAnalysis';
+import { useAreaSizing } from '../hooks/useAreaSizing';
 import {
     areaAnalysisKey, MAX_AREA_VERTICES, recommendedAreaGridSpacing, validateArea, type AreaTarget,
 } from '../domain/areaTarget';
@@ -52,6 +53,7 @@ import {
 } from '../analysis/csvExport';
 import { downloadCsv } from './downloadCsv';
 import { AreaDistributionPanel, AreaResultSummary } from './AreaResultsPanels';
+import { AreaSizingEvidence } from './AreaSizingEvidence';
 import {
     TARGET_PRESETS, defaultScenario, fovPresets, swathKmForFov, type FovPresetName,
 } from '../domain/presets';
@@ -87,7 +89,7 @@ import { buildAreaResultSheet, buildRevisitResultSheet } from '../analysis/resul
 import { downloadRevisitResultSheet } from './downloadResultSheet';
 import { recommendationContextKey } from '../state/recommendationUndo';
 import {
-    canSwapTargetRoles as canSwapTargets, swapTargetRoles,
+    canSwapTargetRoles as canSwapTargets, promoteSecondaryToPrimary, swapTargetRoles,
 } from '../domain/targetRoleSwap';
 
 /** The customer requirement the verdict badge and the value curve compare against. */
@@ -287,6 +289,33 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     }, [areaTargetRole]);
     const [isDrawingArea, setIsDrawingArea] = useState(false);
     const areaBeforeDrawingRef = useRef<AreaTarget | null>(null);
+    /**
+     * Set when a drawing session ALSO created the target it draws into — the
+     * `+ Add target › Polygon` path, which now goes straight to the globe.
+     * Cancelling such a session must undo the creation as well, or Escape
+     * leaves behind an empty polygon target nobody asked for.
+     */
+    const drawingCreatedTargetRef = useRef<RevisitAreaTargetRole | null>(null);
+    /**
+     * The header owns the area editor, but the drawing toolbar has to be able
+     * to open it: import and paste are offered FROM the drawing path rather
+     * than in front of it, so the state that governs it lives here.
+     */
+    const [areaEditorOpen, setAreaEditorOpen] = useState(false);
+    /** True only when the editor was opened to paste or import a boundary. */
+    const [areaEditorPasteExpanded, setAreaEditorPasteExpanded] = useState(false);
+    /*
+     * Stable identity, deliberately. The header derives its own `setAreaMenuOpen`,
+     * `closeAreaMenu`, an effect and a document-level click-outside listener from
+     * this callback; passed inline it changed on every render, so all four were
+     * torn down and rebuilt on every frame the simulation clock produced.
+     */
+    const handleAreaEditorOpenChange = useCallback((open: boolean) => {
+        setAreaEditorOpen(open);
+        // The expanded coordinate box belongs to the request that opened it,
+        // not to the editor.
+        if (!open) setAreaEditorPasteExpanded(false);
+    }, []);
     const [analysisContext, setAnalysisContext] = useState<RevisitAnalysisContext>(
         'POINTS'
     );
@@ -686,23 +715,6 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         setSelectedPointId(REFERENCE_POINT_ID);
     }, []);
 
-    const handleRemoveReferenceTarget = useCallback(() => {
-        setHasReferenceTarget(false);
-        setAreaTargets({ REFERENCE: null, COMPARISON: null });
-        setAreaTargetRole('REFERENCE');
-        setIsDrawingArea(false);
-        setComparisonPoints([]);
-        setPendingComparisonPointIds([]);
-        setSecondaryTargetOrder([]);
-        setAnalysisContext('POINTS');
-        setSelectedPointId(REFERENCE_POINT_ID);
-        setPreviousConfiguration(null);
-        setTargetRequirementsMs({
-            REFERENCE: DEFAULT_REQUIREMENT_MS,
-            COMPARISON: DEFAULT_REQUIREMENT_MS,
-        });
-    }, []);
-
     const handleSecondaryPointTargetChange = useCallback((id: string, name: string) => {
         const target = TARGET_PRESETS.find((candidate) => candidate.name === name);
         if (!target) return;
@@ -855,6 +867,13 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     const referenceAreaRun = useAreaAnalysis(scenario, referenceArea);
     const comparisonAreaRun = useAreaAnalysis(scenario, comparisonArea);
     const areaRun = areaTargetRole === 'REFERENCE' ? referenceAreaRun : comparisonAreaRun;
+    /*
+     * Sizing is asked for, never inferred: this hook holds a result until the
+     * scenario, the area or the requirement moves, and then discards it rather
+     * than recomputing. The area on screen is `customArea` — the one the active
+     * role is analysing.
+     */
+    const areaSizingRun = useAreaSizing(scenario, customArea, requirementMs);
     const displayedReferenceAreaAnalysis = useMemo(() => {
         if (
             !referenceAreaRun.analysis
@@ -957,11 +976,33 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         currentPayloadCount,
         selection: scenario.selection,
         isConfigurationSettling,
+        areaSizing: {
+            isRunning: areaSizingRun.isRunning,
+            phase: areaSizingRun.status?.phase,
+            candidate: areaSizingRun.status?.candidate,
+            fraction: areaSizingRun.status?.fraction,
+            result: areaSizingRun.result,
+        },
     }), [
         customerMaxGapMs, requirementMs, analysisContext, displayedAreaAnalysis, inspectedPoint,
         businessComparison.targetPayloadCount, isSweeping, sweep, currentPayloadCount, sweepError,
         isConfigurationSettling, scenario.selection,
+        areaSizingRun.isRunning, areaSizingRun.status, areaSizingRun.result,
     ]);
+
+    /**
+     * Start the area sizing search.
+     *
+     * The probe cell is the least-covered cell of the analysis already on
+     * screen — the cell most likely to bind, and free: it has been measured.
+     * Without an analysis there is nothing to probe from, which is also why the
+     * control that calls this is only offered once the area has a result.
+     */
+    const handleSizeArea = useCallback(() => {
+        const probeCell = displayedAreaAnalysis?.worstCell?.target;
+        if (!customArea || !probeCell) return;
+        areaSizingRun.run(customArea, probeCell, requirementMs);
+    }, [customArea, displayedAreaAnalysis, requirementMs, areaSizingRun]);
 
     const undoContextKey = useMemo(() => recommendationContextKey(
         scenario, requirementMs, analysisContext, selectedPointId,
@@ -1380,6 +1421,79 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         setCompactPanel('none');
     }, [areaRun, areaTargetRole, customArea, scenario.reference, scenario.payload, setCustomArea]);
 
+    /**
+     * `+ Add target › Polygon` — create the slot AND go straight to the globe.
+     *
+     * The old path created the slot and opened the editor, whose first two
+     * fields are a pre-filled name and a derived grid spacing, with `Draw on
+     * globe` as one button among three below them. Drawing — the only thing
+     * that could produce the boundary the state needs — cost a third click and
+     * closed the panel it had just opened. Manual definition is the default
+     * path; import and paste are offered from the drawing toolbar instead.
+     *
+     * The role is passed explicitly rather than read from `areaTargetRole`:
+     * this runs in the same tick as the state that sets it.
+     */
+    const handleCreateAreaTargetAndDraw = useCallback((
+        role: RevisitAreaTargetRole = 'COMPARISON',
+    ) => {
+        if (role === 'COMPARISON' && !hasReferenceTarget) return;
+        if (role === 'COMPARISON' && secondaryTargetOrder.length >= MAX_SECONDARY_TARGETS) return;
+        if (role === 'REFERENCE') setHasReferenceTarget(true);
+        if (role === 'COMPARISON') {
+            setTargetRequirementsMs((current) => ({
+                ...current,
+                COMPARISON: current.REFERENCE,
+            }));
+        }
+        (role === 'REFERENCE' ? referenceAreaRun : comparisonAreaRun).clear();
+        setAreaTargetRole(role);
+        // No previous area to restore: cancelling removes the target outright.
+        areaBeforeDrawingRef.current = null;
+        drawingCreatedTargetRef.current = role;
+        setAreaTargets((current) => ({
+            ...current,
+            [role]: {
+                kind: 'AREA',
+                id: crypto.randomUUID(),
+                name: current[role]?.name
+                    ?? (role === 'REFERENCE' ? 'Primary area' : 'Secondary area'),
+                boundary: [],
+                gridSpacingDeg: current[role]?.gridSpacingDeg
+                    ?? recommendedAreaGridSpacing(scenario.reference, scenario.payload),
+            },
+        }));
+        setSecondaryTargetOrder((current) => role === 'REFERENCE'
+            ? current.filter((id) => id !== AREA_TARGET_ID)
+            : current.includes(AREA_TARGET_ID) ? current : [...current, AREA_TARGET_ID]);
+        setAnalysisContext('AREA');
+        setIsDrawingArea(true);
+        setAreaEditorOpen(false);
+        // Drawing happens on the globe: on a compact viewport nothing may stand
+        // between the user and it.
+        setCompactPanel('none');
+    }, [
+        referenceAreaRun, comparisonAreaRun, hasReferenceTarget,
+        secondaryTargetOrder.length, scenario.reference, scenario.payload,
+    ]);
+
+    /**
+     * "Import or paste" from the drawing toolbar: the same boundary by another
+     * route. Drawing ends here — a pasted list replaces the boundary wholesale,
+     * so staying in a mode that collects clicks would be a trap — and the empty
+     * draft is KEPT rather than restored, because the user is not cancelling.
+     * On a compact viewport the editor lives in the header, which drawing had
+     * closed, so it is reopened with it.
+     */
+    const handleOpenAreaBoundarySource = useCallback(() => {
+        areaBeforeDrawingRef.current = null;
+        drawingCreatedTargetRef.current = null;
+        setIsDrawingArea(false);
+        setCompactPanel('setup');
+        setAreaEditorPasteExpanded(true);
+        setAreaEditorOpen(true);
+    }, []);
+
     const handleDrawAreaVertex = useCallback((latDeg: number, lonDeg: number) => {
         setCustomArea((current) => {
             if (!current || current.boundary.length >= MAX_AREA_VERTICES) return current;
@@ -1405,14 +1519,23 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     const handleFinishAreaDrawing = useCallback(() => {
         if (!areaDrawingCanFinish) return;
         areaBeforeDrawingRef.current = null;
+        drawingCreatedTargetRef.current = null;
         setIsDrawingArea(false);
     }, [areaDrawingCanFinish]);
 
     const handleCancelAreaDrawing = useCallback(() => {
         const previous = areaBeforeDrawingRef.current;
+        const created = drawingCreatedTargetRef.current;
         areaBeforeDrawingRef.current = null;
+        drawingCreatedTargetRef.current = null;
         setCustomArea(previous);
         setIsDrawingArea(false);
+        /*
+         * Escape on a session that created its own target undoes the creation
+         * too. Otherwise the menu's Polygon entry left an empty polygon row
+         * behind on a gesture whose whole meaning is "never mind".
+         */
+        if (!previous && created === 'REFERENCE') setHasReferenceTarget(false);
         if (!previous) {
             if (areaTargetRole === 'COMPARISON') {
                 setSecondaryTargetOrder((current) => current.filter((id) => id !== AREA_TARGET_ID));
@@ -1522,6 +1645,71 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
      * consumers never observe a transient empty Primary or duplicate target.
      * The requirements move with their physical targets.
      */
+    /**
+     * Remove the Primary target — and promote the Secondary if there is one.
+     *
+     * Clearing both was the old behaviour and it destroyed work nobody asked to
+     * destroy: the Secondary was defined deliberately, and rebuilding it costs
+     * exactly what defining it cost. What is left is the analysis the presenter
+     * still has, with one target.
+     *
+     * The requirement follows its target: the promoted Secondary keeps the
+     * threshold it was judged against, or the answer on screen would silently
+     * change question.
+     */
+    const handleRemoveReferenceTarget = useCallback(() => {
+        const promotion = promoteSecondaryToPrimary({
+            secondaryArea: comparisonArea,
+            comparisonPoints,
+            secondaryTargetOrder,
+        });
+
+        setIsDrawingArea(false);
+        setPendingComparisonPointIds([]);
+        setComparisonPoints([]);
+        setSecondaryTargetOrder([]);
+        setSelectedPointId(REFERENCE_POINT_ID);
+        setPreviousConfiguration(null);
+        // Both area runs belong to the state being replaced; keeping either
+        // would show one polygon's coverage under another polygon's name.
+        referenceAreaRun.clear();
+        comparisonAreaRun.clear();
+        lastAutoReferenceAreaRunKeyRef.current = null;
+        lastAutoComparisonAreaRunKeyRef.current = null;
+
+        if (!promotion) {
+            setHasReferenceTarget(false);
+            setAreaTargets({ REFERENCE: null, COMPARISON: null });
+            setAreaTargetRole('REFERENCE');
+            setAnalysisContext('POINTS');
+            setTargetRequirementsMs({
+                REFERENCE: DEFAULT_REQUIREMENT_MS,
+                COMPARISON: DEFAULT_REQUIREMENT_MS,
+            });
+            return;
+        }
+
+        setHasReferenceTarget(true);
+        if (promotion.primaryPoint) {
+            const promoted = promotion.primaryPoint;
+            setScenario((current) => ({ ...current, target: promoted }));
+        }
+        setAreaTargets({ REFERENCE: promotion.primaryArea, COMPARISON: null });
+        setAreaTargetRole(promotion.areaTargetRole);
+        setAnalysisContext(promotion.analysisContext);
+        // The promoted target brings its own requirement to the Primary slot.
+        setTargetRequirementsMs((current) => ({
+            REFERENCE: current.COMPARISON,
+            COMPARISON: DEFAULT_REQUIREMENT_MS,
+        }));
+        // A promotion is a new sizing basis; the shared topology must not be
+        // reconciled behind the user's back.
+        setSelectionSource('manual');
+    }, [
+        comparisonArea, comparisonPoints, secondaryTargetOrder,
+        referenceAreaRun, comparisonAreaRun,
+    ]);
+
     const handleSwapTargetRoles = useCallback(() => {
         if (!canSwapTargetRoles || !secondaryTargetId) return;
         const swapped = swapTargetRoles({
@@ -1843,7 +2031,15 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
             ? displayedAreaAnalysis
                 ? buildAreaResultSheet(
                     scenario, displayedAreaAnalysis, requirementMs, new Date(),
-                    { opportunity, assumedSwathKm, referenceMode },
+                    {
+                        opportunity, assumedSwathKm, referenceMode,
+                        // The measured answer the card is showing, so the
+                        // document cannot deny a search the screen ran. The
+                        // hook discards its result the moment the area, the
+                        // scenario or the requirement moves, so what is passed
+                        // here always belongs to this analysis.
+                        areaSizing: areaSizingRun.result,
+                    },
                 )
                 : null
             : inspectedAnalysis
@@ -1886,7 +2082,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         inspectedScenario, scenario, requirementMs, targetComparison.rows,
         comparisonRowRequirementsMs,
         opportunity, assumedSwathKm, businessComparison.targetPayloadCount, referenceMode,
-        sweepError, isSweeping, sweep, customerSizing,
+        sweepError, isSweeping, sweep, customerSizing, areaSizingRun.result,
     ]);
 
     const toggle = useCallback((key: keyof DisplayOptions) => {
@@ -1976,6 +2172,10 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                             onAddReferencePoint={handleCreateReferencePoint}
                             onRemoveReferenceTarget={handleRemoveReferenceTarget}
                             onAddAreaTarget={handleCreateAreaTarget}
+                            onAddAreaTargetAndDraw={handleCreateAreaTargetAndDraw}
+                            areaEditorOpen={areaEditorOpen}
+                            areaEditorPasteExpanded={areaEditorPasteExpanded}
+                            onAreaEditorOpenChange={handleAreaEditorOpenChange}
                             areaTargetRole={areaTargetRole}
                             referenceArea={referenceArea}
                             comparisonArea={comparisonArea}
@@ -2056,7 +2256,15 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                     aria-label="Polygon drawing controls"
                     className={`pointer-events-auto absolute left-1/2 top-2 z-[85] flex w-[min(38rem,calc(100vw-1rem))] -translate-x-1/2 flex-wrap items-center gap-2 border-sky-400/50 bg-slate-950/95 px-3 py-2 shadow-2xl ${REVISIT_PANEL}`}
                 >
-                    <div className="min-w-0 flex-1">
+                    {/* `basis-full` under `sm`, `basis-0` above it. On a phone
+                        this column takes its own row: sharing one with three
+                        buttons squeezed it to a third of the width and wrapped
+                        the title over three lines. On a desktop it must instead
+                        start at zero and GROW, or its natural text width pushes
+                        the controls onto a second row — and every extra row is
+                        globe this bar covers while the user is trying to click
+                        it. */}
+                    <div className="min-w-0 basis-full sm:basis-0 sm:flex-1">
                         <div className="flex items-center gap-2">
                             <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-sky-400/20 px-1.5 text-[11px] font-black text-sky-200">
                                 {customArea?.boundary.length ?? 0}
@@ -2070,6 +2278,25 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                             <span className="hidden sm:inline"> · Enter finish · Esc cancel</span>
                         </p>
                     </div>
+                    {/*
+                      * The alternatives live HERE, on the manual path, and not
+                      * in front of it: someone holding a customer AOI finds
+                      * them in one place, everyone else draws. It shares the
+                      * row with the other controls deliberately — on its own
+                      * line the bar grew to 128 px and started swallowing
+                      * clicks aimed at the globe underneath it, which is the
+                      * one thing a drawing toolbar must never do. Kept
+                      * typographically secondary: an escape hatch, not a peer
+                      * of Finish.
+                      */}
+                    <button
+                        type="button"
+                        onClick={handleOpenAreaBoundarySource}
+                        title="Define the boundary from a GeoJSON file or a coordinate list instead of drawing it"
+                        className="revisit-area-boundary-source min-h-10 rounded px-2 text-[11px] font-bold text-sky-300 underline decoration-dotted underline-offset-2 hover:text-sky-200"
+                    >
+                        Import or paste
+                    </button>
                     <button
                         type="button"
                         onClick={handleUndoAreaVertex}
@@ -2245,6 +2472,11 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                                     onApply={handleApplyRecommendation}
                                     onUndo={canUndoRecommendation ? handleUndoRecommendation : undefined}
                                     onRetrySizing={activeSizingError ? retrySweep : undefined}
+                                    onSizeArea={analysisContext === 'AREA' && customArea
+                                        && displayedAreaAnalysis?.worstCell
+                                        ? handleSizeArea
+                                        : undefined}
+                                    areaCellCount={displayedAreaAnalysis?.cells.length ?? null}
                                     supportingMetrics={analysisContext === 'AREA' ? (
                                         <AreaResultSummary
                                             analysis={displayedAreaAnalysis}
@@ -2275,11 +2507,20 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                                       * so it goes under the same disclosure.
                                       */
                                     recommendedConfigurationDetail={analysisContext === 'AREA' ? (
-                                        <AreaDistributionPanel
-                                            analysis={displayedAreaAnalysis}
-                                            requirementMs={requirementMs}
-                                            embedded
-                                        />
+                                        <>
+                                            <AreaDistributionPanel
+                                                analysis={displayedAreaAnalysis}
+                                                requirementMs={requirementMs}
+                                                embedded
+                                            />
+                                            {/* The search's own trace, under the
+                                                cell distribution: what the grid
+                                                looks like, then how the number
+                                                over it was found. */}
+                                            {areaSizingRun.result && (
+                                                <AreaSizingEvidence sizing={areaSizingRun.result} />
+                                            )}
+                                        </>
                                     ) : analysisContext === 'POINTS' && inspectedPoint ? (
                                         <ValueCurve
                                             key={resetRevision}

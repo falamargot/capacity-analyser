@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
-import { addSecondaryArea, seedReferenceTarget } from './revisitCompact';
+import {
+  addSecondaryArea, pasteAreaBoundary, seedReferenceTarget,
+} from './revisitCompact';
 
 const openAdvanced = async (page: import('@playwright/test').Page) => {
   await page.goto('/?mode=revisit');
@@ -99,12 +101,28 @@ test.describe('REVISIT Advanced stabilization', () => {
     await expect(page.getByRole('region', { name: 'REVISIT analysis' })).toBeVisible({ timeout: 30_000 });
     // A secondary target can only be added once a primary target exists.
     await seedReferenceTarget(page);
+    /*
+     * The run has to still BE running when the click lands, and this test kept
+     * losing that race: area analysis has become several times cheaper (shared
+     * target track, cells batched over one propagation pass, one shared
+     * Earth-rotation grid), so the grid it used to interrupt now finishes
+     * first. Chasing the engine with a slightly bigger grid each time is how a
+     * gate becomes flaky — it passed alone and failed in a batch — so the
+     * workload is set near the app's own ceiling: a 2 s sampling step over the
+     * largest grid the area validator accepts, about seven times the original
+     * case. A 1 s step is NOT usable here: it also multiplies the point sweep,
+     * which holds the area run behind "waiting for the final topology" past the
+     * timeout, so the test would fail for the opposite reason.
+     */
+    await page.getByRole('button', { name: 'Analysis window settings' }).click();
+    await page.getByRole('dialog', { name: 'Analysis window' }).getByLabel('Step s').fill('2');
+    await page.getByRole('button', { name: 'Analysis window settings' }).click();
     await addSecondaryArea(page);
     const areaPanel = page.getByRole('region', { name: 'Area coverage' });
-    await areaPanel.getByLabel('Custom area grid spacing').fill('0.5');
-    await areaPanel.getByText('Paste coordinate list', { exact: true }).click();
-    await areaPanel.getByLabel('Custom area coordinate list').fill('68, 20\n68, 30\n75, 30\n75, 20');
-    await areaPanel.getByRole('button', { name: 'Apply list' }).click();
+    // 0.42° is 408 cells and the validator refuses it; 0.43° is 391, just
+    // under the 400-cell cap.
+    await areaPanel.getByLabel('Custom area grid spacing').fill('0.43');
+    await pasteAreaBoundary(areaPanel, '68, 20\n68, 30\n75, 30\n75, 20');
     const cancel = page.getByRole('button', { name: 'Cancel', exact: true });
     await expect(cancel).toBeVisible({ timeout: 10_000 });
     await cancel.click();

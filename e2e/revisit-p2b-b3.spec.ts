@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
-import { addSecondaryArea, openRevisitSurfaces,
-  seedReferenceTarget,
+import {
+  addSecondaryArea, openRevisitSurfaces, pasteAreaBoundary, seedReferenceTarget,
 } from './revisitCompact';
 
 test.beforeEach(async ({ page }) => {
@@ -23,9 +23,7 @@ test.describe('REVISIT P2b-B3 scenario workspace', () => {
     await addSecondaryArea(page);
     const areaPanel = page.getByRole('region', { name: 'Area coverage' });
     await areaPanel.getByLabel('Custom area name').fill('North Sea');
-    await areaPanel.getByText('Paste coordinate list', { exact: true }).click();
-    await areaPanel.getByLabel('Custom area coordinate list').fill('51, -2\n51, 9\n61, 9\n61, -2');
-    await areaPanel.getByRole('button', { name: 'Apply list' }).click();
+    await pasteAreaBoundary(areaPanel, '51, -2\n51, 9\n61, 9\n61, -2');
     await expect(page.getByLabel('Active result context')).toContainText('North Sea', { timeout: 60_000 });
 
     const launcher = page.getByRole('button', { name: /^(scenario )?workspace$/i });

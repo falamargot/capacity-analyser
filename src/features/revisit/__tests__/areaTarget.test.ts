@@ -269,7 +269,13 @@ describe('analyseArea', () => {
         expect(result.meanCellMaxGapMs!).toBeLessThanOrEqual(result.worstCell!.maxGapMs!);
     });
 
-    it('reports progress as cells complete', () => {
+    /*
+     * Progress is reported per BATCH of cells, not per cell: cells sharing one
+     * propagation pass finish together. What the presenter's bar needs is a
+     * monotone count that ends exactly on the cell total — which is what is
+     * asserted, rather than one call per cell.
+     */
+    it('reports progress monotonically, ending on the cell total', () => {
         const seen: number[] = [];
         const result = analyseArea(scenarioBase, area, {
             onProgress: (done, total) => {
@@ -277,7 +283,9 @@ describe('analyseArea', () => {
                 expect(total).toBe(generateGrid(area).length);
             },
         });
-        expect(seen.length).toBe(result.cells.length);
+        expect(seen.length).toBeGreaterThan(0);
+        expect(seen).toEqual([...seen].sort((a, b) => a - b));
+        expect(new Set(seen).size).toBe(seen.length);
         expect(seen[seen.length - 1]).toBe(result.cells.length);
     });
 

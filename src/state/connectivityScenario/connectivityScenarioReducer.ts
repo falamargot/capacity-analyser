@@ -84,15 +84,6 @@ export function connectivityScenarioReducer(
     case 'SET_GEO_SERVICE_TOPOLOGY':
       return { ...state, geoServiceTopology: action.geoServiceTopology };
 
-    case 'SET_COMMERCIAL_OBJECTIVE':
-      return { ...state, commercialObjective: action.objective };
-
-    case 'SET_COMMERCIAL_TRAFFIC_DIRECTION':
-      return { ...state, commercialTrafficDirection: action.direction };
-
-    case 'SET_COMMERCIAL_PRIMARY_TECHNOLOGY':
-      return { ...state, commercialPrimaryTechnology: action.technology };
-
     case 'SET_ENDPOINT_ROLE': {
       const current = endpointFor(state, action.endpoint);
       if (!current) return state;

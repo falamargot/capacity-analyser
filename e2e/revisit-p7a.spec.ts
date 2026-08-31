@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test';
 import {
-  addSecondaryArea, openAreaEditor, openRevisitAnalysis, openRevisitSetup,
-  openRevisitSurfaces, seedReferenceTarget,
+  addSecondaryArea, openAreaEditor, openRevisitAnalysis, openRevisitSetup, openRevisitSurfaces, pasteAreaBoundary, seedReferenceTarget,
 } from './revisitCompact';
 
 /**
@@ -116,17 +115,20 @@ test.describe('REVISIT P7A commercial result framing', () => {
     await openAreaEditor(page);
     const area = page.getByRole('region', { name: 'Area coverage' });
     await area.getByLabel('Custom area name').fill('Customer AOI');
-    await area.getByText('Paste coordinate list', { exact: true }).click();
-    await area.getByLabel('Custom area coordinate list').fill('15, 35\n15, 45\n25, 45\n25, 35');
-    await area.getByRole('button', { name: 'Apply list' }).click();
+    await pasteAreaBoundary(area, '15, 35\n15, 45\n25, 45\n25, 35');
     await openRevisitAnalysis(page);
     await expect(page.getByRole('region', { name: 'Area result summary' }))
       .toContainText('Least-covered cell', { timeout: 60_000 });
 
-    // Analysed: the worst cell drives the answer, and still no payload count is
-    // proposed — there is no area-wide sizing sweep (Programme 5b guardrail).
+    /*
+     * Analysed: the worst cell drives the answer, and no payload count is
+     * proposed until one has been MEASURED. The guardrail is unchanged — a
+     * figure nobody measured must never appear — but the card now offers the
+     * measurement in the verdict's place instead of stating an impasse.
+     */
     await expect(card).toContainText('Customer AOI');
-    await expect(card).toContainText('Area sizing has not been calculated');
+    await expect(card.getByRole('button', { name: /Measure payloads/ })).toBeVisible();
+    await expect(card).not.toContainText('Verified on every cell');
     await expect(card.getByRole('button', { name: 'Apply recommended configuration' })).toHaveCount(0);
   });
 });

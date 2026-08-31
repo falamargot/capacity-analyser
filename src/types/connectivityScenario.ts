@@ -5,25 +5,7 @@ export interface ConnectivityScenario {
   servicePattern: ScenarioServicePattern;
   trafficIntent?: ScenarioTrafficIntent;
   geoServiceTopology?: GeoServiceTopology;
-  /** Optional customer priority. Absent keeps the historical recommendation path. */
-  commercialObjective?: ScenarioCommercialObjective;
-  /** Throughput direction used by objective-aware scoring. */
-  commercialTrafficDirection?: ScenarioCommercialTrafficDirection;
-  /** Explicit primary link for BACKUP. Never inferred. */
-  commercialPrimaryTechnology?: ScenarioCommercialPrimaryTechnology;
 }
-
-export type ScenarioCommercialObjective =
-  | 'REALTIME'
-  | 'BROADCAST'
-  | 'MOBILITY'
-  | 'BACKUP'
-  | 'BULK'
-  | 'RESILIENCE';
-
-export type ScenarioCommercialTrafficDirection = 'DOWNLINK' | 'UPLINK' | 'BIDIRECTIONAL';
-
-export type ScenarioCommercialPrimaryTechnology = 'GEO' | 'LEO' | 'TERRESTRIAL' | 'OTHER';
 
 export interface ScenarioEndpoint {
   id: string;

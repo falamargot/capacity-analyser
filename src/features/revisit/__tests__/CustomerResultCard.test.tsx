@@ -282,17 +282,150 @@ describe('CustomerResultCard', () => {
     });
 
     /* Programme 5b guardrail, restated as a rendering contract. */
-    it('never proposes a payload count for an area', async () => {
+    /*
+     * The control states its cost before it is paid. A button that takes ten
+     * seconds and says nothing gets clicked twice, and the second click
+     * restarts the search it is waiting for.
+     */
+    it('says what a sizing search will cost before starting it', async () => {
+        await renderCard({
+            currentMaxGapMs: 3 * HOUR,
+            requirementMs: 2 * HOUR,
+            sizing: { kind: 'AREA_NOT_SIZED' },
+            onSizeArea: vi.fn(),
+            areaCellCount: 96,
+        });
+
+        const button = container.querySelector('.revisit-size-area');
+        // The label names the ANSWER, not the machinery that produces it.
+        expect(button?.textContent).toContain('Measure payloads');
+        expect(button?.textContent).toContain('96 cells');
+        expect(button?.textContent).toMatch(/about \d+ s/);
+    });
+
+    /*
+     * One element, not three. An unsized area used to show a verdict pill, a
+     * sentence saying nothing had been measured, and a button offering to
+     * measure it — the pill and the sentence both restating the absence the
+     * button already implies. Only the offer survives.
+     */
+    it('offers the measurement and nothing else until an area has been sized', async () => {
         await renderCard({
             question: 'Can every analysed cell in Customer AOI be observed at least every 2 h, with an assumed 700 km IR swath?',
             currentMetricLabel: 'Maximum revisit gap · least-covered cell',
             sizing: { kind: 'AREA_NOT_SIZED' },
+            onSizeArea: vi.fn(),
         });
 
         expect(container.textContent).toContain('Maximum revisit gap · least-covered cell');
-        expect(container.textContent).toContain('Area sizing has not been calculated');
+        expect(container.querySelector('.revisit-size-area')).not.toBeNull();
+        // No verdict: nothing has been measured to put one on.
+        expect(container.querySelector('.revisit-customer-status')).toBeNull();
+        expect(container.textContent).not.toContain('Assessment required');
+        expect(container.textContent).not.toContain('has been measured for this area yet');
         expect(container.textContent).not.toMatch(/\+\d+/);
         expect(container.querySelector('.revisit-apply-recommended')).toBeNull();
+    });
+
+    /*
+     * The empty slot is only justified while a control fills it. An area whose
+     * cells produced no measured gap has no cell to probe from, so RevisitApp
+     * withholds `onSizeArea` — and the block then has to say something rather
+     * than print the question and stop.
+     */
+    it('keeps a verdict when the measurement cannot be offered', async () => {
+        await renderCard({
+            currentMetricLabel: 'Maximum revisit gap · least-covered cell',
+            sizing: { kind: 'AREA_NOT_SIZED' },
+            onSizeArea: undefined,
+        });
+
+        expect(container.querySelector('.revisit-size-area')).toBeNull();
+        expect(container.querySelector('.revisit-customer-status')?.textContent)
+            .toContain('Assessment required');
+        expect(container.textContent).toContain('no measured cell to start from');
+    });
+
+    /*
+     * A search that RAN and found nothing is the opposite case: it is a
+     * measured absence, it keeps its verdict, and it must not re-offer the
+     * button as though nothing had happened.
+     */
+    it('states a failed search as a measured absence, without re-offering it', async () => {
+        await renderCard({
+            currentMaxGapMs: 3 * HOUR,
+            requirementMs: 2 * HOUR,
+            sizing: { kind: 'AREA_NOT_FOUND', stoppedAtCeiling: false, ruledOutByProbe: true },
+            onSizeArea: vi.fn(),
+        });
+
+        expect(container.textContent).toContain('Assessment required');
+        expect(container.textContent).toContain('least-covered cell of this area');
+        expect(container.querySelector('.revisit-size-area')).toBeNull();
+    });
+
+    /*
+     * The claim an area sizing may make, and the one it may not. Every cell was
+     * measured at this configuration — that is what "verified" means here — but
+     * the probe ranks candidates on ONE cell, so a cheaper rung it ranked lower
+     * may also pass. The card must say both, in the same breath as the number.
+     */
+    it('states the scope of a verified area sizing beside the number', async () => {
+        await renderCard({
+            currentMetricLabel: 'Maximum revisit gap · least-covered cell',
+            currentMaxGapMs: 3 * HOUR,
+            requirementMs: 2 * HOUR,
+            sizing: {
+                kind: 'AREA_VERIFIED',
+                payloadCount: 36,
+                selectedPlanes: 6,
+                payloadsPerPlane: 6,
+                worstCellGapMs: 1.8 * HOUR,
+                candidatesTried: 2,
+                additionalPayloads: 24,
+            },
+        });
+
+        expect(container.textContent).toContain('36');
+        expect(container.textContent).toContain('+24');
+        expect(container.textContent).toContain('6 planes × 6 per plane');
+        expect(container.textContent).toContain('Verified on every cell of this area');
+        expect(container.textContent).toContain('Not proved minimal');
+        expect(container.textContent).toContain('More payloads required');
+    });
+
+    /* A re-split costs nothing, so it must not say payloads are required. */
+    it('calls a same-budget area answer a reconfiguration', async () => {
+        await renderCard({
+            currentMaxGapMs: 3 * HOUR,
+            requirementMs: 2 * HOUR,
+            sizing: {
+                kind: 'AREA_VERIFIED',
+                payloadCount: 12,
+                selectedPlanes: 2,
+                payloadsPerPlane: 6,
+                worstCellGapMs: 1.9 * HOUR,
+                candidatesTried: 1,
+                additionalPayloads: 0,
+            },
+        });
+
+        expect(container.textContent).toContain('Reconfiguration required');
+        expect(container.textContent).not.toMatch(/\+\d+/);
+    });
+
+    it('reports the search phase while it runs', async () => {
+        await renderCard({
+            currentMaxGapMs: 3 * HOUR,
+            requirementMs: 2 * HOUR,
+            sizing: { kind: 'AREA_SIZING', phase: 'verify', candidate: 2, fraction: 0.4 },
+        });
+
+        // The progress line is the whole message; a `Sizing…` pill above it
+        // said the same thing in fewer words.
+        expect(container.querySelector('.revisit-customer-status')).toBeNull();
+        expect(container.textContent).toContain('Verifying candidate 2');
+        expect(container.textContent).toContain('40%');
     });
 
     it('explains a missing current figure instead of leaving a dash', async () => {

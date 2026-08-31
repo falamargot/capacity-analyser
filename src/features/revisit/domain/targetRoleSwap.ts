@@ -105,3 +105,57 @@ export function swapTargetRoles(input: TargetRoleSwapInput): TargetRoleSwapResul
 
     return null;
 }
+
+/**
+ * What is left after the Primary target is removed and the Secondary takes its
+ * place.
+ *
+ * ── WHY PROMOTION, NOT DELETION ─────────────────────────────────────────────
+ * Removing the Primary used to clear the Secondary with it: two targets in,
+ * nothing out. That is never what someone means by removing one of them — the
+ * second was defined deliberately, often the more interesting of the pair, and
+ * rebuilding it costs the same clicks as defining it did. The Secondary is
+ * promoted instead, and the analysis carries on with one target.
+ *
+ * Returns `null` when there is nothing to promote, which is the caller's signal
+ * to fall back to clearing everything.
+ */
+export interface TargetPromotionResult {
+    primaryPoint: PointTarget | null;
+    primaryArea: AreaTarget | null;
+    analysisContext: RevisitAnalysisContext;
+    areaTargetRole: RevisitAreaTargetRole;
+}
+
+export function promoteSecondaryToPrimary(input: {
+    secondaryArea: AreaTarget | null;
+    comparisonPoints: RevisitComparisonPoint[];
+    secondaryTargetOrder: string[];
+}): TargetPromotionResult | null {
+    const secondaryId = input.secondaryTargetOrder[0];
+    if (!secondaryId) return null;
+
+    if (secondaryId === AREA_TARGET_ID) {
+        // A polygon with fewer than three vertices is a drawing in progress, not
+        // a target: promoting it would install something that cannot be analysed.
+        if (!input.secondaryArea || input.secondaryArea.boundary.length < 3) return null;
+        return {
+            // The point slot keeps whatever it held: `RevisitScenario.target` is
+            // never absent, and in AREA context nothing reads it. Clearing it
+            // would need a fabricated coordinate.
+            primaryPoint: null,
+            primaryArea: input.secondaryArea,
+            analysisContext: 'AREA',
+            areaTargetRole: 'REFERENCE',
+        };
+    }
+
+    const promoted = input.comparisonPoints.find((point) => point.id === secondaryId);
+    if (!promoted) return null;
+    return {
+        primaryPoint: promoted.target,
+        primaryArea: null,
+        analysisContext: 'POINTS',
+        areaTargetRole: 'REFERENCE',
+    };
+}

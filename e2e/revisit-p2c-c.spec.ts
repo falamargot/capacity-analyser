@@ -1,8 +1,6 @@
 import { expect, test } from '@playwright/test';
 import {
-  addSecondaryArea, addSecondaryPoint, openRevisitAnalysis, openRevisitSetup,
-  openRevisitSurfaces,
-  seedReferenceTarget,
+  addSecondaryArea, addSecondaryPoint, openAreaEditorFromDrawing, openRevisitAnalysis, openRevisitSetup, openRevisitSurfaces, pasteAreaBoundary, seedReferenceTarget,
 } from './revisitCompact';
 
 test.beforeEach(async ({ page }) => {
@@ -27,9 +25,7 @@ async function configureMixedTargets(page: import('@playwright/test').Page) {
   await addSecondaryArea(page);
   const area = page.getByRole('region', { name: 'Area coverage' });
   await area.getByLabel('Custom area name').fill('Customer AOI');
-  await area.getByText('Paste coordinate list', { exact: true }).click();
-  await area.getByLabel('Custom area coordinate list').fill('15, 35\n15, 45\n25, 45\n25, 35');
-  await area.getByRole('button', { name: 'Apply list' }).click();
+  await pasteAreaBoundary(area, '15, 35\n15, 45\n25, 45\n25, 35');
   // The area summary is in the analysis sheet, not in the editor that defined
   // the area — and on a phone the two cannot be open at once (Programme 7B).
   await openRevisitAnalysis(page);
@@ -45,20 +41,16 @@ test.describe('REVISIT P2c-C mixed target comparison', () => {
     await targetSet.getByRole('button', { name: 'Remove primary target' }).click();
     await targetSet.getByRole('button', { name: 'Add primary target' }).click();
     await targetSet.getByRole('menuitem', { name: 'Add Primary polygon target' }).click();
+    // Polygon goes to the globe first; the editor is reached from the toolbar.
+    await openAreaEditorFromDrawing(page);
 
     let editor = page.getByRole('region', { name: 'Area coverage' });
-    await editor.getByText('Paste coordinate list', { exact: true }).click();
-    await editor.getByLabel('Custom area coordinate list')
-      .fill('18, 30\n18, 36\n22, 36\n22, 30');
-    await editor.getByRole('button', { name: 'Apply list' }).click();
+    await pasteAreaBoundary(editor, '18, 30\n18, 36\n22, 36\n22, 30');
     await targetSet.getByRole('button', { name: /primary polygon/i }).first().click();
 
     await addSecondaryArea(page);
     editor = page.getByRole('dialog', { name: 'Define area target' });
-    await editor.getByText('Paste coordinate list', { exact: true }).click();
-    await editor.getByLabel('Custom area coordinate list')
-      .fill('8, 75\n8, 82\n13, 82\n13, 75');
-    await editor.getByRole('button', { name: 'Apply list' }).click();
+    await pasteAreaBoundary(editor, '8, 75\n8, 82\n13, 82\n13, 75');
     await openRevisitAnalysis(page);
 
     const comparison = page.getByRole('region', { name: 'Target comparison' });
@@ -107,22 +99,18 @@ test.describe('REVISIT P2c-C mixed target comparison', () => {
     await targetSet.getByRole('button', { name: 'Remove primary target' }).click();
     await targetSet.getByRole('button', { name: 'Add primary target' }).click();
     await targetSet.getByRole('menuitem', { name: 'Add Primary polygon target' }).click();
+    // Polygon goes to the globe first; the editor is reached from the toolbar.
+    await openAreaEditorFromDrawing(page);
 
     let editor = page.getByRole('region', { name: 'Area coverage' });
     await editor.getByLabel('Custom area name').fill('Alpha AOI');
-    await editor.getByText('Paste coordinate list', { exact: true }).click();
-    await editor.getByLabel('Custom area coordinate list')
-      .fill('18, 30\n18, 36\n22, 36\n22, 30');
-    await editor.getByRole('button', { name: 'Apply list' }).click();
+    await pasteAreaBoundary(editor, '18, 30\n18, 36\n22, 36\n22, 30');
     await targetSet.getByRole('button', { name: /primary polygon/i }).first().click();
 
     await addSecondaryArea(page);
     editor = page.getByRole('dialog', { name: 'Define area target' });
     await editor.getByLabel('Custom area name').fill('Beta AOI');
-    await editor.getByText('Paste coordinate list', { exact: true }).click();
-    await editor.getByLabel('Custom area coordinate list')
-      .fill('8, 75\n8, 82\n13, 82\n13, 75');
-    await editor.getByRole('button', { name: 'Apply list' }).click();
+    await pasteAreaBoundary(editor, '8, 75\n8, 82\n13, 82\n13, 75');
     // The definition dialog hangs below the Secondary row and would swallow the
     // click on the swap control under it. Selecting the Primary polygon is the
     // click-outside that dismisses it, and fixes the pre-swap selection.

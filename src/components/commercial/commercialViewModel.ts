@@ -29,7 +29,6 @@ import {
   type CanonicalRouteMetricSet,
 } from '../../utils/canonicalRouteMetrics';
 import type { GatewayTrafficStatus } from '../../utils/geoGroundInfrastructure';
-import type { RegulatoryResult } from '../../services/regulatoryService';
 import {
   buildGeoConfidence,
   buildLeoSingleSiteConfidence,
@@ -73,19 +72,7 @@ import {
   weatherLabel,
 } from './commercialHelpers';
 import { buildExecutiveSummary, buildRecommendation } from './commercialEngine';
-import { buildCommercialCriteria } from './commercialCriteriaAdapter';
-import {
-  buildCommercialResilienceAssessment,
-  buildGeoContentionEvidence,
-  buildLeoContentionEvidence,
-  buildOperationalEvidence,
-} from './commercialOperationalEvidence';
 import { formatNumber } from '../../utils/formatters';
-import type {
-  CommercialObjective,
-  CommercialPrimaryTechnology,
-  CommercialTrafficDirection,
-} from './commercialObjective';
 
 interface BuildCommercialScenarioViewModelInput {
   activeTechnology: 'LEO' | 'GEO';
@@ -126,32 +113,7 @@ interface BuildCommercialScenarioViewModelInput {
   geoGatewayName?: string | null;
   geoGatewayCoverage?: string | null;
   geoGatewayTrafficStatus?: GatewayTrafficStatus | null;
-  /** Simulated LEO regulatory planning result. Never presented as legal clearance. */
-  leoRegulatoryResult?: RegulatoryResult | null;
-  commercialObjective?: CommercialObjective;
-  commercialTrafficDirection?: CommercialTrafficDirection;
-  commercialPrimaryTechnology?: CommercialPrimaryTechnology;
   selectedSegmentId?: string;
-}
-
-function regulatoryConfidenceFromPlanningResult(
-  result: RegulatoryResult | null | undefined,
-): CommercialRegulatoryConfidence | undefined {
-  if (!result) return undefined;
-  if (result.status === 'BLOCKED') return 'blocked';
-  if (result.status === 'RESTRICTED') return 'restricted';
-  if (result.status === 'ALLOWED_ESTIMATED') return 'estimated';
-  if (result.status === 'ALLOWED' || result.status === 'ALLOWED_CONFIRMED') return 'confirmed';
-  return 'pending';
-}
-
-function regulatoryRankForEvidence(value: CommercialRegulatoryConfidence | undefined): number | null {
-  if (value === 'confirmed') return 4;
-  if (value === 'estimated') return 3;
-  if (value === 'restricted') return 2;
-  if (value === 'pending') return 1;
-  if (value === 'blocked') return 0;
-  return null;
 }
 
 function commercialGatewayConfidenceLabel(status: GatewayTrafficStatus | null | undefined): string {
@@ -316,12 +278,6 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
         ? 'blocked'
         : 'pending';
 
-  // Objective-aware recommendations use only regulatory evidence that is
-  // actually available to this application. The LEO overlay is explicitly a
-  // simulated planning input; GEO sellability is not evaluated by that OneWeb
-  // dataset and therefore stays unknown instead of being inferred from RF
-  // coverage. The legacy path below retains its historical fields unchanged.
-  const leoObjectiveRegulatoryConfidence = regulatoryConfidenceFromPlanningResult(input.leoRegulatoryResult);
   const leoAvailabilityContext = buildLinkAvailabilityContext({
     architecture: 'LEO',
     weatherType: input.weatherType,
@@ -332,66 +288,7 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
     weatherType: input.weatherType,
     lat: input.activeAnalysisPoint?.lat,
   });
-  // E2c evidence is built only while the opt-in decision feature is active.
-  // The default/legacy path therefore retains both its object shape and its
-  // previous allocation cost.
-  const leoOperationalEvidence = input.commercialObjective
-    ? buildOperationalEvidence({
-        mobility: {
-          technology: 'leo',
-          terminalType: input.leoTerminalType,
-          terminalLabel: input.originLeoTerminalLabel,
-          requiredClass: input.activeAnalysisSource === 'aircraft' ? 'aviation' : 'generic',
-        },
-        contention: buildLeoContentionEvidence(leoEvidence),
-      })
-    : undefined;
-  const leoCriteria = buildCommercialCriteria({
-    technology: 'leo',
-    rttMs: leoFinalRouteAvailable ? leoRttMs : null,
-    sustainedDownlinkMbps: leoMetricsComplete ? leoDownloadMbps : null,
-    sustainedUplinkMbps: leoMetricsComplete ? leoUploadMbps : null,
-    // RF-potential values are not exposed directionally by the canonical COMM
-    // view model today. Keep them unknown rather than copying delivered rates.
-    theoreticalDownlinkMbps: null,
-    theoreticalUplinkMbps: null,
-    availabilityPct: leoAvailabilityContext.indicativeAvailabilityPct,
-    operationalEvidence: leoOperationalEvidence,
-  });
   const geoFinalMetricsAvailable = geoPhysicalRouteAvailable && geoMetricsComplete;
-  const geoOperationalEvidence = input.commercialObjective
-    ? buildOperationalEvidence({
-        mobility: {
-          technology: 'geo',
-          terminalType: input.geoTerminalType,
-          terminalLabel: input.originGeoTerminalLabel,
-          requiredClass: input.activeAnalysisSource === 'aircraft' ? 'aviation' : 'generic',
-        },
-        contention: buildGeoContentionEvidence(input.geoRouteAnalysis?.networkLayer),
-      })
-    : undefined;
-  const geoCriteria = buildCommercialCriteria({
-    technology: 'geo',
-    rttMs: geoFinalMetricsAvailable ? geoRttMs : null,
-    sustainedDownlinkMbps: geoFinalMetricsAvailable ? geoDownloadMbps : null,
-    sustainedUplinkMbps: geoFinalMetricsAvailable ? geoUploadMbps : null,
-    theoreticalDownlinkMbps: null,
-    theoreticalUplinkMbps: null,
-    availabilityPct: geoAvailabilityContext.indicativeAvailabilityPct,
-    operationalEvidence: geoOperationalEvidence,
-  });
-  if (leoObjectiveRegulatoryConfidence) {
-    leoCriteria.evidence.regulatory = {
-      value: regulatoryRankForEvidence(leoObjectiveRegulatoryConfidence),
-      unit: 'planning rank',
-      nature: 'estimated',
-      source: 'Simulated country-level regulatory planning overlay',
-      asOf: null,
-      note: input.leoRegulatoryResult?.reason
-        ? `${input.leoRegulatoryResult.reason} Not legal clearance.`
-        : 'Planning heuristic, not legal clearance.',
-    };
-  }
 
   // ── Comparison options + recommendation + display technology ─────────────
   // These are derived from per-tech data only — no activeTechnology fork.
@@ -415,11 +312,9 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
       technicalLimitingFactor: leoFinalRouteAvailable && leoCommercialStatus === 'active'
         ? undefined
         : routeLimitingFactor(leoRoute.statusReason, leoLimitingFactor),
-      regulatoryConfidence: input.commercialObjective
-        ? leoObjectiveRegulatoryConfidence
-        : leoRegulatoryConfidence,
+      regulatoryConfidence: leoRegulatoryConfidence,
+      availabilityPct: leoAvailabilityContext.indicativeAvailabilityPct,
       strengths: [],
-      ...leoCriteria,
     },
     {
       technology: 'geo',
@@ -440,11 +335,9 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
       routeSummary: input.geoRouteAnalysis?.routeSummary ?? geoRoute.summary ?? undefined,
       limitingFactor: toCustomerLimitation(routeLimitingFactor(geoRoute.statusReason, geoLimitingFactor)),
       technicalLimitingFactor: routeLimitingFactor(geoRoute.statusReason, geoLimitingFactor),
-      // GEO RF/coverage status is not regulatory sellability evidence. Keep it
-      // only on the legacy path until a GEO regulatory dataset is connected.
-      regulatoryConfidence: input.commercialObjective ? undefined : geoRegulatoryConfidence,
+      regulatoryConfidence: geoRegulatoryConfidence,
+      availabilityPct: geoAvailabilityContext.indicativeAvailabilityPct,
       strengths: [],
-      ...geoCriteria,
     },
   ];
   const comparisonOptions: CommercialTechnologyOption[] = comparisonOptionBase.map((option) => ({
@@ -454,28 +347,7 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
       comparisonOptionBase.find((peer) => peer.technology !== option.technology),
     ),
   }));
-  const recommendation = buildRecommendation(
-    comparisonOptions,
-    input.commercialObjective,
-    {
-      trafficDirection: input.commercialTrafficDirection ?? 'BIDIRECTIONAL',
-      primaryTechnology: input.commercialPrimaryTechnology,
-      resilienceAssessment: input.commercialObjective === 'RESILIENCE'
-        ? buildCommercialResilienceAssessment({
-            geoRouteAvailable: geoFinalMetricsAvailable,
-            leoRouteAvailable: leoMetricsComplete,
-            geoGroundNode: input.geoGatewayName,
-            leoGroundNodes: [
-              leoEvidence?.selectedSnpA?.name,
-              leoEvidence?.selectedSnpB?.name,
-              input.selectedSnpName,
-            ],
-            geoBand: (input.geoRouteAnalysis?.selectedCoverage ?? input.selectedCoverage)?.band,
-            leoBand: leoEvidence?.debugEvidence.siteA?.terminal.supportedBands[0] ?? null,
-          })
-        : undefined,
-    },
-  );
+  const recommendation = buildRecommendation(comparisonOptions);
   const commercialDisplayTechnology = deriveDisplayTechnology(input.activeTechnology);
 
   // ── Narrative layer: follow the selected commercial display technology ──
@@ -808,11 +680,6 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
     technology,
     commercialDisplayTechnology,
     contextTechnology: input.activeTechnology,
-    commercialIntent: {
-      objective: input.commercialObjective,
-      trafficDirection: input.commercialTrafficDirection ?? 'BIDIRECTIONAL',
-      primaryTechnology: input.commercialPrimaryTechnology,
-    },
     siteA: { name: siteAName },
     siteB: input.siteB || destinationIsSnp ? { name: siteBName } : undefined,
     downloadMbps,

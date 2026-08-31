@@ -21,6 +21,7 @@ import type { AccessInterval, GapStatistics, PointTarget, RevisitScenario } from
 import type { RevisitAnalysis } from '../analysis/runScenario';
 import type { PayloadSweepResult } from '../analysis/payloadSweep';
 import type { AreaAnalysis } from '../analysis/areaAnalysis';
+import type { AreaSizingResult } from '../analysis/areaSizing';
 import type { AreaTarget } from '../domain/areaTarget';
 
 export interface RevisitAnalyseRequest {
@@ -66,6 +67,28 @@ export interface RevisitAreaRequest {
     area: AreaTarget;
 }
 
+/**
+ * Size an area: probe the ladder on one cell, then verify candidates on the
+ * whole grid.
+ *
+ * Kept apart from `area` because the two answer different questions and cost
+ * differently. `area` measures the configuration currently flown; this searches
+ * for one that meets the requirement, and pays a full `area` pass per candidate
+ * tried. It is therefore never dispatched automatically — see the trigger in
+ * `RevisitApp`.
+ */
+export interface RevisitAreaSizingRequest {
+    type: 'area-sizing';
+    requestId: number;
+    timelineRevision: number;
+    /** `target` is ignored: the area supplies the cells, `probeCell` the probe. */
+    scenario: RevisitScenario;
+    area: AreaTarget;
+    /** Normally `worstCell` of the analysis already on screen. */
+    probeCell: PointTarget;
+    requirementMs: number;
+}
+
 /** Compare a bounded target set without cloning every access interval to the UI. */
 export interface RevisitCompareRequest {
     type: 'compare';
@@ -85,7 +108,8 @@ export interface RevisitTargetComparisonRow {
 }
 
 export type RevisitWorkerInput =
-    | RevisitAnalyseRequest | RevisitSweepRequest | RevisitAreaRequest | RevisitCompareRequest;
+    | RevisitAnalyseRequest | RevisitSweepRequest | RevisitAreaRequest
+    | RevisitAreaSizingRequest | RevisitCompareRequest;
 
 /** The subset of a scenario the sweep actually depends on. */
 export function sweepInvalidationKey(scenario: RevisitScenario): string {
@@ -119,13 +143,37 @@ export interface RevisitAreaProgress {
     total: number;
 }
 
+/**
+ * Progress of an area sizing run.
+ *
+ * Carries the phase and the candidate index as well as the counts, because a
+ * bar that restarts at zero for every candidate is unreadable without them:
+ * "probe", then "candidate 2 of at most 6, cell 40 of 96" is a state a
+ * presenter can narrate.
+ */
+export interface RevisitAreaSizingProgress {
+    kind: 'area-sizing-progress';
+    requestId: number;
+    timelineRevision: number;
+    phase: 'probe' | 'verify';
+    candidate: number;
+    completed: number;
+    total: number;
+}
+
 export type RevisitWorkerOutput =
     | (RevisitEnvelope & { ok: true; kind: 'analyse'; analysis: RevisitAnalysis })
     | (RevisitEnvelope & { ok: true; kind: 'sweep'; sweep: PayloadSweepResult })
     | (RevisitEnvelope & { ok: true; kind: 'area'; area: AreaAnalysis })
     | (RevisitEnvelope & { ok: true; kind: 'compare'; rows: RevisitTargetComparisonRow[] })
-    | (RevisitEnvelope & { ok: false; kind: 'analyse' | 'sweep' | 'area' | 'compare'; error: string })
-    | RevisitAreaProgress;
+    | (RevisitEnvelope & { ok: true; kind: 'area-sizing'; sizing: AreaSizingResult })
+    | (RevisitEnvelope & {
+        ok: false;
+        kind: 'analyse' | 'sweep' | 'area' | 'area-sizing' | 'compare';
+        error: string;
+    })
+    | RevisitAreaProgress
+    | RevisitAreaSizingProgress;
 
 /**
  * Should a response be published?

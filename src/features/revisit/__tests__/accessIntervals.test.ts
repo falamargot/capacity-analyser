@@ -3,7 +3,7 @@ import { orbitalRadiusKm } from '../../../utils/wgs84Geometry';
 import { toRad } from '../../../utils/sphericalGeometry';
 import {
     DEFAULT_STEP_SECONDS, DEFAULT_WINDOW_HOURS, MIN_RELIABLE_WINDOW_HOURS,
-    computeAccessIntervals, unionAccessIntervals, validateWindow,
+    computeAccessIntervals, computeAccessIntervalsForCells, unionAccessIntervals, validateWindow,
 } from '../analysis/accessIntervals';
 import { computeGapStatistics } from '../analysis/gapStatistics';
 import { groundArcRad } from '../fov/footprint';
@@ -11,6 +11,7 @@ import {
     EARTH_ROTATION_RATE_RAD_S, argLatRateRadPerSec, nodalRegressionRadPerSec,
 } from '../propagation/keplerJ2';
 import { generateWalkerConstellation } from '../domain/walker';
+import { FOV_PRESETS } from '../domain/presets';
 import { selectSubConstellation } from '../domain/subConstellation';
 import type {
     AnalysisWindow, FovSpec, OrbitalElements, Target, WalkerSpec,
@@ -305,5 +306,46 @@ describe('accessIntervals — physical sanity', () => {
             expect(i.startMs).toBeGreaterThan(prevEnd);
             prevEnd = i.endMs;
         }
+    });
+});
+
+/*
+ * The multi-target loop must agree with the single-target one, target for
+ * target — it exists only to share propagation, never to compute differently.
+ *
+ * This is not hypothetical symmetry. Until 2026-08-30 `bisectTransition` wrote
+ * its intermediate states into the CALLER's scratch buffer: after target 0
+ * bisected a transition, targets 1 and 2 were tested at the same step against a
+ * satellite position belonging to a bisection midpoint instead of to `t`. The
+ * single-target loop hid it by re-propagating at the top of every iteration.
+ * Found by comparing an area computed cell-by-cell against the same area
+ * computed in shared-propagation batches: gaps differed by seconds.
+ */
+describe('multi-target access agrees with single-target access', () => {
+    const window: AnalysisWindow = {
+        startMs: Date.UTC(2026, 7, 12), durationHours: 24, stepSeconds: 30,
+    };
+    const reference: WalkerSpec = {
+        pattern: 'STAR', planes: 6, satsPerPlane: 4,
+        inclinationDeg: 87.9, altitudeKm: 1200, phasingF: 1, fudge: 1,
+    };
+    const targets: Target[] = [
+        { kind: 'POINT', name: 'A', latDeg: 51.5, lonDeg: -0.13 },
+        { kind: 'POINT', name: 'B', latDeg: 45.0, lonDeg: 7.0 },
+        { kind: 'POINT', name: 'C', latDeg: 40.0, lonDeg: 3.0 },
+    ];
+
+    it('produces identical intervals for every target', () => {
+        const fleet = generateWalkerConstellation(reference);
+        const batched = computeAccessIntervalsForCells(
+            fleet, targets, FOV_PRESETS.STANDARD, window,
+        );
+
+        targets.forEach((target, index) => {
+            const single = computeAccessIntervals(
+                fleet, target, FOV_PRESETS.STANDARD, window,
+            );
+            expect(batched[index].intervals).toEqual(single.intervals);
+        });
     });
 });

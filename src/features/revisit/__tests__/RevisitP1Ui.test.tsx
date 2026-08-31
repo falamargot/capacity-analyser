@@ -415,6 +415,20 @@ describe('REVISIT P1 functional UI', () => {
                 scenario={scenario} onChange={() => undefined} model={model} variant="menu"
             />
         ));
+        expect([...container.querySelectorAll('span')]
+            .filter((element) => element.textContent === '= HLD')).toHaveLength(1);
+        expect(container.textContent).not.toContain('Evidence');
+        expect(container.textContent).not.toContain('Kepler + J2');
+        const evidenceButton = container.querySelector(
+            'button[aria-label="Model evidence"]'
+        ) as HTMLButtonElement;
+        await act(async () => evidenceButton.click());
+        expect(container.querySelector('[role="dialog"][aria-label="Model evidence"]'))
+            .not.toBeNull();
+        expect(container.textContent).toContain('Kepler + J2 secular · no drag');
+        expect(container.textContent).toContain('Hand-entered · no external provenance');
+        await act(async () => evidenceButton.click());
+        expect(container.textContent).not.toContain('Kepler + J2');
         const button = () => [...container.querySelectorAll('button')]
             .find((element) => element.textContent === 'Copy HLD values');
         expect(button()).toBeUndefined();

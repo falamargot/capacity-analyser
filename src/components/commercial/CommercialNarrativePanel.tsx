@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 import type { CommercialRouteModel, CommercialRouteSegmentId } from '../../types/commercialRouteModel';
 import type { CommercialScenarioViewModel } from './commercialViewModel';
-import { CommercialDecisionSummary } from './CommercialObjectiveDecision';
 import {
   buildCommercialNarrativeCardModel,
   recommendationHeroEyebrow,
@@ -52,7 +51,6 @@ export interface CommercialNarrativePanelProps {
   isOpen: boolean;
   onClose?: () => void;
   onViewFullAnalysis?: () => void;
-  onOpenCustomerDecision?: () => void;
 }
 
 const SEGMENT_ORDER: CommercialRouteSegmentId[] = [
@@ -775,11 +773,9 @@ function AlternativeCard({ viewModel }: { viewModel: CommercialScenarioViewModel
 function RecommendationBlock({
   viewModel,
   card,
-  onOpenCustomerDecision,
 }: {
   viewModel: CommercialScenarioViewModel;
   card: CommercialNarrativeCardModel;
-  onOpenCustomerDecision?: () => void;
 }) {
   const selectedOption = viewModel.comparison.options.find(
     (opt) => opt.technology === viewModel.commercialDisplayTechnology.toLowerCase(),
@@ -796,8 +792,6 @@ function RecommendationBlock({
   return (
     <div className="space-y-4">
       <VerdictHeroCard viewModel={viewModel} card={card} />
-
-      <CommercialDecisionSummary viewModel={viewModel} onOpen={onOpenCustomerDecision} />
 
       {/* Architecture diagram — built from the canonical route topology. */}
       <CommercialArchitectureDiagram topology={buildCommercialTopology(viewModel)} />
@@ -867,7 +861,6 @@ function CommercialNarrativePanel({
   commercialRouteModel,
   isOpen,
   onClose,
-  onOpenCustomerDecision,
 }: CommercialNarrativePanelProps) {
   const card = buildCommercialNarrativeCardModel({
     viewModel,
@@ -990,7 +983,6 @@ function CommercialNarrativePanel({
             <RecommendationBlock
               viewModel={viewModel}
               card={card}
-              onOpenCustomerDecision={onOpenCustomerDecision}
             />
           ) : (
             <>

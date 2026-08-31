@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef, useReducer } from 'react';
+import React, { Suspense, lazy, useState, useEffect, useMemo, useCallback, useRef, useReducer } from 'react';
 import MapViewSwitcherBase from './components/MapViewSwitcher';
 import { PerfBoundary } from './components/PerfBoundary';
 import type { AirTrafficStateProps, CallbackProps, CameraProps, CameraViewBounds, CommercialStateProps, DisplayLayerProps, DisplayPrefsProps, IssStateProps, MaritimeTrafficStateProps, SelectionAnalysisProps, TopologyProps, TrafficProps } from './components/CesiumGlobe';
@@ -23,15 +23,12 @@ import CommercialRouteStrip from './components/commercial/CommercialRouteStrip';
 import CommercialNarrativePanel from './components/commercial/CommercialNarrativePanel';
 import IFCNarrativePanel from './components/commercial/IFCNarrativePanel';
 import CommercialKpiBar from './components/commercial/CommercialKpiBar';
-import CustomerDecisionInspector from './components/commercial/CustomerDecisionInspector';
-import CustomerDecisionLauncher from './components/commercial/CustomerDecisionLauncher';
 import {
   DECISION_GEO_ANALYSIS_SCOPE,
   DECISION_LEO_ANALYSIS_SCOPE,
   geoScenarioNeedsDestination,
   shouldBuildGeoDecisionAnalysis,
 } from './components/commercial/decisionAnalysisPolicy';
-import { shouldCloseDecisionInspectorForFocusTransition } from './components/commercial/decisionInspectorPolicy';
 import {
   buildCommercialScenarioViewModel,
   type CommercialScenarioViewModel,
@@ -819,17 +816,10 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
   const [commercialSelectedSegment, setCommercialSelectedSegment] = useState<string>(
     restoredTelecomSession?.navigation.commercialSelectedSegment ?? 'summary',
   );
-  const [isCustomerDecisionOpen, setIsCustomerDecisionOpen] = useState(false);
-  const [customerDecisionPanelTop, setCustomerDecisionPanelTop] = useState(64);
-  const decisionSupportEvidenceRequired = commercialMode
-    || isCustomerDecisionOpen
-    || !!connectivityScenario.commercialObjective;
-  const geoAnalysisEnabled = satelliteScope !== 'LEO' || decisionSupportEvidenceRequired;
-  const leoAnalysisScope = decisionSupportEvidenceRequired
+  const geoAnalysisEnabled = satelliteScope !== 'LEO' || commercialMode;
+  const leoAnalysisScope = commercialMode
     ? DECISION_LEO_ANALYSIS_SCOPE
     : satelliteScope;
-  const previousEngineeringFocusKindRef = useRef(engineeringFocusController.focus.kind);
-  const customerDecisionLauncherRef = useRef<HTMLButtonElement | null>(null);
   const [isGlobeModePeekPressed, setIsGlobeModePeekPressed] = useState(false);
   const globeCommercialMode = isGlobeModePeekPressed ? !commercialMode : commercialMode;
 
@@ -849,57 +839,6 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
   const handleCommercialSegmentSelect = useCallback((segmentId: string) => {
     setCommercialSelectedSegment(normalizeCommercialSegmentId(segmentId));
   }, [normalizeCommercialSegmentId]);
-
-  const handleCommercialObjectiveChange = useCallback((objective: import('./components/commercial/commercialObjective').CommercialObjective | undefined) => {
-    dispatchConnectivityScenario(connectivityScenarioActions.setCommercialObjective(objective));
-  }, []);
-
-  const handleCommercialTrafficDirectionChange = useCallback((direction: import('./components/commercial/commercialObjective').CommercialTrafficDirection) => {
-    dispatchConnectivityScenario(connectivityScenarioActions.setCommercialTrafficDirection(direction));
-  }, []);
-
-  const handleCommercialPrimaryTechnologyChange = useCallback((technology: import('./components/commercial/commercialObjective').CommercialPrimaryTechnology | undefined) => {
-    dispatchConnectivityScenario(connectivityScenarioActions.setCommercialPrimaryTechnology(technology));
-  }, []);
-
-  const syncCustomerDecisionPanelPosition = useCallback(() => {
-    const launcher = customerDecisionLauncherRef.current;
-    if (!launcher) return;
-    const launcherRect = launcher.getBoundingClientRect();
-    setCustomerDecisionPanelTop(Math.max(8, Math.round(launcherRect.bottom + 8)));
-  }, []);
-
-  const handleOpenCustomerDecision = useCallback(() => {
-    engineeringFocusController.clear();
-    syncCustomerDecisionPanelPosition();
-    setIsCustomerDecisionOpen(true);
-  }, [engineeringFocusController, syncCustomerDecisionPanelPosition]);
-
-  const handleCloseCustomerDecision = useCallback(() => {
-    setIsCustomerDecisionOpen(false);
-    window.requestAnimationFrame(() => customerDecisionLauncherRef.current?.focus());
-  }, []);
-
-  const handleToggleCustomerDecision = useCallback(() => {
-    if (isCustomerDecisionOpen) {
-      handleCloseCustomerDecision();
-      return;
-    }
-    handleOpenCustomerDecision();
-  }, [handleCloseCustomerDecision, handleOpenCustomerDecision, isCustomerDecisionOpen]);
-
-  useEffect(() => {
-    const previousKind = previousEngineeringFocusKindRef.current;
-    const currentKind = engineeringFocusController.focus.kind;
-    previousEngineeringFocusKindRef.current = currentKind;
-    if (shouldCloseDecisionInspectorForFocusTransition(
-      isCustomerDecisionOpen,
-      previousKind,
-      currentKind,
-    )) {
-      setIsCustomerDecisionOpen(false);
-    }
-  }, [engineeringFocusController.focus.kind, isCustomerDecisionOpen]);
 
   // Endpoint presence is authoritative. Both technology engines receive Site B
   // whenever it exists; their topology state is normalized from that fact below.
@@ -968,19 +907,6 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
   const [commandPaletteQuery, setCommandPaletteQuery] = useState('');
   const [isHelpMenuOpen, setIsHelpMenuOpen] = useState(false);
   const [isSimulationSettingsOpen, setIsSimulationSettingsOpen] = useState(false);
-
-  useLayoutEffect(() => {
-    if (!isCustomerDecisionOpen || isMobile) return;
-    syncCustomerDecisionPanelPosition();
-  }, [
-    isCustomerDecisionOpen,
-    isMobile,
-    isDesktopHeaderCollapsed,
-    syncCustomerDecisionPanelPosition,
-    uiMode,
-    viewportSnapshot.innerHeight,
-    viewportSnapshot.innerWidth,
-  ]);
 
   const {
     authorshipToastVisible,
@@ -2630,14 +2556,10 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
   ]);
 
   const geoRouteAnalysis = useMemo(() => {
-    // Decision Support needs a stable cross-technology truth even while ENG is
-    // displaying a single orbit or the presentation mode is changing. Keep the
-    // expensive GEO route off by default in ENG, but never replace established
-    // evidence with a transient null while the opt-in workflow is active.
+    // COMM needs stable cross-technology truth independently of the globe's
+    // display scope. ENG keeps this expensive GEO candidate analysis off.
     if (!isCurrentTimelinePropagated || !shouldBuildGeoDecisionAnalysis({
       uiMode,
-      inspectorOpen: isCustomerDecisionOpen,
-      objectiveSelected: !!connectivityScenario.commercialObjective,
     })) return null;
 
     // Keep GEO commercial analysis off the per-second satellite state tick.
@@ -2709,8 +2631,6 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
     selectedUplinkCoverage,
     selectedUplinkCoverageB,
     uiMode,
-    isCustomerDecisionOpen,
-    connectivityScenario.commercialObjective,
     weatherType,
     weatherTypeB,
   ]);
@@ -3904,9 +3824,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
     onToggleHelpPanel: handleToggleHelpMenu,
     onToggleEntryPointPanel: handleToggleTargetSourcesMenu,
     onResetView: handleResetView,
-    onDismissOverlay: handleCloseCustomerDecision,
     onModePeekChange: handleGlobeModePeekChange,
-    overlayOpen: isCustomerDecisionOpen,
     enabled: !isCommandPaletteOpen,
   });
 
@@ -4807,10 +4725,6 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
     geoGatewayName: activeCommercialTrafficGeoGateway?.gatewayName ?? null,
     geoGatewayCoverage: activeCommercialTrafficGatewayCoverage,
     geoGatewayTrafficStatus: activeCommercialTrafficGeoGateway?.gateway.trafficStatus ?? null,
-    leoRegulatoryResult,
-    commercialObjective: connectivityScenario.commercialObjective,
-    commercialTrafficDirection: connectivityScenario.commercialTrafficDirection,
-    commercialPrimaryTechnology: connectivityScenario.commercialPrimaryTechnology,
     selectedSegmentId: commercialSelectedSegment,
   }), [
     activeCommercialTechnology, activeMeshTab, activeAnalysisPoint, activeAnalysisSource,
@@ -4823,10 +4737,6 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
     activeCommercialTrafficGeoGateway?.gatewayName,
     activeCommercialTrafficGeoGateway?.gateway.trafficStatus,
     activeCommercialTrafficGatewayCoverage,
-    leoRegulatoryResult,
-    connectivityScenario.commercialObjective,
-    connectivityScenario.commercialTrafficDirection,
-    connectivityScenario.commercialPrimaryTechnology,
     commercialSelectedSegment,
   ]);
 
@@ -5353,17 +5263,6 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
     />
   );
 
-  const renderCustomerDecisionLauncher = (compact = false) => (
-    <CustomerDecisionLauncher
-      ref={customerDecisionLauncherRef}
-      viewModel={commercialScenarioViewModel}
-      open={isCustomerDecisionOpen}
-      compact={compact}
-      onToggle={handleToggleCustomerDecision}
-    />
-  );
-
-
   const headerSiteAConfig = {
     endpoint: routeSelectorRoute.origin,
     selectionMotionKey: endpointSelectionMotion?.role === 'origin' ? endpointSelectionMotion.token : undefined,
@@ -5467,7 +5366,6 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
                     />
                   </div>
                   {renderUiModeSwitch(true, true)}
-                  {renderCustomerDecisionLauncher(true)}
                   <button
                     type="button"
                     onClick={() => setIsSatelliteModalOpen(true)}
@@ -5499,7 +5397,6 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
                 </div>
                 <div className="ml-auto flex shrink-0 items-center justify-end gap-2">
                   {renderUiModeSwitch(true)}
-                  {renderCustomerDecisionLauncher(true)}
                   <div className="flex items-center rounded-lg border border-gray-200 bg-gray-50 p-0.5 dark:border-slate-700 dark:bg-slate-800">
                     <SatelliteScopeFilter
                       currentScope={satelliteScope}
@@ -5899,7 +5796,6 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
               } ${useCompactDesktopHeader ? 'gap-1.5' : 'gap-2'}`}>
                 <div className={`flex items-center justify-end ${useCompactDesktopHeader ? 'gap-1.5' : 'gap-2'}`}>
                   {renderUiModeSwitch(useCompactDesktopHeader)}
-                  {renderCustomerDecisionLauncher(useCompactDesktopHeader)}
                   <div className={`flex items-center rounded-lg border border-gray-200 bg-gray-50 dark:border-slate-700 dark:bg-slate-800 ${useCompactDesktopHeader ? 'gap-1 p-0.5' : 'gap-1.5 p-0.5'}`}>
                     <SatelliteScopeFilter
                       currentScope={satelliteScope}
@@ -6088,7 +5984,6 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
                       />
                     </div>
                     {renderUiModeSwitch(true, true)}
-                    {renderCustomerDecisionLauncher(true)}
                     <button
                       type="button"
                       onClick={() => setIsSatelliteModalOpen(true)}
@@ -6103,7 +5998,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
               </div>
             )}
 
-            {commercialMode && !isFullscreen && !isCustomerDecisionOpen && (
+            {commercialMode && !isFullscreen && (
               <div
                 className="commercial-mobile-decision-layer pointer-events-none absolute inset-x-0 bottom-0 z-[44] px-2.5"
                 style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.45rem)' }}
@@ -6127,30 +6022,6 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
                       compact
                     />
                   </div>
-                </div>
-              </div>
-            )}
-
-            {isCustomerDecisionOpen && !isFullscreen && (
-              <div
-                className="ui-global-dialog fixed inset-0 flex items-end justify-center bg-slate-950/38 px-0 backdrop-blur-[2px] sm:px-3"
-                role="dialog"
-                aria-modal="true"
-                aria-label="Customer decision support"
-                onPointerDown={(event) => {
-                  if (event.target === event.currentTarget) handleCloseCustomerDecision();
-                }}
-              >
-                <div className="h-[min(92dvh,48rem)] w-full max-w-3xl">
-                  <CustomerDecisionInspector
-                    viewModel={commercialScenarioViewModel}
-                    mode={commercialMode ? 'commercial' : 'engineering'}
-                    mobile
-                    onClose={handleCloseCustomerDecision}
-                    onObjectiveChange={handleCommercialObjectiveChange}
-                    onTrafficDirectionChange={handleCommercialTrafficDirectionChange}
-                    onPrimaryTechnologyChange={handleCommercialPrimaryTechnologyChange}
-                  />
                 </div>
               </div>
             )}
@@ -6488,7 +6359,6 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
                         viewModel={commercialScenarioViewModel}
                         isOpen
                         onViewFullAnalysis={() => handleModeSwitch('engineering')}
-                        onOpenCustomerDecision={handleOpenCustomerDecision}
                       />
                     ) : !isFullscreen && (
                       <CommercialNarrativePanel
@@ -6497,7 +6367,6 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
                         commercialRouteModel={commercialRouteModel}
                         isOpen
                         onViewFullAnalysis={() => handleModeSwitch('engineering')}
-                        onOpenCustomerDecision={handleOpenCustomerDecision}
                       />
                     )}
 
@@ -6687,28 +6556,6 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
             )}
           </div>
 
-          {isCustomerDecisionOpen && !isFullscreen && (
-            <div
-              data-customer-decision-host=""
-              className="ui-global-floating-window pointer-events-none fixed w-[clamp(30rem,38vw,36rem)]"
-              style={{
-                right: commercialMode
-                  ? 'calc(380px + 1rem)'
-                  : `calc(${desktopSidebarWidth}px + 1rem)`,
-                top: customerDecisionPanelTop,
-                maxHeight: `calc(100dvh - ${customerDecisionPanelTop}px - 0.75rem)`,
-              }}
-            >
-              <CustomerDecisionInspector
-                viewModel={commercialScenarioViewModel}
-                mode={commercialMode ? 'commercial' : 'engineering'}
-                onClose={handleCloseCustomerDecision}
-                onObjectiveChange={handleCommercialObjectiveChange}
-                onTrafficDirectionChange={handleCommercialTrafficDirectionChange}
-                onPrimaryTechnologyChange={handleCommercialPrimaryTechnologyChange}
-              />
-            </div>
-          )}
         </main>
       )}
 

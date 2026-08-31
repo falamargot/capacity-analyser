@@ -124,6 +124,22 @@ interface RevisitHeaderProps {
     canSwapTargetRoles?: boolean;
     onSwapTargetRoles?: () => void;
     onAddAreaTarget?: (role?: RevisitAreaTargetRole) => void;
+    /**
+     * Create the polygon slot and go straight to the globe. The menu's
+     * `Polygon` entry uses this: manual drawing is the default path, and the
+     * editor is where you go to CHANGE an area, not to start one.
+     */
+    onAddAreaTargetAndDraw?: (role?: RevisitAreaTargetRole) => void;
+    /**
+     * The area editor's open state, controlled when supplied. The drawing
+     * toolbar lives outside this header and has to be able to open the editor
+     * ("Import or paste a boundary instead"), so its owner is RevisitApp.
+     * Left uncontrolled — internal state — when the prop is absent.
+     */
+    areaEditorOpen?: boolean;
+    onAreaEditorOpenChange?: (open: boolean) => void;
+    /** Open the editor's coordinate box on mount — see AreaPanel. */
+    areaEditorPasteExpanded?: boolean;
     customArea?: AreaTarget | null;
     referenceAreaCellCount?: number | null;
     comparisonAreaCellCount?: number | null;
@@ -403,6 +419,10 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
     onRemoveReferenceTarget = () => undefined,
     onAddComparisonPoint = () => undefined,
     onAddAreaTarget = () => undefined,
+    onAddAreaTargetAndDraw,
+    areaEditorOpen,
+    onAreaEditorOpenChange,
+    areaEditorPasteExpanded = false,
     customArea = null, referenceAreaCellCount = null, comparisonAreaCellCount = null,
     areaTargetRole = 'COMPARISON',
     referenceArea = areaTargetRole === 'REFERENCE' ? customArea : null,
@@ -426,7 +446,17 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
     const addTargetMenuRef = useRef<HTMLDivElement>(null);
     const constellationMenuRef = useRef<HTMLDivElement>(null);
     const constellationLauncherRef = useRef<HTMLButtonElement>(null);
-    const [areaMenuOpen, setAreaMenuOpen] = useState(false);
+    const [uncontrolledAreaMenuOpen, setUncontrolledAreaMenuOpen] = useState(false);
+    const areaMenuOpen = areaEditorOpen ?? uncontrolledAreaMenuOpen;
+    const areaMenuOpenRef = useRef(areaMenuOpen);
+    areaMenuOpenRef.current = areaMenuOpen;
+    const setAreaMenuOpen = useCallback((
+        next: boolean | ((open: boolean) => boolean),
+    ) => {
+        const value = typeof next === 'function' ? next(areaMenuOpenRef.current) : next;
+        if (onAreaEditorOpenChange) onAreaEditorOpenChange(value);
+        else setUncontrolledAreaMenuOpen(value);
+    }, [onAreaEditorOpenChange]);
     const [addReferenceMenuOpen, setAddReferenceMenuOpen] = useState(false);
     const [addTargetMenuOpen, setAddTargetMenuOpen] = useState(false);
     const [constellationMenuOpen, setConstellationMenuOpen] = useState(false);
@@ -491,8 +521,8 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
     ]).slice(0, MAX_SECONDARY_TARGETS);
     useEffect(() => {
         if (analysisContext !== 'AREA') setAreaMenuOpen(false);
-    }, [analysisContext]);
-    const closeAreaMenu = useCallback(() => setAreaMenuOpen(false), []);
+    }, [analysisContext, setAreaMenuOpen]);
+    const closeAreaMenu = useCallback(() => setAreaMenuOpen(false), [setAreaMenuOpen]);
     // The globe is the drawing surface. Clicking it must not dismiss the
     // editor that contains Undo and Finish polygon.
     useClickOutside(areaMenuRef, closeAreaMenu, areaMenuOpen && !isDrawingArea);
@@ -849,9 +879,12 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                         </button>
                                         <button type="button" role="menuitem" aria-label="Add Primary polygon target"
                                             onClick={() => {
-                                                onAddAreaTarget('REFERENCE');
+                                                // Straight to the globe: the editor
+                                                // is for changing an area, not for
+                                                // starting one.
+                                                (onAddAreaTargetAndDraw ?? onAddAreaTarget)('REFERENCE');
                                                 setAddReferenceMenuOpen(false);
-                                                setAreaMenuOpen(true);
+                                                if (!onAddAreaTargetAndDraw) setAreaMenuOpen(true);
                                             }}
                                             className="min-h-11 md:min-h-9 rounded border border-slate-700 px-2 text-[11px] font-black uppercase tracking-wide text-amber-200 hover:border-amber-400/60 hover:bg-amber-400/10">
                                             Polygon
@@ -888,7 +921,12 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                     aria-label="Remove primary target"
                                     className="h-11 w-11 shrink-0 rounded text-slate-500 hover:bg-rose-400/10 hover:text-rose-300 md:h-7 md:w-7">×</button>
                             </div>
-                            {areaMenuOpen && (
+                            {/* One editor at a time. Both dialogs hung off the
+                                same open flag, so a scenario carrying a Primary
+                                AND a Secondary polygon opened both at once,
+                                stacked. The role already governs which area the
+                                panel edits; it governs which panel shows. */}
+                            {areaMenuOpen && areaTargetRole === 'REFERENCE' && (
                                 <div role="dialog" aria-label="Define Primary polygon"
                                     className={`absolute right-0 top-[calc(100%+0.25rem)] z-[70] max-h-[min(70vh,38rem)] w-[min(27rem,calc(100vw-1rem))] overflow-y-auto rounded-lg border border-amber-400/35 ${REVISIT_MENU_SURFACE} shadow-2xl`}>
                                     <AreaPanel
@@ -899,6 +937,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                         onStartDrawing={() => { onAreaTargetRoleChange('REFERENCE'); setAreaMenuOpen(false); onStartAreaDrawing(); }}
                                         onFinishDrawing={onFinishAreaDrawing} onUndoVertex={onUndoAreaVertex}
                                         showAnalysisSummary={false} isScenarioSettling={isAreaScenarioSettling} variant="menu"
+                                        initialPasteExpanded={areaEditorPasteExpanded}
                                     />
                                 </div>
                             )}
@@ -1018,7 +1057,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                             aria-label="Remove secondary target"
                                             className="h-11 w-11 shrink-0 rounded text-slate-500 hover:bg-rose-400/10 hover:text-rose-300 md:h-7 md:w-7">×</button>
                                     </div>
-                                    {areaMenuOpen && (
+                                    {areaMenuOpen && areaTargetRole === 'COMPARISON' && (
                                         <div role="dialog" aria-label="Define area target"
                                             className={`absolute right-0 top-[calc(100%+0.25rem)] z-[70] max-h-[min(70vh,38rem)] w-[min(27rem,calc(100vw-1rem))] overflow-y-auto rounded-lg border border-sky-400/35 ${REVISIT_MENU_SURFACE} shadow-2xl`}>
                                             <AreaPanel
@@ -1043,6 +1082,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                                 showAnalysisSummary={false}
                                                 isScenarioSettling={isAreaScenarioSettling}
                                                 variant="menu"
+                                                initialPasteExpanded={areaEditorPasteExpanded}
                                             />
                                         </div>
                                     )}
@@ -1130,9 +1170,9 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                         <button type="button" role="menuitem" aria-label="Add Secondary polygon target"
                                             disabled={Boolean(comparisonArea)}
                                             onClick={() => {
-                                                onAddAreaTarget('COMPARISON');
+                                                (onAddAreaTargetAndDraw ?? onAddAreaTarget)('COMPARISON');
                                                 setAddTargetMenuOpen(false);
-                                                setAreaMenuOpen(true);
+                                                if (!onAddAreaTargetAndDraw) setAreaMenuOpen(true);
                                             }}
                                             className="min-h-11 md:min-h-9 rounded border border-slate-700 px-2 text-[11px] font-black uppercase tracking-wide text-sky-200 hover:border-sky-400/60 hover:bg-sky-400/10 disabled:cursor-not-allowed disabled:opacity-35">
                                             Polygon

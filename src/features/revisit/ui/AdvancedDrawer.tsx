@@ -30,7 +30,7 @@ import {
     DEFAULT_PROFILE, walkerSpecsEqual,
     type ReferenceMode, type ReferenceProfile,
 } from '../domain/referenceProfiles';
-import { ModelProvenance } from './ModelProvenance';
+import { ModelEvidencePopover } from './ModelEvidencePopover';
 import { TleComparisonDialog } from './TleComparisonDialog';
 import { displayAltitudeKm, displayInclinationDeg } from './revisitTheme';
 import type { WalkerFit } from '../calibration/fitWalker';
@@ -41,7 +41,7 @@ interface AdvancedDrawerProps {
     onChange: (next: RevisitScenario) => void;
     /**
      * The constellation model: which one is selected, how to change it, and the
-     * evidence behind it. Absent in contexts that only edit a raw specification.
+     * optional TLE comparison. Absent in contexts that only edit a raw specification.
      */
     model?: ConstellationModelProps;
     /** Header popovers provide their own container and are open on demand. */
@@ -93,11 +93,7 @@ function bounded(raw: string, min: number, max: number, fallback: number): numbe
 /** The model choice and its evidence, owned by RevisitApp. */
 export interface ConstellationModelProps {
     mode: ReferenceMode;
-    /**
-     * True when a CUSTOM specification came from a restored scenario rather than
-     * from someone editing the fields — the evidence line must not call those
-     * numbers hand-entered (m4).
-     */
+    /** CUSTOM restored from a saved scenario whose original provenance is unknown. */
     isRestored?: boolean;
     onModeChange: (mode: ReferenceMode) => void;
     /**
@@ -643,20 +639,18 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                             )}
                         </>
                     )}
-                    {/* One line instead of a form: Model and Evidence are
-                        what a commercial reading of this panel needs
-                        (Programme 7E). */}
-                    <div className="mb-1.5 flex items-start justify-between gap-2">
+                    {/* One line instead of a form: the model characteristics
+                        are what a commercial reading of this panel needs. */}
+                    <div className="mb-1.5 flex items-center gap-1.5">
                         <p className={sectionLabel}>
                             {model ? 'Characteristics' : 'Reference constellation'}
                         </p>
-                        {matchesHldProfile && model?.mode === 'CUSTOM' && (
-                            <span
-                                title="These values are identical to the HLD reference profile, including its plane-altitude ladder, RAAN seam and spares."
-                                className="shrink-0 rounded border border-lime-400/40 px-1.5 py-0.5 text-[11px] font-black uppercase tracking-[0.08em] text-lime-200"
-                            >
-                                = HLD
-                            </span>
+                        {model && (
+                            <ModelEvidencePopover
+                                mode={model.mode}
+                                profile={model.profile}
+                                isRestored={model.isRestored}
+                            />
                         )}
                     </div>
                     {/*
@@ -675,15 +669,6 @@ export const AdvancedDrawer: React.FC<AdvancedDrawerProps> = ({
                     >
                         {characteristicsSummary}
                     </p>
-                    {model && (
-                        <div className="mt-2 border-t border-slate-700/50 pt-2">
-                            <ModelProvenance
-                                profile={model.profile}
-                                mode={model.mode}
-                                isRestored={model.isRestored}
-                            />
-                        </div>
-                    )}
                 </div>
 
                 {/*

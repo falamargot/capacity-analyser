@@ -41,6 +41,32 @@ test.describe('application mode shell', () => {
     await expect(page.locator('.cesium-widget canvas')).toHaveCount(1);
   });
 
+  test('keeps Customer priority out of ENG and COMM', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop-chromium', 'Mode ownership is viewport-independent');
+    await page.goto('/?mode=engineering');
+    await waitForTelecomShell(page);
+
+    await expect(page.getByRole('button', { name: /^Decision support\./ })).toHaveCount(0);
+    await page.getByRole('button', { name: /^(Comm|Commercial)$/ }).click();
+    await expect(page.getByRole('button', { name: /^Decision support\./ })).toHaveCount(0);
+    await expect(page.getByText('Customer priority', { exact: true })).toHaveCount(0);
+  });
+
+  test('returns telecom playback to current live time after REVISIT simulation', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop-chromium', 'Clock transition is viewport-independent');
+    await page.goto('/?mode=revisit');
+    await waitForRevisitReady(page);
+
+    await page.getByRole('combobox', { name: 'Simulation speed' }).selectOption('100');
+    await expect(page.getByRole('combobox', { name: 'Simulation speed' })).toHaveValue('100');
+    await page.getByRole('button', { name: 'Back to Engineering', exact: false }).click();
+
+    await waitForTelecomShell(page);
+    await expect(page.getByRole('button', {
+      name: 'Open simulation settings. Live time',
+    })).toBeVisible();
+  });
+
   test('keeps telecom navigation state through a REVISIT round trip', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop-chromium', 'State persistence is viewport-independent');
     await page.goto('/?mode=engineering');

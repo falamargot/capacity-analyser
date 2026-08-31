@@ -32,9 +32,6 @@ function plainRecommendationReason(viewModel: CommercialScenarioViewModel): stri
   if (viewModel.evaluationState === 'ERROR') {
     return 'The route evaluation could not be completed.';
   }
-  if (viewModel.recommendation.objective) {
-    return viewModel.recommendation.reason;
-  }
   switch (viewModel.recommendation.reasonCategory) {
     case 'LOWEST_LATENCY':
       return 'Lowest response time for interactive applications';
@@ -55,9 +52,7 @@ function recommendationTitle(viewModel: CommercialScenarioViewModel): string {
   if (viewModel.evaluationState === 'NOT_CONFIGURED') return 'Configuration Required';
   if (viewModel.evaluationState === 'COMPUTING') return 'Evaluating Service';
   if (viewModel.evaluationState === 'ERROR') return 'Evaluation Unavailable';
-  if (viewModel.recommendation.technology === 'hybrid') return viewModel.recommendation.objective
-    ? viewModel.recommendation.label
-    : 'Both Viable';
+  if (viewModel.recommendation.technology === 'hybrid') return 'Both Viable';
   if (viewModel.recommendation.technology === 'not_available') return 'No Service Available';
   if (viewModel.recommendation.technology === 'insufficient_data') return 'Recommendation Pending';
   return `${viewModel.recommendation.label} Selected`;

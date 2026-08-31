@@ -165,8 +165,98 @@ describe('REVISIT result sheet', () => {
         );
         expect(sheet.title).toContain('area');
         expect(sheet.metrics[0]).toEqual({ label: 'Least-covered cell', value: '4 h' });
-        expect(sheet.verdict).toBe('ASSESSMENT REQUIRED');
+        // Not "assessment required": the area simply has not been sized, and
+        // the tool can size it. The two claims are different.
+        expect(sheet.verdict).toBe('NOT SIZED');
         expect(sheet.assumptions.map((row) => row.label)).toContain('Area grid');
         expect(sheet.caveats.join(' ')).toMatch(/not an average timeline/i);
     });
+    /*
+     * The document must not deny a measurement the screen made. Before this,
+     * `buildAreaResultSheet` had no way to receive the sizing result, so a user
+     * who measured 36 payloads, read "MORE PAYLOADS REQUIRED" on screen and
+     * exported got a summary saying the area had never been sized.
+     */
+    it('carries a measured area sizing into the document', () => {
+        const area = missingAreaAnalysis();
+        const sheet = buildAreaResultSheet(
+            scenario, area, 2 * 3600_000, new Date('2026-08-13T12:00:00Z'),
+            {
+                areaSizing: {
+                    kind: 'VERIFIED',
+                    payloadCount: 36,
+                    selection: { planeStride: 1, satStride: 4, planeShift: 0 },
+                    selectedPlanes: 12,
+                    payloadsPerPlane: 3,
+                    worstCellGapMs: 1.5 * 3600_000,
+                    candidatesTried: 2,
+                    analysis: area,
+                    attempts: [],
+                    probeRejected: 40,
+                    ladderSize: 60,
+                },
+            },
+        );
+
+        expect(sheet.verdict).toBe('MORE PAYLOADS REQUIRED');
+        expect(sheet.recommendation).toContain('36 payload-equipped satellites');
+        expect(sheet.recommendation).toContain('12 planes × 3 per plane');
+        // The scope of the claim travels with the number, or a reader takes it
+        // for an optimum.
+        expect(sheet.recommendation).toContain('not proved minimal');
+        expect(sheet.caveats.join(' ')).toMatch(/2 candidates over every cell/);
+    });
+
+    /* A search that RAN and found nothing is an impasse, not an unasked question. */
+    it('distinguishes a failed search from one never run', () => {
+        const area = missingAreaAnalysis();
+        const sheet = buildAreaResultSheet(
+            scenario, area, 2 * 3600_000, new Date('2026-08-13T12:00:00Z'),
+            {
+                areaSizing: {
+                    kind: 'NONE',
+                    candidatesTried: 0,
+                    stoppedAtCeiling: false,
+                    probeRejected: 60,
+                    attempts: [],
+                    ladderSize: 60,
+                },
+            },
+        );
+
+        expect(sheet.verdict).toBe('ASSESSMENT REQUIRED');
+        expect(sheet.recommendation).toContain('least-covered cell of this area');
+        expect(sheet.recommendation).not.toContain('has not been measured');
+    });
 });
+
+/** An area that misses a 2 h requirement on its only cell. */
+function missingAreaAnalysis(): AreaAnalysis {
+    const statistics = {
+        maxGapMs: 4 * 3600_000, meanGapMs: 3 * 3600_000, p95GapMs: 4 * 3600_000,
+        accessCount: 4, fractionInView: 0.05, meanAccessDurationMs: 60_000,
+        totalInViewMs: 240_000, interiorGapCount: 3, boundaryGapsDiscarded: 2,
+        coverage: 'INTERMITTENT' as const, warnings: [],
+    };
+    const cell = {
+        target: { kind: 'POINT' as const, name: 'Cell 1', latDeg: 45.5, lonDeg: 1.5 },
+        statistics, maxGapMs: statistics.maxGapMs,
+    };
+    return {
+        area: {
+            kind: 'AREA', name: 'Customer AOI', gridSpacingDeg: 1,
+            boundary: [
+                { latDeg: 45, lonDeg: 1 }, { latDeg: 45, lonDeg: 2 },
+                { latDeg: 46, lonDeg: 2 },
+            ],
+        },
+        cells: [cell],
+        worstCell: cell,
+        bestCell: cell,
+        meanCellMaxGapMs: statistics.maxGapMs,
+        neverInViewCount: 0,
+        unmeasuredCount: 0,
+        worstCellIntervals: [],
+        warnings: [],
+    };
+}

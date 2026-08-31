@@ -28,7 +28,9 @@ export type RevisitOperation =
     | 'Analysis'
     | 'Fleet sizing'
     | 'Target comparison'
-    | 'Area coverage';
+    | 'Area coverage'
+    /** Searching for a configuration that meets the requirement on every cell. */
+    | 'Area sizing';
 
 /** Where it ran. The inline path is the documented no-Worker fallback. */
 export type RevisitFailurePath = 'Worker' | 'Main thread';

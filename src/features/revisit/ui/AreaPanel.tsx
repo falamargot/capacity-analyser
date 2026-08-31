@@ -1,9 +1,17 @@
 /**
- * AreaPanel — define an area target and expose automatic analysis status.
+ * AreaPanel — EDIT an area target and expose automatic analysis status.
  *
  * Every cell is a full engine run, so intermediate drawing states never start
  * work. A valid, stable polygon is analysed automatically by RevisitApp after
  * drawing, import or coordinate-list application.
+ *
+ * ── WHY THE ORDER IS WHAT IT IS ─────────────────────────────────────────────
+ * This panel used to be the ENTRY point: `+ Add target › Polygon` opened it,
+ * and the first two things a user met were a pre-filled name and a grid spacing
+ * derived from the swath — parameters — with `Draw on globe` as one button
+ * among three below them. The polygon menu now goes straight to the globe, so
+ * what remains here is the editor: the boundary first, because that is what
+ * someone opening it came to change, and the metadata after it.
  */
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -41,6 +49,15 @@ interface AreaPanelProps {
     isScenarioSettling?: boolean;
     /** Header popovers provide their own floating surface. */
     variant?: 'panel' | 'menu';
+    /**
+     * Open the coordinate editor on mount. Set when the panel was reached by
+     * "Import or paste a boundary instead" from the drawing toolbar: that
+     * request already said what the user came to do, and making them open the
+     * disclosure as well would be the ceremony the drawing path was relieved
+     * of. Everywhere else it stays collapsed — it is then a way to REPLACE a
+     * boundary already on screen, and should not shout.
+     */
+    initialPasteExpanded?: boolean;
 }
 
 export const AreaPanel: React.FC<AreaPanelProps> = ({
@@ -50,6 +67,7 @@ export const AreaPanel: React.FC<AreaPanelProps> = ({
     showAnalysisSummary = true,
     isScenarioSettling = false,
     variant = 'panel',
+    initialPasteExpanded = false,
 }) => {
     const unbounded = analysis !== null && analysis.neverInViewCount > 0;
     const fileRef = useRef<HTMLInputElement>(null);
@@ -64,6 +82,11 @@ export const AreaPanel: React.FC<AreaPanelProps> = ({
     useEffect(() => {
         setCoordinateText(areaCoordinateList(customArea?.boundary ?? []));
     }, [customArea?.boundary]);
+    /* Uncontrolled after mount: applying a list must not collapse the box the
+       user is working in, and the summary keeps toggling normally. */
+    const [pasteOpen, setPasteOpen] = useState(initialPasteExpanded);
+    /** An area nobody has started yet: no boundary, and nothing to report on. */
+    const hasNoBoundary = (customArea?.boundary.length ?? 0) === 0;
     const customValidation = useMemo(
         () => customArea
             ? validateArea(customArea, scenario.reference, scenario.payload)
@@ -117,6 +140,25 @@ export const AreaPanel: React.FC<AreaPanelProps> = ({
         }
     };
 
+    /* One editor, two presentations: open inline while no boundary exists,
+       behind a disclosure once one does. */
+    const coordinateEditor = (
+        <>
+            <textarea
+                aria-label="Custom area coordinate list"
+                rows={5}
+                value={coordinateText}
+                onChange={(event) => setCoordinateText(event.target.value)}
+                placeholder={'latitude, longitude\n51.0, -2.0\n51.0, 2.0\n55.0, 2.0'}
+                className="mt-1 w-full resize-y rounded border border-slate-700 bg-slate-950/70 p-1.5 font-mono text-[11px] leading-4 text-slate-200 outline-none focus:border-sky-400/60"
+            />
+            <div className="mt-1 flex items-center justify-between gap-2">
+                <span className="text-[11px] text-slate-600">One latitude, longitude pair per line</span>
+                <button type="button" onClick={applyCoordinateList} className="min-h-11 md:min-h-8 rounded border border-slate-600 px-2 text-[11px] font-black uppercase text-slate-300">Apply list</button>
+            </div>
+        </>
+    );
+
     return (
         <section className={`${variant === 'panel' ? REVISIT_PANEL : ''} px-3 py-2.5`} aria-label="Area coverage">
             <div className="flex items-center justify-between gap-2">
@@ -151,34 +193,9 @@ export const AreaPanel: React.FC<AreaPanelProps> = ({
 
             <div className="mt-2 border-t border-slate-700/50 pt-2">
                 <div className="text-[11px] font-black uppercase tracking-[0.1em] text-sky-300">
-                    Custom area · draw or import
+                    Area boundary
                 </div>
                 <div className="mt-2 space-y-2">
-                    <div className="grid grid-cols-[minmax(0,1fr)_6.5rem] gap-1.5">
-                        <label className="min-w-0">
-                            <span className="mb-0.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Area name</span>
-                            <input
-                                aria-label="Custom area name"
-                                maxLength={80}
-                                value={customArea?.name ?? 'Custom area'}
-                                onChange={(event) => updateCustomArea({ name: event.target.value })}
-                                className="w-full rounded border border-slate-700 bg-slate-950/70 px-1.5 py-1 text-[12px] text-slate-200 outline-none focus:border-sky-400/60"
-                            />
-                        </label>
-                        <label>
-                            <span className="mb-0.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Grid spacing °</span>
-                            <input
-                                aria-label="Custom area grid spacing"
-                                type="number"
-                                min="0.001"
-                                step="0.001"
-                                value={customArea?.gridSpacingDeg ?? defaultSpacing}
-                                onChange={(event) => updateCustomArea({ gridSpacingDeg: Number(event.target.value) })}
-                                className="w-full rounded border border-slate-700 bg-slate-950/70 px-1.5 py-1 text-[12px] tabular-nums text-slate-200 outline-none focus:border-sky-400/60"
-                            />
-                        </label>
-                    </div>
-
                     <div className="flex flex-wrap gap-1">
                         <button
                             type="button"
@@ -230,24 +247,28 @@ export const AreaPanel: React.FC<AreaPanelProps> = ({
                     )}
 
                     {!isDrawing && (
-                        <details>
+                        <details open={pasteOpen} onToggle={(event) => setPasteOpen(event.currentTarget.open)}>
                             <summary className="cursor-pointer text-[11px] font-bold text-slate-400 hover:text-slate-300">Paste coordinate list</summary>
-                            <textarea
-                                aria-label="Custom area coordinate list"
-                                rows={5}
-                                value={coordinateText}
-                                onChange={(event) => setCoordinateText(event.target.value)}
-                                placeholder={'latitude, longitude\n51.0, -2.0\n51.0, 2.0\n55.0, 2.0'}
-                                className="mt-1 w-full resize-y rounded border border-slate-700 bg-slate-950/70 p-1.5 font-mono text-[11px] leading-4 text-slate-200 outline-none focus:border-sky-400/60"
-                            />
-                            <div className="mt-1 flex items-center justify-between gap-2">
-                                <span className="text-[11px] text-slate-600">One latitude, longitude pair per line</span>
-                                <button type="button" onClick={applyCoordinateList} className="min-h-11 md:min-h-8 rounded border border-slate-600 px-2 text-[11px] font-black uppercase text-slate-300">Apply list</button>
-                            </div>
+                            {coordinateEditor}
                         </details>
                     )}
 
-                    {customValidation && (
+                    {/*
+                      * No error before the first gesture. An area with no
+                      * boundary is not invalid input — it is an area nobody has
+                      * started yet, and "needs at least 3 boundary points, got
+                      * 0" was the app reporting a fault in a state it had
+                      * created itself, in red, one second after the user asked
+                      * for a polygon. Say what to do instead; validation starts
+                      * at the first vertex.
+                      */}
+                    {hasNoBoundary ? (
+                        <p aria-label="Custom area validation" aria-live="polite" className="text-[11px] leading-4 text-slate-400">
+                            {isDrawing
+                                ? 'Click the globe to place the first corner.'
+                                : 'Draw the boundary on the globe, or import a GeoJSON or a coordinate list.'}
+                        </p>
+                    ) : customValidation && (
                         <div aria-label="Custom area validation" aria-live="polite" className="space-y-0.5">
                             {customValidation.ok && (
                                 <p className="text-[11px] font-bold text-emerald-300">
@@ -259,6 +280,44 @@ export const AreaPanel: React.FC<AreaPanelProps> = ({
                         </div>
                     )}
                     {editorMessage && <p role="status" className="text-[11px] leading-3 text-slate-400">{editorMessage}</p>}
+
+                    {/*
+                      * Metadata, after the thing it names. Both fields arrive
+                      * filled — the name from the role, the spacing derived from
+                      * the swath by `recommendedAreaGridSpacing` — so neither is
+                      * a step on the way to an area; they are adjustments to one
+                      * that exists.
+                      */}
+                    <div className="border-t border-slate-800 pt-2">
+                        <div className="text-[11px] font-black uppercase tracking-[0.1em] text-slate-500">
+                            Area settings
+                        </div>
+                        <div className="mt-1.5 grid grid-cols-[minmax(0,1fr)_6.5rem] gap-1.5">
+                            <label className="min-w-0">
+                                <span className="mb-0.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Area name</span>
+                                <input
+                                    aria-label="Custom area name"
+                                    maxLength={80}
+                                    value={customArea?.name ?? 'Custom area'}
+                                    onChange={(event) => updateCustomArea({ name: event.target.value })}
+                                    className="w-full rounded border border-slate-700 bg-slate-950/70 px-1.5 py-1 text-[12px] text-slate-200 outline-none focus:border-sky-400/60"
+                                />
+                            </label>
+                            <label>
+                                <span className="mb-0.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Grid spacing °</span>
+                                <input
+                                    aria-label="Custom area grid spacing"
+                                    type="number"
+                                    min="0.001"
+                                    step="0.001"
+                                    value={customArea?.gridSpacingDeg ?? defaultSpacing}
+                                    onChange={(event) => updateCustomArea({ gridSpacingDeg: Number(event.target.value) })}
+                                    className="w-full rounded border border-slate-700 bg-slate-950/70 px-1.5 py-1 text-[12px] tabular-nums text-slate-200 outline-none focus:border-sky-400/60"
+                                />
+                            </label>
+                        </div>
+                    </div>
+
                     <p className="text-[11px] leading-3 text-slate-500">
                         {isDrawing
                             ? 'Analysis will start after Finish polygon.'

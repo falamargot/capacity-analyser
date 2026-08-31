@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { WGS84_A_KM, WGS84_E2, orbitalRadiusKm } from '../../../utils/wgs84Geometry';
 import { v3, toRad, toDeg } from '../../../utils/sphericalGeometry';
 import {
-    evaluateContainment, isTargetInFov, prepareFov, targetEciAt,
+    earthRotationGrid, evaluateContainment, isTargetInFov, prepareFov, targetEciAt, targetTrack,
 } from '../fov/containment';
 import { groundArcRad } from '../fov/footprint';
 import { argLatRateRadPerSec, geodeticToEcef, gmstRad } from '../propagation/keplerJ2';
@@ -376,5 +376,57 @@ describe('containment — target in ECI', () => {
             { kind: 'POINT', name: 'T', latDeg: 0, lonDeg: 0, altitudeKm: 2 }, 0, 0
         );
         expect(Math.hypot(p.x, p.y, p.z)).toBeCloseTo(WGS84_A_KM + 2, 9);
+    });
+});
+
+/*
+ * The rotation grid depends on the window, never on the target, so the area
+ * path shares one across a whole batch of cells. Sharing must change nothing —
+ * and the shared table must not become a silent source of NaN when a caller
+ * asks for a sample past its end.
+ */
+describe('targetTrack — shared Earth-rotation grid', () => {
+    const EPOCH = Date.UTC(2026, 7, 6);
+    const STEP = 10;
+    const DURATION = 3600;
+    const a = { kind: 'POINT' as const, name: 'A', latDeg: 45, lonDeg: 3 };
+    const b = { kind: 'POINT' as const, name: 'B', latDeg: -12, lonDeg: 175, altitudeKm: 1.2 };
+
+    it('gives the same samples shared as it does private', () => {
+        const grid = earthRotationGrid(EPOCH, STEP, DURATION);
+        for (const target of [a, b]) {
+            const shared = targetTrack(target, EPOCH, STEP, DURATION, grid);
+            const own = targetTrack(target, EPOCH, STEP, DURATION);
+            for (const index of [0, 1, 17, 180, 360]) {
+                const s = { ...shared.atStep(index) };
+                const o = own.atStep(index);
+                // Bit-identical, not merely close: this is the same expression
+                // evaluated from the same table.
+                expect(s).toEqual({ x: o.x, y: o.y, z: o.z });
+                // And still the value the original path produces.
+                const reference = targetEciAt(target, EPOCH, Math.min(index * STEP, DURATION));
+                expect(s.x).toBe(reference.x);
+                expect(s.y).toBe(reference.y);
+                expect(s.z).toBe(reference.z);
+            }
+        }
+    });
+
+    /*
+     * A grid built for a shorter run used to be read out of bounds, yielding
+     * `undefined` cos/sin and NaN coordinates — which `isTargetInFov` reports as
+     * "not in view" rather than as an error, so a whole area could have come
+     * back never observed with nothing raised.
+     */
+    it('evaluates directly past the end of the table instead of returning NaN', () => {
+        const short = earthRotationGrid(EPOCH, STEP, DURATION);
+        const track = targetTrack(a, EPOCH, STEP, DURATION, short);
+        const beyond = track.atStep(short.stepCount + 25);
+        expect(Number.isFinite(beyond.x)).toBe(true);
+        expect(Number.isFinite(beyond.y)).toBe(true);
+        // Clamped to the window's end, exactly as the tabulated path clamps it.
+        const reference = targetEciAt(a, EPOCH, DURATION);
+        expect(beyond.x).toBe(reference.x);
+        expect(beyond.y).toBe(reference.y);
     });
 });

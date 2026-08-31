@@ -182,8 +182,8 @@ function circularSeparationDeg(a: number, b: number): number {
 }
 
 /**
- * Whether a calibrated Walker fit still describes `reference`, for the "is the
- * fit still current" provenance check (ModelProvenance, CSV export).
+ * Whether a calibrated Walker fit still describes `reference`, for the CSV
+ * provenance check and the TLE comparison diagnostic.
  *
  * Deliberately looser than walkerSpecsEqual, and not that function plus a
  * tolerance: fitWalker only ever estimates pattern, planes, satsPerPlane,
@@ -194,9 +194,9 @@ function circularSeparationDeg(a: number, b: number): number {
  * ── EVERY ESTIMATED PARAMETER IS COMPARED ───────────────────────────────────
  * This function once checked four of the eight. The consequence was not a
  * cosmetic one: editing `pattern`, `phasingF`, `fudge` or `raan0Deg` left
- * `matchesFit = true`, so `ModelProvenance` and the CSV provenance header
- * presented the residuals of a fit against constellation A as applicable to
- * constellation B. A Star folded into 180° and a Delta spread over 360° with
+ * `matchesFit = true`, so the CSV provenance header presented the residuals of
+ * a fit against constellation A as applicable to constellation B. A Star folded
+ * into 180° and a Delta spread over 360° with
  * the same P, S, i and h are different fleets with different access geometry,
  * and the fit's residual says nothing about the second.
  *

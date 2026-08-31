@@ -27,16 +27,18 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe('REVISIT P7E commercial progressive disclosure', () => {
-  test('opens the constellation panel on model and evidence, not on a form', async ({ page }, testInfo) => {
+  test('opens the constellation panel on a concise model summary and expert settings', async ({ page }, testInfo) => {
     test.skip(!['desktop-chromium', 'mobile-chromium'].includes(testInfo.project.name));
 
     await page.getByRole('button', { name: 'Constellation model and settings' }).click();
     const panel = page.getByRole('dialog', { name: 'Advanced constellation settings' });
     await expect(panel).toBeVisible();
 
-    // Model and Evidence answer "what am I running, and why believe it".
+    // The model selector and summary answer what is being run. Engine-validation
+    // evidence belongs to technical documentation and exports, not this panel.
     await expect(panel.getByRole('radiogroup', { name: 'Constellation model' })).toBeVisible();
-    await expect(panel).toContainText('Kepler + J2');
+    await expect(panel).not.toContainText('Evidence');
+    await expect(panel).not.toContainText('Kepler + J2');
 
     // The whole specification, as one sentence rather than seven fields.
     const summary = panel.locator('.revisit-characteristics-summary');
@@ -49,6 +51,31 @@ test.describe('REVISIT P7E commercial progressive disclosure', () => {
     await expect(panel.getByRole('combobox', { name: 'Plane stride x' })).toBeVisible();
     await expect(expert).toContainText('Instrument geometry');
     await expect(expert).toContainText('Analysis window');
+  });
+
+  test('opens technical evidence from the Characteristics information button', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop-chromium', 'Interaction is viewport-independent');
+
+    await page.getByRole('button', { name: 'Constellation model and settings' }).click();
+    const panel = page.getByRole('dialog', { name: 'Advanced constellation settings' });
+    await panel.getByRole('button', { name: 'Model evidence' }).click();
+
+    const evidence = panel.getByRole('dialog', { name: 'Model evidence' });
+    await expect(evidence).toContainText('Kepler + J2 secular · no drag');
+    await expect(evidence).toContainText('OneWeb Gen1 (HLD reference)');
+    await evidence.getByRole('button', { name: 'Close model evidence' }).click();
+    await expect(evidence).toBeHidden();
+  });
+
+  test('shows the HLD equality marker only beside expert settings', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop-chromium', 'Wording contract is viewport-independent');
+
+    await page.getByRole('button', { name: 'Constellation model and settings' }).click();
+    const panel = page.getByRole('dialog', { name: 'Advanced constellation settings' });
+    await panel.getByRole('radio', { name: 'Custom' }).click();
+
+    await expect(panel.getByText('= HLD', { exact: true })).toHaveCount(1);
+    await expect(panel.locator('.revisit-expert-settings')).toContainText('= HLD');
   });
 
   /*

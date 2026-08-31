@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
-import { addSecondaryPoint, openRevisitSurfaces,
+import {
+  addSecondaryPoint, openAreaEditorFromDrawing, openRevisitSurfaces, pasteAreaBoundary,
 } from './revisitCompact';
 
 test.beforeEach(async ({ page }) => {
@@ -35,15 +36,18 @@ test.describe('REVISIT P2c-B unified target set', () => {
     await expect(targetSet).toContainText('Secondary target');
     await expect(activeResult).toContainText('Point result · Secondary target');
 
-    // Geometry is chosen when a target is added; replacing the reference also
-    // clears its dependent comparison slot.
+    // Geometry is chosen when a target is added. Removing Primary PROMOTES the
+    // Secondary rather than discarding it, so emptying the list takes one
+    // removal per target.
+    await targetSet.getByRole('button', { name: 'Remove primary target' }).click();
+    await expect(targetSet).not.toContainText('Secondary target');
     await targetSet.getByRole('button', { name: 'Remove primary target' }).click();
     await targetSet.getByRole('button', { name: 'Add primary target' }).click();
     await targetSet.getByRole('menuitem', { name: 'Add Primary polygon target' }).click();
+    // Polygon goes to the globe first; the editor is reached from the toolbar.
+    await openAreaEditorFromDrawing(page);
     const area = page.getByRole('region', { name: 'Area coverage' });
-    await area.getByText('Paste coordinate list', { exact: true }).click();
-    await area.getByLabel('Custom area coordinate list').fill('49, -2\n49, 2\n51, 2\n51, -2');
-    await area.getByRole('button', { name: 'Apply list' }).click();
+    await pasteAreaBoundary(area, '49, -2\n49, 2\n51, 2\n51, -2');
     await expect(activeResult).toContainText('Area result');
     await expect(page.getByRole('region', { name: 'Area result summary' })).toContainText('Least-covered cell', { timeout: 60_000 });
 

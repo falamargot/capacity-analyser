@@ -9,6 +9,7 @@
 
 import type { PayloadSweepResult } from './payloadSweep';
 import type { SubConstellationSpec } from '../domain/types';
+import type { AreaSizingResult } from './areaSizing';
 
 /**
  * What the fleet sizing has to say. These are not interchangeable and the
@@ -21,9 +22,19 @@ import type { SubConstellationSpec } from '../domain/types';
  *                    payloads — the same budget (or less) split differently;
  * - `COMPUTING`      the sweep has not answered yet — a wait, not an answer;
  * - `BEYOND_RANGE`   the sweep answered: nothing on the tested ladder meets it;
- * - `AREA_NOT_SIZED` an Area is being analysed and no area-wide sizing sweep
- *                    exists, so no payload figure may be proposed at all
- *                    (Programme 5b guardrail, kept as an invariant here);
+ * - `AREA_NOT_SIZED` an Area is being analysed and no sizing has been asked for
+ *                    yet, so no payload figure may be proposed. The guardrail
+ *                    (Programme 5b) was never about areas being unsizeable — it
+ *                    forbade a figure nobody measured. `AREA_SIZING` and
+ *                    `AREA_VERIFIED` are how one gets measured;
+ * - `AREA_SIZING`    the search is running: a ladder probe on one cell, then
+ *                    full-grid verifications;
+ * - `AREA_NOT_FOUND` the search ran and found nothing — a measured absence,
+ *                    which is NOT the same as never having asked;
+ * - `AREA_VERIFIED`  a configuration was measured to meet the requirement on
+ *                    EVERY cell. Verified, never proved minimal — the binding
+ *                    cell can change with the topology, so a cheaper rung may
+ *                    exist that the probe's ranking did not reach;
  * - `UNAVAILABLE`    there is no current result to size against.
  */
 export type CustomerSizing =
@@ -63,7 +74,42 @@ export type CustomerSizing =
     | { kind: 'FAILED' }
     | { kind: 'BEYOND_RANGE' }
     | { kind: 'AREA_NOT_SIZED' }
+    | {
+        kind: 'AREA_NOT_FOUND';
+        /** The ceiling stopped the search rather than the ladder running out. */
+        stoppedAtCeiling: boolean;
+        /** Every configuration failed on the probe cell, which is in the grid. */
+        ruledOutByProbe: boolean;
+    }
+    | {
+        kind: 'AREA_SIZING';
+        phase: 'probe' | 'verify';
+        /** 1-based candidate being verified; 0 during the probe. */
+        candidate: number;
+        /** 0–1 within the current phase. */
+        fraction: number;
+    }
+    | {
+        kind: 'AREA_VERIFIED';
+        payloadCount: number;
+        selectedPlanes: number;
+        payloadsPerPlane: number;
+        /** Worst cell of the verified run — the figure the card may quote. */
+        worstCellGapMs: number;
+        candidatesTried: number;
+        /** Payloads beyond what is flown today; 0 or negative when it is a re-split. */
+        additionalPayloads: number;
+    }
     | { kind: 'UNAVAILABLE' };
+
+/** What the sizing hook knows, reduced to what this decision needs. */
+export interface AreaSizingInput {
+    isRunning: boolean;
+    phase?: 'probe' | 'verify';
+    candidate?: number;
+    fraction?: number;
+    result?: AreaSizingResult | null;
+}
 
 export interface CustomerSizingInput {
     /** Worst-case gap of the result on screen, ms. Null when there is none. */
@@ -71,6 +117,8 @@ export interface CustomerSizingInput {
     requirementMs: number;
     /** An Area is judged on its least-covered cell and is never sized. */
     isArea: boolean;
+    /** Live state of the area sizing search, when one has been asked for. */
+    areaSizing?: AreaSizingInput;
     /** Whether that Area has produced an analysis. Ignored outside an Area. */
     hasAreaAnalysis: boolean;
     /** Whether a point is inspected. Ignored inside an Area. */
@@ -105,12 +153,49 @@ export function resolveCustomerSizing(input: CustomerSizingInput): CustomerSizin
     const {
         currentMaxGapMs, requirementMs, isArea, hasAreaAnalysis, hasInspectedPoint,
         sweep, isSweeping, hasSweepError, recommendedPayloadCount, currentPayloadCount,
-        selection, isConfigurationSettling,
+        selection, isConfigurationSettling, areaSizing,
     } = input;
 
     const covered = currentMaxGapMs !== null && currentMaxGapMs <= requirementMs;
     if (covered) return { kind: 'COVERED' };
-    if (isArea) return hasAreaAnalysis ? { kind: 'AREA_NOT_SIZED' } : { kind: 'UNAVAILABLE' };
+    if (isArea) {
+        if (!hasAreaAnalysis) return { kind: 'UNAVAILABLE' };
+        if (areaSizing?.isRunning) {
+            return {
+                kind: 'AREA_SIZING',
+                phase: areaSizing.phase ?? 'probe',
+                candidate: areaSizing.candidate ?? 0,
+                fraction: areaSizing.fraction ?? 0,
+            };
+        }
+        const verified = areaSizing?.result;
+        if (verified && verified.kind === 'VERIFIED') {
+            return {
+                kind: 'AREA_VERIFIED',
+                payloadCount: verified.payloadCount,
+                selectedPlanes: verified.selectedPlanes,
+                payloadsPerPlane: verified.payloadsPerPlane,
+                worstCellGapMs: verified.worstCellGapMs,
+                candidatesTried: verified.candidatesTried,
+                additionalPayloads: verified.payloadCount - currentPayloadCount,
+            };
+        }
+        /*
+         * A search that found nothing and one never run are different states,
+         * and the card shows them differently: the first is a measured absence
+         * with evidence behind it, the second is an offer to measure. Collapsing
+         * them put an impasse ("assessment required") over a case whose whole
+         * content is a button.
+         */
+        if (verified && verified.kind === 'NONE') {
+            return {
+                kind: 'AREA_NOT_FOUND',
+                stoppedAtCeiling: verified.stoppedAtCeiling,
+                ruledOutByProbe: verified.probeRejected === verified.ladderSize,
+            };
+        }
+        return { kind: 'AREA_NOT_SIZED' };
+    }
     if (!hasInspectedPoint) return { kind: 'UNAVAILABLE' };
     // A failed sweep is a sizing state, not a presentation-wide failure.
     if (hasSweepError) return { kind: 'FAILED' };

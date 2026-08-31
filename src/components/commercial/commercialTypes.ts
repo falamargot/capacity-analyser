@@ -113,29 +113,8 @@ export interface CommercialTechnologyOption {
   technicalLimitingFactor?: string;
   regulatoryConfidence?: CommercialRegulatoryConfidence;
   strengths: string[];
-  // ── Objective-scoring criteria (E). All optional and nullable: `null`/absent
-  // means "unknown", never zero. Populated per technology by the ENG→COMM seam
-  // (E2a); a direction known for only one way is NOT copied to the other.
-  /** Delivered downlink throughput under modelled load (Mbps). */
-  sustainedDownlinkMbps?: number | null;
-  /** Delivered uplink throughput under modelled load (Mbps). */
-  sustainedUplinkMbps?: number | null;
-  /** RF-potential downlink throughput, clear-sky boresight (Mbps). */
-  theoreticalDownlinkMbps?: number | null;
-  /** RF-potential uplink throughput, clear-sky boresight (Mbps). */
-  theoreticalUplinkMbps?: number | null;
   /** Indicative link availability (%, 0-100) for THIS technology. Estimated, not an SLA. */
   availabilityPct?: number | null;
-  /** Fraction of time the service is usable (0-1). */
-  dutyCycle?: number | null;
-  /** Equivalent users sharing capacity (>= 1); lower is better. */
-  contentionRatio?: number | null;
-  /** Consolidated service/route diversity (0-1); satellite/gateway/route are underlying evidence. */
-  serviceDiversity?: number | null;
-  /** Explicit terminal-profile mobility compatibility. `null` = unknown (not eliminating). */
-  mobilityCompatible?: boolean | null;
-  /** Per-criterion evidence (value/unit/nature/source/date) for explainability. */
-  evidence?: import('./commercialCriteriaEvidence').CommercialCriteriaEvidence;
 }
 
 export interface CommercialRecommendation {
@@ -146,30 +125,6 @@ export interface CommercialRecommendation {
   reason: string;
   message: string;
   expectedExperience: string;
-  // ── Objective-aware explainability (E). Populated only when an objective is
-  // supplied; the legacy path leaves these undefined (behaviour unchanged).
-  objective?: import('./commercialObjective').CommercialObjective;
-  favorableFactors?: string[];
-  limitingFactors?: string[];
-  /** Criteria compared across BOTH technologies (used in the score). */
-  commonCriteria?: string[];
-  /** Weighted criteria known for exactly ONE technology (explanatory, not discriminating). */
-  nonComparableCriteria?: string[];
-  /** Weighted criteria unknown for BOTH technologies. */
-  unknownCriteria?: string[];
-  /**
-   * RELATIVE comparison gap between the two options on the common base (0-1).
-   * A preference signal, not an absolute-fitness gap.
-   */
-  scoreGap?: number;
-  /**
-   * Scope of the score. `relative_comparison` means the recommendation ranks the
-   * present options against each other, NOT against an absolute service need.
-   */
-  assessmentBasis?: 'relative_comparison';
-  confidence?: import('./commercialObjective').CommercialRecommendationConfidence;
-  /** Engineering-facing breakdown of the relative comparison; never a fitness percentage. */
-  technologyScores?: import('./commercialObjective').CommercialTechnologyScore[];
 }
 
 export interface CommercialExecutiveSummary {
@@ -191,11 +146,6 @@ export interface CommercialScenarioViewModel {
   commercialDisplayTechnology: 'LEO' | 'GEO';
   /** The user's active connectivity tab captured for context/debugging. */
   contextTechnology: 'LEO' | 'GEO';
-  commercialIntent: {
-    objective?: import('./commercialObjective').CommercialObjective;
-    trafficDirection: import('./commercialObjective').CommercialTrafficDirection;
-    primaryTechnology?: import('./commercialObjective').CommercialPrimaryTechnology;
-  };
   siteA?: {
     name: string;
   };

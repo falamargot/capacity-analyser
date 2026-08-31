@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
-import { addSecondaryArea, addSecondaryPoint, openRevisitSurfaces,
-  seedReferenceTarget,
+import {
+  addSecondaryArea, addSecondaryPoint, openRevisitSurfaces, pasteAreaBoundary, seedReferenceTarget,
 } from './revisitCompact';
 
 test.beforeEach(async ({ page }) => {
@@ -58,10 +58,7 @@ test.describe('REVISIT P2b-B1 target contexts', () => {
     await expect(page.getByRole('button', { name: /Select secondary target polygon/ })).toHaveAttribute('aria-pressed', 'true');
     const area = page.getByRole('region', { name: 'Area coverage' });
     await expect(area).toBeVisible();
-    await area.getByText('Paste coordinate list', { exact: true }).click({ force: true });
-    await expect(area.getByLabel('Custom area coordinate list')).toBeVisible();
-    await area.getByLabel('Custom area coordinate list').fill('49, -2\n49, 2\n51, 2\n51, -2');
-    await area.getByRole('button', { name: 'Apply list' }).click();
+    await pasteAreaBoundary(area, '49, -2\n49, 2\n51, 2\n51, -2');
     await expect(page.getByRole('button', { name: /Select secondary target polygon/ })).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByLabel('Active result context')).toContainText('Area result');
     await expect(page.getByText('Observation schedule comparison')).toBeVisible();

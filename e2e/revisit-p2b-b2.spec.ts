@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test';
 import {
-  addSecondaryArea, openRevisitAnalysis, openRevisitSurfaces,
-  seedReferenceTarget,
+  addSecondaryArea, openRevisitAnalysis, openRevisitSurfaces, pasteAreaBoundary, seedReferenceTarget,
 } from './revisitCompact';
 
 test.beforeEach(async ({ page }) => {
@@ -53,9 +52,7 @@ test.describe('REVISIT P2b-B2 contextual results', () => {
     await page.getByRole('button', { name: 'Define area target' }).click();
     const areaPanel = page.getByRole('region', { name: 'Area coverage' });
     await areaPanel.getByLabel('Custom area name').fill('North Sea');
-    await areaPanel.getByText('Paste coordinate list', { exact: true }).click();
-    await areaPanel.getByLabel('Custom area coordinate list').fill('51, -2\n51, 9\n61, 9\n61, -2');
-    await areaPanel.getByRole('button', { name: 'Apply list' }).click();
+    await pasteAreaBoundary(areaPanel, '51, -2\n51, 9\n61, 9\n61, -2');
     await expect(analysis.getByRole('region', { name: 'Area result summary' })).toContainText('Least-covered cell', { timeout: 60_000 });
     await expect(page.locator('[data-revisit-timeline]')).toContainText(/least-covered cell/i);
     await expect(page.locator('[data-revisit-context-panel="analysis-target"]')).toContainText('North Sea');

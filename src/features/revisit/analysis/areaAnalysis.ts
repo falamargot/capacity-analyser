@@ -27,7 +27,18 @@ import { generateGrid, validateArea } from '../domain/areaTarget';
 import { mergeValidations } from '../domain/inputValidation';
 import { selectSubConstellation } from '../domain/subConstellation';
 import { constellationFor, type ConstellationCache } from './runScenario';
-import { computeAccessIntervals } from './accessIntervals';
+import { computeAccessIntervalsForCells } from './accessIntervals';
+
+/**
+ * Cells computed per shared propagation pass.
+ *
+ * Twelve is a compromise measured on the default window: it removes 11 of every
+ * 12 propagation passes — most of the available gain — while keeping the
+ * progress bar moving eight times on a 96-cell grid and the peak interval
+ * retention at twelve cells' worth. Raising it buys little; lowering it towards
+ * 1 returns to the old cost.
+ */
+const AREA_CELL_BATCH = 12;
 import { computeGapStatistics } from './gapStatistics';
 import { validateScenarioBase } from './scenarioValidation';
 
@@ -72,6 +83,32 @@ export function analyseArea(
     area: AreaTarget,
     options: AreaAnalysisOptions = {}
 ): AreaAnalysis {
+    const collected = collectCells(scenario, area, options);
+    return finaliseArea(area, collected);
+}
+
+/**
+ * Everything the grid produced, before it is turned into an `AreaAnalysis`.
+ *
+ * `stoppedAt` is the cell that ended the run early, and it is the reason this
+ * intermediate exists: a partial set of cells must never become an
+ * `AreaAnalysis`. A truncated grid has no worst cell, no mean and no
+ * distribution — only the knowledge that one cell failed — and the way to stop
+ * a partial result reaching the heat map is to make it a different type, not to
+ * flag it and rely on every consumer checking the flag.
+ */
+interface CollectedCells {
+    cells: AreaCellResult[];
+    warnings: Set<string>;
+    worstCellIntervals: AccessInterval[];
+    stoppedAt: AreaCellResult | null;
+}
+
+function collectCells(
+    scenario: Omit<RevisitScenario, 'target'>,
+    area: AreaTarget,
+    options: AreaAnalysisOptions & { stopWhen?: (cell: AreaCellResult) => boolean } = {},
+): CollectedCells {
     // The area path never goes through `validateScenario` — it has no single
     // target — so it has to check the instrument and fleet itself, or an invalid
     // FOV would produce a full heat map of plausible nonsense.
@@ -94,26 +131,121 @@ export function analyseArea(
     let worstCellIntervals: AccessInterval[] = [];
     let hasNeverInViewCell = false;
 
-    for (let i = 0; i < grid.length; i++) {
-        const target = grid[i];
-        const access = computeAccessIntervals(
-            selected, target, scenario.payload as FovSpec, scenario.window as AnalysisWindow
+    /*
+     * Cells are computed in batches that share one propagation pass.
+     *
+     * The satellites' positions do not depend on the cell, so running cells one
+     * at a time re-propagated the whole sub-constellation for every one of them.
+     * `computeAccessIntervalsForCells` propagates once per batch and tests every
+     * cell of that batch at each state — identical containment, identical
+     * bisection, identical results.
+     *
+     * Why a batch rather than the whole grid at once, which would share even
+     * more: progress. `onProgress` reports CELLS completed and the presenter
+     * watches that bar; one batch of 96 would move it once, at the end. A batch
+     * also bounds the peak retention of per-cell, per-satellite intervals, and
+     * it is the granularity a future early-exit will stop at.
+     */
+    for (let start = 0; start < grid.length; start += AREA_CELL_BATCH) {
+        const batch = grid.slice(start, start + AREA_CELL_BATCH);
+        const accesses = computeAccessIntervalsForCells(
+            selected, batch, scenario.payload as FovSpec, scenario.window as AnalysisWindow
         );
-        const statistics = computeGapStatistics(access.intervals, scenario.window, access.warnings);
-        cells.push({ target, statistics, maxGapMs: statistics.maxGapMs });
 
-        if (statistics.coverage === 'NEVER_IN_VIEW') {
-            if (!hasNeverInViewCell) worstCellIntervals = [];
-            hasNeverInViewCell = true;
-        } else if (!hasNeverInViewCell && statistics.maxGapMs !== null
-            && statistics.maxGapMs > worstMeasuredGapMs) {
-            worstMeasuredGapMs = statistics.maxGapMs;
-            worstCellIntervals = access.intervals;
+        for (let offset = 0; offset < batch.length; offset += 1) {
+            const target = batch[offset];
+            const access = accesses[offset];
+            const statistics = computeGapStatistics(
+                access.intervals, scenario.window, access.warnings
+            );
+            cells.push({ target, statistics, maxGapMs: statistics.maxGapMs });
+
+            if (statistics.coverage === 'NEVER_IN_VIEW') {
+                if (!hasNeverInViewCell) worstCellIntervals = [];
+                hasNeverInViewCell = true;
+            } else if (!hasNeverInViewCell && statistics.maxGapMs !== null
+                && statistics.maxGapMs > worstMeasuredGapMs) {
+                worstMeasuredGapMs = statistics.maxGapMs;
+                worstCellIntervals = access.intervals;
+            }
         }
 
-        options.onProgress?.(i + 1, grid.length);
+        options.onProgress?.(Math.min(start + batch.length, grid.length), grid.length);
+
+        /*
+         * Early exit, at batch granularity.
+         *
+         * The check runs on the cells this batch produced, so the work already
+         * spent is never wasted and the work not yet started is never spent.
+         * Finer granularity would mean giving up the shared propagation pass
+         * that makes a batch cheap in the first place — the two are the same
+         * trade, seen from either end.
+         */
+        if (options.stopWhen) {
+            const failing = cells.slice(start).find(options.stopWhen);
+            if (failing) {
+                return { cells, warnings: warningSet, worstCellIntervals, stoppedAt: failing };
+            }
+        }
     }
 
+    return { cells, warnings: warningSet, worstCellIntervals, stoppedAt: null };
+}
+
+/**
+ * Does this configuration meet the requirement on EVERY cell?
+ *
+ * The sizing search asks this of each candidate, and for a candidate that fails
+ * it needs one bit — plus, for the evidence trail, where it failed. Running the
+ * whole grid to learn that the seventh cell already missed is work spent to
+ * confirm a conclusion reached long before. Measured on 2026-08-31: stopping at
+ * the first failure saves 46 % of the cells verified on a 96-cell grid, 47 % on
+ * 216.
+ *
+ * The return type is a union rather than an analysis with a `truncated` flag:
+ * a partial grid cannot be summarised — no worst cell, no mean, no distribution
+ * — so it must not be representable as an `AreaAnalysis` that a heat map or a
+ * KPI panel could accept. The type refuses it; no consumer has to remember to.
+ */
+export type AreaVerification =
+    | { met: true; analysis: AreaAnalysis }
+    | {
+        met: false;
+        /** The first cell measured to miss — what the evidence trail names. */
+        failedCell: AreaCellResult;
+        /** Cells actually computed before stopping, out of the whole grid. */
+        cellsComputed: number;
+        totalCells: number;
+    };
+
+export function verifyAreaMeets(
+    scenario: Omit<RevisitScenario, 'target'>,
+    area: AreaTarget,
+    requirementMs: number,
+    options: AreaAnalysisOptions = {},
+): AreaVerification {
+    const collected = collectCells(scenario, area, {
+        ...options,
+        // A cell that is never in view has no gap figure and fails outright:
+        // `null > requirement` is false, so it has to be tested explicitly.
+        stopWhen: (cell) => cell.maxGapMs === null || cell.maxGapMs > requirementMs,
+    });
+
+    if (collected.stoppedAt) {
+        return {
+            met: false,
+            failedCell: collected.stoppedAt,
+            cellsComputed: collected.cells.length,
+            totalCells: generateGrid(area).length,
+        };
+    }
+    return { met: true, analysis: finaliseArea(area, collected) };
+}
+
+/** Summarise a COMPLETE grid. Never called with a truncated one — see above. */
+function finaliseArea(area: AreaTarget, collected: CollectedCells): AreaAnalysis {
+    const { cells, worstCellIntervals } = collected;
+    const warningSet = collected.warnings;
     const measured = cells.filter((c) => c.maxGapMs !== null);
     const neverInViewCount = cells.filter(
         (c) => c.statistics.coverage === 'NEVER_IN_VIEW'

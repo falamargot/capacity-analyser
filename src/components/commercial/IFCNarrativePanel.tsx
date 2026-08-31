@@ -19,7 +19,6 @@ import {
   responseTimeTier,
   uploadSpeedTier,
 } from './commercialTiers';
-import { CommercialDecisionSummary } from './CommercialObjectiveDecision';
 
 // ── Hero SVG ─────────────────────────────────────────────────────────────────
 
@@ -118,7 +117,6 @@ export interface IFCNarrativePanelProps {
   viewModel: CommercialScenarioViewModel;
   isOpen: boolean;
   onViewFullAnalysis?: () => void;
-  onOpenCustomerDecision?: () => void;
 }
 
 const IFCNarrativePanel = memo(function IFCNarrativePanel({
@@ -126,7 +124,6 @@ const IFCNarrativePanel = memo(function IFCNarrativePanel({
   viewModel,
   isOpen,
   onViewFullAnalysis,
-  onOpenCustomerDecision,
 }: IFCNarrativePanelProps) {
   // Flight display values
   // altitude_km × 32.8084 = flight level (FL = feet / 100)
@@ -230,9 +227,6 @@ const IFCNarrativePanel = memo(function IFCNarrativePanel({
 
         {/* ── Scrollable content ── */}
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="border-b border-slate-800/50 px-5 py-4">
-            <CommercialDecisionSummary viewModel={viewModel} onOpen={onOpenCustomerDecision} />
-          </div>
           {/* Link performance */}
           <div className="border-b border-slate-800/50 px-5 py-4">
             <div className="mb-2.5 flex items-center gap-1.5">

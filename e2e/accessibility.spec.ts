@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { addSecondaryArea,
-  seedReferenceTarget,
+import {
+  addSecondaryArea, pasteAreaBoundary, seedReferenceTarget,
 } from './revisitCompact';
 
 const WCAG = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
@@ -86,9 +86,7 @@ test.describe('critical accessibility gate', () => {
           analyses.push(await analyzeAccessibility(page));
           await page.getByRole('button', { name: 'Define area target' }).click();
           const areaPanel = page.getByRole('region', { name: 'Area coverage' });
-          await areaPanel.getByText('Paste coordinate list', { exact: true }).click();
-          await areaPanel.getByLabel('Custom area coordinate list').fill('51, -2\n51, 9\n61, 9\n61, -2');
-          await areaPanel.getByRole('button', { name: 'Apply list' }).click();
+          await pasteAreaBoundary(areaPanel, '51, -2\n51, 9\n61, 9\n61, -2');
           await expect(page.getByRole('region', { name: 'Area result summary' })).toContainText('Least-covered cell', { timeout: 60_000 });
           analyses.push(await analyzeAccessibility(page));
           await page.getByRole('button', { name: /^(scenario )?workspace$/i }).click();

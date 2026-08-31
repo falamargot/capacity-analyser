@@ -6,10 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defaultScenario } from '../domain/presets';
 import { RevisitHeader } from '../ui/RevisitHeader';
 import { CoverageRibbon } from '../ui/CoverageRibbon';
-import { ModelProvenance } from '../ui/ModelProvenance';
 import { TleComparisonDialog } from '../ui/TleComparisonDialog';
 import { AnalysisWindowControl } from '../ui/AnalysisWindowControl';
-import { referenceProfileFor } from '../domain/referenceProfiles';
 import type { GapStatistics } from '../domain/types';
 
 let root: Root | null = null;
@@ -62,25 +60,6 @@ describe('REVISIT P0 presentation UI', () => {
         ));
 
         expect(container.textContent).toContain('576 active + 58 spare · 634 total');
-    });
-
-    it('states the engine claims and the selected model, without a fit claim', async () => {
-        const scenario = defaultScenario(Date.UTC(2026, 7, 12));
-        await act(async () => root?.render(
-            <ModelProvenance
-                mode="HLD"
-                profile={referenceProfileFor(scenario.reference)}
-            />
-        ));
-
-        // Engine claims hold for every model and must always be stated.
-        expect(container.textContent).toContain('Propagation cross-checked vs NASA GMAT');
-        expect(container.textContent).toContain('WGS84 ellipsoid');
-        expect(container.textContent).toContain('OneWeb Gen1 (HLD reference)');
-
-        // No fit has been run, so nothing may imply the fleet was measured.
-        expect(container.textContent).not.toContain('Real fleet vs perfect shell');
-        expect(container.textContent).not.toContain('RMS along-track');
     });
 
     /*

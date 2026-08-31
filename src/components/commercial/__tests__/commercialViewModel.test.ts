@@ -251,7 +251,6 @@ describe('commercial deliverable-metric gating', () => {
     expect(geo?.downloadMbps).toBeUndefined();
     expect(geo?.uploadMbps).toBeUndefined();
     expect(geo?.rttMs).toBeUndefined();
-    expect(geo?.sustainedDownlinkMbps).toBeNull();
   });
 });
 
@@ -276,164 +275,12 @@ describe('commercial indicative availability (Reliability tile wiring)', () => {
     const leo = viewModel.comparison.options.find((option) => option.technology === 'leo');
     const geo = viewModel.comparison.options.find((option) => option.technology === 'geo');
 
-    expect(leo?.sustainedDownlinkMbps).toBe(5);
-    expect(leo?.sustainedUplinkMbps).toBe(4);
-    expect(geo?.sustainedDownlinkMbps).toBe(120);
-    expect(geo?.sustainedUplinkMbps).toBe(30);
+    expect(leo?.downloadMbps).toBe(5);
+    expect(leo?.uploadMbps).toBe(4);
+    expect(geo?.downloadMbps).toBe(120);
+    expect(geo?.uploadMbps).toBe(30);
     expect(leo?.availabilityPct).toBeTypeOf('number');
     expect(geo?.availabilityPct).toBeTypeOf('number');
-    expect(leo?.evidence?.availability?.source).toMatch(/^LEO /);
-    expect(geo?.evidence?.availability?.source).toMatch(/^GEO /);
-    expect(leo?.theoreticalDownlinkMbps).toBeNull();
-    expect(geo?.theoreticalDownlinkMbps).toBeNull();
-  });
-});
-
-describe('commercial objective live wiring', () => {
-  it('keeps the historical engine when no objective is selected', () => {
-    const viewModel = buildCommercialScenarioViewModel(buildInput(evidence(true)));
-
-    expect(viewModel.commercialIntent).toEqual({
-      objective: undefined,
-      trafficDirection: 'BIDIRECTIONAL',
-      primaryTechnology: undefined,
-    });
-    expect(viewModel.recommendation.objective).toBeUndefined();
-    expect(viewModel.recommendation.assessmentBasis).toBeUndefined();
-    expect(viewModel.comparison.options.every((option) => option.mobilityCompatible == null)).toBe(true);
-    expect(viewModel.comparison.options.every((option) => option.evidence?.contention == null)).toBe(true);
-  });
-
-  it('uses objective-aware scoring and labels simulated regulatory evidence honestly', () => {
-    const input = buildInput(evidence(true));
-    applyGeoRoute(input, { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 }, 'available');
-    input.commercialObjective = 'REALTIME';
-    input.leoRegulatoryResult = {
-      status: 'ALLOWED_CONFIRMED',
-      reason: 'Simulated planning status.',
-      confidence: 0.8,
-      emitAllowed: true,
-      serviceAllowed: true,
-    } as NonNullable<typeof input.leoRegulatoryResult>;
-
-    const viewModel = buildCommercialScenarioViewModel(input);
-    const leo = viewModel.comparison.options.find((option) => option.technology === 'leo');
-    const geo = viewModel.comparison.options.find((option) => option.technology === 'geo');
-
-    expect(viewModel.recommendation.objective).toBe('REALTIME');
-    expect(viewModel.recommendation.assessmentBasis).toBe('relative_comparison');
-    expect(viewModel.recommendation.technology).toBe('leo');
-    expect(leo?.evidence?.regulatory?.nature).toBe('estimated');
-    expect(leo?.evidence?.regulatory?.note).toMatch(/not legal clearance/i);
-    expect(geo?.regulatoryConfidence).toBeUndefined();
-    expect(geo?.evidence?.regulatory).toBeUndefined();
-  });
-
-  it('derives mobility compatibility from the selected terminal profiles, never from orbit', () => {
-    const input = buildInput(evidence(true));
-    applyGeoRoute(input, { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 }, 'available');
-    input.commercialObjective = 'MOBILITY';
-
-    const viewModel = buildCommercialScenarioViewModel(input);
-
-    expect(viewModel.comparison.options.every((option) => option.mobilityCompatible === false)).toBe(true);
-    expect(viewModel.comparison.options.every((option) => option.evidence?.mobilityFit?.source.includes('terminal profile'))).toBe(true);
-    expect(viewModel.recommendation.technology).toBe('not_available');
-    expect(viewModel.recommendation.message).toMatch(/terminal not mobility-compatible/i);
-  });
-
-  it('recommends the only route whose selected terminal is explicitly mobile-capable', () => {
-    const input = buildInput(evidence(true));
-    applyGeoRoute(input, { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 }, 'available');
-    input.commercialObjective = 'MOBILITY';
-    input.leoTerminalType = 'mobile';
-    input.geoTerminalType = 'fixed';
-
-    const viewModel = buildCommercialScenarioViewModel(input);
-    const leo = viewModel.comparison.options.find((option) => option.technology === 'leo');
-    const geo = viewModel.comparison.options.find((option) => option.technology === 'geo');
-
-    expect(leo?.mobilityCompatible).toBe(true);
-    expect(geo?.mobilityCompatible).toBe(false);
-    expect(viewModel.recommendation.technology).toBe('leo');
-    expect(viewModel.recommendation.reason).toMatch(/terminal not mobility-compatible/i);
-  });
-
-  it('does not accept a non-aviation mobile terminal for an aircraft scenario', () => {
-    const input = buildInput(evidence(true));
-    applyGeoRoute(input, { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 }, 'available');
-    input.activeAnalysisSource = 'aircraft';
-    input.commercialObjective = 'MOBILITY';
-    input.leoTerminalType = 'maritime';
-    input.geoTerminalType = 'aviation';
-
-    const viewModel = buildCommercialScenarioViewModel(input);
-    const leo = viewModel.comparison.options.find((option) => option.technology === 'leo');
-    const geo = viewModel.comparison.options.find((option) => option.technology === 'geo');
-
-    expect(leo?.mobilityCompatible).toBe(false);
-    expect(leo?.evidence?.mobilityFit?.note).toMatch(/aviation terminal/i);
-    expect(geo?.mobilityCompatible).toBe(true);
-    expect(viewModel.recommendation.technology).toBe('geo');
-  });
-
-  it('qualifies resilience with pairwise route-domain evidence instead of a generic claim', () => {
-    const input = buildInput(evidence(true));
-    applyGeoRoute(input, { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 }, 'available');
-    input.commercialObjective = 'RESILIENCE';
-    input.geoGatewayName = 'Paris Gateway';
-
-    const viewModel = buildCommercialScenarioViewModel(input);
-
-    expect(viewModel.recommendation.technology).toBe('hybrid');
-    expect(viewModel.recommendation.favorableFactors).toEqual(expect.arrayContaining([
-      expect.stringMatching(/orbital service architectures/i),
-      expect.stringMatching(/ground entry points/i),
-    ]));
-    expect(viewModel.recommendation.limitingFactors).toEqual(expect.arrayContaining([
-      expect.stringMatching(/control-plane/i),
-      expect.stringMatching(/backhaul/i),
-    ]));
-    expect(viewModel.recommendation.message).toMatch(/remain unverified/i);
-  });
-
-  it('compares a true LEO Site-to-Site route with a deliverable GEO route for BROADCAST', () => {
-    const input = buildInput(evidence(true));
-    applyGeoRoute(input, { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 }, 'available');
-    input.commercialObjective = 'BROADCAST';
-    input.commercialTrafficDirection = 'DOWNLINK';
-
-    const viewModel = buildCommercialScenarioViewModel(input);
-    const leo = viewModel.comparison.options.find((option) => option.technology === 'leo');
-    const geo = viewModel.comparison.options.find((option) => option.technology === 'geo');
-
-    expect(input.leoTopologyMode).toBe('SITE_TO_SITE');
-    expect(leo?.available).toBe(true);
-    expect(geo?.available).toBe(true);
-    expect(leo?.sustainedDownlinkMbps).toBe(5);
-    expect(geo?.sustainedDownlinkMbps).toBe(120);
-    expect(viewModel.recommendation.technology).toBe('geo');
-  });
-
-  it('never recommends a route blocked by the regulatory planning gate', () => {
-    const input = buildInput(evidence(true));
-    applyGeoRoute(input, { downlinkGbps: 0.12, uplinkGbps: 0.03, rtt: 240 }, 'available');
-    input.commercialObjective = 'REALTIME';
-    input.leoRegulatoryResult = {
-      status: 'BLOCKED',
-      reason: 'Planning overlay blocks service in the selected country.',
-      confidence: 0.9,
-      emitAllowed: false,
-      serviceAllowed: false,
-    } as NonNullable<typeof input.leoRegulatoryResult>;
-
-    const viewModel = buildCommercialScenarioViewModel(input);
-    const leo = viewModel.comparison.options.find((option) => option.technology === 'leo');
-
-    expect(leo?.regulatoryConfidence).toBe('blocked');
-    expect(leo?.evidence?.regulatory?.value).toBe(0);
-    expect(viewModel.recommendation.technology).not.toBe('leo');
-    expect(viewModel.recommendation.reason).toMatch(/regulatory blocked/i);
   });
 });
 

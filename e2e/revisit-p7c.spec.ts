@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
-import { addSecondaryArea, openAreaEditor, openRevisitSurfaces,
-  seedReferenceTarget,
+import {
+  addSecondaryArea, openAreaEditor, openRevisitSurfaces, pasteAreaBoundary, seedReferenceTarget,
 } from './revisitCompact';
 
 /**
@@ -166,9 +166,7 @@ test.describe('REVISIT P7C freshness contract', () => {
     await addSecondaryArea(page);
     const area = page.getByRole('region', { name: 'Area coverage' });
     await area.getByLabel('Custom area name').fill('Customer AOI');
-    await area.getByText('Paste coordinate list', { exact: true }).click();
-    await area.getByLabel('Custom area coordinate list').fill('15, 35\n15, 45\n25, 45\n25, 35');
-    await area.getByRole('button', { name: 'Apply list' }).click();
+    await pasteAreaBoundary(area, '15, 35\n15, 45\n25, 45\n25, 35');
     await expect(summary).toContainText('Least-covered cell', { timeout: 60_000 });
     await expect(card).toContainText(/Maximum revisit gap · least-covered cell\s*\n?\s*\d/, { timeout: 60_000 });
     const firstGap = (await card.innerText())
@@ -179,8 +177,7 @@ test.describe('REVISIT P7C freshness contract', () => {
     // same measurement — and the previous figure must not survive the change.
     await startRecording(page);
     await openAreaEditor(page);
-    await area.getByLabel('Custom area coordinate list').fill('58, -10\n58, 10\n70, 10\n70, -10');
-    await area.getByRole('button', { name: 'Apply list' }).click();
+    await pasteAreaBoundary(area, '58, -10\n58, 10\n70, 10\n70, -10');
 
     // Immediately after applying, the old worst cell must already be gone.
     await expect(card).not.toContainText(`Maximum revisit gap · least-covered cell\n${firstGap}`, {

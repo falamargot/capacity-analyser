@@ -198,8 +198,8 @@ describe('reference profiles — provenance', () => {
 
 /**
  * `fitMatchesReference` decides whether a stored calibration residual may be
- * presented as applicable to the constellation currently on screen — in
- * `ModelProvenance` and in the CSV provenance header.
+ * presented as applicable to the constellation currently on screen and in the
+ * CSV provenance header.
  *
  * It once compared four of the eight parameters `fitWalker` estimates. The four
  * marked "was accepted before" below are the ones that silently kept

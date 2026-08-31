@@ -3,6 +3,7 @@ import { formatGap } from './gapStatistics';
 import type { RevisitScenario } from '../domain/types';
 import type { RevisitTargetComparisonRow } from '../workers/revisitProtocol';
 import type { AreaAnalysis } from './areaAnalysis';
+import type { AreaSizingResult } from './areaSizing';
 import { fleetSubject, type ReferenceMode } from '../domain/referenceProfiles';
 
 /**
@@ -55,7 +56,12 @@ export interface RevisitResultSheetModel {
  * configuration on the tested payload range meets this requirement" — about a
  * requirement the sweep had just measured as met (2026-08-28).
  */
-export type SizingOutcome = 'NONE' | 'ADDITIONAL_PAYLOADS' | 'SAME_BUDGET_RESPLIT';
+export type SizingOutcome =
+    | 'NONE'
+    | 'ADDITIONAL_PAYLOADS'
+    | 'SAME_BUDGET_RESPLIT'
+    /** An area whose sizing search has not been run — no verdict exists yet. */
+    | 'NOT_SIZED';
 
 /**
  * Shared vocabulary with `CustomerResultCard`, so the screen and the PDF agree.
@@ -74,6 +80,13 @@ export function customerVerdict(meets: boolean, outcome: SizingOutcome): string 
     if (meets) return 'REQUIREMENT COVERED';
     if (outcome === 'ADDITIONAL_PAYLOADS') return 'MORE PAYLOADS REQUIRED';
     if (outcome === 'SAME_BUDGET_RESPLIT') return 'RECONFIGURATION REQUIRED';
+    /*
+     * "Not sized" is not "assessment required". The first says nobody has asked
+     * the question yet and the tool can answer it; the second says no answer can
+     * be proposed. Collapsing them printed an impasse over a case that has a
+     * button.
+     */
+    if (outcome === 'NOT_SIZED') return 'NOT SIZED';
     return 'ASSESSMENT REQUIRED';
 }
 
@@ -130,6 +143,16 @@ export interface ResultSheetContext {
      * `requirementMs`, which is the legacy single-threshold behaviour.
      */
     comparisonRequirementsMs?: ReadonlyArray<number | null | undefined>;
+    /**
+     * The area sizing search's result, when one has been run.
+     *
+     * Without it the document could only say "not sized", which stopped being
+     * true the moment the screen was able to say otherwise: a user who measured
+     * a configuration, read "MORE PAYLOADS REQUIRED · 36" on screen and then
+     * exported got a document denying the measurement had happened. The
+     * vocabulary is shared for exactly this reason; the input has to be too.
+     */
+    areaSizing?: AreaSizingResult | null;
 }
 
 /**
@@ -257,6 +280,43 @@ export function buildRevisitResultSheet(
     };
 }
 
+/**
+ * The area's sizing sentence — the same claim the card makes, in full.
+ *
+ * "Verified, not proved minimal" travels with the number wherever it goes: the
+ * probe ranks candidates on one cell, so a cheaper rung it ranked lower may
+ * also pass. A reader who sees the count without that qualification will take
+ * it for an optimum.
+ */
+function areaSizingRecommendation(
+    meets: boolean,
+    sized: Extract<AreaSizingResult, { kind: 'VERIFIED' }> | null,
+    additionalPayloads: number,
+    sizing: AreaSizingResult | null,
+): string {
+    if (meets) return 'Met by the tested configuration across every analysed cell.';
+    if (sized) {
+        const cost = additionalPayloads > 0
+            ? ` (+${additionalPayloads})`
+            : ' — no additional payloads, the same budget split differently';
+        return `${sized.payloadCount} payload-equipped satellites${cost}, `
+            + `${sized.selectedPlanes} planes × ${sized.payloadsPerPlane} per plane, meet the `
+            + `requirement on every analysed cell — worst cell ${formatGap(sized.worstCellGapMs)}. `
+            + 'Verified on every cell of this area; not proved minimal.';
+    }
+    if (sizing && sizing.kind === 'NONE') {
+        if (sizing.probeRejected === sizing.ladderSize) {
+            return 'No configuration on the tested ladder meets this requirement on the '
+                + 'least-covered cell of this area, so none can meet it over the area.';
+        }
+        return sizing.stoppedAtCeiling
+            ? 'The search reached its candidate limit without finding a configuration that '
+                + 'meets the requirement on every cell; configurations remain untested.'
+            : 'Every candidate verified over the grid failed on at least one cell.';
+    }
+    return 'No payload count has been measured for this area.';
+}
+
 export function buildAreaResultSheet(
     scenario: RevisitScenario,
     analysis: AreaAnalysis,
@@ -277,6 +337,25 @@ export function buildAreaResultSheet(
     const swathClause = context.assumedSwathKm
         ? `, with an assumed ${context.assumedSwathKm} km IR swath`
         : '';
+
+    /*
+     * The guardrail is unchanged and the sizing is what satisfies it: a payload
+     * count may appear here only because it was MEASURED over every cell of
+     * this grid. What the document may never do is invent one — or, having been
+     * given one, deny that it exists.
+     */
+    const sizing = context.areaSizing ?? null;
+    const sized = !meets && sizing?.kind === 'VERIFIED' ? sizing : null;
+    const additionalPayloads = sized ? sized.payloadCount - planes * perPlane : 0;
+    const areaOutcome: SizingOutcome = meets
+        ? 'NONE'
+        : sized
+            ? (additionalPayloads > 0 ? 'ADDITIONAL_PAYLOADS' : 'SAME_BUDGET_RESPLIT')
+            // A search that ran and found nothing is an impasse; one never run
+            // is simply an unanswered question. The screen distinguishes them
+            // and so must this.
+            : sizing?.kind === 'NONE' ? 'NONE' : 'NOT_SIZED';
+
     return {
         title: 'REVISIT customer summary — area',
         generatedAtIso: generatedAt.toISOString(),
@@ -285,16 +364,9 @@ export function buildAreaResultSheet(
             + `at least every ${formatGap(requirementMs)}${swathClause}?`,
         target: `${analysis.area.name} (${analysis.area.boundary.length} vertices · ${analysis.cells.length} cells)`,
         requirement: formatGap(requirementMs),
-        verdict: customerVerdict(meets, 'NONE'),
+        verdict: customerVerdict(meets, areaOutcome),
         meets,
-        /*
-         * Programme 5b guardrail, carried into the document: an area is judged
-         * on its least-covered cell and no area-wide sizing sweep exists, so
-         * the summary must not put a payload count in a customer's hands.
-         */
-        recommendation: meets
-            ? 'Met by the tested configuration across every analysed cell.'
-            : 'Area sizing has not been calculated. No payload count is proposed for an area.',
+        recommendation: areaSizingRecommendation(meets, sized, additionalPayloads, sizing),
         metrics: [
             { label: 'Least-covered cell', value: worst },
             { label: 'Average cell', value: formatGap(analysis.meanCellMaxGapMs) },
@@ -312,6 +384,11 @@ export function buildAreaResultSheet(
         comparisons: [],
         caveats: [
             'The contractual area result is the worst cell, not an average timeline across the area.',
+            ...(sized ? [
+                `Sizing verified ${sized.candidatesTried} candidate`
+                + `${sized.candidatesTried === 1 ? '' : 's'} over every cell of this grid; the `
+                + 'ladder was ranked on the least-covered cell, so the result is not proved minimal.',
+            ] : []),
             `${analysis.neverInViewCount} never-observed and ${analysis.unmeasuredCount} unmeasured cells in the analysis window.`,
             'Regular latitude/longitude grid; the mean is over cells and is not area-weighted.',
             'Parametric mission-analysis model; not an operational scheduling or tasking tool.',

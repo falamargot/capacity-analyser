@@ -68,6 +68,13 @@ export interface CustomerResultCardProps {
     onUndo?: () => void;
     /** Offered only on `FAILED`, and only for a sweep that can be re-run. */
     onRetrySizing?: () => void;
+    /**
+     * Start an area sizing search. Absent when there is nothing to probe from —
+     * the search needs a measured worst cell to start from.
+     */
+    onSizeArea?: () => void;
+    /** Cells in the grid, so the control can state what it is about to cost. */
+    areaCellCount?: number | null;
     /** Operational proof kept inside the answer instead of a duplicate card. */
     supportingMetrics?: React.ReactNode;
     /** Sizing evidence shown inside Recommended configuration. */
@@ -94,7 +101,16 @@ const BLOCK_FRAME = `${REVISIT_PANEL} px-3 py-2.5`;
  * that order — never of the sizing alone. A configuration that already meets
  * the requirement is `Requirement covered` whatever the sweep is doing.
  */
-function customerStatus(meetsRequirement: boolean | null, sizing: CustomerSizing): Status {
+function customerStatus(
+    meetsRequirement: boolean | null,
+    sizing: CustomerSizing,
+    /**
+     * Whether the measurement can actually be offered. An unsized area drops
+     * its verdict because the control replaces it — so when there is no
+     * control, the verdict has to come back or the block says nothing at all.
+     */
+    canSizeArea: boolean,
+): Status | null {
     if (meetsRequirement === true) {
         return { text: 'Requirement covered', className: REVISIT_OUTCOME.meets.badge };
     }
@@ -113,13 +129,71 @@ function customerStatus(meetsRequirement: boolean | null, sizing: CustomerSizing
             className: REVISIT_OUTCOME.error.badge,
         };
     }
+    /*
+     * Before the catch-all below, deliberately. An area whose worst cell is
+     * never in view has no current figure, so `meetsRequirement` is null and the
+     * catch-all would claim "assessment required" while a search is running or
+     * has already produced a verified answer.
+     */
+    /*
+     * No badge in either of these two states, and that is the point. An area
+     * with no sizing showed three things at once — a verdict pill, a sentence
+     * saying nothing had been measured, and a button offering to measure it —
+     * where one of them is the whole content: the offer. A running search is
+     * the same case one step later: the progress line already says what is
+     * happening, so a `Sizing…` pill above it repeated it in fewer words.
+     *
+     * Both return null, and the caller renders the slot empty. A missing verdict
+     * is honest here: nothing has been measured to put in it.
+     */
+    if (sizing.kind === 'AREA_SIZING') return null;
+    if (sizing.kind === 'AREA_NOT_SIZED') {
+        if (canSizeArea) return null;
+        /*
+         * No probe cell, so no search: the sizing starts from the least-covered
+         * cell of the analysis, and an area whose cells produced no measured
+         * gap has none to start from. That IS an impasse, and it keeps its
+         * verdict — the empty slot is only justified while a control fills it.
+         */
+        return {
+            text: 'Assessment required',
+            title: 'Sizing starts from the least-covered cell, and this area has no measured cell to start from. It needs a further engineering assessment.',
+            className: REVISIT_OUTCOME.unavailable.badge,
+        };
+    }
+    if (sizing.kind === 'AREA_VERIFIED') {
+        return sizing.additionalPayloads > 0
+            ? {
+                text: 'More payloads required',
+                title: 'A configuration was measured to meet the requirement on every cell of this area. It costs additional payloads.',
+                className: REVISIT_OUTCOME.misses.badge,
+            }
+            : {
+                text: 'Reconfiguration required',
+                title: 'A configuration was measured to meet the requirement on every cell of this area, at the payload count already flown — the same budget, split differently.',
+                className: REVISIT_OUTCOME.misses.badge,
+            };
+    }
+    /*
+     * A search that ran and found nothing IS an impasse, unlike one never run:
+     * the ladder was walked and the evidence block below says how far. This is
+     * the case the badge was built for.
+     */
+    if (sizing.kind === 'AREA_NOT_FOUND') {
+        return {
+            text: 'Assessment required',
+            title: sizing.ruledOutByProbe
+                ? 'No configuration on the tested ladder meets this requirement on the least-covered cell, which is part of the area.'
+                : 'The search verified candidates over every cell and none met the requirement. It needs a further engineering assessment.',
+            className: REVISIT_OUTCOME.unavailable.badge,
+        };
+    }
     if (meetsRequirement === null
         || sizing.kind === 'BEYOND_RANGE'
-        || sizing.kind === 'AREA_NOT_SIZED'
         || sizing.kind === 'UNAVAILABLE') {
         return {
             text: 'Assessment required',
-            title: 'No payload count can be proposed for this case — the target is not in view, the requirement is beyond the tested range, or an area has no sizing sweep. It needs a further engineering assessment.',
+            title: 'No payload count can be proposed for this case — the target is not in view, or the requirement is beyond the tested range. It needs a further engineering assessment.',
             className: REVISIT_OUTCOME.unavailable.badge,
         };
     }
@@ -177,11 +251,26 @@ function RecommendedEvidenceDisclosure({ children }: { children: React.ReactNode
     );
 }
 
+/**
+ * Roughly what a sizing search will cost, in seconds.
+ *
+ * Calibrated on 2026-08-31 measurements (HLD 12 × 48, 72 h @ 10 s): the probe is
+ * ~3 s whatever the grid holds, and each verification is ~18 ms per cell, with
+ * two or three verifications typical. Deliberately coarse and rounded to five
+ * seconds — this is there so the wait is consented to, not so anyone can time
+ * it. A machine slower than the one measured makes it optimistic, which is why
+ * the label says "about".
+ */
+function estimatedSizingSeconds(cells: number): number {
+    return Math.max(5, Math.round((3 + 2.5 * 0.018 * cells) / 5) * 5);
+}
+
 function SizingBlock({
     sizing, status, question, targetRole, fleetSize, currentPayloadCount,
-    onApply, onUndo, onRetrySizing, detail,
+    onApply, onUndo, onRetrySizing, onSizeArea, areaCellCount, detail,
 }: {
-    status: Status;
+    /** Absent when nothing has been measured to put a verdict on. */
+    status: Status | null;
     question: string;
     targetRole: RevisitAreaTargetRole;
     sizing: CustomerSizing;
@@ -190,6 +279,8 @@ function SizingBlock({
     onApply?: () => void;
     onUndo?: () => void;
     onRetrySizing?: () => void;
+    onSizeArea?: () => void;
+    areaCellCount?: number | null;
     detail?: React.ReactNode;
 }) {
     if (sizing.kind === 'UNAVAILABLE') return null;
@@ -220,12 +311,14 @@ function SizingBlock({
               */}
             <span className={REVISIT_LABEL}>Recommended configuration</span>
             <p className="mt-1 text-[13px] font-semibold leading-5 text-slate-100">{question}</p>
-            <span
-                title={status.title}
-                className={`revisit-customer-status mt-2 inline-flex rounded-md border px-2 py-0.5 text-[12px] font-black uppercase tracking-[0.14em] ${status.className}`}
-            >
-                {status.text}
-            </span>
+            {status && (
+                <span
+                    title={status.title}
+                    className={`revisit-customer-status mt-2 inline-flex rounded-md border px-2 py-0.5 text-[12px] font-black uppercase tracking-[0.14em] ${status.className}`}
+                >
+                    {status.text}
+                </span>
+            )}
 
             {sizing.kind === 'COMPUTING' && (
                 <p className="mt-1 text-[13px] italic leading-5 text-slate-400">
@@ -263,18 +356,111 @@ function SizingBlock({
                 </p>
             )}
 
+            {sizing.kind === 'AREA_SIZING' && (
+                <p className="mt-2 text-[13px] italic leading-5 text-slate-400">
+                    {sizing.phase === 'probe'
+                        ? 'Probing the topology ladder on the least-covered cell…'
+                        : `Verifying candidate ${sizing.candidate} over every cell — `
+                            + `${Math.round(sizing.fraction * 100)}%`}
+                </p>
+            )}
+
+            {sizing.kind === 'AREA_VERIFIED' && (
+                <>
+                    <p className="mt-1 flex flex-wrap items-baseline gap-x-2 leading-none">
+                        <span className="text-2xl font-black text-white tabular-nums">
+                            {sizing.payloadCount}
+                        </span>
+                        <span className="text-[13px] font-semibold text-slate-300">
+                            payload-equipped satellites
+                        </span>
+                        {sizing.additionalPayloads > 0 && (
+                            <span className={`text-[13px] font-black tabular-nums ${REVISIT_OUTCOME.misses.text}`}>
+                                +{sizing.additionalPayloads}
+                            </span>
+                        )}
+                    </p>
+                    <p className="revisit-customer-secondary mt-0.5 text-[12px] leading-4 text-slate-400">
+                        {sizing.selectedPlanes} planes × {sizing.payloadsPerPlane} per plane ·
+                        {' '}worst cell {formatGap(sizing.worstCellGapMs)}
+                    </p>
+                    {/*
+                      * The scope of the claim, stated where the number is, not in
+                      * a tooltip. "Verified" is what was done — every cell was
+                      * measured at this configuration. "Optimal" is what was NOT
+                      * done: the probe ranks candidates on one cell, so a cheaper
+                      * rung it ranked lower may also pass.
+                      */}
+                    <p className="mt-1 text-[12px] leading-4 text-lime-200">
+                        Verified on every cell of this area
+                        {sizing.candidatesTried > 1
+                            && ` · ${sizing.candidatesTried} candidates tried`}
+                        . Not proved minimal.
+                    </p>
+                </>
+            )}
+
             {sizing.kind === 'BEYOND_RANGE' && (
                 <p className="mt-1 text-[13px] leading-5 text-slate-300">
                     No configuration on the tested payload range meets this requirement.
                 </p>
             )}
 
-            {/* Programme 5b guardrail: an Area is judged on its least-covered
-                cell, and no area-wide sizing sweep exists. Proposing a payload
-                count here would be an invented number. */}
-            {sizing.kind === 'AREA_NOT_SIZED' && (
+            {/*
+              * The whole content of this state: one control, in the slot the
+              * verdict would occupy, directly under the question it answers.
+              *
+              * It is labelled for the ANSWER, not the operation. "Size this
+              * area" named a piece of machinery and left the reader to work out
+              * that the machinery produces the missing number. "Measure
+              * payloads" names what comes back — kept to two words because the
+              * cost annotation shares the line, and a label that wraps turns one
+              * control into two lines of shouting capitals.
+              *
+              * Asked for, not automatic: the search costs a ladder probe plus a
+              * full area pass per candidate, and it must not start while
+              * someone is still drawing the polygon.
+              */}
+            {sizing.kind === 'AREA_NOT_SIZED' && !onSizeArea && (
                 <p className="mt-1 text-[13px] leading-5 text-slate-300">
-                    Area sizing has not been calculated. No payload count is proposed for an area.
+                    No payload count can be measured here: the search starts from the
+                    least-covered cell, and this area has no measured cell to start from.
+                </p>
+            )}
+
+            {sizing.kind === 'AREA_NOT_SIZED' && onSizeArea && (
+                <button
+                    type="button"
+                    onClick={onSizeArea}
+                    title="Walk the topology ladder on the least-covered cell, then verify each candidate over every cell of the grid. The estimate is approximate: it depends on how many candidates have to be verified."
+                    className="revisit-size-area mt-2 min-h-11 w-full rounded-lg border border-slate-400/70 bg-slate-100/10 px-3 py-2 text-[12px] font-black uppercase tracking-[0.12em] text-slate-100 transition-colors hover:border-white hover:bg-white/15"
+                >
+                    Measure payloads
+                    {/* The cost, before it is paid. A control that takes ten
+                        seconds and says nothing gets clicked twice. */}
+                    {areaCellCount ? (
+                        <span className="ml-2 font-semibold normal-case tracking-normal text-slate-400">
+                            {areaCellCount} cells · about {estimatedSizingSeconds(areaCellCount)} s
+                        </span>
+                    ) : null}
+                </button>
+            )}
+
+            {/*
+              * A measured absence. The badge above says "assessment required";
+              * this says what was searched, and the evidence block underneath
+              * says how far it got. No button: the search already ran, and
+              * re-offering it as if nothing had happened would hide that.
+              */}
+            {sizing.kind === 'AREA_NOT_FOUND' && (
+                <p className="mt-1 text-[13px] leading-5 text-slate-300">
+                    {sizing.ruledOutByProbe
+                        ? 'No configuration on the tested ladder meets this requirement on the '
+                            + 'least-covered cell of this area.'
+                        : sizing.stoppedAtCeiling
+                            ? 'The search reached its candidate limit without finding a '
+                                + 'configuration that meets the requirement everywhere.'
+                            : 'Every candidate verified over the grid failed on at least one cell.'}
                 </p>
             )}
 
@@ -372,11 +558,11 @@ export const CustomerResultCard: React.FC<CustomerResultCardProps> = ({
     targetRole = 'REFERENCE', question, currentPayloadCount, fleetSize,
     currentMaxGapMs, currentIsComputing, currentUnavailableReason = null,
     currentMetricLabel = 'Maximum revisit gap', requirementMs, sizing,
-    onApply, onUndo, onRetrySizing, supportingMetrics = null,
+    onApply, onUndo, onRetrySizing, onSizeArea, areaCellCount = null, supportingMetrics = null,
     recommendedConfigurationDetail = null,
 }) => {
     const meetsRequirement = currentMaxGapMs === null ? null : currentMaxGapMs <= requirementMs;
-    const status = customerStatus(meetsRequirement, sizing);
+    const status = customerStatus(meetsRequirement, sizing, Boolean(onSizeArea));
 
     return (
         <section
@@ -447,7 +633,7 @@ export const CustomerResultCard: React.FC<CustomerResultCardProps> = ({
                   * its verdict entirely in the one case that most needs one:
                   * a target never in view. Caught by the test that pins it.
                   */}
-                {sizing.kind === 'UNAVAILABLE' && (
+                {sizing.kind === 'UNAVAILABLE' && status && (
                     <span
                         title={status.title}
                         className={`revisit-customer-status mt-2 inline-flex rounded-md border px-2 py-0.5 text-[12px] font-black uppercase tracking-[0.14em] ${status.className}`}
@@ -476,6 +662,8 @@ export const CustomerResultCard: React.FC<CustomerResultCardProps> = ({
                 onApply={onApply}
                 onUndo={onUndo}
                 onRetrySizing={onRetrySizing}
+                onSizeArea={onSizeArea}
+                areaCellCount={areaCellCount}
                 detail={recommendedConfigurationDetail}
             />
         </section>
