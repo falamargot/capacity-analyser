@@ -42,8 +42,8 @@ current configuration against the requirement, and the recommended
 configuration with `Apply recommended configuration` beside it. The
 recommendation was already measured — it was rendered as a 10 px grey fragment
 and could not be acted on. Applying adopts the topology the sweep measured, not
-the payload count alone, and `Return to previous configuration` restores the
-exact prior selection and its provenance.
+the payload count alone. It is a one-way transition: the undo control was
+removed on 2026-08-31.
 
 7B made the compact layout safe to demonstrate: exactly one panel can be open
 at a time, client-facing failures are stated in plain language with the

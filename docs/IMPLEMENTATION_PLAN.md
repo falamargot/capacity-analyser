@@ -616,7 +616,7 @@ Do not relitigate these; each was checked against the code before adoption.
 
 | Lot | Task | Status |
 |---|---|---|
-| **7A** | **Commercial result framing** — customer question, `Current / Required / Recommended`, `Apply recommended configuration` + `Return to previous configuration`, independent fleet-sizing state, no Area recommendation without an Area sweep | **Done — 2026-08-24** |
+| **7A** | **Commercial result framing** — customer question, `Current / Required / Recommended`, `Apply recommended configuration` (undo removed 2026-08-31), independent fleet-sizing state, no Area recommendation without an Area sweep | **Done — 2026-08-24** |
 | 7B | Presentation safety — single mobile `activePanel` controller lifted into `RevisitApp`, neutral client-facing error handling, Worker fallback strategy, fixed presentation profile, `Presentation readiness check`, light-theme validation | **Done — 2026-08-24** |
 | 7C | Freshness contract — per-computation input signatures, identity-change invalidation per decision 3, independent skeletons for sweep / comparison / Area, rapid-change tests | **Done — 2026-08-25** |
 | 7D | Typography and vocabulary — one single campaign: REVISIT type scale, `Sizing target` / `Compared target`, `12 of 576` clarified, customer KPI vocabulary, touch targets, full baseline recapture, both themes, all viewports | **Done — 2026-08-25** |
@@ -669,10 +669,10 @@ existing reconciliation is what makes the topology honest:
   Otherwise the reference sweep would immediately reconcile the choice away.
 - The button is absent while the recommendation is unresolved. It must never
   offer a count carried over from the previous scenario.
-- `Return to previous configuration` restores **three** things — payload count,
-  the full `selection` including `planeShift`, and `selectionSource` — and the
-  memory is dropped as soon as the configuration is changed by any other path,
-  so undo can never resurrect a configuration from several interactions back.
+- ~~`Return to previous configuration` restores **three** things — payload
+  count, the full `selection` including `planeShift`, and `selectionSource`.~~
+  **Removed 2026-08-31:** applying is one-way; the payload slider and the
+  Advanced drawer are how a configuration is changed back.
 
 **Area.** No payload figure is ever proposed for an Area, per decision 7:
 

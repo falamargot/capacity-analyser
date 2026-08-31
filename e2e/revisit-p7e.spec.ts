@@ -50,7 +50,15 @@ test.describe('REVISIT P7E commercial progressive disclosure', () => {
     const expert = panel.locator('.revisit-expert-settings');
     await expect(panel.getByRole('combobox', { name: 'Plane stride x' })).toBeVisible();
     await expect(expert).toContainText('Instrument geometry');
-    await expect(expert).toContainText('Analysis window');
+    /*
+     * The analysis window is NOT here any more, deliberately: duration and
+     * sampling step describe the measurement, not the constellation, and they
+     * now sit with the timeline they govern. This pins both halves of that
+     * move — gone from the panel, and still reachable from its own control.
+     */
+    await expect(expert).not.toContainText('Analysis window');
+    await expect(page.getByRole('button', { name: 'Analysis window settings' }))
+      .toBeAttached();
   });
 
   test('opens technical evidence from the Characteristics information button', async ({ page }, testInfo) => {

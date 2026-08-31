@@ -144,7 +144,14 @@ test.describe('REVISIT P1 requirement contract', () => {
     await page.getByRole('spinbutton', { name: 'Minimum elevation' }).fill('5', { force: true });
 
     await expect(page.getByRole('combobox', { name: 'Instrument preset' })).toHaveValue('STANDARD');
-    await expect(page.getByText(/Changes are staged locally/)).toBeVisible();
+    /*
+     * Staged, not applied — the point of this test. The sentence that used to
+     * say so was removed from the panel on 2026-08-29 (commit 2ef5110); the
+     * BEHAVIOUR it described is asserted instead: the preset still reads
+     * STANDARD above, and `Discard edits` is live because there are edits to
+     * discard. Both would be false if the geometry had already been applied.
+     */
+    await expect(settings.getByRole('button', { name: 'Discard edits' })).toBeEnabled();
     await page.getByRole('button', { name: 'Apply instrument geometry' }).click();
     await expect(page.getByRole('combobox', { name: 'Instrument preset' })).toHaveValue('CUSTOM');
   });

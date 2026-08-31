@@ -133,6 +133,32 @@ describe('buildRevisitResultSheet — the commercial narrative', () => {
     });
 
     /*
+     * The other half of `SAME_BUDGET_RESPLIT`, and the one the phrase above
+     * gets wrong: worst-case revisit at a point is governed by how many PLANES
+     * carry a payload, so the sweep's curve is not monotonic in payload count
+     * and its answer is routinely CHEAPER than what is flown. Reported
+     * 2026-08-31 on a case proposing 6 payloads where 64 were flown, where
+     * "no additional payloads required" read as "the tested configuration is
+     * fine". This document leaves the room; it must say what is actually
+     * proposed.
+     */
+    it('states the saving when the answer uses fewer payloads than are flown', () => {
+        const sheet = buildRevisitResultSheet(
+            scenario, analysis, 1 * HOUR, [], new Date(EPOCH),
+            {
+                recommendedPayloadCount: analysis.payloadCount - 4,
+                recommendedSplit: { planes: 6, perPlane: 1 },
+                recommendedMaxGapMs: 55 * 60_000,
+            },
+        );
+
+        expect(sheet.verdict).toBe('RECONFIGURATION REQUIRED');
+        expect(sheet.recommendation).toContain('4 fewer payloads than the tested configuration');
+        expect(sheet.recommendation).not.toContain('No additional payloads required');
+        expect(sheet.recommendation).not.toContain('redistributed');
+    });
+
+    /*
      * The split is what makes it a recommendation. Without one the count alone
      * is indistinguishable from the configuration already flown, and the
      * document must go back to claiming nothing rather than proposing itself.

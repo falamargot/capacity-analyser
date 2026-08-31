@@ -139,7 +139,14 @@ describe('CustomerResultCard', () => {
         expect(container.textContent).toContain('6 × 8');
         expect(container.textContent).toContain('planes × payloads per plane');
         expect(container.textContent).toContain('the payloads already flown, redistributed');
+        // A re-split at the SAME count genuinely costs nothing, so this is
+        // where the phrase belongs — and nowhere else (see the test below).
         expect(container.textContent).toContain('no additional payloads required');
+        // Never in the `Requirement covered` colour: the badge above says the
+        // requirement is missed, and lime is what says it is met.
+        const cost = [...container.querySelectorAll('p')]
+            .find((p) => p.textContent?.includes('Measured at'))!;
+        expect(cost.className).not.toContain('lime');
         // The two statements that must never appear together.
         expect(container.textContent).not.toContain('More payloads required');
         expect(container.textContent).not.toContain('Met by the current configuration');
@@ -166,6 +173,18 @@ describe('CustomerResultCard', () => {
         expect(container.textContent).toContain('36 payload-equipped satellites');
         expect(container.textContent).toContain('12 fewer than the current configuration');
         expect(container.textContent).not.toContain('the payloads already flown');
+        /*
+         * "No additional payloads required" is true here and badly understates
+         * it: the recommendation FREES twelve. Reported 2026-08-31 against a
+         * case proposing 6 payloads where 64 are flown, where the sentence read
+         * as "the current configuration is fine" — directly under
+         * `Reconfiguration required`.
+         *
+         * The saving is restated here rather than left to the line above,
+         * which is `revisit-customer-secondary` and hidden on a short stage.
+         */
+        expect(container.textContent).toContain('with 12 fewer payloads');
+        expect(container.textContent).not.toContain('no additional payloads required');
     });
 
     /*
@@ -439,18 +458,6 @@ describe('CustomerResultCard', () => {
         expect(container.textContent).toContain('Assessment required');
         // Nothing to size against — the whole block is absent, not empty.
         expect(container.textContent).not.toContain('Recommended configuration');
-    });
-
-    it('offers the return to the previous configuration only when there is one', async () => {
-        const onUndo = vi.fn();
-        await renderCard({ sizing: { kind: 'COVERED' }, currentMaxGapMs: HOUR });
-        expect(container.querySelector('.revisit-undo-recommended')).toBeNull();
-
-        await renderCard({ sizing: { kind: 'COVERED' }, currentMaxGapMs: HOUR, onUndo });
-        const undo = container.querySelector<HTMLButtonElement>('.revisit-undo-recommended');
-        expect(undo).not.toBeNull();
-        await act(async () => undo?.click());
-        expect(onUndo).toHaveBeenCalledTimes(1);
     });
 
     /*

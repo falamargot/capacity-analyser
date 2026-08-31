@@ -168,6 +168,11 @@ function sizingRecommendation(
     status: SizingStatus,
     recommended: number | null,
     additional: number | null,
+    /**
+     * Payloads the recommendation FREES — positive only when it uses fewer than
+     * the tested configuration, 0 for a re-split at the same count.
+     */
+    freed: number,
     split: { planes: number; perPlane: number } | null,
     splitMaxGapMs: number | null,
 ): string {
@@ -178,6 +183,24 @@ function sizingRecommendation(
     }
     if (outcome === 'SAME_BUDGET_RESPLIT' && split) {
         const measured = splitMaxGapMs === null ? '' : `, measured at ${formatGap(splitMaxGapMs)}`;
+        /*
+         * `SAME_BUDGET_RESPLIT` covers a re-split at the same count AND an
+         * answer that uses FEWER payloads — the sweep's curve is not monotonic
+         * in payload count, because worst-case revisit at a point is governed
+         * by how many PLANES carry a payload. "Redistributed" and "no
+         * additional payloads required" are true of the first and understate
+         * the second badly: the case reported on 2026-08-31 proposed 6
+         * payloads where 64 were flown, and the sentence read as "the tested
+         * configuration is fine". The same correction is made on
+         * `CustomerResultCard`; this document leaves the room, so the two must
+         * not drift.
+         */
+        if (freed > 0) {
+            return `${recommended} payload-equipped satellites as `
+                + `${split.planes} planes × ${split.perPlane} per plane meet the requirement over `
+                + `this target${measured} — ${freed} fewer payloads than the tested `
+                + 'configuration.';
+        }
         return `${recommended} payload-equipped satellites redistributed as `
             + `${split.planes} planes × ${split.perPlane} per plane meet the requirement over `
             + `this target${measured}. No additional payloads required.`;
@@ -240,6 +263,7 @@ export function buildRevisitResultSheet(
         meets,
         recommendation: sizingRecommendation(
             meets, outcome, sizingStatus, recommended, additional,
+            recommended === null ? 0 : Math.max(0, payloadCount - recommended),
             recommendedSplit, context.recommendedMaxGapMs ?? null,
         ),
         metrics: [
@@ -298,7 +322,11 @@ function areaSizingRecommendation(
     if (sized) {
         const cost = additionalPayloads > 0
             ? ` (+${additionalPayloads})`
-            : ' — no additional payloads, the same budget split differently';
+            : additionalPayloads < 0
+                // Same correction as the point sheet: an answer that frees
+                // payloads must say so rather than claim it costs nothing.
+                ? ` (${-additionalPayloads} fewer)`
+                : ' — no additional payloads, the same budget split differently';
         return `${sized.payloadCount} payload-equipped satellites${cost}, `
             + `${sized.selectedPlanes} planes × ${sized.payloadsPerPlane} per plane, meet the `
             + `requirement on every analysed cell — worst cell ${formatGap(sized.worstCellGapMs)}. `

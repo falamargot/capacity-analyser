@@ -2,6 +2,153 @@
 
 _Last updated 2026-08-31._
 
+## 2026-08-31 — GUI clarification proposal (not implemented)
+
+`docs/REVISIT_UI_CLARIFICATION_2026-08-31.md` — eight findings read from the
+Primary-point and Secondary-area screens of the same scenario, each checked
+against the code. Two are functional rather than cosmetic and head the list:
+the point recommendation states neither its split nor the revisit it achieves
+(the fields are missing from `CustomerSizing.RECOMMENDED` itself), and a
+verified AREA recommendation has no `Apply` control at all. Nothing has been
+implemented; the document carries the suggested order.
+
+## 2026-08-31 — Recommendation undo removed, and two recommendation defects fixed
+
+`Return to previous configuration` is gone, on request. `Apply recommended
+configuration` is now a one-way transition: the presenter changes the payload
+slider or the Advanced drawer to go back, exactly as for any other
+configuration change.
+
+Removed: `state/recommendationUndo.ts` and its unit test, the
+`PreviousConfiguration` interface, the `previousConfiguration` state and its six
+reset sites in `RevisitApp`, `undoContextKey` / `canUndoRecommendation` and the
+effect that invalidated the memory, `handleUndoRecommendation`, and the
+`onUndo` prop plus the `.revisit-undo-recommended` button in
+`CustomerResultCard`. The undo leg of `revisit-p7a.spec.ts` and the
+`CustomerResultCard` undo test went with them.
+
+`handleApplyRecommendation` is otherwise unchanged and still sets provenance
+(`auto` from the primary target, `manual` from a secondary) — that trap is
+described below and still applies. Gates: `tsc` clean, 658 revisit unit tests
+pass, `revisit-p7a` 3/3 on desktop-chromium (apply still moves the
+configuration and flips the verdict to `Requirement covered`).
+
+### While verifying: the recommendation is sound, one envelope edge case is not
+
+The 2026-08-31 report of `6 × 1` (1 h 49) being recommended over a current
+`4 × 16` (2 h 38) at 40.19°N 27.00°E was reproduced offline against
+`runPayloadSweep` (HLD 12 × 48, 700 km swath, 72 h @ 10 s, `planeShift = 0`) and
+is **correct**. The full ladder at that target:
+
+```
+   1  (no interior gap)   6  1 h 49  6x1      36  1 h 53  12x3
+   2  35 h 54  1x2        8  6 h 10  2x4      48  1 h 02  12x4
+   3  12 h 12  1x3        9  8 h 14  3x3      64  2 h 38  4x16   ← current
+   4  12 h 11  1x4       12  4 h 18  3x4      72     56  12x6
+                         16  3 h 17  4x4      96     53  12x8
+                         18  4 h 00  3x6     144     41  12x12
+                         24  2 h 20  6x4     192     41  12x16
+                         32  2 h 51  4x8     288     37  12x24
+                                             576     33  12x48
+```
+
+Worst-case revisit at a point is governed by how many PLANES carry a payload,
+not by how many payloads there are: each selected plane contributes ~2 access
+windows per day whatever its in-plane count. `64` is the worst rung on the
+ladder for this reason — it admits exactly ONE split (`4 × 16`, no
+alternatives), so reconciliation cannot rescue it, while `6 × 1` spreads over
+six planes. The curve is therefore strongly non-monotonic in payload count, and
+that is physical, not a defect.
+
+**Real defect found — FIXED.** `executiveEnvelopePoints` dropped every point
+with `maxGapMs <= 0`. `gapStatistics` reports ALWAYS_IN_VIEW as a maximum gap of
+exactly **zero**, so a configuration that permanently covers the target was
+excluded from the envelope and could never be recommended — the card quoted a
+larger count, or `BEYOND_RANGE`, instead. The filter now drops only `null`, the
+UNKNOWN case (never in view, or every gap truncated by a window boundary); a
+negative duration cannot occur, since a gap runs from a cursor to a later
+interval start. `ValueCurve` keeps its own `> 0` filter — a zero cannot be
+placed on a log axis — so the chart is unaffected. Pinned by the new
+`__tests__/executiveEnvelope.test.ts`, whose zero case is built from a real
+`computeGapStatistics` run rather than a hand-written 0, so the two cannot
+drift apart.
+
+**Wording, not arithmetic — FIXED on both surfaces.** In the `RETOPOLOGY` state
+the card printed `RECONFIGURATION REQUIRED` (a property of the CURRENT result —
+2 h 38 misses 2 h) directly above a lime-green `no additional payloads
+required` (a property of the RECOMMENDATION's cost). Both true, and they read
+as a contradiction: lime is the `Requirement covered` colour everywhere else in
+the module, and `no additional` badly understates a proposal that uses **58
+fewer** payloads.
+
+- `CustomerResultCard` now says `Measured at 1 h 49 over this target, with 58
+  fewer payloads.` whenever the answer is cheaper, and keeps `— no additional
+  payloads required` only for a true re-split at the same count. The line moved
+  off lime to `text-slate-200`, which `index.css` already covers in both themes
+  (verified in the browser: `rgb(15, 23, 42)` on `rgba(255, 255, 255, .86)` in
+  light, near-white on the dark stage). The saving is deliberately restated
+  here even though the line above carries it — that line is
+  `revisit-customer-secondary` and is hidden on a short stage.
+- `resultSheet` carried the same sentence into the exported customer summary,
+  which leaves the room. `SAME_BUDGET_RESPLIT` now distinguishes the two cases
+  the same way, and `areaSizingRecommendation` states `(N fewer)` instead of
+  claiming a negative delta costs nothing.
+
+Verified in the browser at 64 payloads on 40.19°N 27.00°E, dark and light:
+`RECONFIGURATION REQUIRED` over `Measured at 2 h over this target, with 28 fewer
+payloads.` Gates: `npm test` 2138 pass, `tsc` and `lint` clean, `revisit-p7a`
+and `revisit-p7c` 7/7, and the 18 visual baselines pass unchanged.
+
+## 2026-08-31 — Full e2e suite, and the one regression it found
+
+226 tests across the four viewport projects: 114 passed, 30 failed, 82 skipped
+(1 h). Triaged, every cause checked against `ffb60ca` (the commit before this
+work) rather than assumed:
+
+- **1 real regression, fixed here.** Commercial mode failed the axe gate in both
+  themes — `scrollable-region-focusable`, serious — on the narrative panel's
+  scrollable body. Removing the customer-decision feature took away
+  `CommercialDecisionSummary`, whose button was that container's only focusable
+  content, so the region became unreachable without a pointer. It is now a
+  named, focusable region (`role="region"`, `aria-label="<segment> details"`,
+  `tabIndex={0}`, visible focus ring). Gate back to 6/6.
+- **18 visual baselines** were stale by design — the sidebar cards, the
+  RECOMMENDED block, the area editor, the drawing toolbar and several labels all
+  changed today — and have been **regenerated** (`--update-snapshots`,
+  desktop-chromium, which owns the whole viewport matrix). A clean re-run
+  without the flag then passed 18/18, so the new goldens are stable rather than
+  captures of one lucky frame; two were opened and read (desktop dark, phone
+  light) to confirm they record a settled result — 3 h 26 min against a 2 h
+  requirement, `MORE PAYLOADS REQUIRED`, 36 payloads (+24) — and not a
+  mid-computation frame.
+- **9 failures predated this work** (all verified to fail at `ffb60ca` too) and
+  have been fixed by re-pointing each assertion at where its subject now lives,
+  never by deleting it:
+  - `revisit-p0` × 4 projects — three stale claims in one test. The model chip
+    is matched with `{ exact: true }` (its label shares a button with the `…`
+    affordance, so a substring match counted one label twice); the GMAT
+    provenance is asserted through the Model evidence popover it moved into; the
+    plane-altitude ladder is asserted on the characteristics summary's `title`,
+    where its exact range now lives.
+  - `revisit-p7e` × 2 — the analysis window left the expert block for the
+    timeline it governs. The test pins both halves of that move: gone from the
+    panel, still reachable from `Analysis window settings`.
+  - `revisit-p2b-b2` × 2 — both cases asserted the Recommended configuration
+    block on an area with NO boundary, where it is absent by design. They now
+    paste a boundary first, which is what makes the assertion meaningful.
+  - `revisit-p1` mobile — the sentence "Changes are staged locally" was deleted
+    from the product on 2026-08-29 (commit 2ef5110). The BEHAVIOUR is asserted
+    instead: the preset still reads STANDARD and `Discard edits` is enabled,
+    both false if the geometry had already been applied.
+
+  Re-run across every project: 51 passed, 13 skipped, 0 failed.
+- **1 flake**: `revisit-p7a` "applies the recommended configuration" asserted
+  while the card still read "recomputing…". Passes in isolation at HEAD (22 s)
+  and at `ffb60ca` (44 s).
+
+No engine or REVISIT regression: the area, freshness, cancellation, sizing and
+comparison specs all pass. 2136 unit tests, lint and tsc clean.
+
 ## 2026-08-31 — Code review of the working tree: two findings fixed
 
 1. **The card could render an empty verdict slot.** `AREA_NOT_SIZED` drops its
@@ -917,7 +1064,8 @@ not only a test problem. A presenter reads that chip the way this test did.
 
 The same recovery fixed four Programme 7 correctness gaps: a late primary
 analysis can no longer commit under a new target identity; recommendation Undo
-is bound to the business question that produced it; readiness and notices
+is bound to the business question that produced it (Undo removed 2026-08-31);
+readiness and notices
 follow the active Point/Area result and every REVISIT Worker; Area renaming no
 longer launches a grid analysis; and the presentation profile restores the
 exact previous display flags.
@@ -1175,10 +1323,8 @@ The two mechanisms worth knowing before extending it:
    sweep reconciles the choice away on its next landing and the button appears
    to do nothing. This is the trap in the feature; do not "simplify" it.
 
-`previousConfiguration` (component state, never persisted) backs
-`Return to previous configuration` and is dropped on any other configuration
-change, on reset and on scenario load, so undo can never resurrect a
-configuration from several interactions back.
+**Superseded 2026-08-31:** the `previousConfiguration` undo memory described
+here has been removed; applying is a one-way transition.
 
 `RevisitKpiPanel` kept only the exceptional verdicts. The `MEETS`/`MISSES` pair
 and `To target: +N payloads` are the card's now; `Vs 1 payload` stayed, because

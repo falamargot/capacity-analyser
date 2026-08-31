@@ -30,6 +30,15 @@ test.describe('REVISIT P2b-B2 contextual results', () => {
 
     const pointsHeaderHeight = await page.locator('[data-revisit-context-bar]').evaluate((element) => element.getBoundingClientRect().height);
     await addSecondaryArea(page);
+    /*
+     * Give the area a boundary. An area with no polygon has no analysis and
+     * therefore no recommendation to show — the Recommended configuration block
+     * is absent by design in that state, so asserting its content on an empty
+     * area tested nothing that could ever be true.
+     */
+    await pasteAreaBoundary(
+      page.getByRole('region', { name: 'Area coverage' }), '49, -2\n49, 2\n51, 2\n51, -2',
+    );
     await page.getByRole('button', { name: 'Define area target' }).click();
     const areaHeaderHeight = await page.locator('[data-revisit-context-bar]').evaluate((element) => element.getBoundingClientRect().height);
     // Adding a real secondary row may grow the triad by one compact line; the
@@ -41,7 +50,7 @@ test.describe('REVISIT P2b-B2 contextual results', () => {
     // lives under "Why this recommendation?" inside the Recommended
     // configuration card — the same place a Point's value curve lives.
     await expect(analysis.getByLabel('Recommended configuration'))
-      .toContainText('Why this recommendation?');
+      .toContainText('Why this recommendation?', { timeout: 60_000 });
     await expect(analysis.getByRole('region', { name: 'Area cell distribution' })).toHaveCount(0);
     await expect(analysis.getByRole('button', { name: 'Data', exact: true })).toHaveCount(0);
     await expect(analysis.getByRole('region', { name: 'Target comparison' })).toHaveCount(0);
@@ -96,13 +105,17 @@ test.describe('REVISIT P2b-B2 contextual results', () => {
     // The area EDITOR is on the configuration surface; assert it while that is
     // the open panel, because navigating away dismisses its popover.
     await expect(page.getByRole('region', { name: 'Area coverage' })).toBeVisible();
+    // A boundary, or there is no analysis and no recommendation to navigate to.
+    await pasteAreaBoundary(
+      page.getByRole('region', { name: 'Area coverage' }), '49, -2\n49, 2\n51, 2\n51, -2',
+    );
 
     // Area evidence now lives in the single consolidated analysis sheet, which
     // cannot be open at the same time as the editor on a phone.
     await openRevisitAnalysis(page);
     await expect(page.getByRole('region', { name: 'Customer result' })).toBeVisible();
     await expect(page.getByLabel('Recommended configuration'))
-      .toContainText('Why this recommendation?');
+      .toContainText('Why this recommendation?', { timeout: 60_000 });
     await expect(page.getByRole('button', { name: 'Data', exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Advanced', exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Setup', exact: true })).toHaveCount(0);

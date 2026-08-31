@@ -36,7 +36,14 @@ test.describe('REVISIT P0 demonstration contract', () => {
     await expect(page.getByText('Demo story')).toHaveCount(0);
     await expect(page.getByRole('combobox', { name: 'Demo scenario' })).toHaveCount(0);
     await expect(page.getByText(/telecom workspace is preserved/i)).toHaveCount(0);
-    await expect(page.getByText('HLD reference profile')).toHaveCount(1);
+    /*
+     * Exactly one model chip on the opening screen — and `exact` is what makes
+     * that testable. The chip's label now shares its button with the `…`
+     * affordance that opens the panel, so a substring match resolves both the
+     * label and the button containing it and reports two "occurrences" of a
+     * label rendered once.
+     */
+    await expect(page.getByText('HLD reference profile', { exact: true })).toHaveCount(1);
     await expect(page.getByText(/not yet calibrated/i)).toHaveCount(0);
 
     // One panel owns the model: the chip and the settings button open the same one.
@@ -45,7 +52,16 @@ test.describe('REVISIT P0 demonstration contract', () => {
     await expect(settings.getByRole('radiogroup', { name: 'Constellation model' })).toBeVisible();
     await expect(settings.getByRole('radio', { name: 'OneWeb' })).toHaveAttribute('aria-checked', 'true');
     await expect(settings.getByRole('radio', { name: 'Custom' })).toHaveAttribute('aria-checked', 'false');
-    await expect(settings).toContainText('Propagation cross-checked vs NASA GMAT');
+    /*
+     * The engine's provenance is one deliberate click away, not permanent panel
+     * chrome: it lives in the Model evidence popover behind the `i` beside
+     * Characteristics. The demonstration contract is that it is REACHABLE from
+     * this panel, which is what this asserts.
+     */
+    await settings.getByRole('button', { name: 'Model evidence' }).click();
+    const evidence = settings.getByRole('dialog', { name: 'Model evidence' });
+    await expect(evidence).toContainText('Propagation cross-checked vs NASA GMAT');
+    await evidence.getByRole('button', { name: 'Close model evidence' }).click();
 
     // The whole specification as one sentence — the panel's first level of
     // reading since Programme 7E.
@@ -56,7 +72,15 @@ test.describe('REVISIT P0 demonstration contract', () => {
     // carry, are one disclosure away and still exactly as they were.
     // HLD is a record of something external, so its fields are not editable.
     await expect(settings.getByLabel('Planes P')).toBeDisabled();
-    await expect(settings).toContainText('1175–1219 km');
+    /*
+     * The ladder's exact range moved onto the summary's hover: it belongs to
+     * whoever asks for it, not to everyone who opens the panel. The spare
+     * distribution stayed in the sentence itself. Both are still carried — the
+     * demonstration contract is about the truth being present, not about which
+     * line renders it.
+     */
+    await expect(settings.locator('.revisit-characteristics-summary'))
+      .toHaveAttribute('title', /1175–1219 km/);
     await expect(settings).toContainText('58 across 12 planes');
 
     await expect(page.getByRole('dialog', { name: 'Model & validation' })).toHaveCount(0);

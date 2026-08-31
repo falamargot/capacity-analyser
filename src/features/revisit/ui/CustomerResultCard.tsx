@@ -64,8 +64,6 @@ export interface CustomerResultCardProps {
     sizing: CustomerSizing;
     /** Absent when there is nothing to apply. */
     onApply?: () => void;
-    /** Present only while an undo memory exists. */
-    onUndo?: () => void;
     /** Offered only on `FAILED`, and only for a sweep that can be re-run. */
     onRetrySizing?: () => void;
     /**
@@ -267,7 +265,7 @@ function estimatedSizingSeconds(cells: number): number {
 
 function SizingBlock({
     sizing, status, question, targetRole, fleetSize, currentPayloadCount,
-    onApply, onUndo, onRetrySizing, onSizeArea, areaCellCount, detail,
+    onApply, onRetrySizing, onSizeArea, areaCellCount, detail,
 }: {
     /** Absent when nothing has been measured to put a verdict on. */
     status: Status | null;
@@ -277,7 +275,6 @@ function SizingBlock({
     fleetSize: number;
     currentPayloadCount: number;
     onApply?: () => void;
-    onUndo?: () => void;
     onRetrySizing?: () => void;
     onSizeArea?: () => void;
     areaCellCount?: number | null;
@@ -507,9 +504,33 @@ function SizingBlock({
                             ? 'the payloads already flown, redistributed'
                             : `${currentPayloadCount - sizing.payloadCount} fewer than the current configuration`}.
                     </p>
-                    <p className="mt-1 text-[13px] leading-5 text-lime-200">
-                        Measured at {formatGap(sizing.maxGapMs)} over this target — no additional
-                        payloads required.
+                    {/*
+                      * NOT the `meets` lime, and not "no additional payloads"
+                      * when the answer uses FEWER.
+                      *
+                      * This line states the COST of the recommendation. Above
+                      * it sits `Reconfiguration required`, which states the
+                      * verdict on what is FLOWN. Painted in lime — the
+                      * `Requirement covered` colour everywhere else in this
+                      * module — the two read as a contradiction: the badge said
+                      * the requirement is missed and the sentence under it
+                      * looked like the badge that says it is met (reported
+                      * 2026-08-31). Slate is the neutral register and is
+                      * covered in both themes (`index.css`, `.text-slate-200`).
+                      *
+                      * "No additional payloads required" is true of a re-split
+                      * and badly understates a proposal that frees 58 of them,
+                      * so the two cases are worded separately. The count is
+                      * repeated from the line above on purpose: that line is
+                      * `revisit-customer-secondary` and is hidden on a short
+                      * stage, where this sentence is the only place the saving
+                      * is stated.
+                      */}
+                    <p className="mt-1 text-[13px] leading-5 text-slate-200">
+                        Measured at {formatGap(sizing.maxGapMs)} over this target
+                        {sizing.payloadCount < currentPayloadCount
+                            ? `, with ${currentPayloadCount - sizing.payloadCount} fewer payloads.`
+                            : ' — no additional payloads required.'}
                     </p>
                 </>
             )}
@@ -537,18 +558,6 @@ function SizingBlock({
                 </button>
             )}
 
-            {/* Undo survives the transition it caused: after applying, the card
-                shows `COVERED`, and that is exactly when the presenter may want
-                to go back and show the contrast again. */}
-            {onUndo && (
-                <button
-                    type="button"
-                    onClick={onUndo}
-                    className="revisit-undo-recommended mt-2 min-h-11 w-full rounded-lg border border-slate-600/70 px-3 py-2 text-[12px] font-black uppercase tracking-[0.12em] text-slate-300 transition-colors hover:border-slate-400 hover:text-slate-100"
-                >
-                    Return to previous configuration
-                </button>
-            )}
             {detail && <RecommendedEvidenceDisclosure>{detail}</RecommendedEvidenceDisclosure>}
         </div>
     );
@@ -558,7 +567,7 @@ export const CustomerResultCard: React.FC<CustomerResultCardProps> = ({
     targetRole = 'REFERENCE', question, currentPayloadCount, fleetSize,
     currentMaxGapMs, currentIsComputing, currentUnavailableReason = null,
     currentMetricLabel = 'Maximum revisit gap', requirementMs, sizing,
-    onApply, onUndo, onRetrySizing, onSizeArea, areaCellCount = null, supportingMetrics = null,
+    onApply, onRetrySizing, onSizeArea, areaCellCount = null, supportingMetrics = null,
     recommendedConfigurationDetail = null,
 }) => {
     const meetsRequirement = currentMaxGapMs === null ? null : currentMaxGapMs <= requirementMs;
@@ -660,7 +669,6 @@ export const CustomerResultCard: React.FC<CustomerResultCardProps> = ({
                 fleetSize={fleetSize}
                 currentPayloadCount={currentPayloadCount}
                 onApply={onApply}
-                onUndo={onUndo}
                 onRetrySizing={onRetrySizing}
                 onSizeArea={onSizeArea}
                 areaCellCount={areaCellCount}

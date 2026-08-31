@@ -87,7 +87,6 @@ import type { SavedRevisitScenario } from '../state/revisitSavedScenarios';
 import { useTargetComparison } from '../hooks/useTargetComparison';
 import { buildAreaResultSheet, buildRevisitResultSheet } from '../analysis/resultSheet';
 import { downloadRevisitResultSheet } from './downloadResultSheet';
-import { recommendationContextKey } from '../state/recommendationUndo';
 import {
     canSwapTargetRoles as canSwapTargets, promoteSecondaryToPrimary, swapTargetRoles,
 } from '../domain/targetRoleSwap';
@@ -192,21 +191,6 @@ function formatCoordinate(latDeg: number, lonDeg: number): string {
     const lat = `${Math.abs(latDeg).toFixed(2)}°${latDeg >= 0 ? 'N' : 'S'}`;
     const lon = `${Math.abs(lonDeg).toFixed(2)}°${lonDeg >= 0 ? 'E' : 'W'}`;
     return `${lat} ${lon}`;
-}
-
-/**
- * What `Return to previous configuration` restores.
- *
- * The payload count is not stored: it is derived from the selection
- * (`selectedSatelliteIds(...).size`), so restoring the selection restores the
- * count by construction and the two can never disagree. Component state, not
- * scenario state — a restored session offers no undo, which is correct.
- */
-interface PreviousConfiguration {
-    selection: RevisitScenario['selection'];
-    selectionSource: SelectionSource;
-    /** Business question for which the recommendation was applied. */
-    contextKey: string;
 }
 
 interface RevisitAppProps {
@@ -362,13 +346,6 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
      * different constellations.
      */
     const [selectionSource, setSelectionSource] = useState<SelectionSource>(restoredSession?.selectionSource ?? 'auto');
-    /**
-     * Set by `Apply recommended configuration`, and dropped as soon as the
-     * configuration moves by any other path — so undo can never resurrect a
-     * configuration from several interactions back, which would be worse than
-     * having no undo at all in front of a customer.
-     */
-    const [previousConfiguration, setPreviousConfiguration] = useState<PreviousConfiguration | null>(null);
     /**
      * P7E: who the scenario is for. Free text, persisted in the session
      * snapshot and printed on the customer summary, so a salesperson types it
@@ -581,7 +558,6 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         // optimisation choice. Mark it manual so the reference sweep does not
         // immediately reconcile it back to the primary target's winner.
         setSelectionSource(selectedPointIdRef.current === REFERENCE_POINT_ID ? 'auto' : 'manual');
-        setPreviousConfiguration(null);
         setScenario((current) => {
             const selection = selectionForPayloadCount(
                 current.selection, current.reference, count, activeSweepRef.current
@@ -600,7 +576,6 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         setScenario((current) => {
             if (!sameSelection(current.selection, next.selection)) {
                 setSelectionSource('manual');
-                setPreviousConfiguration(null);
             }
             // Once the reference itself is touched, the values are hand-entered
             // whatever they were restored from (m4).
@@ -1004,21 +979,6 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         areaSizingRun.run(customArea, probeCell, requirementMs);
     }, [customArea, displayedAreaAnalysis, requirementMs, areaSizingRun]);
 
-    const undoContextKey = useMemo(() => recommendationContextKey(
-        scenario, requirementMs, analysisContext, selectedPointId,
-        comparisonPoints, secondaryTargetOrder, customArea,
-    ), [
-        scenario, requirementMs, analysisContext, selectedPointId,
-        comparisonPoints, secondaryTargetOrder, customArea,
-    ]);
-    const canUndoRecommendation = previousConfiguration?.contextKey === undoContextKey;
-
-    useEffect(() => {
-        setPreviousConfiguration((current) => current && current.contextKey !== undoContextKey
-            ? null
-            : current);
-    }, [undoContextKey]);
-
     /**
      * Apply the recommendation.
      *
@@ -1036,11 +996,6 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     const handleApplyRecommendation = useCallback(() => {
         if (customerSizing.kind !== 'RECOMMENDED' && customerSizing.kind !== 'RETOPOLOGY') return;
         const count = customerSizing.payloadCount;
-        setPreviousConfiguration({
-            selection: scenario.selection,
-            selectionSource,
-            contextKey: undoContextKey,
-        });
         setSelectionSource(selectedPointId === REFERENCE_POINT_ID ? 'auto' : 'manual');
         setScenario((current) => {
             const selection = selectionForPayloadCount(
@@ -1048,14 +1003,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
             );
             return selection ? { ...current, selection } : current;
         });
-    }, [customerSizing, scenario.selection, selectionSource, selectedPointId, undoContextKey]);
-
-    const handleUndoRecommendation = useCallback(() => {
-        if (!previousConfiguration || previousConfiguration.contextKey !== undoContextKey) return;
-        setScenario((current) => ({ ...current, selection: previousConfiguration.selection }));
-        setSelectionSource(previousConfiguration.selectionSource);
-        setPreviousConfiguration(null);
-    }, [previousConfiguration, undoContextKey]);
+    }, [customerSizing, selectedPointId]);
 
     /*
      * ── PRESENTATION SAFETY (Programme 7B) ──────────────────────────────────
@@ -1632,7 +1580,6 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         setAreaTargetRole('REFERENCE');
         setAnalysisContext(referenceArea ? 'AREA' : 'POINTS');
         setSelectedPointId(REFERENCE_POINT_ID);
-        setPreviousConfiguration(null);
         setTargetRequirementsMs((current) => ({
             ...current,
             COMPARISON: current.REFERENCE,
@@ -1669,7 +1616,6 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         setComparisonPoints([]);
         setSecondaryTargetOrder([]);
         setSelectedPointId(REFERENCE_POINT_ID);
-        setPreviousConfiguration(null);
         // Both area runs belong to the state being replaced; keeping either
         // would show one polygon's coverage under another polygon's name.
         referenceAreaRun.clear();
@@ -1723,7 +1669,6 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         });
         if (!swapped) return;
 
-        setPreviousConfiguration(null);
         /*
          * Each Area run is keyed to its ROLE, not to its polygon, so a swap that
          * left them in place kept the old Primary's completed grid attached to
@@ -1911,7 +1856,6 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
             COMPARISON: DEFAULT_REQUIREMENT_MS,
         });
         setSelectionSource('auto');
-        setPreviousConfiguration(null);
         setOpportunity('');
         setExportError(null);
         setHasReferenceTarget(false);
@@ -1973,7 +1917,6 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         setSelectionSource(snapshot.selectionSource);
         const loadedHasReferenceTarget = snapshot.hasReferenceTarget ?? true;
         setHasReferenceTarget(loadedHasReferenceTarget);
-        setPreviousConfiguration(null);
         setOpportunity(snapshot.opportunity ?? '');
         setExportError(null);
         const loadedAreaRole = snapshot.areaTargetRole ?? 'COMPARISON';
@@ -2470,7 +2413,6 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                                     requirementMs={requirementMs}
                                     sizing={customerSizing}
                                     onApply={handleApplyRecommendation}
-                                    onUndo={canUndoRecommendation ? handleUndoRecommendation : undefined}
                                     onRetrySizing={activeSizingError ? retrySweep : undefined}
                                     onSizeArea={analysisContext === 'AREA' && customArea
                                         && displayedAreaAnalysis?.worstCell

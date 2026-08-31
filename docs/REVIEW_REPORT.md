@@ -555,7 +555,8 @@ failure modes this feature was written to avoid.
    best of 3 splits at this count` independently of the card. From a secondary
    target it sets `'manual'`, matching `handlePayloadCountChange`, so the
    reference sweep cannot reconcile the deliberate choice away.
-4. **Undo cannot resurrect a stale configuration.** `previousConfiguration` is
+4. **Undo cannot resurrect a stale configuration.** _(Undo removed 2026-08-31;
+   this item is historical.)_ `previousConfiguration` is
    dropped in `handlePayloadCountChange`, in `handleAdvancedChange` when the
    selection actually differs, on reset and on scenario load. Verified: apply
    then undo restored 12 payloads / `4 planes × 3` / 3 h 13 exactly, and the

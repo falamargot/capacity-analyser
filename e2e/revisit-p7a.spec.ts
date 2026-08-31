@@ -9,9 +9,7 @@ import {
  * The unit tests fix what the card renders for a given sizing outcome. What
  * only the browser can prove is the part that made the button worth building:
  * that applying the recommendation actually moves the configuration to a
- * measured one, that the requirement then reads as covered, and that the
- * presenter can get back to the previous configuration to show the contrast
- * again.
+ * measured one, and that the requirement then reads as covered.
  */
 
 test.beforeEach(async ({ page }) => {
@@ -57,7 +55,7 @@ test.describe('REVISIT P7A commercial result framing', () => {
     await expect(card.locator('.revisit-customer-status')).toHaveClass(/text-lime-200/);
   });
 
-  test('applies the recommended configuration and returns from it', async ({ page }, testInfo) => {
+  test('applies the recommended configuration', async ({ page }, testInfo) => {
     test.skip(!['desktop-chromium', 'mobile-chromium'].includes(testInfo.project.name));
     /*
      * This test is gated on the payload sweep, the slowest computation in the
@@ -86,13 +84,6 @@ test.describe('REVISIT P7A commercial result framing', () => {
     await expect(card.locator('.revisit-customer-status')).toHaveClass(/text-lime-200/);
     await expect(payloadCount).not.toHaveValue(before);
     await expect(apply).toHaveCount(0);
-
-    // And the presenter can go back to show the contrast again.
-    const undo = card.getByRole('button', { name: 'Return to previous configuration' });
-    await expect(undo).toBeVisible();
-    await undo.click();
-    await expect(payloadCount).toHaveValue(before);
-    await expect(undo).toHaveCount(0);
   });
 
   test('never proposes a payload count for an area', async ({ page }, testInfo) => {

@@ -971,8 +971,23 @@ function CommercialNarrativePanel({
 
         <div className={`commercial-narrative-panel__divider ${isSummary ? 'mt-3' : 'mt-4'} mx-5 flex-shrink-0 border-t border-[rgba(30,41,59,0.80)]`} />
 
-        {/* Scrollable content */}
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+        {/*
+          * Scrollable content, reachable by keyboard.
+          *
+          * This region used to hold the customer-decision summary, whose button
+          * gave it focusable content; removing that feature left a scroll
+          * container nobody could reach without a pointer, and the axe gate
+          * flagged it as a serious `scrollable-region-focusable` violation in
+          * both commercial themes. A tab stop restores the keyboard path — the
+          * arrow keys then scroll it — and the region is named so that stop is
+          * announced as something rather than as an anonymous box.
+          */}
+        <div
+          role="region"
+          aria-label={`${card.eyebrow} details`}
+          tabIndex={0}
+          className="min-h-0 flex-1 overflow-y-auto px-5 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70"
+        >
           {isAccess ? (
             <OriginSiteBlock card={card} viewModel={viewModel} />
           ) : isSatellite ? (
