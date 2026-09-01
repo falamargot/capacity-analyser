@@ -1201,3 +1201,17 @@ footer to ≤165 px. Single and Comparison were inspected at 1440×900 and
 pass. The full Vitest run reached 2,141 passing tests and one unrelated
 Windows-only failure: `r28Ablation.test.ts` writes to hard-coded `/tmp`, resolved
 as the unavailable `C:\tmp` on this machine.
+
+## Review — unified comparison lanes Lot 2 (2026-09-01)
+
+Net UI structure is smaller: one comparison representation was deleted rather
+than another summary being added. The seek overlay still covers only the track;
+target label and result are separate buttons, preventing a result-selection
+click from moving simulation time. Exact gaps, verdict colours, pending/error
+states, selected-row emphasis, Point/Area basis and screen-reader region all
+remain covered, including the Single-target verdict. Desktop 1920×1080 and
+mobile 390×844 were inspected with two
+targets; no horizontal overflow and no duplicate comparison card were found.
+Targeted unit tests and point-comparison E2E pass, as do typecheck, ESLint and
+the production build. The mixed Point/Area E2E did not reach this UI assertion:
+its pre-existing Area result remained empty through its 60 s computation wait.

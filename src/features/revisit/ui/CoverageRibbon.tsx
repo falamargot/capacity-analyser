@@ -202,12 +202,12 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
         onSetSpeed(0);
         setCurrentHours((boundedMs - windowStartMs) / 3600_000);
     };
-    const showComparisonSidecar = targetRows.length > 1;
-    /** The sidecar carries the per-lane figures, so the rows drop their value column. */
-    const hasValueColumn = !showComparisonSidecar;
-    const trackColumns = hasValueColumn
-        ? 'grid-cols-[6rem_minmax(0,1fr)_5rem]'
-        : 'grid-cols-[6rem_minmax(0,1fr)]';
+    const isComparison = targetRows.length > 1;
+    /** Labels and exact results flank the track at every viewport. Keeping one
+     * grid prevents comparison from becoming a second UI beside the timeline. */
+    const trackColumns = isComparison
+        ? 'grid-cols-[6rem_minmax(0,1fr)_7rem] sm:grid-cols-[8rem_minmax(0,1fr)_8.5rem]'
+        : 'grid-cols-[6rem_minmax(0,1fr)_7rem] sm:grid-cols-[8rem_minmax(0,1fr)_8.5rem]';
     const laneRequirements = targetRows.map((lane) => lane.requirementMs ?? requirementMs);
     const sharedRequirementMs = laneRequirements.length === 0
         ? requirementMs
@@ -251,22 +251,15 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
         );
     };
 
-    /*
-     * A failure states itself where the comparison lives, using the two slots
-     * the header already has: the status word and the subtitle. It costs no
-     * extra row, and it stays out of the presentation notice, which is reserved
-     * for the result actually on screen.
-     */
-    const comparisonSubtitle = comparisonError
-        ? 'Comparison unavailable — the selected result above is unaffected.'
-        : 'Same topology and FOV · target-specific requirements';
+    /* Comparison state stays in the existing toolbar. A separate card for two
+     * rows duplicated the lanes and made the eye alternate between two models. */
     const comparisonStatus = comparisonError
         ? (
             <span
                 className="text-[11px] font-black uppercase tracking-wide text-red-300"
                 title={comparisonError}
             >
-                Unavailable
+                Comparison unavailable
             </span>
         )
         : comparisonIsComputing
@@ -275,8 +268,8 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
 
     return (
         <section className={`${REVISIT_PANEL} revisit-coverage-ribbon overflow-hidden`} aria-label="Coverage timeline">
-            <div className={showComparisonSidecar ? 'lg:grid lg:grid-cols-[minmax(0,1fr)_400px]' : ''}>
-                <div className="px-2 py-2 sm:px-4 lg:col-start-1 lg:row-start-1">
+            <div>
+                <div className="px-2 py-2 sm:px-4">
                     <div
                         className="flex flex-wrap items-center gap-x-3 gap-y-1.5"
                         data-revisit-timeline-toolbar
@@ -292,6 +285,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                                     {requirementSummary}
                                 </span>
                             )}
+                            {isComparison && comparisonStatus}
                             {targetRows.some((row) => row.kind === 'AREA') && (
                                 <span className="hidden text-[11px] font-semibold text-slate-500 sm:inline">
                                     Point lanes + Area worst-cell lane
@@ -369,69 +363,25 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                     </div>
                 </div>
 
-                {showComparisonSidecar && (
-                    <section className="hidden lg:contents" aria-label="Target comparison">
-                        <div className="border-l border-slate-700/60 bg-slate-950/25 px-4 pt-2 lg:col-start-2 lg:row-start-1">
-                            <div className="flex items-start justify-between gap-2">
-                                <div className="flex min-w-0 items-baseline gap-2">
-                                    <div className={`${REVISIT_LABEL} shrink-0`}>Compare targets</div>
-                                    <p className={`truncate text-[11px] ${comparisonError ? 'text-red-200' : 'text-slate-500'}`}>
-                                        {comparisonSubtitle}
-                                    </p>
-                                </div>
-                                {comparisonStatus}
-                            </div>
-                            <div className="mt-1 grid grid-cols-[minmax(0,1fr)_7rem_4.5rem_3.75rem] gap-1.5 text-[11px] font-black uppercase tracking-wide text-slate-500">
-                                <span>Target</span><span>Basis</span><span>Maximum gap</span><span className="text-right">Verdict</span>
-                            </div>
-                        </div>
-
-                        <div className="border-l border-slate-700/60 bg-slate-950/25 px-4 lg:col-start-2 lg:row-start-2">
-                            <div className="space-y-1.5">
-                                {targetRows.map((lane, index) => {
-                                    const maxGapMs = lane.statistics?.maxGapMs ?? null;
-                                    const laneRequirementMs = lane.requirementMs ?? requirementMs;
-                                    const meets = maxGapMs !== null && maxGapMs <= laneRequirementMs;
-                                    const waiting = Boolean(lane.statusLabel) || (index > 0 && !lane.statistics && comparisonIsComputing);
-                                    const isReference = lane.roleLabel === 'Primary';
-                                    const selectedTone = isReference
-                                        ? 'border-y border-l-[3px] border-amber-300/60 bg-amber-400/12 shadow-[inset_0_0_14px_rgba(251,191,36,0.08)]'
-                                        : 'border-y border-l-[3px] border-sky-300/60 bg-sky-400/12 shadow-[inset_0_0_14px_rgba(56,189,248,0.09)]';
-                                    return (
-                                        <div
-                                            key={lane.id}
-                                            data-revisit-comparison-row={lane.id}
-                                            onClick={() => onSelectTarget?.(lane.id)}
-                                            className={`grid h-7 cursor-pointer grid-cols-[minmax(0,1fr)_7rem_4.5rem_3.75rem] items-center gap-1.5 rounded px-1 text-[11px] tabular-nums transition-colors hover:bg-white/[0.05] ${lane.selected ? selectedTone : 'border-y border-l-[3px] border-transparent'}`}
-                                        >
-                                            <button
-                                                type="button"
-                                                onClick={(event) => {
-                                                    event.stopPropagation();
-                                                    onSelectTarget?.(lane.id);
-                                                }}
-                                                aria-pressed={lane.selected}
-                                                title={lane.label}
-                                                className={`truncate text-left font-bold ${isReference ? 'text-amber-200' : 'text-sky-200'} ${lane.selected ? 'brightness-125' : ''}`}
-                                            >{lane.roleLabel} · {lane.name}</button>
-                                            <span className="truncate text-slate-400">{lane.basisLabel}</span>
-                                            <span className="text-slate-200">{lane.statusLabel ?? (lane.unbounded ? 'Never seen' : waiting ? '…' : formatGap(maxGapMs))}</span>
-                                            <span className={`text-right font-black ${goalTextClass(maxGapMs, laneRequirementMs, lane.unbounded)}`}>
-                                                {lane.unbounded ? 'MISSES' : maxGapMs === null ? '—' : meets ? 'MEETS' : 'MISSES'}
-                                            </span>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                        <div className="border-l border-slate-700/60 bg-slate-950/25 lg:col-start-2 lg:row-start-3" />
-                    </section>
-                )}
-
-                <div className="px-2 sm:px-4 lg:col-start-1 lg:row-start-2">
-                    <div className="relative" data-revisit-timeline>
+                <div className="px-2 sm:px-4">
+                    <div
+                        className="relative"
+                        data-revisit-timeline
+                        role={isComparison ? 'region' : undefined}
+                        aria-label={isComparison ? 'Target comparison' : undefined}
+                    >
                         <div className="space-y-1.5">
-                            {targetRows.map((lane) => {
+                            {targetRows.map((lane, index) => {
+                                const maxGapMs = lane.statistics?.maxGapMs ?? null;
+                                const laneRequirementMs = lane.requirementMs ?? requirementMs;
+                                const meets = maxGapMs !== null && maxGapMs <= laneRequirementMs;
+                                const waiting = Boolean(lane.statusLabel)
+                                    || (index > 0 && !lane.statistics && comparisonIsComputing);
+                                const resultText = lane.statusLabel
+                                    ?? (lane.unbounded ? 'Never seen' : waiting ? '…' : formatGap(maxGapMs));
+                                const verdict = lane.unbounded
+                                    ? 'MISSES'
+                                    : maxGapMs === null ? null : meets ? 'MEETS' : 'MISSES';
                                 const isReference = lane.roleLabel === 'Primary';
                                 const selectedTone = isReference
                                     ? 'border-y border-l-[3px] border-amber-300/60 bg-amber-400/12 shadow-[inset_0_0_14px_rgba(251,191,36,0.08)]'
@@ -440,6 +390,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                                     <div
                                         key={lane.id}
                                         data-revisit-timeline-lane={lane.id}
+                                        data-revisit-comparison-row={isComparison ? lane.id : undefined}
                                         className={`grid h-7 items-center gap-2 rounded transition-colors ${trackColumns} ${lane.selected ? selectedTone : 'border-y border-l-[3px] border-transparent'}`}
                                     >
                                         <button
@@ -459,7 +410,26 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                                             lane.requirementMs ?? requirementMs,
                                             lane.selected || targetRows.length === 1,
                                         )}
-                                        {!showComparisonSidecar && <span className="text-right text-[11px] font-bold text-slate-400">{lane.statusLabel ?? (lane.unbounded ? 'Never seen' : formatGap(lane.statistics?.maxGapMs ?? null))}</span>}
+                                        <button
+                                            type="button"
+                                            data-revisit-lane-result={lane.id}
+                                            onClick={() => onSelectTarget?.(lane.id)}
+                                            aria-label={`Select ${lane.roleLabel} result`}
+                                            aria-pressed={lane.selected}
+                                            title={`${lane.basisLabel} maximum gap · ${resultText}${verdict ? ` · ${verdict}` : ''}`}
+                                            className="flex min-w-0 items-center justify-end gap-1.5 px-0.5 text-right text-[11px] tabular-nums"
+                                        >
+                                            <span className="sr-only">{lane.basisLabel} · Maximum gap </span>
+                                            <span className="truncate font-bold text-slate-300">{resultText}</span>
+                                            {verdict && (
+                                                <span
+                                                    data-revisit-lane-verdict
+                                                    className={`shrink-0 font-black ${goalTextClass(maxGapMs, laneRequirementMs, lane.unbounded)}`}
+                                                >
+                                                    {verdict}
+                                                </span>
+                                            )}
+                                        </button>
                                     </div>
                                 );
                             })}
@@ -504,63 +474,26 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                                         className="pointer-events-none absolute inset-y-0 left-0 w-px bg-white shadow-[0_0_4px_#fff]"
                                     />
                                 </div>
-                                {hasValueColumn && <div />}
+                                <div />
                             </div>
                         )}
                     </div>
                 </div>
 
-                {showComparisonSidecar && (
-                    <details className="group mx-2 mt-2 rounded border border-slate-700/60 bg-slate-950/25 px-2 py-1.5 sm:mx-4 lg:hidden">
-                        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-left">
-                            <span>
-                                <span className={REVISIT_LABEL}>Compare targets</span>
-                                <span className={`mt-0.5 block text-[11px] ${comparisonError ? 'text-red-200' : 'text-slate-500'}`}>
-                                    {comparisonSubtitle}
+                <div className="px-2 pb-2 sm:px-4 sm:pb-3">
+                    <div className={`mt-1 grid gap-2 ${trackColumns}`}>
+                        <div />
+                        <div className="flex justify-between text-[11px] font-semibold tabular-nums text-slate-500">
+                            {hourTicks.map((hour) => (
+                                <span
+                                    key={hour}
+                                    className={hour !== 0 && hour !== windowHours ? 'hidden sm:inline' : ''}
+                                >
+                                    {String(hour).padStart(2, '0')}:00
                                 </span>
-                            </span>
-                            <span className="flex items-center gap-2">
-                                {comparisonStatus}
-                                <span aria-hidden="true" className="text-slate-500 transition-transform group-open:rotate-90">›</span>
-                            </span>
-                        </summary>
-                        <div className="overflow-x-auto pb-1">
-                            <div className="grid min-w-[22rem] grid-cols-[minmax(0,1fr)_7rem_4.5rem_3.75rem] gap-2 border-b border-slate-700/50 py-1 text-[11px] font-black uppercase tracking-wide text-slate-500">
-                                <span>Target</span><span>Basis</span><span>Maximum gap</span><span className="text-right">Verdict</span>
-                            </div>
-                            {targetRows.map((lane, index) => {
-                                const maxGapMs = lane.statistics?.maxGapMs ?? null;
-                                const laneRequirementMs = lane.requirementMs ?? requirementMs;
-                                const meets = maxGapMs !== null && maxGapMs <= laneRequirementMs;
-                                const waiting = Boolean(lane.statusLabel) || (index > 0 && !lane.statistics && comparisonIsComputing);
-                                const isReference = lane.roleLabel === 'Primary';
-                                return (
-                                    <button
-                                        key={lane.id}
-                                        type="button"
-                                        data-revisit-comparison-row={lane.id}
-                                        onClick={() => onSelectTarget?.(lane.id)}
-                                        aria-pressed={lane.selected}
-                                        className={`grid min-h-11 min-w-[22rem] w-full grid-cols-[minmax(0,1fr)_7rem_4.5rem_3.75rem] items-center gap-2 border-b border-slate-800/60 px-1 text-left text-[11px] tabular-nums ${lane.selected
-                                            ? isReference ? 'border-l-[3px] border-l-amber-300/60 bg-amber-400/12' : 'border-l-[3px] border-l-sky-300/60 bg-sky-400/12'
-                                            : 'border-l-[3px] border-l-transparent'}`}
-                                    >
-                                        <span className={`truncate font-bold ${isReference ? 'text-amber-200' : 'text-sky-200'}`}>{lane.roleLabel} · {lane.name}</span>
-                                        <span className="truncate text-slate-400">{lane.basisLabel}</span>
-                                        <span className="text-slate-200">{lane.statusLabel ?? (lane.unbounded ? 'Never seen' : waiting ? '…' : formatGap(maxGapMs))}</span>
-                                        <span className={`text-right font-black ${goalTextClass(maxGapMs, laneRequirementMs, lane.unbounded)}`}>
-                                            {lane.unbounded ? 'MISSES' : maxGapMs === null ? '—' : meets ? 'MEETS' : 'MISSES'}
-                                        </span>
-                                    </button>
-                                );
-                            })}
+                            ))}
                         </div>
-                    </details>
-                )}
-
-                <div className="px-2 pb-2 sm:px-4 sm:pb-3 lg:col-start-1 lg:row-start-3">
-                    <div className="mt-1 flex justify-between text-[11px] font-semibold tabular-nums text-slate-500">
-                        {hourTicks.map((hour) => <span key={hour}>{String(hour).padStart(2, '0')}:00</span>)}
+                        <div />
                     </div>
                 </div>
             </div>

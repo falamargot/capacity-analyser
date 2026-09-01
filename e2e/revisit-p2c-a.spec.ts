@@ -92,8 +92,8 @@ test.describe('REVISIT P2c-A selected result', () => {
     }
   });
 
-  test('selects a comparison from the aligned comparison table', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== 'desktop-chromium', 'Desktop table is aligned beside the timeline');
+  test('selects a comparison from the result aligned with its lane', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop-chromium', 'Desktop comparison layout contract');
     await addSecondaryPoint(page);
     await page.getByRole('combobox', { name: 'Secondary target', exact: true }).selectOption('Singapore');
     await page.locator('[data-revisit-context-panel="analysis-target"]')
@@ -101,15 +101,17 @@ test.describe('REVISIT P2c-A selected result', () => {
 
     const comparison = page.getByRole('region', { name: 'Target comparison' });
     await expect(comparison.getByRole('button', { name: 'Singapore' })).toBeVisible({ timeout: 30_000 });
+    await expect(comparison.locator('[data-revisit-lane-result]')).toHaveCount(2);
+    await expect(page.getByText('Compare targets', { exact: true })).toHaveCount(0);
     const footer = page.getByRole('region', { name: 'Coverage timeline' });
     await expect(footer.locator('[data-revisit-timeline-toolbar]'))
       .toContainText('Requirement ≤ 2 h');
     expect(await footer.evaluate((element) => element.getBoundingClientRect().height))
       .toBeLessThanOrEqual(165);
     const singaporeRow = comparison.locator('[data-revisit-comparison-row]').nth(1);
-    // The KPI/goal side of the row is clickable too; selection is not confined
-    // to the target-name button.
-    await singaporeRow.click({ position: { x: 350, y: 14 } });
+    // The result at the end of the lane selects the context without turning the
+    // seekable track itself into a second selection surface.
+    await singaporeRow.locator('[data-revisit-lane-result]').click();
     await expect(page.getByLabel('Active result context')).toContainText('Point result · Secondary target');
     await expect(singaporeRow).toHaveClass(/border-sky-300/);
     await expect(page.locator('[data-revisit-timeline-lane]').nth(1)).toHaveClass(/border-sky-300/);

@@ -2376,3 +2376,16 @@ Then continue autonomously. No previous conversation is required.
   desktop Comparison height at ≤165 px. Targeted unit and E2E pass; build,
   typecheck and lint pass. Full unit run: 2,141 pass, 5 skip, with only the
   pre-existing hard-coded `/tmp` write failing on Windows.
+
+## Latest change — REVISIT comparison Lot 2 (2026-09-01)
+
+- `CoverageRibbon.tsx`: deleted desktop/mobile comparison duplicates; each lane
+  now ends with its exact gap and verdict, in Single as well as Comparison.
+- The result cell selects its target; the middle track still seeks. The shared
+  axis aligns with the track and collapses to 00:00/72:00 below `sm`.
+- No new summary card or relative verdict was added. This is deliberate density
+  control, not deferred functionality.
+- `RevisitP0Ui`, `revisit-p2c-a` and `revisit-p2c-c` were updated for the
+  unified-row contract. Targeted Point comparison E2E and visual desktop/mobile
+  checks pass. Mixed Point/Area setup is currently blocked before the footer by
+  an Area analysis that remains empty past its existing 60 s wait.

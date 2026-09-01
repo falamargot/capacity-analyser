@@ -65,12 +65,12 @@ test.describe('REVISIT P2c-C mixed target comparison', () => {
 
     const referenceResult = await referenceRow.textContent();
     const comparisonResult = await comparisonRow.textContent();
-    await referenceRow.click();
+    await referenceRow.locator('[data-revisit-lane-result]').click();
     const activeResult = page.getByLabel('Active result context');
     await expect(activeResult).toContainText('Primary area');
     await expect(activeResult).toHaveAttribute('data-revisit-target-role', 'reference');
     await expect(activeResult).toHaveClass(/revisit-target-reference/);
-    await comparisonRow.click();
+    await comparisonRow.locator('[data-revisit-lane-result]').click();
     await expect(activeResult).toContainText('Secondary area');
     await expect(activeResult).toHaveAttribute('data-revisit-target-role', 'comparison');
     await expect(activeResult).toHaveClass(/revisit-target-comparison/);
@@ -180,7 +180,7 @@ ${misattributed.length} of ${samples.length} recorded states`).toEqual([]);
   });
 
   test('compares Point and Area on one qualified contractual metric and synchronises selection', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== 'desktop-chromium', 'Desktop sidecar contract');
+    test.skip(testInfo.project.name !== 'desktop-chromium', 'Desktop unified-lane contract');
     await configureMixedTargets(page);
 
     const timeline = page.getByRole('region', { name: 'Coverage timeline' });
@@ -196,12 +196,12 @@ ${misattributed.length} of ${samples.length} recorded states`).toEqual([]);
     await expect(comparison.locator('[data-revisit-comparison-row]')).toHaveCount(2);
 
     const areaRow = comparison.locator('[data-revisit-comparison-row="AREA_TARGET"]');
-    await areaRow.click();
+    await areaRow.locator('[data-revisit-lane-result]').click();
     await expect(page.getByLabel('Active result context')).toContainText('Area result');
     await expect(areaRow).toHaveClass(/border-sky-300/);
 
     const pointRow = comparison.locator('[data-revisit-comparison-row]').first();
-    await pointRow.click();
+    await pointRow.locator('[data-revisit-lane-result]').click();
     await expect(page.getByLabel('Active result context')).toContainText('Point result · Primary target');
     // The reference row carries the amber accent; comparisons carry sky.
     await expect(pointRow).toHaveClass(/border-amber-300/);

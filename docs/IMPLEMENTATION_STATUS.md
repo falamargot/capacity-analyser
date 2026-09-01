@@ -303,3 +303,14 @@ rows were replaced by one toolbar carrying `Requirement ≤ …` and an explicit
 step seconds remain editable in its popover. Desktop browser measurements are
 ~109 px in Single and ≤165 px in Comparison. No analysis, seeking, playback,
 comparison-row or target-selection logic changed.
+
+## REVISIT unified comparison lanes — 2026-09-01
+
+Lot 2 is delivered. `CoverageRibbon` no longer renders a second comparison
+table. Primary and Secondary rows each expose `Maximum gap + MEETS/MISSES` at
+the end of their own timeline, with the result cell selecting that target while
+the track remains dedicated to seeking; the Single lane exposes the same
+verdict beside its gap. Desktop regains the former 400 px
+sidecar width. Mobile retains both verdicts and shows only 00:00/72:00 axis
+bounds to prevent tick crowding. Point/Area basis remains available in the row
+semantics and Area wording remains visible in the toolbar/label.

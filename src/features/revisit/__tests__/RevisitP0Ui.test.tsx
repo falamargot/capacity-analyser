@@ -339,6 +339,29 @@ describe('REVISIT P0 presentation UI', () => {
         expect(onSeek).toHaveBeenCalledWith(Date.UTC(2026, 7, 13, 6, 30));
     });
 
+    it('keeps the requirement verdict visible for a single target', async () => {
+        const startMs = Date.UTC(2026, 7, 12, 12);
+        await act(async () => root?.render(
+            <CoverageRibbon
+                intervals={[]}
+                statistics={gapStatistics(3 * 3600_000)}
+                windowStartMs={startMs}
+                windowHours={72}
+                getTimeMs={() => startMs}
+                onSeek={() => undefined}
+                speed={0}
+                onSetSpeed={() => undefined}
+                requirementMs={2 * 3600_000}
+            />
+        ));
+
+        const result = container.querySelector('[data-revisit-lane-result="REFERENCE"]')!;
+        expect(result.textContent).toContain('3 h');
+        expect(result.textContent).toContain('MISSES');
+        expect(result.querySelector('[data-revisit-lane-verdict]')?.className)
+            .toContain('text-orange-300');
+    });
+
     /**
      * The seek surface used to wrap the lane rows, so the `role="slider"`
      * contained the per-lane buttons — a nested interactive control, which the
@@ -380,7 +403,7 @@ describe('REVISIT P0 presentation UI', () => {
         expect(slider.closest('[aria-hidden="true"]')).toBeNull();
     });
 
-    it('carries the selected point emphasis across the timeline and comparison sidecar', async () => {
+    it('carries the selected point emphasis across the unified comparison lanes', async () => {
         const startMs = Date.UTC(2026, 7, 12, 12);
         const onSelectPoint = vi.fn();
         await act(async () => root?.render(
@@ -408,15 +431,16 @@ describe('REVISIT P0 presentation UI', () => {
         ));
 
         const selectedTimeline = container.querySelector('[data-revisit-timeline-lane="comparison-1"]')!;
-        const selectedSidecar = container.querySelector('[data-revisit-comparison-row="comparison-1"]')!;
+        const selectedComparisonRow = container.querySelector('[data-revisit-comparison-row="comparison-1"]')!;
         expect(selectedTimeline.className).toContain('border-sky-300/60');
-        expect(selectedSidecar.className).toContain('border-sky-300/60');
+        expect(selectedComparisonRow).toBe(selectedTimeline);
         expect(selectedTimeline.querySelector('svg')?.getAttribute('class')).toContain('opacity-100');
         expect(container.querySelector('[data-revisit-timeline-lane="REFERENCE"] svg')?.getAttribute('class'))
             .toContain('opacity-75');
 
-        // Any comparison cell, not only its target-name button, selects the row.
-        await act(async () => (selectedSidecar.lastElementChild as HTMLElement).click());
+        // The compact result at the end of the lane selects the same context.
+        await act(async () => selectedComparisonRow
+            .querySelector<HTMLElement>('[data-revisit-lane-result]')!.click());
         expect(onSelectPoint).toHaveBeenCalledWith('comparison-1');
     });
 
@@ -459,8 +483,8 @@ describe('REVISIT P0 presentation UI', () => {
 
         const missRow = container.querySelector('[data-revisit-comparison-row="REFERENCE"]');
         const meetRow = container.querySelector('[data-revisit-comparison-row="comparison-1"]');
-        expect(missRow?.lastElementChild?.className).toContain('text-orange-300');
-        expect(meetRow?.lastElementChild?.className).toContain('text-lime-300');
+        expect(missRow?.querySelector('[data-revisit-lane-verdict]')?.className).toContain('text-orange-300');
+        expect(meetRow?.querySelector('[data-revisit-lane-verdict]')?.className).toContain('text-lime-300');
         expect(container.querySelector('[data-revisit-gap-outcome="misses"]')
             ?.getAttribute('stroke')).toBe('#F97316');
         expect(container.querySelector('[data-revisit-gap-outcome="meets"]')
@@ -504,7 +528,6 @@ describe('REVISIT P0 presentation UI', () => {
             />
         ));
 
-        expect(container.textContent).toContain('Unavailable');
         expect(container.textContent).toContain('Comparison unavailable');
         // Stated in place, not as an alert over the whole screen.
         expect(container.querySelector('[role="alert"]')).toBeNull();
@@ -539,8 +562,8 @@ describe('REVISIT P0 presentation UI', () => {
         ));
 
         expect(container.textContent).toContain('Computing…');
-        expect(container.textContent).not.toContain('Unavailable');
-        expect(container.textContent).toContain('Same topology and FOV · target-specific requirements');
+        expect(container.textContent).not.toContain('Comparison unavailable');
+        expect(container.textContent).not.toContain('Compare targets');
     });
 
     it('compares Point and Area on the shared contractual gap without mixing means', async () => {
@@ -575,14 +598,13 @@ describe('REVISIT P0 presentation UI', () => {
         expect(container.textContent).toContain('Maximum gap');
         expect(container.textContent).toContain('Least-covered cell');
         expect(container.textContent).not.toContain('Mean');
-        const compactComparison = [...container.querySelectorAll('details')]
-            .find((details) => details.textContent?.includes('Compare targets')) as HTMLDetailsElement;
-        expect(compactComparison).not.toBeNull();
-        expect(compactComparison.open).toBe(false);
-        expect(compactComparison.className).toContain('lg:hidden');
+        expect(container.querySelectorAll('[data-revisit-timeline-lane]')).toHaveLength(2);
+        expect(container.querySelectorAll('[data-revisit-comparison-row]')).toHaveLength(2);
+        expect(container.textContent).not.toContain('Compare targets');
         const areaRow = container.querySelector('[data-revisit-comparison-row="AREA_TARGET"]') as HTMLElement;
         expect(areaRow.className).toContain('border-sky-300/60');
-        await act(async () => areaRow.click());
+        await act(async () => areaRow
+            .querySelector<HTMLElement>('[data-revisit-lane-result]')!.click());
         expect(onSelectTarget).toHaveBeenCalledWith('AREA_TARGET');
     });
 });
