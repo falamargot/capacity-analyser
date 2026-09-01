@@ -989,3 +989,13 @@ is: intermittent, +1, reproducible only under full-suite load. Whoever looks at
 it next should either catch it with `--repeat-each` and identify the listener,
 or change the assertion to a growth check across several cycles — not raise the
 constant.
+
+## REVISIT footer optimisation — Lot 1 (2026-09-01)
+
+**Complete.** The timeline title, requirement, longest-gap key, simulation
+controls, analysis-window access and UTC clock now share one compact toolbar.
+The sampling step remains in `AnalysisWindowControl`; only the 72 h span is
+shown on the closed control. The desktop comparison sidecar header was compacted
+without changing its rows or selection contract. Acceptance envelope: about
+109 px for one point and at most 165 px for two-point comparison at desktop
+sizes, with the 72 h axis, seek slider, playhead and every control retained.

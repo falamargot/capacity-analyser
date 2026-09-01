@@ -101,6 +101,11 @@ test.describe('REVISIT P2c-A selected result', () => {
 
     const comparison = page.getByRole('region', { name: 'Target comparison' });
     await expect(comparison.getByRole('button', { name: 'Singapore' })).toBeVisible({ timeout: 30_000 });
+    const footer = page.getByRole('region', { name: 'Coverage timeline' });
+    await expect(footer.locator('[data-revisit-timeline-toolbar]'))
+      .toContainText('Requirement ≤ 2 h');
+    expect(await footer.evaluate((element) => element.getBoundingClientRect().height))
+      .toBeLessThanOrEqual(165);
     const singaporeRow = comparison.locator('[data-revisit-comparison-row]').nth(1);
     // The KPI/goal side of the row is clickable too; selection is not confined
     // to the target-name button.

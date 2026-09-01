@@ -294,3 +294,12 @@ passing; Advanced 6/6; Axe 6/6; responsive 9/9.
 
 The corrected long-cycle lifecycle gate is green across 20 transitions and
 keeps one viewer, one clock authority and stable heap/timer budgets.
+
+## REVISIT compact timeline footer — 2026-09-01
+
+Delivered in `CoverageRibbon` and `AnalysisWindowControl`. Redundant subtitle
+rows were replaced by one toolbar carrying `Requirement ≤ …` and an explicit
+`Orange outline · longest gap` key. Duration stays visible as `72 h window`;
+step seconds remain editable in its popover. Desktop browser measurements are
+~109 px in Single and ≤165 px in Comparison. No analysis, seeking, playback,
+comparison-row or target-selection logic changed.

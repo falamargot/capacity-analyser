@@ -2363,3 +2363,16 @@ Then, for REVISIT specifically:
    retraction and the R4 results
 
 Then continue autonomously. No previous conversation is required.
+
+---
+
+## Latest change — REVISIT timeline Lot 1 (2026-09-01)
+
+- `CoverageRibbon.tsx`: one compact toolbar now owns title, requirement,
+  longest-gap legend, playback, window and UTC; comparison header is one line.
+- `AnalysisWindowControl.tsx`: closed label is `72 h window`; sampling seconds
+  remain visible and editable after opening.
+- Tests: `RevisitP0Ui` pins the new copy and toolbar; `revisit-p2c-a` pins the
+  desktop Comparison height at ≤165 px. Targeted unit and E2E pass; build,
+  typecheck and lint pass. Full unit run: 2,141 pass, 5 skip, with only the
+  pre-existing hard-coded `/tmp` write failing on Windows.

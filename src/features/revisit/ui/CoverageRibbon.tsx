@@ -208,6 +208,19 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
     const trackColumns = hasValueColumn
         ? 'grid-cols-[6rem_minmax(0,1fr)_5rem]'
         : 'grid-cols-[6rem_minmax(0,1fr)]';
+    const laneRequirements = targetRows.map((lane) => lane.requirementMs ?? requirementMs);
+    const sharedRequirementMs = laneRequirements.length === 0
+        ? requirementMs
+        : laneRequirements.every((value) => value === laneRequirements[0])
+            ? laneRequirements[0]
+            : null;
+    const requirementSummary = sharedRequirementMs === null
+        ? 'Target-specific requirements'
+        : `Requirement ≤ ${formatGap(sharedRequirementMs)}`;
+    const hasMissingLongestGap = targetRows.some((lane) => (
+        lane.longestGap !== null
+        && lane.longestGap.durationMs > (lane.requirementMs ?? requirementMs)
+    ));
     /** AREA without an analysis shows a placeholder, not a timeline: nothing to seek on. */
     const hasSeekableTrack = targetRows.some((row) => row.kind === 'POINT' || row.intervals.length > 0);
 
@@ -263,92 +276,112 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
     return (
         <section className={`${REVISIT_PANEL} revisit-coverage-ribbon overflow-hidden`} aria-label="Coverage timeline">
             <div className={showComparisonSidecar ? 'lg:grid lg:grid-cols-[minmax(0,1fr)_400px]' : ''}>
-                <div className="px-2 pt-2 sm:px-4 sm:pt-3 lg:col-start-1 lg:row-start-1">
-                    <div className="mb-2 flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
-                        <div>
-                            <div className={REVISIT_LABEL}>
+                <div className="px-2 py-2 sm:px-4 lg:col-start-1 lg:row-start-1">
+                    <div
+                        className="flex flex-wrap items-center gap-x-3 gap-y-1.5"
+                        data-revisit-timeline-toolbar
+                    >
+                        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
+                            <div className={`${REVISIT_LABEL} shrink-0`}>
                                 {targetRows.length === 0
                                     ? 'No target selected'
                                     : targetRows.length > 1 ? 'Observation schedule comparison' : 'Primary target access'}
                             </div>
-                            <div className="mt-0.5 hidden text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 sm:block">
-                                {targetRows.length === 0
-                                    ? 'Add a primary target to create an access lane'
-                                    : targetRows.some((row) => row.kind === 'AREA')
-                                    ? `${windowHours} h window · Point lanes + Area worst-cell lane`
-                                    : `${windowHours} h analysis window · one access lane per point`}
-                            </div>
+                            {targetRows.length > 0 && (
+                                <span className="shrink-0 text-[11px] font-bold tabular-nums text-slate-400">
+                                    {requirementSummary}
+                                </span>
+                            )}
+                            {targetRows.some((row) => row.kind === 'AREA') && (
+                                <span className="hidden text-[11px] font-semibold text-slate-500 sm:inline">
+                                    Point lanes + Area worst-cell lane
+                                </span>
+                            )}
+                            {targetRows.length === 0 && (
+                                <span className="hidden text-[11px] font-semibold text-slate-500 sm:inline">
+                                    Add a primary target to create an access lane
+                                </span>
+                            )}
+                            {targetRows.some((row) => row.longestGap !== null) && (
+                                <span
+                                    className="hidden items-center gap-1.5 text-[11px] font-semibold text-slate-500 xl:flex"
+                                    title="The outlined span marks the longest interval without target access."
+                                >
+                                    <span
+                                        aria-hidden="true"
+                                        className={`h-2.5 w-5 rounded-sm border ${hasMissingLongestGap
+                                            ? 'border-orange-500 bg-orange-500/15'
+                                            : 'border-sky-400 bg-sky-400/15'}`}
+                                    />
+                                    {hasMissingLongestGap ? 'Orange outline · longest gap' : 'Outline · longest gap'}
+                                </span>
+                            )}
+                            {analysisContext === 'AREA' && areaAnalysis?.worstCell && (
+                                <span className="text-[11px] font-bold tabular-nums text-sky-200">
+                                    {areaAnalysis.worstCell.target.latDeg.toFixed(2)}° · {areaAnalysis.worstCell.target.lonDeg.toFixed(2)}°
+                                </span>
+                            )}
                         </div>
-                        {/*
-                          * The window lives here, beside the axis it defines:
-                          * this timeline runs 00:00 → 72:00 because Duration
-                          * says 72. It used to sit in Constellation settings,
-                          * whose subtitle had to end with "and analysis window".
-                          */}
-                        {analysisWindow && onAnalysisWindowChange && (
-                            <AnalysisWindowControl
-                                window={analysisWindow}
-                                onChange={onAnalysisWindowChange}
-                            />
-                        )}
-                        {analysisContext === 'AREA' && areaAnalysis?.worstCell && (
-                            <span className="text-[11px] font-bold tabular-nums text-sky-200">
-                                {areaAnalysis.worstCell.target.latDeg.toFixed(2)}° · {areaAnalysis.worstCell.target.lonDeg.toFixed(2)}°
-                            </span>
-                        )}
-                    </div>
-
-                    <div className="mb-2 flex flex-wrap items-center gap-1.5" aria-label="Simulation time controls">
-                        <button type="button" onClick={() => onSetSpeed(speed === 0 ? 1 : 0)}
-                            aria-label={speed === 0 ? 'Play simulation' : 'Pause simulation'}
-                            className="min-h-11 md:min-h-8 rounded border border-slate-600 px-2 text-[12px] font-black uppercase tracking-[0.08em] text-slate-200 hover:border-slate-300">
-                            {speed === 0 ? 'Play' : 'Pause'}
-                        </button>
-                        {/* Hour stepping duplicates tap-to-seek on the timeline
-                            below and costs a wrapped row a phone cannot spare
-                            (mobile UX plan §4); play/pause and speed stay at
-                            every width. */}
-                        <button type="button" onClick={() => seekToHours(currentHours - 1)} aria-label="Step simulation back one hour"
-                            className="hidden min-h-11 md:min-h-8 rounded border border-slate-700 px-2 text-[12px] font-bold text-slate-300 sm:block">−1 h</button>
-                        <button type="button" onClick={() => seekToHours(currentHours + 1)} aria-label="Step simulation forward one hour"
-                            className="hidden min-h-11 md:min-h-8 rounded border border-slate-700 px-2 text-[12px] font-bold text-slate-300 sm:block">+1 h</button>
-                        <label className="flex min-h-11 md:min-h-8 items-center gap-1 rounded border border-slate-700 px-2">
-                            <span className="text-[11px] font-black uppercase tracking-[0.08em] text-slate-500">Speed</span>
-                            <select aria-label="Simulation speed" value={speed === 0 ? 1 : speed}
-                                onChange={(event) => onSetSpeed(Number(event.target.value))}
-                                className="min-h-11 bg-transparent text-[12px] font-bold text-slate-200 outline-none md:min-h-0">
-                                <option value={1}>1×</option><option value={10}>10×</option><option value={100}>100×</option>
-                            </select>
-                        </label>
-                        <label className="ml-auto flex min-h-11 items-center gap-1.5 rounded border border-slate-600/70 px-2 md:min-h-8">
-                            <span className="text-[11px] font-black uppercase tracking-[0.08em] text-slate-500">UTC</span>
-                            <input
-                                type="datetime-local"
-                                step={1}
-                                min={utcDateTimeInputValue(windowStartMs)}
-                                max={utcDateTimeInputValue(windowEndMs)}
-                                value={utcDateTimeInputValue(timestampMs)}
-                                onChange={(event) => handleDateTimeChange(event.target.value)}
-                                aria-label="Simulation date and time UTC"
-                                className="min-h-9 bg-transparent text-[12px] font-bold tabular-nums text-slate-100 outline-none [color-scheme:dark] md:min-h-0"
-                            />
-                        </label>
+                        <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1.5" aria-label="Simulation time controls">
+                            <button type="button" onClick={() => onSetSpeed(speed === 0 ? 1 : 0)}
+                                aria-label={speed === 0 ? 'Play simulation' : 'Pause simulation'}
+                                className="min-h-11 rounded border border-slate-600 px-2 text-[12px] font-black uppercase tracking-[0.08em] text-slate-200 hover:border-slate-300 md:min-h-8">
+                                {speed === 0 ? 'Play' : 'Pause'}
+                            </button>
+                            {/* Hour stepping duplicates tap-to-seek on the timeline
+                                below and costs a wrapped row a phone cannot spare
+                                (mobile UX plan §4); play/pause and speed stay at
+                                every width. */}
+                            <button type="button" onClick={() => seekToHours(currentHours - 1)} aria-label="Step simulation back one hour"
+                                className="hidden min-h-11 rounded border border-slate-700 px-2 text-[12px] font-bold text-slate-300 sm:block md:min-h-8">−1 h</button>
+                            <button type="button" onClick={() => seekToHours(currentHours + 1)} aria-label="Step simulation forward one hour"
+                                className="hidden min-h-11 rounded border border-slate-700 px-2 text-[12px] font-bold text-slate-300 sm:block md:min-h-8">+1 h</button>
+                            <label className="flex min-h-11 items-center gap-1 rounded border border-slate-700 px-2 md:min-h-8">
+                                <span className="text-[11px] font-black uppercase tracking-[0.08em] text-slate-500">Speed</span>
+                                <select aria-label="Simulation speed" value={speed === 0 ? 1 : speed}
+                                    onChange={(event) => onSetSpeed(Number(event.target.value))}
+                                    className="min-h-11 bg-transparent text-[12px] font-bold text-slate-200 outline-none md:min-h-0">
+                                    <option value={1}>1×</option><option value={10}>10×</option><option value={100}>100×</option>
+                                </select>
+                            </label>
+                            {/* Duration remains visible beside the axis; the numerical
+                                sampling step stays available in the settings popover. */}
+                            {analysisWindow && onAnalysisWindowChange && (
+                                <AnalysisWindowControl
+                                    window={analysisWindow}
+                                    onChange={onAnalysisWindowChange}
+                                />
+                            )}
+                            <label className="flex min-h-11 items-center gap-1.5 rounded border border-slate-600/70 px-2 md:min-h-8">
+                                <span className="text-[11px] font-black uppercase tracking-[0.08em] text-slate-500">UTC</span>
+                                <input
+                                    type="datetime-local"
+                                    step={1}
+                                    min={utcDateTimeInputValue(windowStartMs)}
+                                    max={utcDateTimeInputValue(windowEndMs)}
+                                    value={utcDateTimeInputValue(timestampMs)}
+                                    onChange={(event) => handleDateTimeChange(event.target.value)}
+                                    aria-label="Simulation date and time UTC"
+                                    className="min-h-9 bg-transparent text-[12px] font-bold tabular-nums text-slate-100 outline-none [color-scheme:dark] md:min-h-0"
+                                />
+                            </label>
+                        </div>
                     </div>
                 </div>
 
                 {showComparisonSidecar && (
                     <section className="hidden lg:contents" aria-label="Target comparison">
-                        <div className="border-l border-slate-700/60 bg-slate-950/25 px-4 pt-3 lg:col-start-2 lg:row-start-1">
+                        <div className="border-l border-slate-700/60 bg-slate-950/25 px-4 pt-2 lg:col-start-2 lg:row-start-1">
                             <div className="flex items-start justify-between gap-2">
-                                <div>
-                                    <div className={REVISIT_LABEL}>Compare targets</div>
-                                    <p className={`mt-0.5 text-[11px] ${comparisonError ? 'text-red-200' : 'text-slate-500'}`}>
+                                <div className="flex min-w-0 items-baseline gap-2">
+                                    <div className={`${REVISIT_LABEL} shrink-0`}>Compare targets</div>
+                                    <p className={`truncate text-[11px] ${comparisonError ? 'text-red-200' : 'text-slate-500'}`}>
                                         {comparisonSubtitle}
                                     </p>
                                 </div>
                                 {comparisonStatus}
                             </div>
-                            <div className="mt-3 grid grid-cols-[minmax(0,1fr)_7rem_4.5rem_3.75rem] gap-1.5 text-[11px] font-black uppercase tracking-wide text-slate-500">
+                            <div className="mt-1 grid grid-cols-[minmax(0,1fr)_7rem_4.5rem_3.75rem] gap-1.5 text-[11px] font-black uppercase tracking-wide text-slate-500">
                                 <span>Target</span><span>Basis</span><span>Maximum gap</span><span className="text-right">Verdict</span>
                             </div>
                         </div>

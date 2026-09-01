@@ -278,7 +278,8 @@ describe('REVISIT P0 presentation UI', () => {
                 onChange={onChange}
             />
         ));
-        expect(container.textContent).toContain('Window · 72 h · 10 s');
+        expect(container.textContent).toContain('72 h window');
+        expect(container.textContent).not.toContain('72 h · 10 s');
 
         const open = () => container.querySelector<HTMLButtonElement>(
             '[aria-label="Analysis window settings"]'
@@ -464,6 +465,10 @@ describe('REVISIT P0 presentation UI', () => {
             ?.getAttribute('stroke')).toBe('#F97316');
         expect(container.querySelector('[data-revisit-gap-outcome="meets"]')
             ?.getAttribute('stroke')).toBe('#38BDF8');
+        const toolbar = container.querySelector('[data-revisit-timeline-toolbar]')!;
+        expect(toolbar.textContent).toContain('Requirement ≤ 2 h');
+        expect(toolbar.textContent).toContain('Orange outline · longest gap');
+        expect(toolbar.querySelector('[aria-label="Simulation time controls"]')).not.toBeNull();
     });
 
     /*

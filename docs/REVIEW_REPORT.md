@@ -1189,3 +1189,15 @@ The long-cycle integration gate remains independently red: repeated viewer
 reconstruction can trigger Cesium's render error overlay, after which the UI is
 blocked. This was already an open lifecycle issue before P0. It is not hidden by
 the otherwise green P0 acceptance result.
+
+## Review — compact timeline footer Lot 1 (2026-09-01)
+
+The change is presentational and low risk: existing controls and semantic
+labels remain, the seek surface still overlays only the track column, and
+longest-gap geometry still comes from `longestInteriorGap`. Unit coverage pins
+the requirement/key copy and toolbar ownership; desktop E2E pins the Comparison
+footer to ≤165 px. Single and Comparison were inspected at 1440×900 and
+1920×1080. TypeScript, ESLint, production build and the targeted browser test
+pass. The full Vitest run reached 2,141 passing tests and one unrelated
+Windows-only failure: `r28Ablation.test.ts` writes to hard-coded `/tmp`, resolved
+as the unavailable `C:\tmp` on this machine.

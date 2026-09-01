@@ -17,8 +17,8 @@
  * shortest pass — depends on the duration and the instrument. So they share one
  * surface, and the wording carries the distinction the layout cannot.
  *
- * Collapsed, this is a summary the reader can check without opening anything:
- * `Window · 72 h · 10 s`.
+ * Collapsed, this states the visible timeline span. The numerical sampling step
+ * remains in the popover, where it cannot be mistaken for a display setting.
  */
 
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -122,7 +122,7 @@ export const AnalysisWindowControl: React.FC<AnalysisWindowControlProps> = ({
                 onClick={() => setOpen((current) => !current)}
                 className="min-h-8 rounded border border-slate-700 px-2 py-0.5 text-[11px] font-black uppercase tracking-[0.08em] text-slate-400 transition-colors hover:border-sky-400/50 hover:text-sky-200"
             >
-                Window · {analysisWindow.durationHours} h · {analysisWindow.stepSeconds} s
+                {analysisWindow.durationHours} h window
                 {warnings.length > 0 && <span className="ml-1 text-amber-300">!</span>}
             </button>
 
