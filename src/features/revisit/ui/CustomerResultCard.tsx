@@ -23,10 +23,9 @@
  * its own `Calculating fleet sizing…`. Neither block ever shows the previous
  * scenario's value (plan, Programme 7 decisions 2 and 3).
  *
- * The verdict vocabulary is deliberately secondary to the answer: the status
- * pill states `Requirement covered` / `More payloads required` /
- * `Reconfiguration required` / `Assessment required` and
- * never leads with red.
+ * The verdict on what is flown is explicit: `Requirement met` or
+ * `Requirement missed` sits on Current configuration. The recommendation then
+ * states the concrete action without repeating the verdict in a second pill.
  */
 
 import React from 'react';
@@ -96,6 +95,31 @@ export interface CustomerResultCardProps {
 
 type Status = { text: string; className: string; title?: string };
 
+/** The verdict on what is flown now. It deliberately depends on no sizing
+ * state: the slower recommendation must never rewrite a measured result. */
+function currentRequirementStatus(
+    maxGapMs: number | null,
+    requirementMs: number,
+    isComputing: boolean,
+): Status {
+    if (isComputing) {
+        return {
+            text: 'Measuring',
+            className: REVISIT_OUTCOME.unavailable.badge,
+        };
+    }
+    if (maxGapMs === null) {
+        return {
+            text: 'Assessment required',
+            className: REVISIT_OUTCOME.unavailable.badge,
+        };
+    }
+    if (maxGapMs <= requirementMs) {
+        return { text: 'Requirement met', className: REVISIT_OUTCOME.meets.badge };
+    }
+    return { text: 'Requirement missed', className: REVISIT_OUTCOME.misses.badge };
+}
+
 /**
  * The two blocks of the answer are two CARDS, siblings of `Result drivers` in
  * the analysis column — not two panels nested inside a third.
@@ -110,9 +134,9 @@ type Status = { text: string; className: string; title?: string };
 const BLOCK_FRAME = `${REVISIT_PANEL} px-3 py-2.5`;
 
 /**
- * The status is a function of the CURRENT result and the sizing outcome, in
- * that order — never of the sizing alone. A configuration that already meets
- * the requirement is `Requirement covered` whatever the sweep is doing.
+ * Exceptional recommendation states still need their own status (failed or
+ * inconclusive sizing). Resolved recommendations use an action sentence;
+ * Current configuration owns the verdict on what is flown.
  */
 function customerStatus(
     meetsRequirement: boolean | null,
@@ -332,6 +356,48 @@ function RecommendedHeadline({ value, unit, delta }: {
     );
 }
 
+/** One action sentence for every measured payload-count proposal. The former
+ * count-only headline made the reader calculate the change from the card above. */
+function RecommendedPayloadAction({ currentPayloadCount, payloadCount }: {
+    currentPayloadCount: number;
+    payloadCount: number;
+}) {
+    const delta = payloadCount - currentPayloadCount;
+    return (
+        <p
+            data-revisit-recommendation-action
+            className="mt-2 flex flex-wrap items-baseline gap-x-1.5 text-[14px] font-semibold leading-5 text-slate-100"
+        >
+            {delta > 0 ? (
+                <>
+                    <span>
+                        Increase from{' '}
+                        <strong className="tabular-nums">{currentPayloadCount}</strong>
+                        {' '}to{' '}
+                        <strong className="tabular-nums">{payloadCount}</strong>
+                        {' '}payloads
+                    </span>
+                    <span className={`font-black tabular-nums ${REVISIT_OUTCOME.misses.text}`}>
+                        (+{delta})
+                    </span>
+                </>
+            ) : delta < 0 ? (
+                <span>
+                    Reduce from{' '}
+                    <strong className="tabular-nums">{currentPayloadCount}</strong>
+                    {' '}to{' '}
+                    <strong className="tabular-nums">{payloadCount}</strong>
+                    {' '}payloads
+                </span>
+            ) : (
+                <span>
+                    Redistribute <strong className="tabular-nums">{payloadCount}</strong> payloads
+                </span>
+            )}
+        </p>
+    );
+}
+
 /**
  * What the recommendation is made of. Hidden on a short stage, so nothing that
  * only appears here may be load-bearing — the cost sentence and the measured
@@ -409,12 +475,11 @@ function RecommendedMeasurement({ label, maxGapMs }: {
 }
 
 function SizingBlock({
-    sizing, status, question, targetRole, fleetSize, currentPayloadCount,
+    sizing, status, targetRole, fleetSize, currentPayloadCount,
     currentMetricLabel, onApply, onRetrySizing, onSizeArea, areaCellCount, detail,
 }: {
     /** Absent when nothing has been measured to put a verdict on. */
     status: Status | null;
-    question: string;
     targetRole: RevisitAreaTargetRole;
     sizing: CustomerSizing;
     fleetSize: number;
@@ -458,17 +523,7 @@ function SizingBlock({
             aria-live="polite"
             aria-busy={sizing.kind === 'COMPUTING' || undefined}
         >
-            {/*
-              * Label, question, verdict — in that order, and the order is the
-              * argument. The label names the block the way every other card in
-              * the column is named; the question is what this block answers,
-              * which is why it moved here from the top of the card; and the
-              * badge sits under the question because it IS the answer to it.
-              * Badge beside the label made it a property of the heading rather
-              * than a reply.
-              */}
             <span className={REVISIT_LABEL}>Recommended configuration</span>
-            <p className="mt-1 text-[13px] font-semibold leading-5 text-slate-100">{question}</p>
             {status && (
                 <span
                     title={status.title}
@@ -484,10 +539,13 @@ function SizingBlock({
                 </p>
             )}
 
-            {/* Nothing more to say on COVERED: the badge beside the heading is
-                the whole message, and "no additional payloads required" under a
-                badge reading "Requirement covered" was the same sentence
-                twice. */}
+            {sizing.kind === 'COVERED' && (
+                <p className="mt-2 text-[14px] font-semibold leading-5 text-slate-100">
+                    No configuration change required.
+                </p>
+            )}
+
+            {/* COVERED is an action outcome, not a second verdict: no change. */}
 
             {/*
                 A failed sweep is stated here, in the block it would have
@@ -525,10 +583,9 @@ function SizingBlock({
 
             {sizing.kind === 'AREA_VERIFIED' && (
                 <>
-                    <RecommendedHeadline
-                        value={String(sizing.payloadCount)}
-                        unit="payload-equipped satellites"
-                        delta={sizing.additionalPayloads}
+                    <RecommendedPayloadAction
+                        currentPayloadCount={currentPayloadCount}
+                        payloadCount={sizing.payloadCount}
                     />
                     <RecommendedComposition
                         split={{ planes: sizing.selectedPlanes, perPlane: sizing.payloadsPerPlane }}
@@ -628,10 +685,9 @@ function SizingBlock({
 
             {sizing.kind === 'RECOMMENDED' && (
                 <>
-                    <RecommendedHeadline
-                        value={String(sizing.payloadCount)}
-                        unit="payload-equipped satellites"
-                        delta={sizing.additionalPayloads}
+                    <RecommendedPayloadAction
+                        currentPayloadCount={currentPayloadCount}
+                        payloadCount={sizing.payloadCount}
                     />
                     {/* The split and the measured gap were BOTH absent here
                         until 2026-08-31: this block proposed a payload count,
@@ -653,6 +709,10 @@ function SizingBlock({
             */}
             {sizing.kind === 'RETOPOLOGY' && (
                 <>
+                    <RecommendedPayloadAction
+                        currentPayloadCount={currentPayloadCount}
+                        payloadCount={sizing.payloadCount}
+                    />
                     <RecommendedHeadline
                         value={`${sizing.split.planes} × ${sizing.split.perPlane}`}
                         unit="planes × payloads per plane"
@@ -732,6 +792,15 @@ export const CustomerResultCard: React.FC<CustomerResultCardProps> = ({
 }) => {
     const meetsRequirement = currentMaxGapMs === null ? null : currentMaxGapMs <= requirementMs;
     const status = customerStatus(meetsRequirement, sizing, Boolean(onSizeArea));
+    const currentStatus = currentRequirementStatus(
+        currentMaxGapMs, requirementMs, currentIsComputing,
+    );
+    const recommendationStatus = sizing.kind === 'FAILED'
+        || sizing.kind === 'BEYOND_RANGE'
+        || sizing.kind === 'AREA_NOT_FOUND'
+        || (sizing.kind === 'AREA_NOT_SIZED' && !onSizeArea)
+        ? status
+        : null;
 
     return (
         <section
@@ -741,28 +810,19 @@ export const CustomerResultCard: React.FC<CustomerResultCardProps> = ({
             aria-label="Customer result"
             data-revisit-result-role={targetRole.toLowerCase()}
         >
-            {/*
-              * The question, then the numbers. What stood between them — the
-              * comparison basis, and the verdict badge — said twice what the
-              * card says once: the basis repeated the target list beside it,
-              * and the badge announced an outcome the reader had not been given
-              * the figures for yet. The badge now heads the Recommended
-              * configuration block, where it is the conclusion of what precedes
-              * it rather than a claim ahead of it.
-              */}
-            {/*
-              * Nothing to size against means no Recommended frame, and the
-              * question would go with it — the one line of this card that is
-              * read out loud. It stays at the top in that case alone.
-              */}
-            {sizing.kind === 'UNAVAILABLE' && (
-                <p className={`${BLOCK_FRAME} text-[13px] font-semibold leading-5 text-slate-100`}>
-                    {question}
-                </p>
-            )}
-
+            {/* The question, current figures and verdict form one reading unit.
+                The next card is reserved for the action to take. */}
             <div className={BLOCK_FRAME}>
-                <span className={REVISIT_LABEL}>Current configuration</span>
+                <div className="flex items-start justify-between gap-2">
+                    <span className={REVISIT_LABEL}>Current configuration</span>
+                    <span
+                        title={currentStatus.title}
+                        className={`revisit-current-status shrink-0 rounded-md border px-2 py-0.5 text-[11px] font-black uppercase tracking-[0.1em] ${currentStatus.className}`}
+                    >
+                        {currentStatus.text}
+                    </span>
+                </div>
+                <p className="mt-1 text-[13px] font-semibold leading-5 text-slate-100">{question}</p>
                 <p className="mt-1 flex flex-wrap items-baseline gap-x-2 leading-none">
                     <span className="text-2xl font-black text-white tabular-nums">
                         {currentPayloadCount}
@@ -773,40 +833,33 @@ export const CustomerResultCard: React.FC<CustomerResultCardProps> = ({
                 </p>
                 <RecommendedComposition split={currentSplit} fleetSize={fleetSize} />
 
-                <dl className="mt-2 space-y-1 text-[13px] leading-5">
-                    <div className="flex items-baseline justify-between gap-3">
+                <dl className="mt-2 text-[13px] leading-5">
+                    <div
+                        className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5"
+                        aria-label={`${currentMetricLabel} versus requirement`}
+                    >
                         <dt className="text-slate-400">{currentMetricLabel}</dt>
-                        <dd className="font-black tabular-nums text-slate-100">
-                            {currentMaxGapMs !== null
-                                ? formatGap(currentMaxGapMs)
-                                : currentIsComputing ? 'measuring…' : '—'}
-                        </dd>
-                    </div>
-                    <div className="flex items-baseline justify-between gap-3">
-                        <dt className="text-slate-400">Requirement</dt>
-                        <dd className="font-black tabular-nums text-slate-100">
-                            {formatGap(requirementMs)}
+                        <dd className="flex flex-wrap items-baseline justify-end gap-x-1.5 font-black tabular-nums text-slate-100">
+                            <span>
+                                {currentMaxGapMs !== null
+                                    ? formatGap(currentMaxGapMs)
+                                    : currentIsComputing ? 'measuring…' : '—'}
+                            </span>
+                            <span className={meetsRequirement === true
+                                ? REVISIT_OUTCOME.meets.text
+                                : meetsRequirement === false
+                                    ? REVISIT_OUTCOME.misses.text
+                                    : 'text-slate-500'}>
+                                {meetsRequirement === true ? '≤' : meetsRequirement === false ? '>' : '·'}
+                            </span>
+                            <span className="font-semibold text-slate-400">
+                                Requirement {formatGap(requirementMs)}
+                            </span>
                         </dd>
                     </div>
                 </dl>
                 {currentMaxGapMs === null && !currentIsComputing && currentUnavailableReason && (
                     <p className="mt-1 text-[12px] leading-4 text-slate-400">{currentUnavailableReason}</p>
-                )}
-
-                {/*
-                  * The verdict lives at the head of Recommended configuration —
-                  * except when there is nothing to size against, where that
-                  * whole block is absent by design. Without this the card lost
-                  * its verdict entirely in the one case that most needs one:
-                  * a target never in view. Caught by the test that pins it.
-                  */}
-                {sizing.kind === 'UNAVAILABLE' && status && (
-                    <span
-                        title={status.title}
-                        className={`revisit-customer-status mt-2 inline-flex rounded-md border px-2 py-0.5 text-[12px] font-black uppercase tracking-[0.14em] ${status.className}`}
-                    >
-                        {status.text}
-                    </span>
                 )}
 
                 {/*
@@ -821,8 +874,7 @@ export const CustomerResultCard: React.FC<CustomerResultCardProps> = ({
 
             <SizingBlock
                 sizing={sizing}
-                status={status}
-                question={question}
+                status={recommendationStatus}
                 targetRole={targetRole}
                 fleetSize={fleetSize}
                 currentPayloadCount={currentPayloadCount}

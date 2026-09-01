@@ -62,12 +62,15 @@ describe('CustomerResultCard', () => {
     it('leads with the customer question and both sides of the comparison', async () => {
         await renderCard();
 
-        expect(container.textContent).toContain('Can the Eutelsat LEO fleet observe London');
+        const question = 'Can the Eutelsat LEO fleet observe London';
+        expect(container.textContent).toContain(question);
+        expect(container.textContent?.split(question)).toHaveLength(2);
         expect(container.textContent).toContain('Current configuration');
-        expect(container.textContent).toContain('Maximum gap');
-        expect(container.textContent).toContain('6 h');
-        expect(container.textContent).toContain('Requirement');
-        expect(container.textContent).toContain('2 h');
+        const comparison = container.querySelector('[aria-label="Maximum gap versus requirement"]');
+        expect(comparison?.textContent).toContain('Maximum gap');
+        expect(comparison?.textContent).toContain('6 h');
+        expect(comparison?.textContent).toContain('>');
+        expect(comparison?.textContent).toContain('Requirement 2 h');
     });
 
     /*
@@ -163,7 +166,8 @@ describe('CustomerResultCard', () => {
             onApply,
         });
 
-        expect(container.textContent).toContain('Reconfiguration required');
+        expect(container.textContent).toContain('Requirement missed');
+        expect(container.textContent).toContain('Redistribute 48 payloads');
         expect(container.textContent).toContain('6 × 8');
         expect(container.textContent).toContain('planes × payloads per plane');
         /*
@@ -288,10 +292,10 @@ describe('CustomerResultCard', () => {
     });
 
     /*
-     * The reason the card exists: the recommendation, not the failure, is the
-     * dominant message. The status is present but stated in commercial terms.
+     * The result states the requirement outcome; the recommendation states the
+     * action. Neither asks the reader to infer one from the other.
      */
-    it('frames a missed requirement as additional payloads, not as a failure', async () => {
+    it('pairs a missed requirement with an explicit payload action', async () => {
         await renderCard({
             sizing: {
                 kind: 'RECOMMENDED', payloadCount: 36, additionalPayloads: 24,
@@ -299,21 +303,22 @@ describe('CustomerResultCard', () => {
             },
         });
 
-        expect(container.textContent).toContain('More payloads required');
+        expect(container.textContent).toContain('Requirement missed');
+        expect(container.textContent).toContain('Increase from 12 to 36 payloads');
+        expect(container.textContent).toContain('(+24)');
         expect(container.textContent).not.toContain('MISSES');
-        expect(container.querySelector('.revisit-customer-status')?.className)
+        expect(container.querySelector('.revisit-current-status')?.className)
             .toContain('text-orange-200');
     });
 
     it('reports a covered requirement without proposing anything', async () => {
         await renderCard({ currentMaxGapMs: 1.5 * HOUR, sizing: { kind: 'COVERED' } });
 
-        // The badge is the whole message here: the sentence that repeated it
-        // under a "Requirement covered" pill is gone.
-        expect(container.textContent).toContain('Requirement covered');
+        expect(container.textContent).toContain('Requirement met');
+        expect(container.textContent).toContain('No configuration change required');
         expect(container.textContent).not.toContain('Met by the current configuration');
         expect(container.querySelector('.revisit-apply-recommended')).toBeNull();
-        expect(container.querySelector('.revisit-customer-status')?.className)
+        expect(container.querySelector('.revisit-current-status')?.className)
             .toContain('text-lime-200');
     });
 
@@ -457,7 +462,8 @@ describe('CustomerResultCard', () => {
         expect(container.textContent).toContain('6 planes × 6 per plane');
         expect(container.textContent).toContain('Verified on every cell of this area');
         expect(container.textContent).toContain('Not proved minimal');
-        expect(container.textContent).toContain('More payloads required');
+        expect(container.textContent).toContain('Requirement missed');
+        expect(container.textContent).toContain('Increase from 12 to 36 payloads');
 
         /*
          * P6: the worst cell of the PROPOSAL is a labelled row carrying the
@@ -538,11 +544,8 @@ describe('CustomerResultCard', () => {
         expect(cost.className).not.toContain('revisit-customer-secondary');
         expect(cost.className).not.toContain('lime');
 
-        // The badge said "the same budget, split differently" over 36 against 48.
-        const badge = container.querySelector('.revisit-customer-status')!;
-        expect(badge.textContent).toBe('Reconfiguration required');
-        expect(badge.getAttribute('title')).toContain('fewer payloads than are flown today');
-        expect(badge.getAttribute('title')).not.toContain('the same budget');
+        expect(container.textContent).toContain('Requirement missed');
+        expect(container.textContent).toContain('Reduce from 48 to 36 payloads');
     });
 
     /* A re-split costs nothing, so it must not say payloads are required. */
@@ -562,13 +565,12 @@ describe('CustomerResultCard', () => {
             },
         });
 
-        expect(container.textContent).toContain('Reconfiguration required');
+        expect(container.textContent).toContain('Requirement missed');
+        expect(container.textContent).toContain('Redistribute 12 payloads');
         expect(container.textContent).not.toMatch(/\+\d+/);
         // The same sentence the point re-split uses, from the same component.
         expect(container.textContent)
             .toContain('The payloads already flown, redistributed — no additional payloads required.');
-        expect(container.querySelector('.revisit-customer-status')?.getAttribute('title'))
-            .toContain('the same budget');
     });
 
     it('reports the search phase while it runs', async () => {
@@ -598,22 +600,17 @@ describe('CustomerResultCard', () => {
         expect(container.textContent).not.toContain('Recommended configuration');
     });
 
-    /*
-     * The verdict now heads Recommended configuration instead of sitting under
-     * the question. It was a claim before the reader had the figures, and the
-     * card is read top to bottom out loud: question, what is flown, what it
-     * achieves, then the verdict on it.
-     */
-    it('carries the verdict at the head of the recommendation, not under the question', async () => {
+    it('keeps the requirement verdict with the measured current result', async () => {
         await renderCard({
             currentMaxGapMs: HOUR,
             requirementMs: 2 * HOUR,
             sizing: { kind: 'COVERED' },
         });
 
+        const current = container.querySelector('.revisit-current-status')!;
         const recommended = container.querySelector('[aria-label="Recommended configuration"]')!;
-        expect(recommended.textContent).toContain('Requirement covered');
-        // And it is not said twice: the sentence that repeated the badge is gone.
-        expect(container.textContent).not.toContain('no additional payloads required');
+        expect(current.textContent).toBe('Requirement met');
+        expect(recommended.textContent).toContain('No configuration change required');
+        expect(recommended.textContent).not.toContain('Requirement met');
     });
 });

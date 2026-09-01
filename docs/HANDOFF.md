@@ -2389,3 +2389,17 @@ Then continue autonomously. No previous conversation is required.
   unified-row contract. Targeted Point comparison E2E and visual desktop/mobile
   checks pass. Mixed Point/Area setup is currently blocked before the footer by
   an Area analysis that remains empty past its existing 60 s wait.
+
+## Latest change — REVISIT result hierarchy Lot 3 (2026-09-01)
+
+- `CustomerResultCard.tsx`: Current configuration now carries the sole resolved
+  `Requirement met/missed` badge and one `maximum gap ≤/> requirement` row.
+- Recommended configuration uses explicit `Increase/Reduce/Redistribute`
+  payload wording, or `No configuration change required`; error/inconclusive
+  sizing statuses are preserved.
+- `RevisitHeader.tsx` / `RevisitApp.tsx`: muted 1–4 markers clarify the existing
+  configuration-to-result flow without extra surfaces or height.
+- No engine, sizing, apply, selection or export logic changed. Targeted unit and
+  responsive tests (66) and the browser requirement-change test pass. The slow
+  apply E2E timed out while its sizing sweep remained in `COMPUTING`; inspect its
+  recorded evidence before treating that infrastructure-heavy gate as green.

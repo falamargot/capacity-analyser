@@ -1010,3 +1010,14 @@ region now owns those unified rows. Computing/error state stays in the existing
 toolbar. Single target uses the same `gap + verdict` result contract. No
 relative “limiting target” sentence was added: it would duplicate
 the two aligned figures and reintroduce the visual load this lot removes.
+
+## REVISIT result hierarchy — Lot 3 (2026-09-01)
+
+**Complete.** The result column now answers in three layers: the current
+configuration carries the primary `Requirement met/missed` verdict; maximum
+gap and requirement are one comparison row; the recommended configuration
+states the actual payload action (`Increase`, `Reduce`, `Redistribute`, or no
+change). Resolved recommendations no longer repeat the verdict in a second
+badge. Small, muted 1–4 markers connect Constellation → Hosted payloads →
+Analysis target → Point/Area result without adding a row or guided workflow.
+Analysis, sizing, apply, target-selection and export contracts remain unchanged.

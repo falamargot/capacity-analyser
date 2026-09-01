@@ -2440,6 +2440,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                                     : activeTargetRole === 'COMPARISON'
                                         ? 'text-sky-700 dark:text-sky-300'
                                         : 'text-slate-300'}`}>
+                                    <span aria-hidden="true" className="mr-1 text-slate-600">4 ·</span>
                                     {!hasReferenceTarget
                                         ? 'No target selected'
                                         : analysisContext === 'AREA'

@@ -1215,3 +1215,16 @@ targets; no horizontal overflow and no duplicate comparison card were found.
 Targeted unit tests and point-comparison E2E pass, as do typecheck, ESLint and
 the production build. The mixed Point/Area E2E did not reach this UI assertion:
 its pre-existing Area result remained empty through its 60 s computation wait.
+
+## Review — result hierarchy Lot 3 (2026-09-01)
+
+The UI adds no new panel and removes a repeated resolved-state badge and the
+second copy of the customer question. `Requirement met/missed` is derived only
+from the current measured gap and requirement, never from the slower sizing
+sweep. Exceptional recommendation states remain visible. Component/responsive
+tests pass (66/66), TypeScript is clean, and the desktop browser contract for a
+requirement change passes. The recommendation-application E2E reached the
+unchanged sizing wait but timed out before an apply button appeared; its failure
+screenshot shows the intended compact hierarchy and `Requirement missed`
+result, with sizing still explicitly computing. This is recorded as a sweep
+timeout, not claimed as a passing application gate.

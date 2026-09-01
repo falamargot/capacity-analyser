@@ -314,3 +314,13 @@ verdict beside its gap. Desktop regains the former 400 px
 sidecar width. Mobile retains both verdicts and shows only 00:00/72:00 axis
 bounds to prevent tick crowding. Point/Area basis remains available in the row
 semantics and Area wording remains visible in the toolbar/label.
+
+## REVISIT explicit result and action — 2026-09-01
+
+Lot 3 is delivered. `CustomerResultCard` owns one verdict for the measured
+configuration, compares its gap directly with the requirement, and turns every
+resolved sizing proposal into an action sentence. The customer question is no
+longer repeated in the recommendation. Exceptional sizing outcomes retain their
+own assessment status. The header/result kickers carry unobtrusive 1–4 context
+markers. No analysis worker, sizing state, application handler, target state or
+customer-summary/export vocabulary changed.

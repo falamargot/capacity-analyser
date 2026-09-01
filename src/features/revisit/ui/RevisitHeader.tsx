@@ -171,8 +171,8 @@ interface RevisitHeaderProps {
 }
 
 const Panel: React.FC<{
-    label: string; children: React.ReactNode; className?: string;
-}> = ({ label, children, className = '' }) => (
+    label: string; step?: number; children: React.ReactNode; className?: string;
+}> = ({ label, step, children, className = '' }) => (
     <div
         data-revisit-context-panel={label.toLowerCase().replace(/\s+/g, '-')}
         className={[
@@ -181,7 +181,12 @@ const Panel: React.FC<{
             className,
         ].join(' ')}
     >
-        <span className={REVISIT_LABEL}>{label}</span>
+        <span className={REVISIT_LABEL}>
+            {step !== undefined && (
+                <span aria-hidden="true" className="mr-1 text-slate-600">{step} ·</span>
+            )}
+            {label}
+        </span>
         <div className="mt-1">{children}</div>
     </div>
 );
@@ -647,7 +652,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
             data-revisit-context-bar
             className={`revisit-context-bar ${setupOpen ? 'mt-2 grid' : 'hidden'} grid-cols-2 items-stretch gap-2 md:mt-0 md:flex`}
         >
-            <Panel label="Constellation" className="relative z-50 min-w-0 md:min-w-[190px]">
+            <Panel label="Constellation" step={1} className="relative z-50 min-w-0 md:min-w-[190px]">
                 <div ref={constellationMenuRef} className="relative">
                     <div className="min-w-0">
                         <div className="flex flex-wrap items-center justify-between gap-1.5">
@@ -737,7 +742,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
 
             <Arrow />
 
-            <Panel label="Hosted payloads" className="order-3 col-span-2 min-w-0 md:order-none md:flex-1 md:min-w-[280px]">
+            <Panel label="Hosted payloads" step={2} className="order-3 col-span-2 min-w-0 md:order-none md:flex-1 md:min-w-[280px]">
                 <div className="flex flex-col gap-2 md:flex-row md:items-end">
                     <div className="flex items-baseline gap-2">
                         <span data-revisit-payload-count className="revisit-payload-count text-2xl font-black leading-none tabular-nums md:text-3xl">
@@ -847,7 +852,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
 
             <Arrow />
 
-            <Panel label="Analysis target" className="relative z-40 min-w-0 md:min-w-[260px] md:max-w-[320px]">
+            <Panel label="Analysis target" step={3} className="relative z-40 min-w-0 md:min-w-[260px] md:max-w-[320px]">
                     {/* `space-y-0`: the swap pill sits ON the seam between
                         Primary and Secondary and supplies the only separation
                         those two blocks need, so a gap as well as the pill
