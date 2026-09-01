@@ -1228,3 +1228,26 @@ unchanged sizing wait but timed out before an apply button appeared; its failure
 screenshot shows the intended compact hierarchy and `Requirement missed`
 result, with sizing still explicitly computing. This is recorded as a sweep
 timeout, not claimed as a passing application gate.
+
+## Review — target/result de-duplication (2026-09-01)
+
+This is a net deletion of one visible surface. Desktop browser inspection at
+1440 px confirms exact header/sidebar alignment, no overlap, and the result card
+moving directly under the header. Dedicated desktop and mobile contracts pass
+for alignment, hidden context and the compact `Primary point` heading. The
+broader selection E2E reached and passed its Primary/Secondary synchronization
+path before its existing lazy Singapore sizing curve exceeded the test timeout.
+The mobile contract also confirms the active identity is visible in the result
+heading while the full Point/Primary/name context remains accessible. Component
+tests (27), the broader targeted UI set (52), TypeScript, ESLint and production
+build pass.
+
+## Review — selected-target emphasis (2026-09-02)
+
+No row dimensions changed: the stronger frame is an inset ring, so the swap
+control and compact header height retain their geometry. The analysis column
+uses a desktop-only negative top margin and does not affect the mobile sheet or
+footer. The dedicated browser contract passes: equal right-column widths,
+header/result gap at most 16 px, exactly one selected row, dimmed peer, and
+correct style inversion after selecting Primary. Targeted UI tests (52),
+TypeScript, ESLint and production build pass.

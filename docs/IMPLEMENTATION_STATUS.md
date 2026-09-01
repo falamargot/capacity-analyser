@@ -324,3 +324,19 @@ longer repeated in the recommendation. Exceptional sizing outcomes retain their
 own assessment status. The header/result kickers carry unobtrusive 1–4 context
 markers. No analysis worker, sizing state, application handler, target state or
 customer-summary/export vocabulary changed.
+
+## REVISIT aligned target and result column — 2026-09-01
+
+Delivered. The right-hand setup panel expands to the result-column width on a
+wide desktop and follows the same responsive width below it. The duplicated
+Point/Area result surface no longer consumes visual space. Its accessible live
+context is preserved, and compact screens identify the active target directly
+inside the Step 4 result heading. Primary/Secondary selection remains driven by
+the same state shared with Analysis target and the timeline.
+
+## REVISIT selected-target emphasis — 2026-09-02
+
+Delivered. The result column starts 8 px closer to the header on desktop. One
+and only one Analysis target row carries a reinforced amber/sky inset frame;
+the remaining row is visually subdued and returns to full legibility on focus.
+Selection, editing, swapping and timeline synchronization are unchanged.

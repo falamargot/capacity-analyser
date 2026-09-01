@@ -2403,3 +2403,26 @@ Then continue autonomously. No previous conversation is required.
   responsive tests (66) and the browser requirement-change test pass. The slow
   apply E2E timed out while its sizing sweep remained in `COMPUTING`; inspect its
   recorded evidence before treating that infrastructure-heavy gate as green.
+
+## Latest change — REVISIT target/result de-duplication (2026-09-01)
+
+- `RevisitHeader.tsx` and the analysis sheet use the same responsive right-column
+  width: `min(400px, 32vw)`, with a 260 px desktop floor.
+- The visible `Point result / Area result` cartouche is gone. `Active result
+  context` remains `sr-only`, retaining kind, role and subject for accessibility
+  and all existing selection contracts.
+- Step 4 is integrated into Current configuration on desktop; mobile displays
+  `Primary/Secondary point/area` in that same heading.
+- Targeted unit, desktop-layout and mobile-context E2E, typecheck, lint and build
+  pass. The broader desktop selection path passed before its unrelated lazy
+  Singapore sizing wait timed out.
+
+## Latest change — REVISIT selected-target emphasis (2026-09-02)
+
+- `RevisitApp.tsx`: desktop result column uses `md:-mt-2`, reclaiming 8 px of
+  stage top padding without changing the footer or mobile analysis sheet.
+- `RevisitHeader.tsx`: all Point/Area and Primary/Secondary rows share
+  `targetSelectionFrame`; selected rows get a role-colour inset `ring-2`, peers
+  use `opacity-70` with hover/focus recovery.
+- Rows expose `data-revisit-target-selected` for the selection invariant.
+- Desktop E2E, 52 targeted UI tests, typecheck, lint and build pass.

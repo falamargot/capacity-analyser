@@ -204,6 +204,20 @@ function targetOptionLabel(name: string): string {
         : name;
 }
 
+/** Keep selection unmistakable without changing row geometry: an inset ring
+ * reads as a thicker frame while preserving the swap control's seam. */
+function targetSelectionFrame(
+    selected: boolean,
+    role: RevisitAreaTargetRole,
+): string {
+    if (selected) {
+        return role === 'REFERENCE'
+            ? 'border-amber-400/80 bg-amber-400/15 ring-2 ring-inset ring-amber-300/70'
+            : 'border-sky-400/80 bg-sky-400/15 ring-2 ring-inset ring-sky-300/70';
+    }
+    return 'border-slate-800 opacity-70 transition-opacity hover:opacity-90 focus-within:opacity-100';
+}
+
 function coordinateDraft(value?: number): string {
     if (value === undefined) return '';
     return String(Number(value.toFixed(5)));
@@ -852,7 +866,11 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
 
             <Arrow />
 
-            <Panel label="Analysis target" step={3} className="relative z-40 min-w-0 md:min-w-[260px] md:max-w-[320px]">
+            <Panel
+                label="Analysis target"
+                step={3}
+                className="relative z-40 min-w-0 md:w-[min(400px,32vw)] md:min-w-[260px] md:max-w-[400px] md:flex-none"
+            >
                     {/* `space-y-0`: the swap pill sits ON the seam between
                         Primary and Secondary and supplies the only separation
                         those two blocks need, so a gap as well as the pill
@@ -900,7 +918,11 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                         ) : <>
                         {referenceArea ? (
                         <div ref={areaMenuRef} className="relative">
-                            <div className={`flex items-center gap-1 rounded border px-2 py-1 ${analysisContext === 'AREA' && areaTargetRole === 'REFERENCE' ? 'border-amber-400/50 bg-amber-400/10' : 'border-slate-800'}`}>
+                            <div
+                                data-revisit-target-row
+                                data-revisit-target-selected={analysisContext === 'AREA' && areaTargetRole === 'REFERENCE'}
+                                className={`flex items-center gap-1 rounded border px-2 py-1 ${targetSelectionFrame(analysisContext === 'AREA' && areaTargetRole === 'REFERENCE', 'REFERENCE')}`}
+                            >
                                 <button
                                     type="button"
                                     onClick={() => { onAreaTargetRoleChange('REFERENCE'); onAnalysisContextChange('AREA'); }}
@@ -948,7 +970,11 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                             )}
                         </div>
                         ) : (
-                        <div className={`rounded border px-1.5 py-1 ${analysisContext === 'POINTS' && selectedPointId === REFERENCE_POINT_ID ? 'border-amber-400/50 bg-amber-400/8' : 'border-slate-800'}`}>
+                        <div
+                            data-revisit-target-row
+                            data-revisit-target-selected={analysisContext === 'POINTS' && selectedPointId === REFERENCE_POINT_ID}
+                            className={`rounded border px-1.5 py-1 ${targetSelectionFrame(analysisContext === 'POINTS' && selectedPointId === REFERENCE_POINT_ID, 'REFERENCE')}`}
+                        >
                             <div className="flex min-w-0 items-center gap-1">
                                 <button
                                     type="button"
@@ -1027,7 +1053,11 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                         {orderedSecondaryTargetIds.map((secondaryId) => {
                             if (secondaryId === AREA_TARGET_ID) return (
                                 <div ref={areaMenuRef} key={AREA_TARGET_ID} className="relative">
-                                    <div className={`flex items-center gap-1 rounded border px-2 py-1 ${analysisContext === 'AREA' && areaTargetRole === 'COMPARISON' ? 'border-sky-400/50 bg-sky-400/10' : 'border-slate-800'}`}>
+                                    <div
+                                        data-revisit-target-row
+                                        data-revisit-target-selected={analysisContext === 'AREA' && areaTargetRole === 'COMPARISON'}
+                                        className={`flex items-center gap-1 rounded border px-2 py-1 ${targetSelectionFrame(analysisContext === 'AREA' && areaTargetRole === 'COMPARISON', 'COMPARISON')}`}
+                                    >
                                         <button
                                             type="button"
                                             onClick={() => { onAreaTargetRoleChange('COMPARISON'); onAnalysisContextChange('AREA'); }}
@@ -1103,7 +1133,12 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                 : targetNames;
                             const targetName = point.target?.name ?? '';
                             return (
-                            <div key={point.id} className={`flex min-w-0 items-center gap-1 rounded border px-1.5 py-1 ${analysisContext === 'POINTS' && selectedPointId === point.id ? 'border-sky-400/50 bg-sky-400/8' : 'border-slate-800'}`}>
+                            <div
+                                key={point.id}
+                                data-revisit-target-row
+                                data-revisit-target-selected={analysisContext === 'POINTS' && selectedPointId === point.id}
+                                className={`flex min-w-0 items-center gap-1 rounded border px-1.5 py-1 ${targetSelectionFrame(analysisContext === 'POINTS' && selectedPointId === point.id, 'COMPARISON')}`}
+                            >
                                 <button
                                     type="button"
                                     onClick={() => onSelectedPointChange(point.id)}

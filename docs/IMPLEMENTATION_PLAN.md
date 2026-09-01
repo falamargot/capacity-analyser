@@ -1021,3 +1021,22 @@ change). Resolved recommendations no longer repeat the verdict in a second
 badge. Small, muted 1–4 markers connect Constellation → Hosted payloads →
 Analysis target → Point/Area result without adding a row or guided workflow.
 Analysis, sizing, apply, target-selection and export contracts remain unchanged.
+
+## REVISIT target/result de-duplication (2026-09-01)
+
+**Complete.** `Analysis target` and the analysis sidebar now share the same
+responsive desktop width (260–400 px). The standalone visible Point/Area result
+cartouche is removed; its live kind, role and subject remain screen-reader-only
+for selection announcements and automation. Step 4 moved into the Current
+configuration heading, which shows `Primary/Secondary point/area` instead on
+the mobile analysis sheet where the setup header is not visible. No target,
+timeline, analysis or sizing state changed.
+
+## REVISIT selected-target emphasis (2026-09-02)
+
+**Complete.** The desktop analysis column rises 8 px into the stage padding,
+reducing the header-to-result gap without moving the footer or compact/mobile
+sheet. Analysis-target rows use a geometry-neutral inset two-pixel role-colour
+ring for the selected target. Non-selected rows are reduced to 70% opacity and
+recover on hover/focus, preserving every control and avoiding a second status
+badge.

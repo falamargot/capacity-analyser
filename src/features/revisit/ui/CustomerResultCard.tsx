@@ -44,6 +44,8 @@ export type { CustomerSizing };
 export interface CustomerResultCardProps {
     /** Semantic colour carried by the result currently inspected in the sidebar. */
     targetRole?: RevisitAreaTargetRole;
+    /** Compact identity used where the setup header is not visible (mobile analysis sheet). */
+    compactResultLabel?: string;
     /** The customer's question, phrased to be read out loud verbatim. */
     question: string;
     /** Basis of a multi-target comparison, when there is more than one target. */
@@ -783,7 +785,8 @@ function SizingBlock({
 }
 
 export const CustomerResultCard: React.FC<CustomerResultCardProps> = ({
-    targetRole = 'REFERENCE', question, currentPayloadCount, fleetSize,
+    targetRole = 'REFERENCE', compactResultLabel = 'Current result',
+    question, currentPayloadCount, fleetSize,
     currentSplit = null,
     currentMaxGapMs, currentIsComputing, currentUnavailableReason = null,
     currentMetricLabel = 'Maximum gap', requirementMs, sizing,
@@ -814,7 +817,14 @@ export const CustomerResultCard: React.FC<CustomerResultCardProps> = ({
                 The next card is reserved for the action to take. */}
             <div className={BLOCK_FRAME}>
                 <div className="flex items-start justify-between gap-2">
-                    <span className={REVISIT_LABEL}>Current configuration</span>
+                    <span
+                        className={REVISIT_LABEL}
+                        aria-label={`Step 4 · Current configuration · ${compactResultLabel}`}
+                    >
+                        <span aria-hidden="true" className="mr-1 text-slate-600">4 ·</span>
+                        <span className="hidden md:inline">Current configuration</span>
+                        <span className="md:hidden">{compactResultLabel}</span>
+                    </span>
                     <span
                         title={currentStatus.title}
                         className={`revisit-current-status shrink-0 rounded-md border px-2 py-0.5 text-[11px] font-black uppercase tracking-[0.1em] ${currentStatus.className}`}

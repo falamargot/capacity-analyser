@@ -20,6 +20,42 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe('REVISIT P2c-A selected result', () => {
+  test('aligns the target setup and result column without a visible duplicate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop-chromium', 'Desktop column-alignment contract');
+    const analysis = page.getByRole('region', { name: 'REVISIT analysis' });
+    const targetPanel = page.locator('[data-revisit-context-panel="analysis-target"]');
+
+    await openRevisitAnalysis(page);
+    const activeContext = analysis.getByLabel('Active result context');
+    await expect(activeContext).toContainText('Point result · Primary target');
+    const contextBox = await activeContext.boundingBox();
+    expect(contextBox?.width ?? 0).toBeLessThanOrEqual(1);
+    expect(contextBox?.height ?? 0).toBeLessThanOrEqual(1);
+    const [targetBox, analysisBox] = await Promise.all([
+      targetPanel.boundingBox(),
+      analysis.boundingBox(),
+    ]);
+    expect(Math.abs((targetBox?.width ?? 0) - (analysisBox?.width ?? 0))).toBeLessThanOrEqual(1);
+    expect((analysisBox?.y ?? 0) - ((targetBox?.y ?? 0) + (targetBox?.height ?? 0)))
+      .toBeLessThanOrEqual(16);
+
+    const targetRows = targetPanel.locator('[data-revisit-target-row]');
+    await expect(targetRows).toHaveCount(1);
+    await expect(targetRows.first()).toHaveAttribute('data-revisit-target-selected', 'true');
+    await expect(targetRows.first()).toHaveClass(/ring-2/);
+
+    await addSecondaryPoint(page);
+    await expect(targetRows).toHaveCount(2);
+    await expect(targetRows.nth(0)).toHaveAttribute('data-revisit-target-selected', 'false');
+    await expect(targetRows.nth(0)).toHaveClass(/opacity-70/);
+    await expect(targetRows.nth(1)).toHaveAttribute('data-revisit-target-selected', 'true');
+    await expect(targetRows.nth(1)).toHaveClass(/ring-2/);
+
+    await targetPanel.getByRole('button', { name: /Primary target/ }).click();
+    await expect(targetRows.nth(0)).toHaveAttribute('data-revisit-target-selected', 'true');
+    await expect(targetRows.nth(1)).toHaveAttribute('data-revisit-target-selected', 'false');
+  });
+
   test('keeps the reference as benchmark while the selected point owns the result', async ({ page }, testInfo) => {
     test.skip(!['desktop-chromium', 'mobile-chromium'].includes(testInfo.project.name));
     const analysis = page.getByRole('region', { name: 'REVISIT analysis' });

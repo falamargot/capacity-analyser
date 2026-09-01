@@ -2378,7 +2378,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                         ref={analysisColumnRef}
                         id="revisit-analysis-sheet"
                         data-revisit-sheet-state={compactPanel === 'analysis' ? analysisSheetSize : 'closed'}
-                        className={`pointer-events-auto absolute inset-x-0 bottom-0 z-10 w-full shrink-0 flex-col gap-2 overflow-y-auto rounded-t-2xl md:static md:flex md:max-h-none md:w-[400px] md:rounded-none [&>*]:shrink-0 ${compactPanel !== 'analysis'
+                        className={`pointer-events-auto absolute inset-x-0 bottom-0 z-10 w-full shrink-0 flex-col gap-2 overflow-y-auto rounded-t-2xl md:static md:-mt-2 md:flex md:max-h-none md:w-[min(400px,32vw)] md:min-w-[260px] md:rounded-none [&>*]:shrink-0 ${compactPanel !== 'analysis'
                             ? 'hidden'
                             : analysisSheetSize === 'full'
                                 ? 'flex max-h-[min(82dvh,100%)]'
@@ -2408,54 +2408,23 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                             </button>
                         </div>
 
+                        {/* The visible cartouche duplicated Analysis target,
+                            the globe label and the customer question. Keep its
+                            live selection context for assistive technology and
+                            automation without spending screen space on it. */}
                         <div
                             aria-label="Active result context"
                             data-revisit-target-role={activeTargetRole?.toLowerCase() ?? 'none'}
-                            className={`${REVISIT_PANEL} ${activeTargetRole === 'REFERENCE'
-                                ? 'revisit-target-reference'
-                                : activeTargetRole === 'COMPARISON'
-                                    ? 'revisit-target-comparison'
-                                    : ''} sticky top-8 z-[19] grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-l-4 px-3 py-2 md:top-0`}
+                            className="sr-only"
                         >
-                            {/*
-                              * P8 (2026-09-01): two lines, because all three
-                              * segments earn their place and one line could not
-                              * hold them — `Point result · Primary target ·
-                              * 62.97°N 28.1…` truncated at every width tested.
-                              *
-                              * Nothing here was safe to drop. The ROLE is what
-                              * `Active result context` announces to a screen
-                              * reader and what nine e2e specs read to know which
-                              * target owns the column; the NAME is the only
-                              * thing distinguishing one secondary point from
-                              * another, which `revisit-p2c-a` pins by asserting
-                              * `Singapore` here. So the kicker keeps the kind
-                              * and the role, and the subject gets a line of its
-                              * own — which is also what finally makes the Point
-                              * and Area headers the same shape.
-                              */}
-                            <div className="min-w-0">
-                                <div className={`truncate text-[11px] font-black uppercase tracking-[0.12em] ${activeTargetRole === 'REFERENCE'
-                                    ? 'text-amber-300'
-                                    : activeTargetRole === 'COMPARISON'
-                                        ? 'text-sky-700 dark:text-sky-300'
-                                        : 'text-slate-300'}`}>
-                                    <span aria-hidden="true" className="mr-1 text-slate-600">4 ·</span>
-                                    {!hasReferenceTarget
-                                        ? 'No target selected'
-                                        : analysisContext === 'AREA'
-                                            ? 'Area result'
-                                            : `Point result · ${inspectedPointRole}`}
-                                </div>
-                                {hasReferenceTarget && (
-                                    <div
-                                        title={activeResultSubject}
-                                        className="truncate text-[12px] font-semibold leading-4 text-slate-200"
-                                    >
-                                        {activeResultSubject}
-                                    </div>
-                                )}
-                            </div>
+                            {/* Preserve kind, role and subject as one announced
+                                context when selection changes. */}
+                            {!hasReferenceTarget
+                                ? 'No target selected'
+                                : analysisContext === 'AREA'
+                                    ? 'Area result'
+                                    : `Point result · ${inspectedPointRole}`}
+                            {hasReferenceTarget && ` · ${activeResultSubject}`}
                         </div>
 
                         <div className="space-y-2" aria-live="polite">
@@ -2465,6 +2434,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                             {(analysisContext === 'AREA' || inspectedPoint) && (
                                 <CustomerResultCard
                                     targetRole={activeTargetRole ?? 'REFERENCE'}
+                                    compactResultLabel={`${activeTargetRole === 'COMPARISON' ? 'Secondary' : 'Primary'} ${analysisContext === 'AREA' ? 'area' : 'point'}`}
                                     question={customerQuestion}
                                     currentPayloadCount={currentPayloadCount}
                                     currentSplit={currentSplit}

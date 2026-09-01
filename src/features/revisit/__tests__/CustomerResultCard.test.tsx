@@ -51,12 +51,19 @@ async function renderCard(overrides: Partial<React.ComponentProps<typeof Custome
 
 describe('CustomerResultCard', () => {
     it('carries the inspected target role across its section hierarchy', async () => {
-        await renderCard({ targetRole: 'COMPARISON' });
+        await renderCard({
+            targetRole: 'COMPARISON',
+            compactResultLabel: 'Secondary area',
+        });
 
         expect(container.querySelector('[data-revisit-result-role="comparison"]')
             ?.classList.contains('revisit-result-comparison')).toBe(true);
         expect(container.querySelector('.revisit-label')?.textContent)
             .toContain('Current configuration');
+        expect(container.querySelector('.revisit-label')?.textContent)
+            .toContain('Secondary area');
+        expect(container.querySelector('.revisit-label')?.getAttribute('aria-label'))
+            .toBe('Step 4 · Current configuration · Secondary area');
     });
 
     it('leads with the customer question and both sides of the comparison', async () => {

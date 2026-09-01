@@ -21,6 +21,20 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe('REVISIT P7B presentation safety', () => {
+  test('keeps the active target identity inside the compact result heading', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile-chromium', 'Compact result-heading contract');
+
+    await seedReferenceTarget(page);
+    await page.locator('[data-revisit-result-strip]').click();
+    const analysis = page.getByRole('region', { name: 'REVISIT analysis' });
+
+    await expect(analysis.getByText('Primary point', { exact: true })).toBeVisible();
+    await expect(analysis.getByLabel('Active result context')).toContainText('Point result · Primary target');
+    const contextBox = await analysis.getByLabel('Active result context').boundingBox();
+    expect(contextBox?.width ?? 0).toBeLessThanOrEqual(1);
+    expect(contextBox?.height ?? 0).toBeLessThanOrEqual(1);
+  });
+
   test('keeps one compact content panel open while globe controls remain available', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'mobile-chromium', 'Panel exclusivity is a compact-viewport contract');
 
