@@ -333,3 +333,48 @@ The numbers above come from a fresh `page.screenshot()` taken in the light
 theme, sampled at the elements' measured rects. **A visual baseline that did not
 move is not evidence that nothing changed.**
 
+---
+
+# Fourth pass — failure is red, everywhere
+
+Requested: a missed requirement should read RED, not orange, on every surface,
+and the `Requirement X h` line should carry the verdict itself.
+
+## 16 · The miss vocabulary is red
+
+The module used to spend orange on a finite miss and keep red for an
+observation impossibility. The distinction is real in the model — "misses your
+requirement" is not "can never be seen" — and invisible in the room: a reader
+scanning the screen sees *not green* and then has to be told which warm hue
+means which failure. Failure is one message now, and it is red.
+
+Changed together, so nothing is left saying it differently:
+
+- `REVISIT_COLORS.miss` `#F97316` → `#E24B4A`, `missSoft` `#FDBA74` → `#F0A0A0`;
+- `REVISIT_OUTCOME.misses` badge and text → the red classes;
+- the area composition bar's `Misses` swatch (orange-500 → red-500), with
+  `Never seen` deepening to red-800 and `Unmeasured` — which is an absence of
+  data, not a failure — moving to the neutral slate it should always have used;
+- the timeline's longest-gap outline and its legend wording (`green meets, red
+  misses`), the `How this works` card, and the value curve's "no tested
+  configuration meets…" line, which was a hard-coded `text-orange-300` and now
+  goes through the shared vocabulary.
+
+**The one place the distinction survives is the area heat map, as depth rather
+than hue**: never-in-view is `#7A1220`, darker than any finite miss can reach.
+The grid now reads green → red → darker red, monotone in severity, instead of
+changing subject at the requirement boundary. Its unit test asserts exactly
+that — both are red, and the impossibility is the darker of the two.
+
+## 17 · `Requirement X h` states the verdict
+
+The line read `3 h 26 min > Requirement 2 h` with the verdict on the single
+glyph a reader skips: the `≤` / `>` was coloured, both figures either side were
+slate, and the whole line scanned as neutral bookkeeping. The operator and the
+requirement are now one span, green when met and red when not — the same two
+colours as every other verdict in the module.
+
+Measured in the light theme, where the red vocabulary is remapped for a white
+panel (§14): badge **5.71 : 1**, requirement line **6.98 : 1**, lane verdict
+**6.98 : 1**.
+

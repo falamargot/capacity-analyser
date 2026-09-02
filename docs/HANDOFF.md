@@ -2,6 +2,35 @@
 
 _Last updated 2026-09-02._
 
+## 2026-09-02 — Failure is red everywhere
+
+A missed requirement now reads RED on every surface, and `Requirement X h`
+carries the verdict itself (green when met, red when not) instead of colouring
+only the `≤` / `>` between two slate figures.
+
+The module used to spend orange on a finite miss and keep red for an
+observation impossibility. That distinction is real in the model and invisible
+in the room. Changed together: `REVISIT_COLORS.miss` / `missSoft`,
+`REVISIT_OUTCOME.misses`, the area composition bar, the timeline outline and its
+legend, the `How this works` card, and the value curve's one hard-coded
+`text-orange-300`.
+
+**The distinction survives where it is load-bearing — the area heat map — as
+DEPTH, not hue.** `REVISIT_COLORS.alert` (never in view) is `#7A1220`, darker
+than any finite miss can reach, so the grid reads green → red → darker red,
+monotone in severity. `heatMapColors.test.ts` asserts both are red and the
+impossibility is the darker of the two; that test previously asserted the
+opposite (that red was reserved for the impossibility) and was rewritten, not
+deleted.
+
+Light theme: the red vocabulary was already remapped for white panels in the
+2026-09-02 contrast pass, so the new usage inherits it — measured 5.71:1 on the
+badge, 6.98:1 on the requirement line and the lane verdict.
+
+Test consequences: `RevisitP0Ui` (stroke `#E24B4A`, `text-red-300`, the legend
+wording), `CustomerResultCard` and `RevisitMobileUi` (`text-red-200`),
+`revisit-p7a` (`/text-red-200/`).
+
 ## 2026-09-02 — `?standalone=1`: one-mode deployments
 
 `docs/URL_PARAMETERS.md` is the reference. Two changes to the entry contract:
