@@ -149,19 +149,20 @@ export const PresentationReadiness: React.FC<PresentationReadinessProps> = ({ si
              * a status nobody can open is useless in the one case that matters —
              * when it says something is NOT ready and you need to know which.
              */
-            className={`revisit-readiness-check pointer-events-auto ${REVISIT_PANEL} px-1 py-0.5`}
+            className={`revisit-readiness-check group pointer-events-auto ${REVISIT_PANEL} w-9 rounded-full p-0 open:w-[min(15rem,calc(100vw-1rem))] open:rounded-xl open:px-1 open:py-0.5 md:w-auto md:rounded-xl md:px-1 md:py-0.5`}
             data-revisit-readiness={summary.text}
         >
             <summary
-                className="flex min-h-11 cursor-pointer items-center gap-1.5 px-1.5 py-1 text-[11px] md:min-h-0"
+                aria-label={summary.text}
+                className="flex h-9 w-9 cursor-pointer list-none items-center justify-center gap-1.5 p-0 text-[11px] group-open:w-full group-open:justify-start group-open:px-1.5 group-open:py-1 md:h-auto md:w-auto md:min-h-0 md:justify-start md:px-1.5 md:py-1"
                 title="Everything the demonstration depends on, checked before the meeting."
             >
-                <span aria-hidden="true" className={`h-1.5 w-1.5 shrink-0 rounded-full ${blocked
+                <span aria-hidden="true" className={`h-2.5 w-2.5 shrink-0 rounded-full md:h-1.5 md:w-1.5 ${blocked
                     ? 'bg-red-400'
-                    : degraded ? 'bg-amber-400' : pending ? 'bg-slate-400' : 'bg-lime-400'}`}
+                    : degraded || pending ? 'bg-amber-400' : 'bg-lime-400'}`}
                 />
                 {/* Settled is the quiet case, and the common one. */}
-                <span className={settled ? 'text-slate-500' : `font-bold ${summary.className}`}>
+                <span className={`${settled ? 'text-slate-500' : `font-bold ${summary.className}`} hidden group-open:inline md:inline`}>
                     {summary.text}
                 </span>
             </summary>

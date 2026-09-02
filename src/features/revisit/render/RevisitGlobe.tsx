@@ -19,8 +19,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Viewer as ResiumViewer, type CesiumComponentRef } from 'resium';
 import {
-    Cartesian2, Cartesian3, Cartographic, Color, Ellipsoid, ImageryLayer,
+    Cartesian2, Cartesian3, Cartographic, Color, Ellipsoid, ImageryLayer, LabelStyle,
     Math as CesiumMath, PointPrimitiveCollection, PolygonHierarchy, Rectangle,
+    VerticalOrigin,
     KeyboardEventModifier, ScreenSpaceEventHandler, ScreenSpaceEventType, TileMapServiceImageryProvider,
     buildModuleUrl, Viewer as CesiumViewer,
 } from 'cesium';
@@ -28,8 +29,9 @@ import { setMemoryMonitorViewerGetter } from '../../../utils/memoryMonitor';
 import type { OrbitalElements, RevisitScenario } from '../domain/types';
 import { REVISIT_COLORS } from '../ui/revisitTheme';
 import { frameGlobe, useRevisitScene, type RevisitSceneOptions } from './useRevisitScene';
-import { heatColorFor } from './heatMapColors';
+import { heatColorFor, heatIntensityFor } from './heatMapColors';
 import type { AreaAnalysis } from '../analysis/areaAnalysis';
+import { formatGap } from '../analysis/gapStatistics';
 import type { AreaTarget } from '../domain/areaTarget';
 import {
     REFERENCE_POINT_ID, type RevisitAnalysisContext, type RevisitAreaTargetRole,
@@ -580,30 +582,115 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
         const added = layers.flatMap(({ role, analysis }) => {
             const half = analysis.area.gridSpacingDeg / 2;
             const selected = analysisContext === 'AREA' && areaTargetRole === role;
+            /*
+             * ── Opacity carries the distance to the requirement ──────────────
+             *
+             * A cell's hue says whether it meets the customer figure; its
+             * opacity says by how much. Both directions darken away from the
+             * threshold — a comfortably served cell is solid green, a badly
+             * served one solid red — and the band that is neither recedes. See
+             * `heatIntensityFor`, which owns the curve so the globe and any
+             * future legend cannot drift apart.
+             *
+             * The floor is not zero: a cell sitting exactly on the requirement
+             * is a measured result and must remain visible as part of the area,
+             * not a hole in it.
+             *
+             * This channel used to mark the least-covered cell instead (R33).
+             * The two readings cannot share it, and served-ness won: in an area
+             * that passes everywhere the least-covered cell is now the faintest
+             * on the map, and it is named by its label rather than by depth.
+             */
+            const [floorAlpha, ceilingAlpha] = selected ? [0.22, 0.88] : [0.12, 0.5];
             return analysis.cells.map((cell) => {
-                const { rgb } = heatColorFor(cell.maxGapMs, areaRequirementsMs[role]);
+                const requirement = areaRequirementsMs[role];
+                const { rgb } = heatColorFor(cell.maxGapMs, requirement);
+                const alpha = floorAlpha + (ceilingAlpha - floorAlpha)
+                    * heatIntensityFor(cell.maxGapMs, requirement);
                 return viewer.entities.add({
                     rectangle: {
                         coordinates: Rectangle.fromDegrees(
                             cell.target.lonDeg - half, cell.target.latDeg - half,
                             cell.target.lonDeg + half, cell.target.latDeg + half,
                         ),
-                        material: new Color(rgb[0], rgb[1], rgb[2], selected ? 0.55 : 0.3),
+                        material: new Color(rgb[0], rgb[1], rgb[2], alpha),
                         height: 0,
                     },
                 });
             });
         });
 
+        /*
+         * The label on the least-covered cell (R33).
+         *
+         * Since opacity was given to served-ness, this label is the ONLY thing
+         * marking that cell on the globe — and in an area that passes
+         * everywhere it sits on the faintest rectangle of the grid, which is
+         * exactly why it has to be there.
+         *
+         * `neverInViewCount` cells are unbounded rather than merely bad, and
+         * there is normally more than one of them — naming a single gap there
+         * would be the most misleading result the module could produce.
+         */
+        const labels = layers.flatMap(({ role, analysis }) => {
+            const worst = analysis.worstCell;
+            const selected = analysisContext === 'AREA' && areaTargetRole === role;
+            if (!worst || !selected) return [];
+            const half = analysis.area.gridSpacingDeg / 2;
+            const roleColor = Color.fromCssColorString(
+                role === 'REFERENCE' ? REVISIT_COLORS.target : REVISIT_COLORS.comparison
+            );
+            const halo = Color.fromCssColorString('#05070D');
+            const unbounded = analysis.neverInViewCount > 0;
+            const tied = analysis.bindingCells.length - 1;
+            const text = unbounded
+                ? `Never seen · ${analysis.neverInViewCount} cell${analysis.neverInViewCount > 1 ? 's' : ''}`
+                : `Least-covered cell · ${formatGap(worst.maxGapMs)}`
+                + (tied > 0 ? ` · ${tied} tied` : '');
+            // Anchored BELOW the cell: every other ground label in this scene —
+            // satellites, target points — sits above its anchor, so above is
+            // where the collisions are, and a polygon usually holds the point
+            // target whose label is already there.
+            return [viewer.entities.add({
+                position: Cartesian3.fromDegrees(
+                    worst.target.lonDeg, worst.target.latDeg - half, 300
+                ),
+                label: {
+                    text,
+                    font: 'bold 11px sans-serif',
+                    style: LabelStyle.FILL_AND_OUTLINE,
+                    fillColor: roleColor,
+                    outlineColor: halo,
+                    outlineWidth: 3,
+                    showBackground: true,
+                    backgroundColor: halo.withAlpha(0.72),
+                    backgroundPadding: new Cartesian2(4, 3),
+                    pixelOffset: new Cartesian2(0, 8),
+                    verticalOrigin: VerticalOrigin.TOP,
+                },
+            })];
+        });
+        added.push(...labels);
+
         viewer.container.setAttribute(
             'data-revisit-area-analysis-layers',
             layers.map(({ role }) => role.toLowerCase()).sort().join(','),
+        );
+        // Mirrors the binding set actually drawn, per role — the assertion
+        // surface for the tie rule, which is invisible in a screenshot.
+        viewer.container.setAttribute(
+            'data-revisit-area-binding-cells',
+            layers
+                .map(({ role, analysis }) => `${role.toLowerCase()}:${analysis.bindingCells.length}`)
+                .sort()
+                .join(','),
         );
         viewer.scene.requestRender();
         return () => {
             if (viewer.isDestroyed?.()) return;
             for (const entity of added) viewer.entities.remove(entity);
             viewer.container.removeAttribute('data-revisit-area-analysis-layers');
+            viewer.container.removeAttribute('data-revisit-area-binding-cells');
             viewer.scene.requestRender();
         };
     }, [

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HEAT_SATURATION_MULTIPLE, heatColorFor, heatLegendStops } from '../render/heatMapColors';
+import { HEAT_SATURATION_MULTIPLE, heatColorFor, heatIntensityFor, heatLegendStops } from '../render/heatMapColors';
 
 const HOUR = 3600_000;
 const isGreener = (c: { rgb: [number, number, number] }) => c.rgb[1] > c.rgb[0];
@@ -78,6 +78,61 @@ describe('heatMapColors — the scale is anchored to the requirement', () => {
     it('degrades safely on a nonsensical requirement', () => {
         expect(heatColorFor(HOUR, 0).css).toMatch(/^#[0-9a-f]{6}$/);
         expect(heatColorFor(HOUR, -5).css).toMatch(/^#[0-9a-f]{6}$/);
+    });
+});
+
+/*
+ * Opacity is the second channel of the same map: hue says met/missed, alpha
+ * says by how much. The contract is a DISTANCE from the requirement — faintest
+ * at the threshold, solid at both ends — so these assert the shape of the
+ * curve, not sampled values.
+ */
+describe('heatIntensityFor', () => {
+    const REQUIREMENT = 2 * HOUR;
+
+    it('is faintest exactly at the requirement, from either side', () => {
+        expect(heatIntensityFor(REQUIREMENT, REQUIREMENT)).toBe(0);
+        expect(heatIntensityFor(REQUIREMENT * 0.999, REQUIREMENT)).toBeLessThan(0.01);
+        expect(heatIntensityFor(REQUIREMENT * 1.001, REQUIREMENT)).toBeLessThan(0.01);
+    });
+
+    it('rises as a passing cell is visited more often', () => {
+        const comfortable = heatIntensityFor(0.2 * HOUR, REQUIREMENT);
+        const marginal = heatIntensityFor(1.8 * HOUR, REQUIREMENT);
+        expect(comfortable).toBeGreaterThan(marginal);
+        expect(heatIntensityFor(0, REQUIREMENT)).toBe(1);
+    });
+
+    it('rises as a missing cell is visited less often', () => {
+        const justOver = heatIntensityFor(2.1 * HOUR, REQUIREMENT);
+        const farOver = heatIntensityFor(6 * HOUR, REQUIREMENT);
+        expect(farOver).toBeGreaterThan(justOver);
+    });
+
+    it('saturates at the same multiple the colour ramp does, and stays there', () => {
+        const atLimit = heatIntensityFor(HEAT_SATURATION_MULTIPLE * REQUIREMENT, REQUIREMENT);
+        const wayPast = heatIntensityFor(500 * REQUIREMENT, REQUIREMENT);
+        expect(atLimit).toBe(1);
+        expect(wayPast).toBe(1);
+    });
+
+    /*
+     * Never in view is the far end of the scale, not an absent measurement. A
+     * cell nobody can observe must not be drawn faintly, which is how the map
+     * renders "nearly compliant".
+     */
+    it('is fully opaque for a never-in-view cell and for a meaningless requirement', () => {
+        expect(heatIntensityFor(null, REQUIREMENT)).toBe(1);
+        expect(heatIntensityFor(HOUR, 0)).toBe(1);
+        expect(heatIntensityFor(HOUR, -5)).toBe(1);
+    });
+
+    it('never leaves 0..1, over the whole scale', () => {
+        for (const gap of [0, 0.5, 1, 2, 3, 8, 40, 1000].map((h) => h * HOUR)) {
+            const intensity = heatIntensityFor(gap, REQUIREMENT);
+            expect(intensity).toBeGreaterThanOrEqual(0);
+            expect(intensity).toBeLessThanOrEqual(1);
+        }
     });
 });
 

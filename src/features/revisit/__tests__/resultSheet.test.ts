@@ -157,6 +157,7 @@ describe('REVISIT result sheet', () => {
             meanCellMaxGapMs: statistics.maxGapMs,
             neverInViewCount: 0,
             unmeasuredCount: 0,
+            bindingCells: [],
             worstCellIntervals: [],
             warnings: [],
         };
@@ -256,6 +257,7 @@ function missingAreaAnalysis(): AreaAnalysis {
         meanCellMaxGapMs: statistics.maxGapMs,
         neverInViewCount: 0,
         unmeasuredCount: 0,
+        bindingCells: [],
         worstCellIntervals: [],
         warnings: [],
     };

@@ -121,6 +121,21 @@ describe('PresentationReadiness', () => {
         }
     });
 
+    it('maps mobile readiness to amber, red and green dots', async () => {
+        const cases: Array<[ReadinessSignal['state'], string]> = [
+            ['PENDING', 'bg-amber-400'],
+            ['BLOCKED', 'bg-red-400'],
+            ['READY', 'bg-lime-400'],
+        ];
+        for (const [state, expectedClass] of cases) {
+            await act(async () => root?.render(
+                <PresentationReadiness signals={[signal({ state })]} />
+            ));
+            expect(container.querySelector('summary span:first-child')?.className)
+                .toContain(expectedClass);
+        }
+    });
+
     /* A blocked signal outranks a degraded one — worst state wins. */
     it('reports the worst state, not the first', async () => {
         await act(async () => root?.render(

@@ -2,6 +2,42 @@
 
 _Last updated 2026-09-02._
 
+## 2026-09-02 — Full e2e result, and one regression I introduced and did not fix
+
+The four-project suite ran undisturbed: **148 passed, 5 failed, 87 skipped**
+(49 min). Of the five:
+
+- **One was mine and is fixed** (committed in `0f1aa74` alongside unrelated
+  work). `aria-label="Step 5 · Recommended configuration"` on the heading gave
+  `getByLabel('Recommended configuration')` two matches — Playwright matches
+  labels by SUBSTRING and mine contained the container's own name — so two
+  specs died on a strict-mode violation. The `aria-label` is gone: the container
+  already carries that name and the `5 ·` is `aria-hidden`, exactly like the
+  `4 ·` on its sibling. Renaming the container instead would have broken four
+  unit selectors that pin it exactly.
+- **Three were load.** `revisit-p2c-c` (polygons exchange roles) and
+  `revisit-p7e` (mobile) pass when run alone; both failed at minute 40+ of a
+  single-worker run.
+- **One is a real regression — R31 in `DEFERRED_ITEMS.md`.** `revisit-p2c-a` on
+  mobile went from ~50 s to ~65–78 s with this session's work and now times out
+  intermittently. Bisected to the first batch by timing three worktrees; the
+  cause inside that batch is not isolated. Written up with the measurements, the
+  candidates, and why raising the timeout is the wrong move.
+
+**Three method notes, all of which cost time today:**
+
+1. **Never edit source while Playwright runs.** Vite HMR remounts the app
+   mid-test; it surfaces as `element was detached from the DOM` and as a
+   scenario reset to defaults. Three phantom failures came from this.
+2. **A `git worktree` used for a baseline reuses port 4173**
+   (`reuseExistingServer`), so its dev server serves the OTHER tree's code to
+   any run started after it. Kill it between runs, or a baseline comparison
+   silently measures the same tree twice — which happened before it was caught.
+3. **The shell's cwd persists across tool calls.** After `cd`-ing into a
+   worktree to time a spec, two documentation edits were written into that
+   worktree and lost when it was removed. `cd` back to the repository root
+   before editing anything.
+
 ## 2026-09-02 — Failure is red everywhere
 
 A missed requirement now reads RED on every surface, and `Requirement X h`
@@ -2640,3 +2676,76 @@ Then continue autonomously. No previous conversation is required.
   use `opacity-70` with hover/focus recovery.
 - Rows expose `data-revisit-target-selected` for the selection invariant.
 - Desktop E2E, 52 targeted UI tests, typecheck, lint and build pass.
+
+## Latest change — R33 least-covered cell marked on the globe (2026-09-02)
+
+- `areaAnalysis.ts`: `AreaAnalysis.bindingCells` — every cell as binding as
+  `worstCell`, within one sampling step (`stepSeconds`, now carried on
+  `CollectedCells`). When any cell is never in view the set is exactly those
+  cells; `worstCell` remains the single member whose timeline is on screen.
+  Rationale: `worstCell` is a strict-`>` tie-break, harmless in a figure and
+  misleading as a marker — six of twelve cells tie on the default grid.
+- `RevisitGlobe.tsx`: the heat-map effect now draws, per role, the binding set —
+  the retained cell solid, its equals thin — as a cell-sized outline in the role
+  identity colour (never green/red: the fill already carries the outcome), with
+  a separate slightly larger dark outline as halo. The selected role also gets a
+  label below the cell: `Least-covered cell · <gap>[ · N tied]`, or
+  `Never seen · N cells`. New `data-revisit-area-binding-cells` mirrors it.
+- `PolylineOutlineMaterialProperty` was tried first and rejected on the globe:
+  it spends the line's width on its outline, rendering the marker as a black
+  frame around a pale core at every legible width.
+- Tests: `areaTarget.test.ts` covers the tie set and the never-in-view set;
+  `revisit-p2c-c.spec.ts` asserts a non-empty binding set per role on the globe.
+  Unit suite (674) and typecheck pass; browser-verified on a Sahara polygon.
+- R32 (covered-cell band behind the AREA lane) remains open — see
+  `docs/DEFERRED_ITEMS.md`.
+
+## Follow-up — R33 marking style, and three unrelated gate failures (2026-09-02)
+
+- `RevisitGlobe.tsx`: the binding cells are now marked by the **opacity of their
+  own heat rectangle** (retained 0.95 / tied 0.78 / rest 0.40, roughly halved
+  when the role is not selected) instead of the role-coloured outline first
+  shipped. No new geometry, no second colour language, and the outline no longer
+  competes with the polygon boundary. The label is unchanged.
+- Field note: an area can be uniform enough that most of it binds — 19 of 23
+  cells within one 10 s sampling step on a Saudi-sized polygon whose mean, best
+  and worst cell all read 47 min. The three depths exist for exactly that case.
+- `CustomerResultCard.tsx`: removed the `aria-label` on the step-5 heading. It
+  repeated the name already carried by the block, so two nested nodes had the
+  same accessible name — read twice by a screen reader, and the cause of the
+  `revisit-p2b-b2` strict-mode violation. Step 4's label carries its result
+  subject, is unique, and is unchanged.
+- `revisit-visual` phone baselines (390×844, 430×932, both themes) re-recorded:
+  they predated the deliberate compact-rail changes already in the tree —
+  Workspace hidden below `md`, the readiness chip reduced to a 36 px dot, the
+  `MISSES` badge turned red. The frozen clock was never the issue.
+- `revisit-p2b-b1` was NOT a flake, and not an application defect. The trace
+  shows `[vite] connecting…` a second time 2.4 s into the test: the dev server
+  full-reloads the page mid-test, the app remounts with no target, and the
+  assertion then runs against a fresh application. The trigger was editing files
+  in the tree while the suite ran in the background. Four consecutive runs pass
+  when nothing is touched. **Do not edit the working tree while Playwright is
+  running against `dev:vite-only`** — the failure it produces looks exactly like
+  a product bug (targets vanish after a globe click).
+- Gates after the fixes: 31 e2e passed across `revisit-visual`, `p2b`, `p2b-b1`,
+  `p2b-b2`, `p2c-c`, `p7c`; unit suite 674; typecheck and lint clean.
+
+## Latest change — heat map opacity states distance to the requirement (2026-09-02)
+
+- `heatMapColors.ts`: new `heatIntensityFor(maxGapMs, requirementMs)` — 0 at the
+  requirement, 1 at either end of the scale (gap → 0, or gap ≥
+  `HEAT_SATURATION_MULTIPLE` × requirement), 1 for never-in-view. Hue says
+  met/missed; opacity now says by how much, in both directions.
+- `RevisitGlobe.tsx`: cell alpha is `floor + (ceiling − floor) × intensity`,
+  with `[0.22, 0.88]` for the selected role and `[0.12, 0.5]` for the other. The
+  floor is deliberate: a cell sitting exactly on the requirement is a measured
+  result, not a hole in the area.
+- This REPLACES R33's use of opacity to mark the least-covered cell — the two
+  readings cannot share the channel. The cell is now marked by its label alone,
+  and in an area that passes everywhere it is the faintest cell on the map. That
+  trade was made explicitly, not by accident.
+- Tests: six cases on the curve's shape in `heatMapColors.test.ts` (threshold
+  floor from both sides, both directions rising, saturation, never-in-view,
+  bounds). Unit suite 680, typecheck and lint clean; browser-verified on a
+  5°N–45°N polygon at a 12 h requirement, where passing and missing cells appear
+  in the same grid.

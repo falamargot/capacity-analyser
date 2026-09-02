@@ -57,20 +57,14 @@ test.describe('REVISIT P2b-B3 scenario workspace', () => {
     await expect(page.getByRole('region', { name: 'Coverage timeline' })).toContainText('Area worst-cell lane');
   });
 
-  test('fills the mobile viewport without horizontal overflow', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== 'mobile-chromium', 'Dedicated mobile drawer contract');
-    // Scenario management sits under the stage controls, which themselves
-    // carry globe display toggles only. Below `md` the panel is still the
-    // full-width sheet: a 432 px popup on a 390 px phone is an edge drawer
-    // with extra steps, so the width contract below is unchanged.
-    await page.getByRole('button', { name: /^(scenario )?workspace$/i }).click();
-    await expect(page.getByRole('dialog', { name: 'Scenario workspace' })).toBeVisible();
+  test('is absent from the mobile workflow', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile-chromium', 'Dedicated mobile contract');
+    await expect(page.locator('[aria-controls="revisit-scenario-workspace-drawer"]')).toBeHidden();
+    await expect(page.getByRole('dialog', { name: 'Scenario workspace' })).toHaveCount(0);
     const dimensions = await page.evaluate(() => ({
-      drawerWidth: document.querySelector('[data-testid="scenario-workspace-drawer"] aside')?.getBoundingClientRect().width,
       scrollWidth: document.documentElement.scrollWidth,
       viewportWidth: window.innerWidth,
     }));
-    expect(dimensions.drawerWidth).toBe(dimensions.viewportWidth);
     expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.viewportWidth + 1);
   });
 });

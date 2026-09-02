@@ -2323,7 +2323,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                 <div className="relative flex min-h-0 flex-1 items-stretch justify-between gap-2">
                   {/* `items-start` so each panel sizes to its own content rather
                       than stretching to the width of the widest sibling. */}
-                  <div className="pointer-events-none absolute left-0 top-0 z-40 flex flex-col items-start justify-between md:static md:z-20">
+                  <div className={`pointer-events-none absolute inset-y-0 left-0 z-40 flex-col items-start justify-between md:static md:z-20 md:flex ${compactPanel === 'none' ? 'flex' : 'hidden'}`}>
                     {/* One group, so `justify-between` pushes only the
                         readiness status to the foot of the rail. */}
                     <div className="flex flex-row items-start gap-2 md:flex-col md:gap-0">
@@ -2332,30 +2332,22 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                             toggleState={options}
                             onToggle={toggle}
                         />
-                        {/* Scenario management sits under the display controls, on
-                            the stage, and opens as a popup anchored to this button
-                            rather than as a header action detached from it. The
-                            stage rail is where the presenter's hand already is. */}
+                        {/* Scenario management is deliberately absent below `md`:
+                            saving and sharing scenarios is a desktop workflow,
+                            while the phone rail needs to stay focused on the
+                            globe and its display controls. */}
                         <button
                             ref={workspaceLauncherRef}
                             type="button"
                             onClick={() => togglePanel('workspace')}
                             aria-expanded={compactPanel === 'workspace'}
                             aria-controls="revisit-scenario-workspace-drawer"
-                            className={`${REVISIT_PANEL} pointer-events-auto flex min-h-11 w-auto max-w-[calc(100vw-1rem)] items-center gap-2 px-2.5 text-left text-[12px] font-black uppercase tracking-[0.12em] md:mt-2 md:min-h-9 md:w-[min(15rem,calc(100vw-1rem))] ${compactPanel === 'workspace'
+                            className={`${REVISIT_PANEL} pointer-events-auto hidden min-h-11 w-auto max-w-[calc(100vw-1rem)] items-center gap-2 px-2.5 text-left text-[12px] font-black uppercase tracking-[0.12em] md:mt-2 md:flex md:min-h-9 md:w-[min(15rem,calc(100vw-1rem))] ${compactPanel === 'workspace'
                                 ? 'border-sky-400/50 bg-sky-500/15 text-sky-200'
                                 : 'border-slate-700 text-slate-400 hover:border-sky-400/40 hover:text-sky-200'}`}
                         >
-                            {/* The visible text IS the accessible name: a
-                                separate `aria-label` would leave speech input
-                                unable to act on the words on screen. */}
-                            <span aria-hidden="true" className="hidden text-base leading-none md:inline">▤</span>
-                            {/* Below `md` the launcher sits beside DISPLAY on one
-                                rail row, so it carries a single short label and
-                                drops the glyph. `hidden` (display:none) keeps the
-                                unused variant out of the accessible name. */}
-                            <span className="truncate md:hidden">Workspace</span>
-                            <span className="hidden truncate md:inline">Scenario workspace</span>
+                            <span aria-hidden="true" className="text-base leading-none">▤</span>
+                            <span className="truncate">Scenario workspace</span>
                         </button>
                     </div>
                     {/* A status, beside the toolbar rather than inside it. */}
@@ -2366,13 +2358,13 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                     {/* One neutral notice instead of a red technical banner
                         across the top of the globe (Programme 7B). */}
                     {presentationNotice && (
-                        <div className="pointer-events-auto absolute left-12 right-0 top-0 z-30 self-start md:static md:left-0">
+                        <div className={`pointer-events-auto absolute left-12 right-0 top-0 z-30 self-start md:static md:left-0 ${compactPanel === 'none' ? '' : 'hidden md:block'}`}>
                             <PresentationNotice {...presentationNotice} />
                         </div>
                     )}
 
                     {warnings.length > 0 && (
-                        <div className={`pointer-events-none absolute left-12 right-0 top-14 z-30 max-w-sm md:pointer-events-auto ${REVISIT_PANEL} self-start border-amber-400/40 md:left-0 md:top-28 px-3 py-1.5 text-[12px] leading-4 text-amber-200 md:static`}>
+                        <div className={`pointer-events-none absolute left-12 right-0 top-14 z-30 max-w-sm md:pointer-events-auto ${REVISIT_PANEL} self-start border-amber-400/40 md:left-0 md:top-28 px-3 py-1.5 text-[12px] leading-4 text-amber-200 md:static ${compactPanel === 'none' ? '' : 'hidden md:block'}`}>
                             {warnings.map((warning) => <p key={warning}>{warning}</p>)}
                         </div>
                     )}

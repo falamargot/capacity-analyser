@@ -17,8 +17,9 @@
  * directly hit-testable globe the compact layout exists for (mobile UX plan §2,
  * gated at 360 px in `mode-smoke`) was down to 260 px.
  *
- * So below `md` it is a closed disclosure with a 44 px summary, and at `md` and
- * above the summary disappears and the column renders exactly as before. The
+ * So below `md` it is a closed disclosure with a compact 36 px summary inside
+ * a 44 px surface, and at `md` and above the summary disappears and the column
+ * renders exactly as before. The
  * open state is seeded from the breakpoint at mount, the same way
  * `RecommendedEvidenceDisclosure` does it — one pattern for "expanded on a
  * desktop, one tap away on a phone" rather than two.
@@ -63,10 +64,10 @@ export function StageControls<K extends string>({
             data-revisit-stage-controls
             open={open}
             onToggle={(event) => setOpen(event.currentTarget.open)}
-            className={`pointer-events-auto ${REVISIT_PANEL} w-auto max-w-[min(15rem,calc(100vw-1rem))] p-1.5 md:w-[min(15rem,calc(100vw-1rem))]`}
+            className={`pointer-events-auto ${REVISIT_PANEL} w-auto max-w-[min(15rem,calc(100vw-1rem))] p-1 md:w-[min(15rem,calc(100vw-1rem))] md:p-1.5`}
         >
             <summary
-                className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 px-1 md:hidden"
+                className="flex min-h-9 cursor-pointer list-none items-center justify-between gap-2 px-1 md:hidden"
                 title="What is drawn on the globe"
             >
                 <span className={REVISIT_LABEL}>Display</span>

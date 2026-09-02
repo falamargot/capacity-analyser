@@ -68,17 +68,10 @@ test.describe('REVISIT P2a product workflow', () => {
     expect(pdf.subarray(0, 5).toString()).toBe('%PDF-');
   });
 
-  test('keeps P2a available in the mobile details flow without overflow', async ({ page }, testInfo) => {
+  test('removes scenario management from the mobile rail', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'mobile-chromium', 'Dedicated mobile contract');
-    /*
-    * The stage controls hold globe display toggles only. Scenario management
-    * sits on the stage rail directly beneath them, where the same `Scenario
-    * workspace` control serves every viewport — so this is the desktop path,
-    * not a compact-only one.
-    */
-    await page.getByRole('button', { name: /^(scenario )?workspace$/i }).click();
-    await expect(page.getByRole('dialog', { name: 'Scenario workspace' })).toBeVisible();
-    await expect(page.getByRole('region', { name: 'Saved scenario workspace' })).toBeVisible();
+    await expect(page.locator('[aria-controls="revisit-scenario-workspace-drawer"]')).toBeHidden();
+    await expect(page.getByRole('dialog', { name: 'Scenario workspace' })).toHaveCount(0);
     const dimensions = await page.evaluate(() => ({
       scrollWidth: document.documentElement.scrollWidth,
       viewportWidth: window.innerWidth,

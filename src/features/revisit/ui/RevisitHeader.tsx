@@ -598,7 +598,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
         if (next !== undefined && next !== currentPayloadCount) onPayloadCountChange(next);
     };
     return (
-        <>
+        <div className="relative md:contents">
         {/*
           * Compact viewports get a one-line stand-in for the triad. Expanded,
           * the triad is 330 px tall on a 812 px phone — 41% of the viewport for
@@ -663,7 +663,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
         <div
             id="revisit-mobile-setup"
             data-revisit-context-bar
-            className={`revisit-context-bar ${setupOpen ? 'mt-2 grid' : 'hidden'} grid-cols-2 items-stretch gap-2 md:mt-0 md:flex`}
+            className={`revisit-context-bar ${setupOpen ? 'grid' : 'hidden'} absolute inset-x-0 top-[calc(100%+0.5rem)] max-h-[calc(100dvh-5.25rem)] grid-cols-2 items-stretch gap-2 overflow-y-auto rounded-b-xl pb-2 md:static md:max-h-none md:overflow-visible md:rounded-none md:pb-0 md:flex`}
         >
             <Panel label="Constellation" step={1} className="relative z-50 min-w-0 md:min-w-[190px]">
                 <div ref={constellationMenuRef} className="relative">
@@ -1232,6 +1232,6 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                     </div>
             </Panel>
         </div>
-        </>
+        </div>
     );
 };

@@ -1,5 +1,36 @@
 # Deferred Items — GEO Ground Segment Role Refactor
 
+> **R31 — 2026-09-02 REVISIT UI/UX pass slowed one mobile e2e flow; cause not
+> isolated.** `revisit-p2c-a` › *keeps the reference as benchmark while the
+> selected point owns the result* (mobile-chromium) runs measurably slower after
+> the 2026-09-02 UI work — close enough to its 90 s budget to fail
+> intermittently. Timed on one machine, sequentially, with the port-4173 dev
+> server killed between runs so no worktree served another's code:
+>
+> | tree | runs |
+> |---|---|
+> | `10d1ff9` (before the pass) | 45.5 s, 53.1 s — pass |
+> | `aa703dd` (first batch) | 78 s — pass |
+> | `fcdcae8` (whole pass) | 60 s, 66 s — pass; once **timed out at 90 s** |
+>
+> It arrived with the FIRST batch: contrast tokens, shared requirement, outcome
+> colours, globe-pick rule, display rail, `HowThisWorks`. The failure is a
+> `locator.evaluate` that never returns on a `<details>` the locator has already
+> resolved, which reads like main-thread starvation rather than a missing
+> element.
+>
+> Candidates, none confirmed: the panel fill going `0.74` → `0.86` alpha under
+> `backdrop-blur-sm` over the live WebGL canvas (the only change touching
+> per-frame compositing); the two extra `!important` border rules matching every
+> panel; the six toggle dots. An attempt to compare `requestAnimationFrame`
+> deltas with and without the blur was blocked — a hidden browser pane throttles
+> rAF, so the instrument reads nothing either way.
+>
+> **Next step:** measure frame cost with the pane visible, or bisect that first
+> batch's six changes against this one spec. Do NOT simply raise the timeout:
+> the spec was not slow before, and the budget is the only thing currently
+> reporting this.
+
 Decisions consciously deferred during the GEO ground segment categorisation
 refactor (steps 1–6, June 2026). Each item was identified, discussed, and
 explicitly left for a future iteration. This file exists so these decisions
@@ -721,3 +752,120 @@ defect that is not its own. `'COMPARISON'` is the consistent value in that
 branch. Deferred rather than fixed here because the swap's role/selection
 matrix is covered by `targetRoleSwap.test.ts` and changing a branch's asserted
 output belongs with a test-matrix pass, not with a same-day correctness fix.
+
+## R32. Area timeline — instantaneous covered-cell band behind the worst-cell lane
+
+**Proposed 2026-09-02, not implemented. Accepted in principle, with three
+conditions that are load-bearing rather than cosmetic.**
+
+Today an AREA lane in `CoverageRibbon` draws exactly one thing: the access
+intervals of the single least-covered cell (`worstCellIntervals`). That is the
+contractual claim and it must stay the foreground. What it does not say is the
+constellation's *spatial* rhythm over the polygon — at a given instant, how much
+of the zone is actually in view. Nothing on the screen answers that question,
+and customers ask it.
+
+**Proposal:** replace the flat `#111a2b` background `<rect>` of the AREA lane in
+`accessTrack` with a per-bin band whose intensity is the fraction of grid cells
+in view at that instant. No new row, no new lane.
+
+**Cost is near zero if accumulated in the existing batch loop** of
+`computeAreaAnalysis` (`areaAnalysis.ts`, the `AREA_CELL_BATCH` loop): a fixed
+`Float32Array` of ~1200 bins over the window, each cell's intervals added with
+time-weighted overlap. O(cells × intervals) in time, O(bins) in memory. This
+does **not** reopen the deliberate decision not to retain per-cell intervals —
+the accumulation happens while `access.intervals` is already in hand and nothing
+extra is kept.
+
+Three conditions:
+
+1. **It is not the averaged area timeline this module refuses.** The header
+   comment of `CoverageRibbon.tsx` rules out averaging an area's *gaps*, which
+   has no mission meaning. An instantaneous in-view cell fraction is a different,
+   well-defined quantity. The distinction is real but fragile in a room: the band
+   must never be readable as a verdict, or someone will say "we cover 80 % of the
+   zone" and undercut the worst-cell guarantee it sits behind. Render it as a
+   desaturated background, never a curve, and label it as context.
+2. **Value, not hue.** The module's colour vocabulary is already fully spent —
+   green/red are outcome, amber is Primary identity, blue is Secondary identity,
+   white is the payload system, and the heat ramp owns green→red→`alert` for
+   per-cell gaps. A fifth hue breaks the system. Use an opacity ramp of the
+   lane's own identity colour (≈0.05 → 0.30 alpha) so the band never competes
+   with the longest-gap outline or the access ticks.
+3. **Say "cells", never "% of the area".** The grid is a regular lat/lon grid and
+   is not equal-area; the recommendation panel already discloses this ("mean is
+   over cells, not area-weighted") and the band inherits the same bias. Binning
+   must be time-weighted, or one short pass fills a whole bin and the band
+   overstates coverage.
+
+## R33. Mark the least-covered cell on the globe
+
+**IMPLEMENTED 2026-09-02. Kept here for the reasoning; the two open questions
+below were both answered in the implementation.**
+
+What shipped: `AreaAnalysis.bindingCells` (the whole tie set, computed in
+`finaliseArea`) and a marker layer in the heat-map effect of `RevisitGlobe.tsx`,
+with `data-revisit-area-binding-cells` mirroring what was drawn. Two findings
+from building it:
+
+- The tie is **not** a corner case. On the default 12-cell grid, six cells sit
+  within 58 ms of the worst — a single marker would have jumped between six
+  places across a sweep. `areaTarget.test.ts` asserts the set, and that it holds
+  more than one member on that grid.
+- **The depth channel was later taken away from R33 entirely** (same day, on
+  the customer's call). Opacity now states how far a cell is from the
+  requirement — solid at both ends of the scale, faintest exactly at the
+  threshold — so it can no longer say "this cell binds". The accepted
+  consequence: in an area that passes everywhere the least-covered cell is the
+  faintest rectangle on the map, and its label is the only thing marking it. If
+  a future pass wants the mark back it needs a channel that is neither hue,
+  opacity, nor a cell-sized outline.
+- **The outline was the wrong mark, and was withdrawn.** Drawn on the globe, a
+  cell-sized frame competes with the polygon boundary it sits inside, and it
+  forces a second colour decision — a role colour that then argues with the heat
+  ramp underneath it. (`PolylineOutlineMaterialProperty` was tried for its dark
+  halo and is unusable at this size: it spends the line's own width on the
+  outline, so at every width legible on a 2° cell the marker rendered as a black
+  frame around a pale core.) The binding cells are marked instead by the OPACITY
+  of their own heat rectangle, on three depths — retained, tied, rest — which
+  adds no colour and no geometry, keeps the cell saying its own gap on the ramp,
+  and still leaves one cell at the top for the figure in the panel to point at.
+  The label stays: depth says "this one", it cannot say what "this one" means.
+
+The original reasoning follows.
+
+**Proposed 2026-09-02. Higher priority than R32 — lower cost, and it closes a
+real demonstration gap.**
+
+The least-covered cell carries the entire area verdict, and it exists on screen
+only as a lat/lon string in three places (`CoverageRibbon` toolbar,
+`AreaResultsPanels`, the CSV export). It has no spatial anchor, so a presenter
+cannot point at it, and the AREA timeline lane cannot be tied to the ground it
+describes.
+
+**Proposal:** one more entity in the heat-map effect of `RevisitGlobe.tsx`, which
+already holds `analysis.worstCell`. Outline the cell's **rectangle**, not a
+centre point — the measurement is over a cell, and a dot would misstate it.
+
+**Colour:** the role identity colour (amber Primary / blue Comparison), *not*
+green or red. The cell's fill already encodes its outcome through the heat ramp;
+the outline's job is to say *which* cell, not *how good*. Because the ramp runs
+from green through red to `alert` (#7A1220), the outline needs a dark halo
+beneath it to stay visible across the whole ramp.
+
+Two correctness-of-presentation issues that must be settled first — neither is
+cosmetic:
+
+- **Ties.** `worstCell` is selected on a strict `>` in the batch loop, so equal
+  cells resolve to whichever comes first in grid order. That tie-break is
+  invisible today; drawn on the globe it will make the marker jump across the
+  polygon between sweep candidates over sub-second differences. Outline every
+  cell within one sampling step of the maximum (thin), and the retained one
+  solid.
+- **`NEVER_IN_VIEW`.** When a cell is never in view it becomes `worstCell` and
+  the lane is deliberately emptied. Marking one cell then implies a single point
+  of failure where there are `neverInViewCount` of them; the marker must read
+  "never seen" and circle the whole set.
+
+The two items reinforce each other: R32 says *when* the zone is seen, R33 says
+*where* it binds.

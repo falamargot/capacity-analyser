@@ -62,6 +62,15 @@ test.describe('REVISIT P2c-C mixed target comparison', () => {
     await expect(referenceRow).not.toContainText(/Preparing|Computing|Select to analyse/, { timeout: 60_000 });
     await expect(comparisonRow).not.toContainText(/Preparing|Computing|Select to analyse/, { timeout: 60_000 });
     await expect(page.locator('[data-revisit-area-analysis-layers="comparison,reference"]')).toBeVisible();
+    /*
+     * R33 — the least-covered cell is marked on the ground, per role. Both
+     * grids carry a non-empty binding set, so neither polygon's verdict is a
+     * figure with nothing on the globe behind it. The count is asserted as
+     * "at least one" rather than exactly one: equally binding cells are all
+     * marked, and how many there are depends on the epoch the run started at.
+     */
+    await expect(page.locator('[data-revisit-area-binding-cells]'))
+        .toHaveAttribute('data-revisit-area-binding-cells', /^comparison:[1-9]\d*,reference:[1-9]\d*$/);
 
     const referenceResult = await referenceRow.textContent();
     const comparisonResult = await comparisonRow.textContent();

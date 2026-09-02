@@ -82,6 +82,34 @@ export function heatColorFor(maxGapMs: number | null, requirementMs: number): He
     return { css: rgbToHex(rgb), rgb };
 }
 
+/**
+ * How far a cell is from the requirement, 0 at the threshold and 1 at either end
+ * of the scale. This is the OPACITY channel of the heat map.
+ *
+ * Hue answers "does this cell meet the requirement" — green or red, on a scale
+ * anchored to the customer figure. Opacity answers "by how much", and it is a
+ * DISTANCE, not a rank: a cell sitting exactly on the requirement is the least
+ * certain statement the map can make about that area, so it is the faintest,
+ * and the map darkens in both directions away from it. A comfortably served
+ * cell reads as solid green, a badly served one as solid red, and the ambiguous
+ * band between them recedes.
+ *
+ * Never-in-view returns 1: an observation impossibility is the far end of the
+ * scale, not a missing value to be drawn faintly.
+ *
+ * Consequence, accepted deliberately: in an area that passes everywhere, the
+ * LEAST-covered cell — the one carrying the contractual figure — is the
+ * faintest thing on the map. Opacity here states served-ness, not importance;
+ * the least-covered cell is named by its own label on the globe instead
+ * (`RevisitGlobe.tsx`), which is what it lost the depth channel to.
+ */
+export function heatIntensityFor(maxGapMs: number | null, requirementMs: number): number {
+    if (maxGapMs === null || requirementMs <= 0) return 1;
+    const ratio = maxGapMs / requirementMs;
+    if (ratio <= 1) return Math.max(0, Math.min(1, 1 - ratio));
+    return Math.min(1, (ratio - 1) / (HEAT_SATURATION_MULTIPLE - 1));
+}
+
 /** Legend stops, for the UI key. */
 export function heatLegendStops(requirementMs: number): Array<{
     label: string; css: string;

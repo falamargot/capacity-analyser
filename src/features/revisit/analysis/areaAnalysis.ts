@@ -61,6 +61,25 @@ export interface AreaAnalysis {
     neverInViewCount: number;
     /** Cells that produced no interior gap, usually because the window is short. */
     unmeasuredCount: number;
+    /**
+     * Every cell as binding as `worstCell`, within the run's own time resolution.
+     *
+     * `worstCell` is retained on a strict `>`, so among equally bad cells it is
+     * whichever the grid reached first. That tie-break is harmless in a figure
+     * and misleading on a map: drawn as a single marker it would jump across the
+     * area between two configurations that differ by a fraction of a sample.
+     * So the map is given the whole binding set, and `worstCell` is only the
+     * member whose timeline is on screen.
+     *
+     * The tolerance is one sampling step. Transitions are refined by bisection,
+     * but WHICH transitions exist is decided by the coarse sampling — two cells
+     * closer than one step are not distinguished by this run and must not be
+     * presented as if they were.
+     *
+     * Targets rather than `AreaCellResult`s: this exists for the globe, which
+     * needs the geometry, and the per-cell figures are already in `cells`.
+     */
+    bindingCells: PointTarget[];
     /** Accesses of the contractual worst cell only; avoids retaining every cell timeline. */
     worstCellIntervals: AccessInterval[];
     warnings: string[];
@@ -102,6 +121,8 @@ interface CollectedCells {
     warnings: Set<string>;
     worstCellIntervals: AccessInterval[];
     stoppedAt: AreaCellResult | null;
+    /** The window's sampling step — the resolution the cells were measured at. */
+    stepSeconds: number;
 }
 
 function collectCells(
@@ -184,12 +205,18 @@ function collectCells(
         if (options.stopWhen) {
             const failing = cells.slice(start).find(options.stopWhen);
             if (failing) {
-                return { cells, warnings: warningSet, worstCellIntervals, stoppedAt: failing };
+                return {
+                    cells, warnings: warningSet, worstCellIntervals,
+                    stoppedAt: failing, stepSeconds: scenario.window.stepSeconds,
+                };
             }
         }
     }
 
-    return { cells, warnings: warningSet, worstCellIntervals, stoppedAt: null };
+    return {
+        cells, warnings: warningSet, worstCellIntervals,
+        stoppedAt: null, stepSeconds: scenario.window.stepSeconds,
+    };
 }
 
 /**
@@ -274,10 +301,28 @@ function finaliseArea(area: AreaTarget, collected: CollectedCells): AreaAnalysis
         );
     }
 
+    /*
+     * The binding set — see `bindingCells`.
+     *
+     * A never-in-view cell is not "very bad", it is unbounded, so when any
+     * exists the binding set is exactly those cells and no measured cell can
+     * join it. Otherwise it is every cell within one sampling step of the worst
+     * measured gap.
+     */
+    const toleranceMs = Math.max(0, collected.stepSeconds) * 1000;
+    const bindingCells = neverInViewCell !== null
+        ? cells.filter((c) => c.statistics.coverage === 'NEVER_IN_VIEW').map((c) => c.target)
+        : worstMeasured !== null
+            ? measured
+                .filter((c) => c.maxGapMs! >= worstMeasured.maxGapMs! - toleranceMs)
+                .map((c) => c.target)
+            : [];
+
     return {
         area,
         cells,
         worstCell,
+        bindingCells,
         bestCell: measured.length > 0
             ? measured.reduce((a, b) => (b.maxGapMs! < a.maxGapMs! ? b : a))
             : null,

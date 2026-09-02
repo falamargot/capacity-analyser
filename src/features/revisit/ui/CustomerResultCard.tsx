@@ -545,7 +545,15 @@ function SizingBlock({
                 above numbers 4. It was the only unnumbered stop on it, which
                 made the sequence look like it ended at the verdict — when the
                 whole point of this card is that there is something to do next. */}
-            <span className={REVISIT_LABEL} aria-label="Step 5 · Recommended configuration">
+            {/* No `aria-label` here. The block already carries the name
+                `Recommended configuration`, and repeating it on the heading
+                inside gave the same accessible name to two nested nodes — read
+                twice by a screen reader, and ambiguous to any by-name query
+                (it broke `revisit-p2b-b2` on a strict-mode violation). The
+                visible text supplies the name; `5 ·` is decoration and stays
+                hidden. Step 4's label carries its result subject, so it is
+                unique and stays as it is. */}
+            <span className={REVISIT_LABEL}>
                 <span aria-hidden="true" className="mr-1 text-slate-600">5 ·</span>
                 Recommended configuration
             </span>

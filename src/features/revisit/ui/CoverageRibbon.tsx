@@ -284,7 +284,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
             <div>
                 <div className="px-2 py-2 sm:px-4">
                     <div
-                        className="flex flex-wrap items-center gap-x-3 gap-y-1.5"
+                        className="grid grid-cols-1 gap-y-2 md:flex md:flex-wrap md:items-center md:gap-x-3 md:gap-y-1.5"
                         data-revisit-timeline-toolbar
                     >
                         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
@@ -349,7 +349,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                                 </span>
                             )}
                         </div>
-                        <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1.5" aria-label="Simulation time controls">
+                        <div className="grid w-full min-w-0 grid-cols-3 items-stretch gap-1.5 md:ml-auto md:flex md:w-auto md:flex-wrap md:items-center md:justify-end" aria-label="Simulation time controls">
                             <button type="button" onClick={() => onSetSpeed(speed === 0 ? 1 : 0)}
                                 aria-label={speed === 0 ? 'Play simulation' : 'Pause simulation'}
                                 className="min-h-11 rounded border border-slate-600 px-2 text-[12px] font-black uppercase tracking-[0.08em] text-slate-200 hover:border-slate-300 md:min-h-8">
@@ -363,7 +363,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                                 className="hidden min-h-11 rounded border border-slate-700 px-2 text-[12px] font-bold text-slate-300 sm:block md:min-h-8">−1 h</button>
                             <button type="button" onClick={() => seekToHours(currentHours + 1)} aria-label="Step simulation forward one hour"
                                 className="hidden min-h-11 rounded border border-slate-700 px-2 text-[12px] font-bold text-slate-300 sm:block md:min-h-8">+1 h</button>
-                            <label className="flex min-h-11 items-center gap-1 rounded border border-slate-700 px-2 md:min-h-8">
+                            <label className="flex min-h-11 min-w-0 items-center justify-center gap-1 rounded border border-slate-700 px-2 md:min-h-8 md:justify-start">
                                 <span className="text-[11px] font-black uppercase tracking-[0.08em] text-slate-500">Speed</span>
                                 <select aria-label="Simulation speed" value={speed === 0 ? 1 : speed}
                                     onChange={(event) => onSetSpeed(Number(event.target.value))}
@@ -379,7 +379,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                                     onChange={onAnalysisWindowChange}
                                 />
                             )}
-                            <label className="flex min-h-11 items-center gap-1.5 rounded border border-slate-600/70 px-2 md:min-h-8">
+                            <label className="col-span-3 flex min-h-11 min-w-0 items-center gap-1.5 rounded border border-slate-600/70 px-2 md:min-h-8 md:w-auto">
                                 <span className="text-[11px] font-black uppercase tracking-[0.08em] text-slate-500">UTC</span>
                                 <input
                                     type="datetime-local"
@@ -389,7 +389,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                                     value={utcDateTimeInputValue(timestampMs)}
                                     onChange={(event) => handleDateTimeChange(event.target.value)}
                                     aria-label="Simulation date and time UTC"
-                                    className="min-h-9 bg-transparent text-[12px] font-bold tabular-nums text-slate-100 outline-none [color-scheme:dark] md:min-h-0"
+                                    className="min-h-9 min-w-0 flex-1 bg-transparent text-[12px] font-bold tabular-nums text-slate-100 outline-none [color-scheme:dark] md:min-h-0 md:flex-none"
                                 />
                             </label>
                         </div>

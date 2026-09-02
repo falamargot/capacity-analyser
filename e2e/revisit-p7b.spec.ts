@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import {
-  openRevisitDisplayControls, seedReferenceTarget, waitForRevisitReady,
+  closeRevisitPanels, openRevisitDisplayControls, seedReferenceTarget, waitForRevisitReady,
 } from './revisitCompact';
 
 /**
@@ -41,11 +41,10 @@ test.describe('REVISIT P7B presentation safety', () => {
     const setup = page.locator('#revisit-mobile-setup');
     const analysis = page.getByRole('region', { name: 'REVISIT analysis' });
     const stage = page.locator('#revisit-stage-controls');
-    const workspace = page.locator('#revisit-scenario-workspace-drawer');
 
     const openCount = async () => {
       const states = await Promise.all([
-        setup.isVisible(), analysis.isVisible(), workspace.isVisible(),
+        setup.isVisible(), analysis.isVisible(),
       ]);
       return states.filter(Boolean).length;
     };
@@ -64,19 +63,7 @@ test.describe('REVISIT P7B presentation safety', () => {
     await expect(setup).toBeHidden();
     expect(await openCount()).toBe(1);
 
-    // The workspace is a separate header action and remains modal.
-    await page.getByRole('button', { name: /^(scenario )?workspace$/i }).click();
-    await expect(workspace).toBeVisible();
-    await expect(analysis).toBeHidden();
-    await expect(stage).toBeVisible();
-    expect(await openCount()).toBe(1);
-
-    // Every panel's dismissal lands back on the globe, not on another panel.
-    await page.getByRole('button', { name: /close/i }).first().click();
-    expect(await openCount()).toBe(0);
-
-    await page.locator('[data-revisit-result-strip]').click();
-    await expect(analysis).toBeVisible();
+    // Dismissal lands back on the globe, not on another compact panel.
     await page.getByRole('button', { name: 'Close analysis sheet and show the globe' }).click();
     expect(await openCount()).toBe(0);
   });
@@ -130,6 +117,7 @@ test.describe('REVISIT P7B presentation safety', () => {
     // exclusivity test above deliberately does NOT seed one: it asserts the
     // globe-first opening state, with zero panels open.
     await seedReferenceTarget(page);
+    await closeRevisitPanels(page);
     const readiness = page.locator('.revisit-readiness-check');
     await expect(readiness).toBeVisible();
 

@@ -320,5 +320,50 @@ describe('analyseArea', () => {
         expect(result.worstCell!.maxGapMs).toBeNull();
         expect(result.worstCellIntervals).toEqual([]);
         expect(result.warnings.join(' ')).toMatch(/unbounded, not the largest measured gap/);
+
+        // The map marks the whole unbounded set, never one cell of it: there is
+        // no single point of failure to point at when a whole band of the area
+        // is never seen.
+        const neverSeen = result.cells.filter(
+            (c) => c.statistics.coverage === 'NEVER_IN_VIEW'
+        );
+        expect(result.bindingCells.length).toBe(neverSeen.length);
+        expect(result.bindingCells).toEqual(neverSeen.map((c) => c.target));
+    });
+
+    /*
+     * The binding set exists so the globe marker cannot jump between cells this
+     * run cannot tell apart — see `bindingCells` in areaAnalysis.ts.
+     */
+    describe('bindingCells', () => {
+        it('contains the retained worst cell and only cells as bad as it', () => {
+            const result = analyseArea(scenarioBase, area);
+            const toleranceMs = scenarioBase.window.stepSeconds * 1000;
+
+            expect(result.bindingCells).toContainEqual(result.worstCell!.target);
+            const bound = new Set(result.bindingCells.map((t) => `${t.latDeg},${t.lonDeg}`));
+            for (const cell of result.cells) {
+                if (cell.maxGapMs === null) continue;
+                const isBinding = bound.has(`${cell.target.latDeg},${cell.target.lonDeg}`);
+                expect(isBinding).toBe(
+                    cell.maxGapMs >= result.worstCell!.maxGapMs! - toleranceMs
+                );
+            }
+        });
+
+        it('admits a cell within one sampling step of the worst, and no other', () => {
+            const result = analyseArea(scenarioBase, area);
+            const toleranceMs = scenarioBase.window.stepSeconds * 1000;
+            const gaps = result.cells
+                .map((c) => c.maxGapMs)
+                .filter((gap): gap is number => gap !== null)
+                .sort((a, b) => b - a);
+            const withinTolerance = gaps.filter((gap) => gap >= gaps[0] - toleranceMs).length;
+            expect(result.bindingCells.length).toBe(withinTolerance);
+            expect(result.bindingCells.length).toBe(withinTolerance);
+            // Not a degenerate assertion: on this grid six of twelve cells are
+            // within 58 ms of the worst — the tie the marker must not pick from.
+            expect(result.bindingCells.length).toBeGreaterThan(1);
+        });
     });
 });
