@@ -2854,3 +2854,24 @@ assumption with no trace on the surface people photograph.
   is set. It rides on the existing SENSOR SWATH toggle — verified in the browser
   that switching that off removes both the swath and its outline — rather than
   adding a seventh control.
+
+## Follow-up — two stale e2e gates realigned (2026-09-03)
+
+- `revisit-p1.spec.ts` still asserted `Illustrative IR preset · not an
+  instrument datasheet` on screen. That line was removed deliberately on
+  2026-09-02 and `RevisitP1Ui.test.tsx` was inverted with it; this spec was
+  missed. Now asserts its absence. The qualification itself has not left the
+  product — `ASSUMED SENSOR SWATH` labels the control, and the exported result
+  sheet keeps the caveat — so what is pinned here is only that the header line
+  does not come back by accident.
+- `revisit-advanced.spec.ts` › *offers real cancellation* failed for the
+  OPPOSITE reason to the race its comment describes: the area run was held
+  behind `finalising topology…` and had not started, so there was no Cancel
+  button. Cause: the Primary is now placed by a globe click, which moves when
+  the point sweep starts; at a 2 s step it had not landed. The spec now waits
+  for `data-revisit-readiness` = `Ready to present` before adding the area —
+  that chip stays PENDING through `isConfigurationSettling`, which is exactly
+  the sweep plus reconcile the area run waits on.
+  `waitForRevisitResultSettled` is NOT usable here: it waits for the rendered
+  text to stop changing, and this spec runs a live clock, so the UTC field never
+  stops.

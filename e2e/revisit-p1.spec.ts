@@ -51,7 +51,20 @@ test.describe('REVISIT P1 requirement contract', () => {
   test('exposes truthful instrument presets without a demo workflow', async ({ page }, testInfo) => {
     const instrument = page.getByRole('combobox', { name: 'Instrument preset' });
     await expect(instrument).toHaveValue('STANDARD');
-    await expect(page.getByText('Illustrative IR preset · not an instrument datasheet')).toBeVisible();
+    /*
+     * The header no longer carries `Illustrative IR preset · not an instrument
+     * datasheet` — removed deliberately on 2026-09-02, and the unit test in
+     * `RevisitP1Ui.test.tsx` was inverted with it; this spec was missed.
+     *
+     * The qualification did not disappear from the product: the control is
+     * still labelled ASSUMED SENSOR SWATH on screen, and the exported result
+     * sheet keeps `Illustrative thermal-IR geometry — not an instrument
+     * datasheet` in its caveats (`resultSheet.ts`). Both are asserted elsewhere.
+     * What is pinned here is that the header line is gone, so it cannot come
+     * back by accident on the one surface that was cleared.
+     */
+    await expect(page.getByText('Illustrative IR preset · not an instrument datasheet'))
+      .toHaveCount(0);
 
     await instrument.selectOption('WIDE');
     await expect(instrument).toHaveValue('WIDE');

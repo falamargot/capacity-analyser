@@ -117,6 +117,24 @@ test.describe('REVISIT Advanced stabilization', () => {
     await page.getByRole('button', { name: 'Analysis window settings' }).click();
     await page.getByRole('dialog', { name: 'Analysis window' }).getByLabel('Step s').fill('2');
     await page.getByRole('button', { name: 'Analysis window settings' }).click();
+    /*
+     * Wait for the point sweep to land BEFORE adding the area.
+     *
+     * An area run is held behind "finalising topology…" until the selection has
+     * settled, and at a 2 s step the sweep is slow enough that the area had not
+     * started at all when the Cancel assertion ran — the panel still read "This
+     * area has not been analysed yet", so the test failed for the opposite
+     * reason to the race its comment above describes.
+     *
+     * The readiness chip is the right signal and not an approximation of one:
+     * it stays PENDING through `isConfigurationSettling`, which is precisely
+     * the sweep plus the reconcile the area run is waiting on
+     * (`RevisitApp.tsx`, the sizing check). Waiting on the rendered text to
+     * stop changing would NOT work here — the clock is live in this spec, so
+     * the UTC field never stops changing.
+     */
+    await expect(page.locator('[data-revisit-readiness]'))
+      .toHaveAttribute('data-revisit-readiness', 'Ready to present', { timeout: 60_000 });
     await addSecondaryArea(page);
     const areaPanel = page.getByRole('region', { name: 'Area coverage' });
     // 0.42° is 408 cells and the validator refuses it; 0.43° is 391, just
