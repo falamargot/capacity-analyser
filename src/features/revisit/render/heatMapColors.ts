@@ -4,12 +4,12 @@
  * ── WHY THE SCALE IS ABSOLUTE, NOT RELATIVE ─────────────────────────────────
  * The obvious choice is to normalise between the best and worst cell. It looks
  * better and it is wrong: an area where every cell is excellent and one where
- * every cell fails would render identically, both showing a full green-to-orange
+ * every cell fails would render identically, both showing a full green-to-red
  * spread. The map would encode variation within the area and say nothing about
  * whether the area is actually served.
  *
  * So the scale is anchored to the customer requirement. Green means "meets it",
- * orange means "misses it", and the eye reads compliance rather than
+ * red means "misses it", and the eye reads compliance rather than
  * contrast. That also makes two screenshots at different payload counts directly
  * comparable, which is the whole point during a demo.
  *

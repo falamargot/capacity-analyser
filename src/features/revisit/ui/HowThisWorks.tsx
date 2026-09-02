@@ -57,7 +57,19 @@ function anchoredPosition(anchor: HTMLElement | null): React.CSSProperties | nul
     return { top, left, width, maxHeight: Math.max(160, window.innerHeight - top - GUTTER) };
 }
 
-export function HowThisWorks() {
+export function HowThisWorks({ stretch = false }: {
+    /**
+     * Take the whole rail height rather than the 32 px strip above the
+     * ENG/COMM return control.
+     *
+     * True under `?standalone=1`, where that control is not rendered and this
+     * is the only thing in the chrome column: a 32 px button floating at the
+     * top of a 106 px rail reads as a fragment of something that failed to
+     * load, which is exactly what the return control's own comment records
+     * about its pre-2026-08 shape.
+     */
+    stretch?: boolean;
+} = {}) {
     const [open, setOpen] = useState(false);
     const triggerRef = useRef<HTMLButtonElement | null>(null);
     const panelRef = useRef<HTMLDivElement | null>(null);
@@ -118,7 +130,7 @@ export function HowThisWorks() {
                    inline colour. Same chrome as that control, deliberately: the
                    two are one column. */
                 style={{ borderColor: '#6b7c99' }}
-                className={`hidden h-8 w-11 shrink-0 items-center justify-center rounded-xl border text-[15px] font-black leading-none shadow-lg backdrop-blur-sm transition-colors md:flex [@media(max-height:640px)]:!hidden ${open
+                className={`hidden w-11 shrink-0 items-center justify-center rounded-xl border text-[15px] font-black leading-none shadow-lg backdrop-blur-sm transition-colors md:flex [@media(max-height:640px)]:!hidden ${stretch ? 'h-auto flex-1 self-stretch' : 'h-8'} ${open
                     ? 'bg-sky-500/25 text-sky-100'
                     : 'bg-slate-700/70 text-slate-100 hover:bg-slate-600/80 hover:text-white'}`}
             >
@@ -177,7 +189,7 @@ export function HowThisWorks() {
 
                             <div className="flex flex-col gap-1">
                                 <span className={HEADING}>On the timeline</span>
-                                <p>Each mark is one access. The outlined span is the longest wait between two accesses — green within the requirement, orange beyond it. Click a lane to move the simulation to that instant.</p>
+                                <p>Each mark is one access. The outlined span is the longest wait between two accesses — green within the requirement, red beyond it. Click a lane to move the simulation to that instant.</p>
                             </div>
 
                             <div className="flex flex-col gap-1">

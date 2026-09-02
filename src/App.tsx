@@ -508,9 +508,17 @@ const getInitialDisplayDefaults = (): InitialDisplayDefaults => {
 interface AppProps {
   appMode: AppMode;
   onAppModeChange: (mode: AppMode) => void;
+  /**
+   * Whether the interface offers the other modes at all.
+   *
+   * `false` under `?standalone=1`, where this deployment IS Engineering or IS
+   * Commercial and the mode switch has nothing to offer. Defaulted to `true` so
+   * the normal application and every existing test render exactly as before.
+   */
+  modeSwitchingAvailable?: boolean;
 }
 
-const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
+const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvailable = true }) => {
   // Lazy useState initializer, not useRef(readTelecomSessionSnapshot()): a
   // useRef's argument expression still runs on every render even though only
   // the first render's result is kept, so useRef here would re-run the
@@ -5254,13 +5262,22 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange }) => {
     </button>
   );
 
+  /*
+   * One switch, four placements (desktop header, compact header, and two HUD
+   * variants). Withholding it here rather than at each call site is what makes
+   * `?standalone=1` a single decision instead of four that can drift — a
+   * standalone deployment that still shows the switch in the phone HUD is not
+   * standalone.
+   */
   const renderUiModeSwitch = (compact = false, hud = false) => (
-    <AppModeSwitch
-      currentMode={appMode}
-      onModeChange={handleModeSwitch}
-      compact={compact}
-      hud={hud}
-    />
+    modeSwitchingAvailable ? (
+      <AppModeSwitch
+        currentMode={appMode}
+        onModeChange={handleModeSwitch}
+        compact={compact}
+        hud={hud}
+      />
+    ) : null
   );
 
   const headerSiteAConfig = {

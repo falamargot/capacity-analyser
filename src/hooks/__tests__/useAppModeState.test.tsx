@@ -29,10 +29,11 @@ afterEach(async () => {
 });
 
 function ModeSwitchHarness() {
-  const { appMode, handleAppModeChange } = useAppModeState();
+  const { appMode, handleAppModeChange, standalone } = useAppModeState();
   return (
     <>
       <output data-testid="mode">{appMode}</output>
+      <output data-testid="standalone">{String(standalone)}</output>
       <button type="button" onClick={() => handleAppModeChange('commercial')}>Commercial</button>
       <button type="button" onClick={() => handleAppModeChange('engineering')}>Engineering</button>
       <button type="button" onClick={() => handleAppModeChange('revisit')}>Revisit</button>
@@ -84,6 +85,62 @@ describe('useAppModeState', () => {
     await clickButton('Revisit');
     expect(window.location.search).toBe('?mode=revisit');
     expect(window.history.length).toBe(initialLength + 1);
+  });
+
+  it('accepts the short spelling of each mode beside the long one', async () => {
+    // `?mode=eng` / `?mode=comm` are what a person types into a link they are
+    // about to send. The long forms stay valid: four e2e specs and the docs
+    // use them, and the application writes them back on every mode change.
+    for (const [param, expected] of [
+      ['eng', 'engineering'], ['engineering', 'engineering'],
+      ['comm', 'commercial'], ['commercial', 'commercial'],
+      ['revisit', 'revisit'],
+      ['ENG', 'engineering'], [' comm ', 'commercial'],
+      ['nonsense', 'engineering'],
+    ] as const) {
+      window.history.replaceState({}, '', `/?mode=${encodeURIComponent(param)}`);
+      if (root) await act(async () => root?.unmount());
+      root = createRoot(container);
+      await act(async () => root?.render(<ModeSwitchHarness />));
+      expect(container.querySelector('[data-testid="mode"]')?.textContent).toBe(expected);
+    }
+  });
+
+  describe('?standalone=1', () => {
+    const renderAt = async (search: string) => {
+      window.history.replaceState({}, '', search);
+      await act(async () => root?.render(<ModeSwitchHarness />));
+      return {
+        mode: container.querySelector('[data-testid="mode"]')?.textContent,
+        standalone: container.querySelector('[data-testid="standalone"]')?.textContent,
+      };
+    };
+
+    it('composes with every mode', async () => {
+      expect(await renderAt('/?mode=comm&standalone=1'))
+        .toEqual({ mode: 'commercial', standalone: 'true' });
+    });
+
+    it('is off unless it is asked for', async () => {
+      // Absent, empty and anything that is not 1/true all mean the normal
+      // application. A typo must not silently lock an interface.
+      for (const search of ['/?mode=revisit', '/?mode=revisit&standalone=0',
+        '/?mode=revisit&standalone=', '/?mode=revisit&standalone=yes']) {
+        if (root) await act(async () => root?.unmount());
+        root = createRoot(container);
+        expect((await renderAt(search)).standalone).toBe('false');
+      }
+    });
+
+    it('cannot be turned off by navigating within the session', async () => {
+      // The flag describes the link the session was opened with. A `popstate`
+      // carrying a URL without it must not unlock an interface that opened
+      // locked — otherwise Back is the escape hatch the lock exists to remove.
+      expect((await renderAt('/?mode=revisit&standalone=1')).standalone).toBe('true');
+      window.history.pushState({}, '', '/?mode=engineering');
+      await act(async () => window.dispatchEvent(new PopStateEvent('popstate')));
+      expect(container.querySelector('[data-testid="standalone"]')?.textContent).toBe('true');
+    });
   });
 
   it('follows browser history changes', async () => {

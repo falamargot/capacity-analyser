@@ -28,7 +28,7 @@ import { formatGap } from '../analysis/gapStatistics';
 import { payloadsRequiredFor, type PayloadSweepResult } from '../analysis/payloadSweep';
 import { executiveEnvelopePoints } from '../analysis/executiveEnvelope';
 import type { RevisitAreaTargetRole } from '../domain/analysisTargets';
-import { REVISIT_COLORS, REVISIT_LABEL, REVISIT_PANEL } from './revisitTheme';
+import { REVISIT_COLORS, REVISIT_LABEL, REVISIT_OUTCOME, REVISIT_PANEL } from './revisitTheme';
 
 interface ValueCurveProps {
     /** Target identity drives the evidence curve: Reference amber, Comparison blue. */
@@ -130,7 +130,7 @@ export const ValueCurve: React.FC<ValueCurveProps> = ({
                         {' · '}requirement {formatGap(requirementMs)}
                     </span>
                 ) : (
-                    <span className="text-orange-300">
+                    <span className={REVISIT_OUTCOME.misses.text}>
                         No tested configuration meets {formatGap(requirementMs)}.
                     </span>
                 )}

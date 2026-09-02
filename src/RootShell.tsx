@@ -18,11 +18,23 @@ interface ModeViewportProps {
   returnMode: Exclude<AppMode, 'revisit'>;
   onModeChange: (mode: AppMode) => void;
   onReturnFromRevisit: () => void;
+  /**
+   * `?standalone=1`: this deployment is the mode it opened in, and nothing in
+   * the interface offers another one.
+   *
+   * It is applied HERE rather than inside each view, by withholding the
+   * callbacks that switch modes. A view cannot offer a switch it has not been
+   * given, which is what stops the lock from having to be re-implemented — and
+   * re-remembered — in every surface that happens to have an exit. That
+   * includes the two crash boundaries: an interface that unlocks itself when
+   * something throws is not locked.
+   */
+  standalone: boolean;
 }
 
 /** Mounted across every view so a REVISIT exit can normalize the shared clock. */
 const ModeViewport: React.FC<ModeViewportProps> = ({
-  appMode, returnMode, onModeChange, onReturnFromRevisit,
+  appMode, returnMode, onModeChange, onReturnFromRevisit, standalone,
 }) => {
   const clock = useSimulationClock();
   const previousModeRef = useRef(appMode);
@@ -32,16 +44,23 @@ const ModeViewport: React.FC<ModeViewportProps> = ({
     previousModeRef.current = appMode;
   }, [appMode, clock]);
 
+  const exitRevisit = standalone ? undefined : onReturnFromRevisit;
+  const switchToRevisit = standalone ? undefined : () => onModeChange('revisit');
+
   return appMode === 'revisit'
     ? (
-      <RevisitErrorBoundary onExit={onReturnFromRevisit}>
-        <RevisitApp returnMode={returnMode} onExit={onReturnFromRevisit} />
+      <RevisitErrorBoundary onExit={exitRevisit}>
+        <RevisitApp returnMode={returnMode} onExit={exitRevisit} />
       </RevisitErrorBoundary>
     )
     : (
-      <TelecomErrorBoundary onSwitchToRevisit={() => onModeChange('revisit')}>
+      <TelecomErrorBoundary onSwitchToRevisit={switchToRevisit}>
         <SimulationProvider>
-          <App appMode={appMode} onAppModeChange={onModeChange} />
+          <App
+            appMode={appMode}
+            onAppModeChange={onModeChange}
+            modeSwitchingAvailable={!standalone}
+          />
         </SimulationProvider>
       </TelecomErrorBoundary>
     );
@@ -73,7 +92,9 @@ const ModeViewport: React.FC<ModeViewportProps> = ({
  * be mounted at once — hence the ternary rather than mounting both and hiding one.
  */
 export const RootShell: React.FC = () => {
-  const { appMode, handleAppModeChange, returnFromRevisit, returnMode } = useAppModeState();
+  const {
+    appMode, handleAppModeChange, returnFromRevisit, returnMode, standalone,
+  } = useAppModeState();
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => completeModeTransition(appMode));
@@ -88,6 +109,7 @@ export const RootShell: React.FC = () => {
           returnMode={returnMode}
           onModeChange={handleAppModeChange}
           onReturnFromRevisit={returnFromRevisit}
+          standalone={standalone}
         />
       </SimulationClockProvider>
     </ThemeProvider>

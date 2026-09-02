@@ -75,7 +75,7 @@ test.describe('REVISIT P7A commercial result framing', () => {
     await expect(apply).toBeVisible({ timeout: 120_000 });
     await expect(card).toContainText('Requirement missed');
     await expect(card).toContainText(/Increase from \d+ to \d+ payloads/);
-    await expect(card.locator('.revisit-current-status')).toHaveClass(/text-orange-200/);
+    await expect(card.locator('.revisit-current-status')).toHaveClass(/text-red-200/);
 
     const before = await payloadCount.inputValue();
     await apply.click();

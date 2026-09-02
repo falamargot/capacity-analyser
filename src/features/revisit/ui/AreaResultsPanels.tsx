@@ -150,9 +150,13 @@ export const AreaDistributionPanel: React.FC<
     const total = Math.max(analysis.cells.length, 1);
     const categories = [
         { label: 'Meets', count: counts.meets, color: 'bg-lime-400', text: REVISIT_OUTCOME.meets.text, alwaysShown: true },
-        { label: 'Misses', count: counts.misses, color: 'bg-orange-500', text: REVISIT_OUTCOME.misses.text, alwaysShown: true },
-        { label: 'Never seen', count: counts.never, color: 'bg-red-500', text: REVISIT_OUTCOME.error.text, alwaysShown: false },
-        { label: 'Unmeasured', count: counts.unmeasured, color: 'bg-red-800', text: REVISIT_OUTCOME.error.text, alwaysShown: false },
+        /* One red scale, deepening with severity, matching the grid on the
+           globe: a finite miss, then never seen, then not measured at all. The
+           first of the three used to be orange, which made the bar read as two
+           unrelated warnings rather than one worsening one. */
+        { label: 'Misses', count: counts.misses, color: 'bg-red-500', text: REVISIT_OUTCOME.misses.text, alwaysShown: true },
+        { label: 'Never seen', count: counts.never, color: 'bg-red-800', text: REVISIT_OUTCOME.error.text, alwaysShown: false },
+        { label: 'Unmeasured', count: counts.unmeasured, color: 'bg-slate-600', text: REVISIT_OUTCOME.unavailable.text, alwaysShown: false },
     ];
     const body = (
         <>

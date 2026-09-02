@@ -17,6 +17,13 @@ const port = 4173;
  * stop agreeing with them — so adding a test without a skip cannot silently
  * lose viewport coverage.
  */
+/**
+ * Desktop and tablet: the standalone chrome column needs `md` width and more
+ * than 640 px of height, so the phone and the wide-but-short window run none of
+ * its tests.
+ */
+const DESKTOP_AND_TABLET_ONLY = ['**/standalone-mode.spec.ts'];
+
 /** Runs on `desktop-chromium` alone; the other three projects run nothing. */
 const DESKTOP_ONLY = [
   // Both drive their own viewport matrix from inside the test.
@@ -35,9 +42,11 @@ const COMPACT_AND_DESKTOP_ONLY = [
 
 export const PROJECT_TEST_IGNORE: Record<string, string[]> = {
   'desktop-chromium': [],
-  'short-wide-chromium': [...DESKTOP_ONLY, ...COMPACT_AND_DESKTOP_ONLY],
+  'short-wide-chromium': [
+    ...DESKTOP_ONLY, ...COMPACT_AND_DESKTOP_ONLY, ...DESKTOP_AND_TABLET_ONLY,
+  ],
   'tablet-chromium': [...DESKTOP_ONLY, ...COMPACT_AND_DESKTOP_ONLY],
-  'mobile-chromium': DESKTOP_ONLY,
+  'mobile-chromium': [...DESKTOP_ONLY, ...DESKTOP_AND_TABLET_ONLY],
 };
 
 export default defineConfig({

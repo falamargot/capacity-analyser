@@ -2,6 +2,44 @@
 
 _Last updated 2026-09-02._
 
+## 2026-09-02 — `?standalone=1`: one-mode deployments
+
+`docs/URL_PARAMETERS.md` is the reference. Two changes to the entry contract:
+
+- **`?mode=` accepts short spellings** — `eng`, `comm`, `revisit` — beside the
+  long ones it already took. The long forms remain what the app writes back on a
+  mode change, so no link, bookmark or spec breaks.
+- **`?standalone=1` composes with any mode** and removes every in-interface way
+  to reach another one: the `AppModeSwitch` (one component, four call sites),
+  REVISIT's back-to-ENG/COMM control, and **the exit button on both crash
+  boundaries** — an interface that unlocks itself when something throws is not
+  locked. With the return control gone, the `?` takes the whole rail height.
+
+Two decisions worth keeping:
+
+1. **The flag is applied by withholding callbacks in `RootShell`**, not by each
+   view testing a flag. `onExit`, `onSwitchToRevisit` and
+   `modeSwitchingAvailable` are simply not passed. A view cannot offer a switch
+   it was never given, so the lock does not have to be re-remembered in every
+   surface that happens to have an exit.
+2. **It is read once at mount and held in a ref.** A `popstate` carrying a URL
+   without the parameter must not unlock a session that opened locked, or Back
+   becomes the escape hatch the flag exists to remove. Asserted in
+   `useAppModeState.test.tsx`.
+
+It is **not a security control** — the URL is editable and all three modes are
+in one bundle. A deployment that must not be able to reach the others needs a
+separate build.
+
+Mobile: the `?` stays hidden below `md` as before, so in a standalone REVISIT on
+a phone the chrome column has nothing to show — it withdraws entirely rather
+than leaving an 8 px gap. Help on a phone still belongs to the bottom sheet in
+`REVISIT_MOBILE_UX_PLAN.md`.
+
+New: `e2e/standalone-mode.spec.ts` (desktop + tablet; the chrome column needs
+`md` width and 640 px of height, so `playwright.config.ts` ignores it for
+`short-wide` and `mobile` — `projectCoverage` enforces that pairing).
+
 ## 2026-09-02 — REVISIT UI/UX review: six findings, all implemented
 
 Full review, with the reproductions and the measurements:

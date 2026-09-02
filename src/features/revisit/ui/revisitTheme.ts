@@ -20,13 +20,30 @@ export const REVISIT_COLORS = {
     payload: '#F8FAFC',
     /** Payload orbit planes: visible but subordinate to satellites and targets. */
     payloadOrbit: '#CBD5E1',
-    /** Valid measured result that does not meet the customer requirement. */
-    miss: '#F97316',
-    /** Softer end of the finite-miss ramp used by area cells. */
-    missSoft: '#FDBA74',
-    /** Technical error or observation impossibility such as never-in-view. */
-    alert: '#E24B4A',
-    alertSoft: '#F09595',
+    /**
+     * A measured result that does not meet the customer requirement.
+     *
+     * RED, not orange, since 2026-09-02. The module used to spend orange on the
+     * finite miss and keep red for an observation impossibility — a distinction
+     * that is real in the model and invisible in the room: a reader scanning the
+     * screen sees "not green" and has to be told that one shade of warm means
+     * "fails your requirement" and the other means "fails it absolutely".
+     * Failure is one message and it is red everywhere.
+     *
+     * The distinction survives where it is load-bearing — the area heat map —
+     * as DEPTH rather than hue: `alert` below is the same red, darker than any
+     * finite miss can reach.
+     */
+    miss: '#E24B4A',
+    /** Just past the requirement — the soft end of the finite-miss ramp. */
+    missSoft: '#F0A0A0',
+    /**
+     * Observation impossibility: never in view, at any point of the window.
+     *
+     * The extreme end of the miss scale rather than a separate hue, so the area
+     * grid still reads green → red → darker red as severity rises, monotone.
+     */
+    alert: '#7A1220',
     /** Pass, meets target. */
     pass: '#C0DD97',
     /** Comfortable pass, used at the strong end of the area scale. */
@@ -43,6 +60,12 @@ export const REVISIT_COLORS = {
  * Target identity (amber/blue) must never encode success. Conversely, these
  * classes must never identify Reference or Comparison. Keeping the four states
  * here prevents the desktop card, mobile strip and comparison table drifting.
+ *
+ * `misses` and `error` are both red since 2026-09-02: a requirement that is not
+ * met is one message on this screen, whether it is missed by a minute or missed
+ * because the target is never in view. They stay two entries because the two
+ * states are two different sentences — `Requirement missed` against
+ * `Never in view` — and because the heat map still separates them by depth.
  */
 export const REVISIT_OUTCOME = {
     meets: {
@@ -50,8 +73,8 @@ export const REVISIT_OUTCOME = {
         text: 'text-lime-300',
     },
     misses: {
-        badge: 'border-orange-400/40 bg-orange-500/15 text-orange-200',
-        text: 'text-orange-300',
+        badge: 'border-red-400/40 bg-red-500/15 text-red-200',
+        text: 'text-red-300',
     },
     unavailable: {
         badge: 'border-slate-500/40 bg-slate-500/15 text-slate-300',

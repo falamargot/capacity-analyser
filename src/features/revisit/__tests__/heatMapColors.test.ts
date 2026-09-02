@@ -46,13 +46,22 @@ describe('heatMapColors — the scale is anchored to the requirement', () => {
 
     // "Unbounded" is a different statement from "very bad" and must not be the
     // top of the ramp, or an area with a hole in coverage reads as merely poor.
-    it('gives never-in-view its own colour, outside the ramp', () => {
+    //
+    // Since 2026-09-02 the whole failure vocabulary is red, so the two are
+    // separated by DEPTH rather than hue: never-in-view is darker than any
+    // finite miss can become, which keeps the grid monotone in severity
+    // (green → red → darker red) instead of changing subject at the boundary.
+    it('puts never-in-view past the end of the ramp, darker than any miss', () => {
         const never = heatColorFor(null, 2 * HOUR);
         const worst = heatColorFor(1000 * HOUR, 2 * HOUR);
+        const luminance = (rgb: readonly [number, number, number]) =>
+            0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
         expect(never.css).not.toBe(worst.css);
-        // Red is reserved for the observation impossibility.
+        // Both read as red…
         expect(never.rgb[0]).toBeGreaterThan(never.rgb[1]);
-        expect(never.rgb[1]).toBeGreaterThan(worst.rgb[2]);
+        expect(worst.rgb[0]).toBeGreaterThan(worst.rgb[1]);
+        // …and the impossibility is the darker of the two.
+        expect(luminance(never.rgb)).toBeLessThan(luminance(worst.rgb));
     });
 
     it('emits valid CSS hex and matching 0–1 rgb', () => {

@@ -878,15 +878,25 @@ export const CustomerResultCard: React.FC<CustomerResultCardProps> = ({
                                     ? formatGap(currentMaxGapMs)
                                     : currentIsComputing ? 'measuring…' : '—'}
                             </span>
-                            <span className={meetsRequirement === true
+                            {/*
+                              * The operator AND the requirement carry the
+                              * verdict. Colouring a lone `≤` left the sentence
+                              * `3 h 26 min > Requirement 2 h` with its verdict
+                              * on the one glyph a reader skips: the two figures
+                              * either side were slate, and the whole line read
+                              * as neutral bookkeeping. Green when met, red when
+                              * not — the same two colours as every other verdict
+                              * in the module.
+                              */}
+                            <span className={`font-semibold ${meetsRequirement === true
                                 ? REVISIT_OUTCOME.meets.text
                                 : meetsRequirement === false
                                     ? REVISIT_OUTCOME.misses.text
-                                    : 'text-slate-500'}>
-                                {meetsRequirement === true ? '≤' : meetsRequirement === false ? '>' : '·'}
-                            </span>
-                            <span className="font-semibold text-slate-400">
-                                Requirement {formatGap(requirementMs)}
+                                    : 'text-slate-400'}`}>
+                                <span className="font-black">
+                                    {meetsRequirement === true ? '≤' : meetsRequirement === false ? '>' : '·'}
+                                </span>
+                                {' '}Requirement {formatGap(requirementMs)}
                             </span>
                         </dd>
                     </div>

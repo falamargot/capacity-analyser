@@ -359,7 +359,7 @@ describe('REVISIT P0 presentation UI', () => {
         expect(result.textContent).toContain('3 h');
         expect(result.textContent).toContain('MISSES');
         expect(result.querySelector('[data-revisit-lane-verdict]')?.className)
-            .toContain('text-orange-300');
+            .toContain('text-red-300');
     });
 
     /**
@@ -444,7 +444,7 @@ describe('REVISIT P0 presentation UI', () => {
         expect(onSelectPoint).toHaveBeenCalledWith('comparison-1');
     });
 
-    it('paints the longest-gap outline in the outcome vocabulary: green meets, orange misses', async () => {
+    it('paints the longest-gap outline in the outcome vocabulary: green meets, red misses', async () => {
         const startMs = Date.UTC(2026, 7, 12, 0);
         const hour = 3600_000;
         await act(async () => root?.render(
@@ -483,10 +483,10 @@ describe('REVISIT P0 presentation UI', () => {
 
         const missRow = container.querySelector('[data-revisit-comparison-row="REFERENCE"]');
         const meetRow = container.querySelector('[data-revisit-comparison-row="comparison-1"]');
-        expect(missRow?.querySelector('[data-revisit-lane-verdict]')?.className).toContain('text-orange-300');
+        expect(missRow?.querySelector('[data-revisit-lane-verdict]')?.className).toContain('text-red-300');
         expect(meetRow?.querySelector('[data-revisit-lane-verdict]')?.className).toContain('text-lime-300');
         expect(container.querySelector('[data-revisit-gap-outcome="misses"]')
-            ?.getAttribute('stroke')).toBe('#F97316');
+            ?.getAttribute('stroke')).toBe('#E24B4A');
         // Not the lane's identity colour (#38BDF8 here): amber and orange are
         // 12 degrees apart, so a passing Primary gap was indistinguishable from
         // a missing one on the element whose only job is to say which it is.
@@ -494,7 +494,7 @@ describe('REVISIT P0 presentation UI', () => {
             ?.getAttribute('stroke')).toBe('#C0DD97');
         const toolbar = container.querySelector('[data-revisit-timeline-toolbar]')!;
         expect(toolbar.textContent).toContain('Requirement ≤ 2 h');
-        expect(toolbar.textContent).toContain('Longest gap · green meets, orange misses');
+        expect(toolbar.textContent).toContain('Longest gap · green meets, red misses');
         expect(toolbar.querySelector('[aria-label="Simulation time controls"]')).not.toBeNull();
     });
 

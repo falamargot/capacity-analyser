@@ -11,14 +11,51 @@ import { markModeTransitionStart } from '../utils/modeTransitionMetrics';
 export type AppMode = 'engineering' | 'commercial' | 'revisit';
 
 const MODE_QUERY_PARAM = 'mode';
+const STANDALONE_QUERY_PARAM = 'standalone';
+
+/**
+ * What `?mode=` accepts.
+ *
+ * The short spellings are the ones a person actually types into a shared link;
+ * the long ones are what the application writes back into the URL when a mode
+ * changes, and what four e2e specs and the docs already use. Both resolve to the
+ * same mode, so no existing link, bookmark or spec breaks.
+ */
+const MODE_ALIASES: Record<string, AppMode> = {
+  eng: 'engineering',
+  engineering: 'engineering',
+  comm: 'commercial',
+  commercial: 'commercial',
+  revisit: 'revisit',
+};
 
 /** `?mode=revisit` still selects the mode directly, as it did before the lift. */
 function modeFromLocation(): AppMode {
   if (typeof window === 'undefined') return 'engineering';
   const candidate = new URLSearchParams(window.location.search).get(MODE_QUERY_PARAM);
-  return candidate === 'commercial' || candidate === 'revisit' || candidate === 'engineering'
-    ? candidate
-    : 'engineering';
+  return MODE_ALIASES[candidate?.trim().toLowerCase() ?? ''] ?? 'engineering';
+}
+
+/**
+ * `?standalone=1` — this deployment is ONE mode, and the switches are gone.
+ *
+ * Composes with any `?mode=`: `?mode=comm&standalone=1` opens Commercial with no
+ * way to reach Engineering or REVISIT from inside the interface. Absent or
+ * anything other than `1`/`true` means the normal application, where every mode
+ * can reach every other.
+ *
+ * Read ONCE, at mount. It describes the session the link opened, not a state the
+ * session can enter — and a `popstate` must not be able to unlock an interface
+ * that was opened locked.
+ *
+ * It is not a security control. The URL is editable and the modes are all in one
+ * bundle; this removes the affordances, it does not sandbox anything.
+ */
+function standaloneFromLocation(): boolean {
+  if (typeof window === 'undefined') return false;
+  const raw = new URLSearchParams(window.location.search).get(STANDALONE_QUERY_PARAM);
+  const value = raw?.trim().toLowerCase();
+  return value === '1' || value === 'true';
 }
 
 function pushModeToHistory(mode: AppMode) {
@@ -97,9 +134,17 @@ export const useAppModeState = () => {
     handleAppModeChange(originRef.current);
   }, [handleAppModeChange]);
 
+  /*
+   * Frozen for the life of the session (see `standaloneFromLocation`). A ref
+   * rather than state because nothing can change it, and a `useState` here
+   * would invite someone to try.
+   */
+  const standaloneRef = useRef(standaloneFromLocation());
+
   return {
     appMode,
     returnMode: originRef.current,
+    standalone: standaloneRef.current,
     setAppMode,
     handleAppModeChange,
     returnFromRevisit,

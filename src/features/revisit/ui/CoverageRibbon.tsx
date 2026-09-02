@@ -228,7 +228,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
     ) => {
         /*
          * The outlined span is the lane's VERDICT, so it is painted in the
-         * outcome vocabulary — green passes, orange misses — and never in the
+         * outcome vocabulary — green passes, red misses — and never in the
          * lane's identity colour.
          *
          * It used to fall back to that identity colour when the gap met the
@@ -238,7 +238,8 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
          * entire job is to say pass or fail. Green is already the module's pass
          * colour everywhere else (`REVISIT_OUTCOME.meets`, the area heat scale,
          * the KPI verdict), and it is reserved for outcomes, so it cannot be
-         * confused with either target identity.
+         * confused with either target identity. The miss colour became red on
+         * 2026-09-02, with the rest of the module's failure vocabulary.
          */
         const gapColor = longestGap?.durationMs && longestGap.durationMs > laneRequirementMs
             ? REVISIT_COLORS.miss
@@ -311,7 +312,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                             {targetRows.some((row) => row.longestGap !== null) && (
                                 <span
                                     className="hidden items-center gap-1.5 text-[11px] font-semibold text-slate-500 xl:flex"
-                                    title="The outlined span marks the longest interval without target access. Green is within the requirement, orange is beyond it."
+                                    title="The outlined span marks the longest interval without target access. Green is within the requirement, red is beyond it."
                                 >
                                     {/* Both swatches appear when the lanes
                                       * disagree, so the legend names the colour
@@ -338,7 +339,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                                     )}
                                     Longest gap ·{' '}
                                     {hasMeetingLongestGap && hasMissingLongestGap
-                                        ? 'green meets, orange misses'
+                                        ? 'green meets, red misses'
                                         : hasMissingLongestGap ? 'misses the requirement' : 'within the requirement'}
                                 </span>
                             )}

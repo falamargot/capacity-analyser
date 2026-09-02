@@ -315,7 +315,7 @@ describe('CustomerResultCard', () => {
         expect(container.textContent).toContain('(+24)');
         expect(container.textContent).not.toContain('MISSES');
         expect(container.querySelector('.revisit-current-status')?.className)
-            .toContain('text-orange-200');
+            .toContain('text-red-200');
     });
 
     it('reports a covered requirement without proposing anything', async () => {

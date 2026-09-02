@@ -2084,8 +2084,12 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                         return control and the two share the rail's height —
                         the return control gives up 40 px it never used, and a
                         reader looking for help looks at the corner first. */}
-                    <div className="flex shrink-0 flex-col gap-2 self-stretch">
-                        <HowThisWorks />
+                    {/* Below `md` the help trigger hides and, without a return
+                        control, this column has nothing to show — so the column
+                        itself withdraws rather than leaving an 8 px gap where a
+                        control used to be. */}
+                    <div className={`shrink-0 flex-col gap-2 self-stretch ${onExit ? 'flex' : 'hidden md:flex'}`}>
+                        <HowThisWorks stretch={!onExit} />
                     {onExit && (
                         <button type="button" onClick={onExit}
                             aria-label={`Back to ${returnMode === 'commercial' ? 'Commercial' : 'Engineering'}`}

@@ -145,7 +145,7 @@ describe('REVISIT compact viewport', () => {
         expect(container.textContent).toContain('Misses');
         expect([...container.querySelectorAll('span')]
             .find((element) => element.textContent === 'Misses')?.className)
-            .toContain('text-orange-200');
+            .toContain('text-red-200');
         expect(container.textContent).toContain('3 h');
         expect(container.textContent).toContain('Maximum gap vs 2 h');
 
