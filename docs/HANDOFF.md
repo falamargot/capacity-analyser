@@ -1,6 +1,252 @@
 # Handoff
 
-_Last updated 2026-09-02._
+_Last updated 2026-09-03._
+
+## 2026-09-03 — Area presentation: R32, R33, and the elevation mask made honest
+
+**Where this leaves the module.** Both proposals recorded in
+`DEFERRED_ITEMS.md` are implemented (R32, R33), and the elevation mask — a
+control that existed only inside the access predicate — now propagates to every
+surface that describes it. Gates at the end of the session: **689 unit tests**,
+`tsc` and `eslint` clean, all nine visual baselines re-recorded and green, and
+the e2e specs that touch this work (`revisit-visual`, `-advanced`, `-p0`, `-p1`,
+`-p2c-b`, `-p2c-c`, `-p7c`) passing.
+
+**The three decisions worth knowing before touching this again:**
+
+1. **Opacity on the area heat map belongs to served-ness, not to importance.**
+   It states distance from the requirement — solid at both ends of the scale,
+   faintest exactly at the threshold. The accepted consequence is that in an
+   area passing everywhere, the least-covered cell is the FAINTEST rectangle on
+   the map; it is named by its own label instead. R33 had briefly owned this
+   channel and lost it deliberately.
+2. **The in-view band is context and must never read as a verdict.** It is not
+   the averaged area timeline this module refuses — that refusal is about
+   averaging GAPS. This is "how much of the area is visible at instant t",
+   which is well defined; it is drawn as a background in the lane's own colour,
+   labelled `Shading · cells in view (context)`, and says CELLS because the grid
+   is not equal-area.
+3. **An elevation mask only bites above the cone's own edge elevation** — 80°
+   for NARROW, 71° for STANDARD, 54° for WIDE at 1200 km. With the executive
+   presets no realistic mask changes a single figure. Anyone demonstrating the
+   control needs a wide cone, or it will look dead because geometrically it is.
+
+**Two things left open, both deliberate, neither a defect:**
+
+- The product now carries **two levels of instrument qualification**: the screen
+  says `ASSUMED SENSOR SWATH`, the exported result sheet still says
+  `Illustrative thermal-IR geometry — not an instrument datasheet`. The header
+  line was removed on purpose on 2026-09-02. Defensible — the document is read
+  without a presenter beside it — but it is now a choice rather than a
+  consistency, and `revisit-p1.spec.ts` pins the screen half of it.
+- **R31 in `DEFERRED_ITEMS.md`** (mobile `revisit-p2c-a` slowdown) is untouched.
+
+**Method, re-confirmed the hard way.** The note at the top of this file —
+never edit the tree while Playwright runs — cost time again today, and with a
+twist worth recording: the tree may be edited by SOMEONE ELSE while a suite
+runs. A Vite full reload mid-test presents as a product bug (in this case "the
+Primary target disappears after a globe click"), and it was twice misdiagnosed
+as a flake before the trace showed a second `[vite] connecting…`. Check the
+trace console for that line before diagnosing the application.
+
+### Latest change — R33 least-covered cell marked on the globe (2026-09-02)
+
+- `areaAnalysis.ts`: `AreaAnalysis.bindingCells` — every cell as binding as
+  `worstCell`, within one sampling step (`stepSeconds`, now carried on
+  `CollectedCells`). When any cell is never in view the set is exactly those
+  cells; `worstCell` remains the single member whose timeline is on screen.
+  Rationale: `worstCell` is a strict-`>` tie-break, harmless in a figure and
+  misleading as a marker — six of twelve cells tie on the default grid.
+- `RevisitGlobe.tsx`: the heat-map effect now draws, per role, the binding set —
+  the retained cell solid, its equals thin — as a cell-sized outline in the role
+  identity colour (never green/red: the fill already carries the outcome), with
+  a separate slightly larger dark outline as halo. The selected role also gets a
+  label below the cell: `Least-covered cell · <gap>[ · N tied]`, or
+  `Never seen · N cells`. New `data-revisit-area-binding-cells` mirrors it.
+- `PolylineOutlineMaterialProperty` was tried first and rejected on the globe:
+  it spends the line's width on its outline, rendering the marker as a black
+  frame around a pale core at every legible width.
+- Tests: `areaTarget.test.ts` covers the tie set and the never-in-view set;
+  `revisit-p2c-c.spec.ts` asserts a non-empty binding set per role on the globe.
+  Unit suite (674) and typecheck pass; browser-verified on a Sahara polygon.
+- R32 (covered-cell band behind the AREA lane) remains open — see
+  `docs/DEFERRED_ITEMS.md`.
+
+### Follow-up — R33 marking style, and three unrelated gate failures (2026-09-02)
+
+- `RevisitGlobe.tsx`: the binding cells are now marked by the **opacity of their
+  own heat rectangle** (retained 0.95 / tied 0.78 / rest 0.40, roughly halved
+  when the role is not selected) instead of the role-coloured outline first
+  shipped. No new geometry, no second colour language, and the outline no longer
+  competes with the polygon boundary. The label is unchanged.
+- Field note: an area can be uniform enough that most of it binds — 19 of 23
+  cells within one 10 s sampling step on a Saudi-sized polygon whose mean, best
+  and worst cell all read 47 min. The three depths exist for exactly that case.
+- `CustomerResultCard.tsx`: removed the `aria-label` on the step-5 heading. It
+  repeated the name already carried by the block, so two nested nodes had the
+  same accessible name — read twice by a screen reader, and the cause of the
+  `revisit-p2b-b2` strict-mode violation. Step 4's label carries its result
+  subject, is unique, and is unchanged.
+- `revisit-visual` phone baselines (390×844, 430×932, both themes) re-recorded:
+  they predated the deliberate compact-rail changes already in the tree —
+  Workspace hidden below `md`, the readiness chip reduced to a 36 px dot, the
+  `MISSES` badge turned red. The frozen clock was never the issue.
+- `revisit-p2b-b1` was NOT a flake, and not an application defect. The trace
+  shows `[vite] connecting…` a second time 2.4 s into the test: the dev server
+  full-reloads the page mid-test, the app remounts with no target, and the
+  assertion then runs against a fresh application. The trigger was editing files
+  in the tree while the suite ran in the background. Four consecutive runs pass
+  when nothing is touched. **Do not edit the working tree while Playwright is
+  running against `dev:vite-only`** — the failure it produces looks exactly like
+  a product bug (targets vanish after a globe click).
+- Gates after the fixes: 31 e2e passed across `revisit-visual`, `p2b`, `p2b-b1`,
+  `p2b-b2`, `p2c-c`, `p7c`; unit suite 674; typecheck and lint clean.
+
+### Latest change — heat map opacity states distance to the requirement (2026-09-02)
+
+- `heatMapColors.ts`: new `heatIntensityFor(maxGapMs, requirementMs)` — 0 at the
+  requirement, 1 at either end of the scale (gap → 0, or gap ≥
+  `HEAT_SATURATION_MULTIPLE` × requirement), 1 for never-in-view. Hue says
+  met/missed; opacity now says by how much, in both directions.
+- `RevisitGlobe.tsx`: cell alpha is `floor + (ceiling − floor) × intensity`,
+  with `[0.22, 0.88]` for the selected role and `[0.12, 0.5]` for the other. The
+  floor is deliberate: a cell sitting exactly on the requirement is a measured
+  result, not a hole in the area.
+- This REPLACES R33's use of opacity to mark the least-covered cell — the two
+  readings cannot share the channel. The cell is now marked by its label alone,
+  and in an area that passes everywhere it is the faintest cell on the map. That
+  trade was made explicitly, not by accident.
+- Tests: six cases on the curve's shape in `heatMapColors.test.ts` (threshold
+  floor from both sides, both directions rising, saturation, never-in-view,
+  bounds). Unit suite 680, typecheck and lint clean; browser-verified on a
+  5°N–45°N polygon at a 12 h requirement, where passing and missing cells appear
+  in the same grid.
+
+### Latest change — R32 in-view band behind the Area lane (2026-09-02)
+
+- `areaAnalysis.ts`: `AreaAnalysis.inViewProfile`, a `Float32Array` of
+  `COVERAGE_PROFILE_BINS` (360) entries — the share of grid cells in view per
+  time bin, time-weighted so a pass shorter than a bin contributes its real
+  duration. Accumulated in the existing `AREA_CELL_BATCH` loop from intervals
+  already in hand: one fixed-size array, no per-cell timeline retained, so the
+  standing decision not to keep them is untouched.
+- `CoverageRibbon.tsx`: `accessTrack` paints the profile as the lane background
+  when one is present — Area lanes only; a Point is in view or it is not. Lane
+  identity colour, `0.07 + 0.38 × share`, linear, no curve and no axis. The
+  toolbar carries `Shading · cells in view (context)`.
+- Why this is not the averaged area timeline the module refuses: that refusal is
+  about averaging GAPS, which has no mission meaning. This is "how much of the
+  area is visible at instant t" — well defined, and the question the worst-cell
+  lane cannot answer. It is stated as context so it can never be quoted as the
+  verdict.
+- Tests: `areaTarget.test.ts` asserts bin count and bounds, that the profile's
+  mean equals the mean per-cell `fractionInView` (independent oracle through
+  `computeGapStatistics`), and that bins are not all-or-nothing;
+  `RevisitP0Ui.test.tsx` asserts the band renders under an Area lane only, in
+  the identity colour, at an opacity that cannot be mistaken for an access tick.
+- Unit suite 684, typecheck and lint clean; browser-verified on a 12°N–24°N
+  polygon where the band's peaks sit between the worst cell's access ticks.
+
+### Follow-up — least-covered cell label centred and stacked (2026-09-02)
+
+- `RevisitGlobe.tsx`: the label now sits at the CENTRE of the least-covered cell
+  (it was hung below it, from when an outline was the mark and the label only
+  named it) and breaks over two lines — `Least-covered cell` then
+  `56 min · 16 tied`. A single line grew with the tie count until it was wider
+  than the polygon and ran over neighbouring cells; the block stays roughly
+  square whatever it has to say. `Never seen` / `N cells` follows the same
+  shape.
+
+- Fix, same day: the label was intermittently painted over by the polygon fill
+  and the heat rectangles. Those are translucent geometry at height 0, and
+  translucent geometry writes no depth — within that pass whatever Cesium sorts
+  last wins, and a label 300 m above the ground sat at practically the same
+  distance. It now carries `eyeOffset (0, 0, -50 km)`, which moves it along the
+  view axis only: screen position unchanged (still centred on its cell), depth
+  pulled clear of the ground layers, and still occluded when the area is on the
+  far side of the globe — which simply raising its altitude would have lost.
+
+
+### Latest change — elevation mask propagated to swath, globe and exports (2026-09-03)
+
+The mask existed only inside the access predicate (`containment.ts` step 8).
+Three surfaces still described the bare optical cone; all three are closed.
+
+- `fov/footprint.ts`: new `maskLimbRad(satRadiusKm, minElevationRad)` — an
+  elevation mask IS a tightened limb (`sin η = (R_e/r)·cos ε`; at ε = 0 it
+  returns the geometric horizon `groundArcRad` already clamps to). `maskRay`
+  pulls each footprint ray back to that cone, keeping its azimuth, so the drawn
+  footprint is the FOV projection INTERSECTED with the mask circle. Body +Z is
+  nadir, which is what makes the polar angle here the off-nadir angle.
+- `domain/areaTarget.ts` — `swathWidthDeg` now caps the off-nadir angle by the
+  mask. This one is load-bearing: it is what `validateArea` sizes the area grid
+  against, so an unmasked figure could admit a grid too coarse for what is
+  actually seen — an aliased heat map, the outcome the area analysis refuses.
+- `domain/presets.ts` — `swathKmForFov` capped likewise, so the header's
+  "approx. N km swath" matches the run beside it.
+- Exports: CSV `# min elevation deg,<value|none>` (explicit `none` keeps two
+  files comparable line by line), and the result sheet's FOV assumption gains
+  `· accesses above N° elevation`.
+- Measured behaviour, for anyone demonstrating this: a mask only bites once it
+  exceeds the cone's own edge elevation — 80° for NARROW, 71° for STANDARD, 54°
+  for WIDE at 1200 km. With the executive presets no realistic mask changes a
+  single figure; the control looks dead because geometrically it is.
+- Browser-verified end to end at half-angle 45°: the header swath goes
+  2706 → 1138 km, the drawn swath ellipses shrink to match, time in view falls
+  9.9% → 1.7%, the max gap goes 2 h 51 → 3 h 09 (from meets to misses) and the
+  recommendation changes from "no change required" to "+12 payloads".
+- Tests: `footprint.test.ts` covers the untouched case (mask looser than the
+  cone), the clamped case (every boundary vertex at the mask limit AND at the
+  mask elevation, measured with the WGS84 normal) and the swath narrowing;
+  `csvExport.test.ts` and `resultSheet.test.ts` cover the two export lines.
+
+### Follow-up — making the elevation mask visible (2026-09-03)
+
+Closing the three gaps made the mask CORRECT everywhere; it was still
+INVISIBLE. With a mask on, the swath simply shrank and nothing said why — an
+assumption with no trace on the surface people photograph.
+
+- `RevisitHeader.tsx`: the swath line reads `Custom FOV · approx. 1138 km swath
+  · 60° elevation mask`. A mask makes the instrument non-preset by
+  construction, so this is always the line on screen when one is set, and it is
+  where a reader wondering about the number is already looking.
+- `useRevisitScene.ts`: when the mask actually clamps, each payload's solid
+  swath (the masked, counted footprint) is accompanied by a DASHED outline of
+  the bare optical cone. Rejected alternative — a second SOLID ring in grey, as
+  first proposed: grey already identifies the host fleet and payload orbit
+  planes, so it would read as another satellite's geometry; and on a globe where
+  everything drawn is something that counts, a second solid shape reads as more
+  coverage, which is the favourable misreading to design against. Dashed reads
+  as a limit.
+- `maskClampsFov` gates it: a mask below the cone's own edge elevation removes
+  nothing, and the outline would then z-fight an identical ring. Exported and
+  unit-tested, including the bias case, because that predicate is what keeps the
+  outline off the executive presets entirely.
+- Cost: a second `computeFootprint` per payload, paid only while a clamping mask
+  is set. It rides on the existing SENSOR SWATH toggle — verified in the browser
+  that switching that off removes both the swath and its outline — rather than
+  adding a seventh control.
+
+### Follow-up — two stale e2e gates realigned (2026-09-03)
+
+- `revisit-p1.spec.ts` still asserted `Illustrative IR preset · not an
+  instrument datasheet` on screen. That line was removed deliberately on
+  2026-09-02 and `RevisitP1Ui.test.tsx` was inverted with it; this spec was
+  missed. Now asserts its absence. The qualification itself has not left the
+  product — `ASSUMED SENSOR SWATH` labels the control, and the exported result
+  sheet keeps the caveat — so what is pinned here is only that the header line
+  does not come back by accident.
+- `revisit-advanced.spec.ts` › *offers real cancellation* failed for the
+  OPPOSITE reason to the race its comment describes: the area run was held
+  behind `finalising topology…` and had not started, so there was no Cancel
+  button. Cause: the Primary is now placed by a globe click, which moves when
+  the point sweep starts; at a 2 s step it had not landed. The spec now waits
+  for `data-revisit-readiness` = `Ready to present` before adding the area —
+  that chip stays PENDING through `isConfigurationSettling`, which is exactly
+  the sweep plus reconcile the area run waits on.
+  `waitForRevisitResultSettled` is NOT usable here: it waits for the rendered
+  text to stop changing, and this spec runs a live clock, so the UTC field never
+  stops.
 
 ## 2026-09-02 — Full e2e result, and one regression I introduced and did not fix
 
@@ -2676,202 +2922,3 @@ Then continue autonomously. No previous conversation is required.
   use `opacity-70` with hover/focus recovery.
 - Rows expose `data-revisit-target-selected` for the selection invariant.
 - Desktop E2E, 52 targeted UI tests, typecheck, lint and build pass.
-
-## Latest change — R33 least-covered cell marked on the globe (2026-09-02)
-
-- `areaAnalysis.ts`: `AreaAnalysis.bindingCells` — every cell as binding as
-  `worstCell`, within one sampling step (`stepSeconds`, now carried on
-  `CollectedCells`). When any cell is never in view the set is exactly those
-  cells; `worstCell` remains the single member whose timeline is on screen.
-  Rationale: `worstCell` is a strict-`>` tie-break, harmless in a figure and
-  misleading as a marker — six of twelve cells tie on the default grid.
-- `RevisitGlobe.tsx`: the heat-map effect now draws, per role, the binding set —
-  the retained cell solid, its equals thin — as a cell-sized outline in the role
-  identity colour (never green/red: the fill already carries the outcome), with
-  a separate slightly larger dark outline as halo. The selected role also gets a
-  label below the cell: `Least-covered cell · <gap>[ · N tied]`, or
-  `Never seen · N cells`. New `data-revisit-area-binding-cells` mirrors it.
-- `PolylineOutlineMaterialProperty` was tried first and rejected on the globe:
-  it spends the line's width on its outline, rendering the marker as a black
-  frame around a pale core at every legible width.
-- Tests: `areaTarget.test.ts` covers the tie set and the never-in-view set;
-  `revisit-p2c-c.spec.ts` asserts a non-empty binding set per role on the globe.
-  Unit suite (674) and typecheck pass; browser-verified on a Sahara polygon.
-- R32 (covered-cell band behind the AREA lane) remains open — see
-  `docs/DEFERRED_ITEMS.md`.
-
-## Follow-up — R33 marking style, and three unrelated gate failures (2026-09-02)
-
-- `RevisitGlobe.tsx`: the binding cells are now marked by the **opacity of their
-  own heat rectangle** (retained 0.95 / tied 0.78 / rest 0.40, roughly halved
-  when the role is not selected) instead of the role-coloured outline first
-  shipped. No new geometry, no second colour language, and the outline no longer
-  competes with the polygon boundary. The label is unchanged.
-- Field note: an area can be uniform enough that most of it binds — 19 of 23
-  cells within one 10 s sampling step on a Saudi-sized polygon whose mean, best
-  and worst cell all read 47 min. The three depths exist for exactly that case.
-- `CustomerResultCard.tsx`: removed the `aria-label` on the step-5 heading. It
-  repeated the name already carried by the block, so two nested nodes had the
-  same accessible name — read twice by a screen reader, and the cause of the
-  `revisit-p2b-b2` strict-mode violation. Step 4's label carries its result
-  subject, is unique, and is unchanged.
-- `revisit-visual` phone baselines (390×844, 430×932, both themes) re-recorded:
-  they predated the deliberate compact-rail changes already in the tree —
-  Workspace hidden below `md`, the readiness chip reduced to a 36 px dot, the
-  `MISSES` badge turned red. The frozen clock was never the issue.
-- `revisit-p2b-b1` was NOT a flake, and not an application defect. The trace
-  shows `[vite] connecting…` a second time 2.4 s into the test: the dev server
-  full-reloads the page mid-test, the app remounts with no target, and the
-  assertion then runs against a fresh application. The trigger was editing files
-  in the tree while the suite ran in the background. Four consecutive runs pass
-  when nothing is touched. **Do not edit the working tree while Playwright is
-  running against `dev:vite-only`** — the failure it produces looks exactly like
-  a product bug (targets vanish after a globe click).
-- Gates after the fixes: 31 e2e passed across `revisit-visual`, `p2b`, `p2b-b1`,
-  `p2b-b2`, `p2c-c`, `p7c`; unit suite 674; typecheck and lint clean.
-
-## Latest change — heat map opacity states distance to the requirement (2026-09-02)
-
-- `heatMapColors.ts`: new `heatIntensityFor(maxGapMs, requirementMs)` — 0 at the
-  requirement, 1 at either end of the scale (gap → 0, or gap ≥
-  `HEAT_SATURATION_MULTIPLE` × requirement), 1 for never-in-view. Hue says
-  met/missed; opacity now says by how much, in both directions.
-- `RevisitGlobe.tsx`: cell alpha is `floor + (ceiling − floor) × intensity`,
-  with `[0.22, 0.88]` for the selected role and `[0.12, 0.5]` for the other. The
-  floor is deliberate: a cell sitting exactly on the requirement is a measured
-  result, not a hole in the area.
-- This REPLACES R33's use of opacity to mark the least-covered cell — the two
-  readings cannot share the channel. The cell is now marked by its label alone,
-  and in an area that passes everywhere it is the faintest cell on the map. That
-  trade was made explicitly, not by accident.
-- Tests: six cases on the curve's shape in `heatMapColors.test.ts` (threshold
-  floor from both sides, both directions rising, saturation, never-in-view,
-  bounds). Unit suite 680, typecheck and lint clean; browser-verified on a
-  5°N–45°N polygon at a 12 h requirement, where passing and missing cells appear
-  in the same grid.
-
-## Latest change — R32 in-view band behind the Area lane (2026-09-02)
-
-- `areaAnalysis.ts`: `AreaAnalysis.inViewProfile`, a `Float32Array` of
-  `COVERAGE_PROFILE_BINS` (360) entries — the share of grid cells in view per
-  time bin, time-weighted so a pass shorter than a bin contributes its real
-  duration. Accumulated in the existing `AREA_CELL_BATCH` loop from intervals
-  already in hand: one fixed-size array, no per-cell timeline retained, so the
-  standing decision not to keep them is untouched.
-- `CoverageRibbon.tsx`: `accessTrack` paints the profile as the lane background
-  when one is present — Area lanes only; a Point is in view or it is not. Lane
-  identity colour, `0.07 + 0.38 × share`, linear, no curve and no axis. The
-  toolbar carries `Shading · cells in view (context)`.
-- Why this is not the averaged area timeline the module refuses: that refusal is
-  about averaging GAPS, which has no mission meaning. This is "how much of the
-  area is visible at instant t" — well defined, and the question the worst-cell
-  lane cannot answer. It is stated as context so it can never be quoted as the
-  verdict.
-- Tests: `areaTarget.test.ts` asserts bin count and bounds, that the profile's
-  mean equals the mean per-cell `fractionInView` (independent oracle through
-  `computeGapStatistics`), and that bins are not all-or-nothing;
-  `RevisitP0Ui.test.tsx` asserts the band renders under an Area lane only, in
-  the identity colour, at an opacity that cannot be mistaken for an access tick.
-- Unit suite 684, typecheck and lint clean; browser-verified on a 12°N–24°N
-  polygon where the band's peaks sit between the worst cell's access ticks.
-
-## Follow-up — least-covered cell label centred and stacked (2026-09-02)
-
-- `RevisitGlobe.tsx`: the label now sits at the CENTRE of the least-covered cell
-  (it was hung below it, from when an outline was the mark and the label only
-  named it) and breaks over two lines — `Least-covered cell` then
-  `56 min · 16 tied`. A single line grew with the tie count until it was wider
-  than the polygon and ran over neighbouring cells; the block stays roughly
-  square whatever it has to say. `Never seen` / `N cells` follows the same
-  shape.
-
-- Fix, same day: the label was intermittently painted over by the polygon fill
-  and the heat rectangles. Those are translucent geometry at height 0, and
-  translucent geometry writes no depth — within that pass whatever Cesium sorts
-  last wins, and a label 300 m above the ground sat at practically the same
-  distance. It now carries `eyeOffset (0, 0, -50 km)`, which moves it along the
-  view axis only: screen position unchanged (still centred on its cell), depth
-  pulled clear of the ground layers, and still occluded when the area is on the
-  far side of the globe — which simply raising its altitude would have lost.
-
-
-## Latest change — elevation mask propagated to swath, globe and exports (2026-09-03)
-
-The mask existed only inside the access predicate (`containment.ts` step 8).
-Three surfaces still described the bare optical cone; all three are closed.
-
-- `fov/footprint.ts`: new `maskLimbRad(satRadiusKm, minElevationRad)` — an
-  elevation mask IS a tightened limb (`sin η = (R_e/r)·cos ε`; at ε = 0 it
-  returns the geometric horizon `groundArcRad` already clamps to). `maskRay`
-  pulls each footprint ray back to that cone, keeping its azimuth, so the drawn
-  footprint is the FOV projection INTERSECTED with the mask circle. Body +Z is
-  nadir, which is what makes the polar angle here the off-nadir angle.
-- `domain/areaTarget.ts` — `swathWidthDeg` now caps the off-nadir angle by the
-  mask. This one is load-bearing: it is what `validateArea` sizes the area grid
-  against, so an unmasked figure could admit a grid too coarse for what is
-  actually seen — an aliased heat map, the outcome the area analysis refuses.
-- `domain/presets.ts` — `swathKmForFov` capped likewise, so the header's
-  "approx. N km swath" matches the run beside it.
-- Exports: CSV `# min elevation deg,<value|none>` (explicit `none` keeps two
-  files comparable line by line), and the result sheet's FOV assumption gains
-  `· accesses above N° elevation`.
-- Measured behaviour, for anyone demonstrating this: a mask only bites once it
-  exceeds the cone's own edge elevation — 80° for NARROW, 71° for STANDARD, 54°
-  for WIDE at 1200 km. With the executive presets no realistic mask changes a
-  single figure; the control looks dead because geometrically it is.
-- Browser-verified end to end at half-angle 45°: the header swath goes
-  2706 → 1138 km, the drawn swath ellipses shrink to match, time in view falls
-  9.9% → 1.7%, the max gap goes 2 h 51 → 3 h 09 (from meets to misses) and the
-  recommendation changes from "no change required" to "+12 payloads".
-- Tests: `footprint.test.ts` covers the untouched case (mask looser than the
-  cone), the clamped case (every boundary vertex at the mask limit AND at the
-  mask elevation, measured with the WGS84 normal) and the swath narrowing;
-  `csvExport.test.ts` and `resultSheet.test.ts` cover the two export lines.
-
-## Follow-up — making the elevation mask visible (2026-09-03)
-
-Closing the three gaps made the mask CORRECT everywhere; it was still
-INVISIBLE. With a mask on, the swath simply shrank and nothing said why — an
-assumption with no trace on the surface people photograph.
-
-- `RevisitHeader.tsx`: the swath line reads `Custom FOV · approx. 1138 km swath
-  · 60° elevation mask`. A mask makes the instrument non-preset by
-  construction, so this is always the line on screen when one is set, and it is
-  where a reader wondering about the number is already looking.
-- `useRevisitScene.ts`: when the mask actually clamps, each payload's solid
-  swath (the masked, counted footprint) is accompanied by a DASHED outline of
-  the bare optical cone. Rejected alternative — a second SOLID ring in grey, as
-  first proposed: grey already identifies the host fleet and payload orbit
-  planes, so it would read as another satellite's geometry; and on a globe where
-  everything drawn is something that counts, a second solid shape reads as more
-  coverage, which is the favourable misreading to design against. Dashed reads
-  as a limit.
-- `maskClampsFov` gates it: a mask below the cone's own edge elevation removes
-  nothing, and the outline would then z-fight an identical ring. Exported and
-  unit-tested, including the bias case, because that predicate is what keeps the
-  outline off the executive presets entirely.
-- Cost: a second `computeFootprint` per payload, paid only while a clamping mask
-  is set. It rides on the existing SENSOR SWATH toggle — verified in the browser
-  that switching that off removes both the swath and its outline — rather than
-  adding a seventh control.
-
-## Follow-up — two stale e2e gates realigned (2026-09-03)
-
-- `revisit-p1.spec.ts` still asserted `Illustrative IR preset · not an
-  instrument datasheet` on screen. That line was removed deliberately on
-  2026-09-02 and `RevisitP1Ui.test.tsx` was inverted with it; this spec was
-  missed. Now asserts its absence. The qualification itself has not left the
-  product — `ASSUMED SENSOR SWATH` labels the control, and the exported result
-  sheet keeps the caveat — so what is pinned here is only that the header line
-  does not come back by accident.
-- `revisit-advanced.spec.ts` › *offers real cancellation* failed for the
-  OPPOSITE reason to the race its comment describes: the area run was held
-  behind `finalising topology…` and had not started, so there was no Cancel
-  button. Cause: the Primary is now placed by a globe click, which moves when
-  the point sweep starts; at a 2 s step it had not landed. The spec now waits
-  for `data-revisit-readiness` = `Ready to present` before adding the area —
-  that chip stays PENDING through `isConfigurationSettling`, which is exactly
-  the sweep plus reconcile the area run waits on.
-  `waitForRevisitResultSettled` is NOT usable here: it waits for the rendered
-  text to stop changing, and this spec runs a live clock, so the UTC field never
-  stops.
