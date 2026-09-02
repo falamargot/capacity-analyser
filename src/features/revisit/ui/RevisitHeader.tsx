@@ -869,8 +869,16 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                 <div className="revisit-spread-note min-h-[14px] text-[12px] leading-[14px] text-slate-300">
                     {spreadNote}
                 </div>
+                {/* The swath figure and the assumption that shrank it belong on
+                    the same line. An elevation mask makes the instrument
+                    non-preset by construction, so this line is always the one
+                    on screen when a mask is set — and it is where the reader
+                    who wonders why the swath shrank is already looking. */}
                 <div className="text-[11px] leading-3 text-slate-400">
-                    {!presetName && `Custom FOV · approx. ${swathKm} km swath`}
+                    {!presetName && `Custom FOV · approx. ${swathKm} km swath${
+                        payload.minElevationDeg === undefined
+                            ? ''
+                            : ` · ${payload.minElevationDeg}° elevation mask`}`}
                 </div>
             </Panel>
 

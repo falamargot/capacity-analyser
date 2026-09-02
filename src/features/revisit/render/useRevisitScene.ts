@@ -40,6 +40,9 @@ import {
     PrimitiveCollection, PrimitiveType, VerticalOrigin, type Viewer,
 } from 'cesium';
 import { EARTH_RADIUS_KM } from '../../../utils/earthGeometry';
+import { orbitalRadiusKm } from '../../../utils/wgs84Geometry';
+import { toRad } from '../../../utils/sphericalGeometry';
+import { maskLimbRad } from '../fov/footprint';
 import type { OrbitalElements, RevisitScenario } from '../domain/types';
 import {
     eciToEcef, earthRotationRad, preparePropagators, propagateState,
@@ -492,6 +495,29 @@ function replaceProjectionVolume(handles: SceneHandles, positions: number[]): vo
 }
 
 /**
+ * Does the elevation mask actually cut into the field of view?
+ *
+ * A mask below the cone's own edge elevation removes nothing — at 1200 km that
+ * is 80° for NARROW, 71° for STANDARD, 54° for WIDE — and drawing the "what the
+ * mask removed" outline in that case would trace a second ring exactly on top
+ * of the first: z-fighting, and no information. So the outline exists only when
+ * the two genuinely differ.
+ *
+ * One boolean for the whole scene rather than one per satellite: the shell is
+ * circular, so every payload sits at the same radius and clamps identically.
+ */
+export function maskClampsFov(scenario: RevisitScenario): boolean {
+    const mask = scenario.payload.minElevationDeg;
+    if (mask === undefined) return false;
+    const satRadiusKm = orbitalRadiusKm(scenario.reference.altitudeKm);
+    const bias = Math.hypot(
+        scenario.payload.biasDeg.alongTrack, scenario.payload.biasDeg.crossTrack
+    );
+    const reach = Math.max(scenario.payload.halfAngle1Deg, scenario.payload.halfAngle2Deg) + bias;
+    return maskLimbRad(satRadiusKm, toRad(mask)) < toRad(Math.min(reach, 89));
+}
+
+/**
  * Payload sensor geometry is updated in one pass. The footprint is the costly
  * part, so the optional projection volume deliberately reuses the exact same
  * result as the swath outline instead of tracing the field of view twice.
@@ -519,22 +545,55 @@ function updateSensorGeometry(
     }
     const volumeFacetCount = projectionVolumeFacetCount(payloadIndices.length);
 
+    /*
+     * ── The mask outline ─────────────────────────────────────────────────────
+     *
+     * When an elevation mask cuts into the optics, the solid swath is the
+     * masked footprint — what is actually counted — and a DASHED outline traces
+     * where the bare optical cone would have reached. Without it the swath
+     * simply shrinks and nothing on the globe says why: the mask becomes an
+     * invisible assumption on the surface people photograph.
+     *
+     * Dashed, and in the payload colour rather than grey. Grey already
+     * identifies the host fleet and the payload orbit planes, so a grey ring
+     * around a payload swath would read as another satellite's geometry. A
+     * dashed line reads as a LIMIT; a second solid shape would read as a second
+     * coverage — and on a globe where everything drawn is something that counts,
+     * the favourable misreading is the one to design against.
+     *
+     * It costs a second footprint per payload, paid only in this state: a mask
+     * that clamps is deliberate, and the reader who set it is studying exactly
+     * this. It rides on the existing SENSOR SWATH toggle rather than adding a
+     * seventh switch.
+     */
+    const showMaskOutline = showSwaths && maskClampsFov(scenario);
+    const outlineCount = showMaskOutline ? payloadIndices.length : 0;
+
     // Boundary vertex count is fixed by SWATH_SAMPLES, so the structure depends
-    // only on how many payloads there are and on the instrument's shape.
-    const signature = `${payloadIndices.length}|${scenario.payload.shape}`;
+    // only on how many payloads there are, on the instrument's shape, and on
+    // whether the mask outline is drawn beside each swath.
+    const signature = `${payloadIndices.length}|${scenario.payload.shape}|${showMaskOutline}`;
     if (showSwaths && swathSignature.get(handles) !== signature) {
         handles.swaths.removeAll();
         const color = Color.fromCssColorString(REVISIT_COLORS.payload).withAlpha(0.72);
+        const outlineColor = Color.fromCssColorString(REVISIT_COLORS.payload).withAlpha(0.4);
         const cache: Cartesian3[][] = [];
-        for (let n = 0; n < payloadIndices.length; n++) {
+        // Masked swaths first, then their optical outlines: the update loop
+        // indexes the two halves by `n` and `payloadIndices.length + n`.
+        for (let n = 0; n < payloadIndices.length + outlineCount; n++) {
             // computeFootprint closes the ring, so it returns samples + 1 points.
             const positions: Cartesian3[] = new Array(SWATH_SAMPLES + 1);
             for (let k = 0; k <= SWATH_SAMPLES; k++) positions[k] = new Cartesian3();
             cache.push(positions);
+            const isOutline = n >= payloadIndices.length;
             handles.swaths.add({
                 positions,
-                width: 1.6,
-                material: Material.fromType('Color', { color }),
+                width: isOutline ? 1.2 : 1.6,
+                material: isOutline
+                    ? Material.fromType('PolylineDash', {
+                        color: outlineColor, dashLength: 10,
+                    })
+                    : Material.fromType('Color', { color }),
             });
         }
         swathPositionCache.set(handles, cache);
@@ -550,9 +609,17 @@ function updateSensorGeometry(
     const groundB = new Cartesian3();
 
     const fov = prepareFov(scenario.payload);
+    // The same instrument without its mask — the outline's geometry, prepared
+    // once rather than per satellite.
+    const opticalFov = showMaskOutline
+        ? prepareFov({ ...scenario.payload, minElevationDeg: undefined })
+        : null;
     for (let n = 0; n < payloadIndices.length; n++) {
         const i = payloadIndices[n];
         const swath = showSwaths ? handles.swaths.get(n) : undefined;
+        const outline = showMaskOutline
+            ? handles.swaths.get(payloadIndices.length + n)
+            : undefined;
 
         const eci = propagateState(propagators[i], tSeconds);
         const footprint = computeFootprint(eci, fov, epochMs, tSeconds, SWATH_SAMPLES);
@@ -560,6 +627,7 @@ function updateSensorGeometry(
         // degenerate frame) is hidden rather than left showing its last position.
         if (!footprint || footprint.boundary.length < 3) {
             if (swath) swath.show = false;
+            if (outline) outline.show = false;
             continue;
         }
 
@@ -571,6 +639,25 @@ function updateSensorGeometry(
                 Cartesian3.fromDegrees(point.lng, point.lat, 0, undefined, positions[k]);
             }
             swath.positions = positions;
+        }
+
+        if (outline && opticalFov && swathCache) {
+            const opticalFootprint = computeFootprint(
+                eci, opticalFov, epochMs, tSeconds, SWATH_SAMPLES
+            );
+            if (!opticalFootprint || opticalFootprint.boundary.length < 3) {
+                outline.show = false;
+            } else {
+                outline.show = true;
+                const positions = swathCache[payloadIndices.length + n];
+                for (let k = 0; k < positions.length; k++) {
+                    const point = opticalFootprint.boundary[
+                        Math.min(k, opticalFootprint.boundary.length - 1)
+                    ];
+                    Cartesian3.fromDegrees(point.lng, point.lat, 0, undefined, positions[k]);
+                }
+                outline.positions = positions;
+            }
         }
 
         if (volumePositions) {

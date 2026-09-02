@@ -2827,3 +2827,30 @@ Three surfaces still described the bare optical cone; all three are closed.
   cone), the clamped case (every boundary vertex at the mask limit AND at the
   mask elevation, measured with the WGS84 normal) and the swath narrowing;
   `csvExport.test.ts` and `resultSheet.test.ts` cover the two export lines.
+
+## Follow-up — making the elevation mask visible (2026-09-03)
+
+Closing the three gaps made the mask CORRECT everywhere; it was still
+INVISIBLE. With a mask on, the swath simply shrank and nothing said why — an
+assumption with no trace on the surface people photograph.
+
+- `RevisitHeader.tsx`: the swath line reads `Custom FOV · approx. 1138 km swath
+  · 60° elevation mask`. A mask makes the instrument non-preset by
+  construction, so this is always the line on screen when one is set, and it is
+  where a reader wondering about the number is already looking.
+- `useRevisitScene.ts`: when the mask actually clamps, each payload's solid
+  swath (the masked, counted footprint) is accompanied by a DASHED outline of
+  the bare optical cone. Rejected alternative — a second SOLID ring in grey, as
+  first proposed: grey already identifies the host fleet and payload orbit
+  planes, so it would read as another satellite's geometry; and on a globe where
+  everything drawn is something that counts, a second solid shape reads as more
+  coverage, which is the favourable misreading to design against. Dashed reads
+  as a limit.
+- `maskClampsFov` gates it: a mask below the cone's own edge elevation removes
+  nothing, and the outline would then z-fight an identical ring. Exported and
+  unit-tested, including the bias case, because that predicate is what keeps the
+  outline off the executive presets entirely.
+- Cost: a second `computeFootprint` per payload, paid only while a clamping mask
+  is set. It rides on the existing SENSOR SWATH toggle — verified in the browser
+  that switching that off removes both the swath and its outline — rather than
+  adding a seventh control.

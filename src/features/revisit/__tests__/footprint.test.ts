@@ -6,6 +6,7 @@ import {
     halfSwathKm, horizonOffNadirDeg, maskLimbRad,
 } from '../fov/footprint';
 import { swathWidthDeg } from '../domain/areaTarget';
+import { maskClampsFov } from '../render/useRevisitScene';
 import { prepareFov } from '../fov/containment';
 import { argLatRateRadPerSec, earthRotationRad, eciToEcef, geodeticToEcef } from '../propagation/keplerJ2';
 import type { EciState, FovSpec } from '../domain/types';
@@ -218,6 +219,37 @@ const ALT_KM = 600;
                 // WGS84 normal and the spherical clamp agree closely.
                 expect(elevationDeg(p)).toBeCloseTo(40, 1);
             }
+        });
+
+        /*
+         * The globe draws the "what the mask removed" outline only when there
+         * is something removed. This is the predicate that decides it, and its
+         * whole job is to stay false for the presets: at 1200 km their edge
+         * elevations are 80° / 71° / 54°, so a plausible operational mask does
+         * not clamp them and the outline must not appear on top of the swath it
+         * would exactly duplicate.
+         */
+        it('reports whether the mask actually cuts into the optics', () => {
+            const scenarioWith = (payload: FovSpec): Parameters<typeof maskClampsFov>[0] => ({
+                reference: {
+                    pattern: 'STAR', planes: 6, satsPerPlane: 4, inclinationDeg: 87.9,
+                    altitudeKm: ALT_KM, phasingF: 1, fudge: 1,
+                },
+                selection: { planeStride: 1, satStride: 1, planeShift: 0 },
+                payload,
+                target: { kind: 'POINT', name: 'x', latDeg: 0, lonDeg: 0 },
+                window: { startMs: EPOCH, durationHours: 24, stepSeconds: 10 },
+            });
+
+            expect(maskClampsFov(scenarioWith(cone(45)))).toBe(false);
+            expect(maskClampsFov(scenarioWith({ ...cone(45), minElevationDeg: 40 }))).toBe(true);
+            // Below the cone's own edge elevation nothing is removed.
+            expect(maskClampsFov(scenarioWith({ ...cone(45), minElevationDeg: 5 }))).toBe(false);
+            // A bias widens the reach, so a mask can clamp a cone it would not
+            // have clamped pointing straight down.
+            expect(maskClampsFov(scenarioWith({
+                ...cone(20, { alongTrack: 40, crossTrack: 0 }), minElevationDeg: 45,
+            }))).toBe(true);
         });
 
         it('shrinks the swath figure the area grid guard is sized against', () => {
