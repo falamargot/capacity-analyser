@@ -27,9 +27,9 @@ test.beforeEach(async ({ page }) => {
 test.describe('REVISIT P1 requirement contract', () => {
   test('keeps one canonical target requirement beside the sensor swath', async ({ page }) => {
     const hostedPayloads = page.locator('[data-revisit-context-panel="hosted-payloads"]');
-    const requirement = page.getByRole('combobox', { name: 'Requirement for Primary target' });
+    const requirement = page.getByRole('combobox', { name: 'Requirement for all targets' });
     await expect(requirement).toHaveCount(1);
-    await expect(hostedPayloads.getByRole('combobox', { name: 'Requirement for Primary target' })).toHaveValue('7200000');
+    await expect(hostedPayloads.getByRole('combobox', { name: 'Requirement for all targets' })).toHaveValue('7200000');
 
     await requirement.selectOption('3600000');
     await openRevisitAnalysis(page);
@@ -40,10 +40,10 @@ test.describe('REVISIT P1 requirement contract', () => {
     await expect(card).toContainText('at least every 1 h');
     await expect(card).toContainText('Requirement');
 
-    // A new Secondary target inherits the Primary threshold. The header still
-    // exposes exactly one control, now explicitly attributed to Secondary.
+    // Adding a Secondary target neither forks the threshold nor adds a second
+    // control: one requirement, stated once, for every target in the analysis.
     await addSecondaryArea(page);
-    await expect(hostedPayloads.getByRole('combobox', { name: 'Requirement for Secondary target' }))
+    await expect(hostedPayloads.getByRole('combobox', { name: 'Requirement for all targets' }))
       .toHaveValue('3600000');
     await expect(page.getByRole('combobox', { name: 'Area requirement' })).toHaveCount(0);
   });

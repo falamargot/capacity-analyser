@@ -91,9 +91,16 @@ body {
    and Comparison context rather than leaking into every surface border. */
 .revisit-shell {
   /* One shared glass surface for header cards, side panels and the access
-     timeline. Keeping the alpha here prevents those three zones drifting. */
-  --revisit-panel-bg: rgba(2, 6, 23, 0.74);
-  --revisit-panel-border: rgba(100, 116, 139, 0.42);
+     timeline. Keeping the alpha here prevents those three zones drifting.
+
+     The border is the only thing that separates a panel from the starfield
+     behind it, so it is held above the 3:1 WCAG floor for non-text UI
+     boundaries. The previous rgba(100, 116, 139, 0.42) composited to ~1.7:1
+     against the panel interior even where it was allowed to apply, so the
+     header read as four unframed paragraphs floating over the globe rather
+     than four steps of one form. */
+  --revisit-panel-bg: rgba(2, 6, 23, 0.86);
+  --revisit-panel-border: rgba(148, 163, 184, 0.62);
   --revisit-muted: #94a3b8;
 }
 
@@ -103,8 +110,8 @@ body {
 }
 
 .light .revisit-shell {
-  --revisit-panel-bg: rgba(255, 255, 255, 0.86);
-  --revisit-panel-border: rgba(100, 116, 139, 0.38);
+  --revisit-panel-bg: rgba(255, 255, 255, 0.92);
+  --revisit-panel-border: rgba(71, 85, 105, 0.55);
   --revisit-muted: #475569;
 }
 
@@ -225,6 +232,50 @@ body {
   color: #0f172a !important;
 }
 
+/* The outcome vocabulary in the light theme.
+ *
+ * `REVISIT_OUTCOME` paints verdicts in 200/300-weight inks chosen for a black
+ * stage. Nothing remapped them for the light theme, so every verdict in the
+ * module was illegible on it — measured in the running page:
+ *
+ *   Requirement missed  (orange-200 on orange-500/15)   1.01:1
+ *   Requirement met     (lime-200 on lime-500/15)       1.11:1
+ *   error badge         (red-200 on red-500/15)         1.01:1
+ *   MEETS / MISSES text (lime-300 / orange-300 on panel) 1.10 / 1.42:1
+ *
+ * 1.01:1 is not "low contrast", it is an empty pill. The 800-weight inks below
+ * measure 5.3-5.8:1 on those fills and keep the hue, so green still reads as
+ * pass and orange as miss.
+ *
+ * These match the class TOKEN, like the slate rules above, so `hover:` and
+ * `dark:` variants keep their own conditions. They REPLACE two earlier
+ * `[class*="text-red-200"]`-style rules that covered red and `lime-200` only —
+ * substring selectors, which is the pattern the slate comment above this file's
+ * midpoint warns against, and which left `lime-300` and both oranges unmapped.
+ * Amber already has its own exact-selector block further down, opacity variants
+ * included; it is not repeated here. */
+.light .revisit-shell :is(.text-lime-200, .text-lime-300) {
+  color: #3f6212 !important;
+}
+
+.light .revisit-shell :is(.text-orange-200, .text-orange-300) {
+  color: #9a3412 !important;
+}
+
+.light .revisit-shell :is(.text-red-200, .text-red-300) {
+  color: #991b1b !important;
+}
+
+/* The two chrome controls in the header rail — the ENG/COMM return and the `?`
+ * — paint their own dark tile instead of using `.revisit-panel`, so the light
+ * theme reached their ink (`.text-slate-100` becomes near-black) and not their
+ * fill: 1.34:1, dark on dark. The tile follows the theme here. */
+.light .revisit-shell .revisit-origin-return,
+.light .revisit-shell [data-revisit-how-this-works-trigger] {
+  background-color: rgba(226, 232, 240, 0.92) !important;
+  border-color: #64748b !important;
+}
+
 /* sky-700 resolves to #0069a8, which is 4.27:1 on the translucent light panel —
    below AA for the 8-9px labels REVISIT uses it on. */
 .light .revisit-shell :is(.text-sky-700, .text-sky-600) {
@@ -287,15 +338,6 @@ body {
   color: #0f172a !important;
   background: rgba(148, 163, 184, 0.2) !important;
   border-color: rgba(71, 85, 105, 0.65) !important;
-}
-
-.light .revisit-shell [class*="text-red-200"],
-.light .revisit-shell [class*="text-red-300"] {
-  color: #991b1b !important;
-}
-
-.light .revisit-shell [class*="text-lime-200"] {
-  color: #3f6212 !important;
 }
 
 .light .revisit-shell select,
@@ -2090,6 +2132,43 @@ h1, h2, h3, h4 {
 
 .revisit-global-header .revisit-context-rail {
   background: transparent;
+}
+
+/* REVISIT owns the frames of its own panels.
+ *
+ * `.capacity-header [class*='border-slate-'] { border-color: var(--neutral-rule) }`
+ * above is the ENG/COMM quiet-chrome rule. It outranks `.revisit-panel`
+ * (0,2,0 against 0,1,0, both `!important`), and every REVISIT header card
+ * carries `border-slate-700/70`, so all four header frames were being painted
+ * at `rgb(148 163 184 / 0.11)` — 1.14:1 against their own interior, i.e. no
+ * frame at all. The sidebar and timeline cards, which sit outside
+ * `.capacity-header`, kept the token: the two zones had drifted apart, which is
+ * exactly what one shared token exists to prevent.
+ *
+ * Non-text UI boundaries need 3:1 (WCAG 1.4.11), and these boundaries are what
+ * tell the reader that CONSTELLATION → HOSTED PAYLOADS → ANALYSIS TARGET are
+ * three steps of one form rather than text floating over the globe. */
+.capacity-header .revisit-shell .revisit-panel,
+.revisit-shell .revisit-panel {
+  border-color: var(--revisit-panel-border) !important;
+}
+
+/* Supporting surfaces — a collapsed evidence disclosure beside the cards that
+   carry the answer. One step down in the same hierarchy, not a different
+   material: the frame recedes and everything inside it is untouched. The 3:1
+   floor above applies to boundaries that carry meaning; this box groups content
+   whose own affordance (its summary row) keeps full contrast. */
+.revisit-shell {
+  --revisit-panel-border-quiet: rgba(148, 163, 184, 0.26);
+}
+
+.light .revisit-shell {
+  --revisit-panel-border-quiet: rgba(71, 85, 105, 0.24);
+}
+
+.capacity-header .revisit-shell .revisit-panel.revisit-panel-quiet,
+.revisit-shell .revisit-panel.revisit-panel-quiet {
+  border-color: var(--revisit-panel-border-quiet) !important;
 }
 
 .capacity-header .header-site-section {

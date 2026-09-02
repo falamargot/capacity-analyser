@@ -43,7 +43,7 @@ test.describe('REVISIT Advanced stabilization', () => {
 
     await page.getByRole('spinbutton', { name: 'Planes P' }).fill('13', { force: true });
     await expect(page.locator('[data-revisit-context-panel="constellation"]')).toContainText('13 × 48');
-    await expect(page.getByText('Custom constellation').first()).toBeVisible();
+    await expect(page.getByText('Custom HLD').first()).toBeVisible();
     await expect(page.getByRole('region', { name: 'REVISIT analysis' })).toBeVisible();
     expect(pageErrors).toEqual([]);
   });
@@ -86,7 +86,7 @@ test.describe('REVISIT Advanced stabilization', () => {
     await page.getByRole('spinbutton', { name: /Fudge/ }).fill('1.5', { force: true });
 
     await expect(page.locator('[data-revisit-context-panel="constellation"]')).toContainText('DELTA');
-    await expect(page.getByText('Custom constellation').first()).toBeVisible();
+    await expect(page.getByText('Custom HLD').first()).toBeVisible();
     expect(pageErrors).toEqual([]);
   });
 

@@ -48,7 +48,7 @@ test.describe('REVISIT P7A commercial result framing', () => {
     // the setup panel — and the panels are mutually exclusive (Programme 7B),
     // so the card has to be reopened to read the re-derived answer back.
     await openRevisitSetup(page);
-    await page.getByRole('combobox', { name: 'Requirement for Primary target' }).selectOption(String(24 * 3600_000));
+    await page.getByRole('combobox', { name: 'Requirement for all targets' }).selectOption(String(24 * 3600_000));
     await openRevisitAnalysis(page);
     await expect(card).toContainText('at least every 24 h');
     await expect(card).toContainText('Requirement met');

@@ -75,6 +75,12 @@ export function StageControls<K extends string>({
                 </span>
             </summary>
 
+            {/* The heading the phone gets from its `summary`, which is
+                `md:hidden`. Above `md` the rail was six unheaded buttons over the
+                globe: the reader had to infer from the words that they draw
+                things rather than change the analysis. */}
+            <div className={`${REVISIT_LABEL} hidden px-1 pb-1 md:block`}>Display</div>
+
             <div className="flex flex-col gap-1">
                 {toggles.map(({ key, label, hint }) => (
                     <button
@@ -83,11 +89,21 @@ export function StageControls<K extends string>({
                         onClick={() => onToggle(key)}
                         aria-pressed={toggleState[key]}
                         title={hint}
-                        className={`${GROUP_BUTTON} ${toggleState[key]
+                        className={`${GROUP_BUTTON} flex items-center gap-2 ${toggleState[key]
                             ? 'bg-white/10 text-slate-100'
-                            : 'text-slate-500 hover:bg-white/5 hover:text-slate-300'}`}
+                            : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}
                     >
-                        {label}
+                        {/* On and off differed only by ink weight, which is the
+                            same difference as "this label is longer". A filled
+                            dot against a hollow ring states the state itself,
+                            and does not depend on colour alone. */}
+                        <span
+                            aria-hidden="true"
+                            className={`h-2 w-2 shrink-0 rounded-full border ${toggleState[key]
+                                ? 'border-lime-300 bg-lime-300'
+                                : 'border-slate-500 bg-transparent'}`}
+                        />
+                        <span className="truncate">{label}</span>
                     </button>
                 ))}
             </div>

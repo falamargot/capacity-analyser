@@ -86,7 +86,12 @@ export const WhyThisRevisit: React.FC<WhyThisRevisitProps> = ({ explanation }) =
     };
 
     return (
-        <details className={`${REVISIT_PANEL} group px-3 py-2.5`}>
+        /* A quieter frame than its siblings, deliberately. This is supporting
+           evidence for a verdict stated above it, it is closed by default, and
+           at full strength its border competed with the two cards that carry
+           the answer. The affordance is the summary row, which is unchanged;
+           only the grouping box steps back. */
+        <details className={`${REVISIT_PANEL} revisit-panel-quiet group px-3 py-2.5`}>
             <summary className="flex min-h-9 cursor-pointer list-none items-center justify-between gap-3 text-left">
                 <span className={REVISIT_LABEL}>Result drivers</span>
                 <span aria-hidden="true" className="text-slate-500 transition-transform group-open:rotate-90">›</span>

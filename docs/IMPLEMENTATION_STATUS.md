@@ -1,6 +1,31 @@
 # Implementation Status
 
-_Last updated 2026-08-27._
+_Last updated 2026-09-02._
+
+## 2026-09-02 — REVISIT UI/UX review implemented
+
+Six findings, all in the tree, all validated in the browser:
+`docs/REVISIT_UIX_REVIEW_2026-09-02.md`; summary and consequences for tests in
+`HANDOFF.md`. In short: the header's panel frames were being overruled by the
+ENG/COMM quiet-chrome rule and drawn at 1.14:1 (now 3.5:1); the max-gap
+requirement is now ONE value for every target instead of one per target; the
+longest-gap outline is painted in the outcome vocabulary (green meets, orange
+misses) instead of the lane's identity colour; a plain globe click completes an
+incomplete Secondary row instead of moving the Primary; the display rail is
+labelled and shows on/off state; and the module carries its own `How this works`
+card, reached from a `?` in the header rail.
+
+A second pass the same day moved that `?` into the header chrome beside the
+ENG/COMM return control, quietened the `Result drivers` frame, renamed the
+constellation chip to the drawer tab it opens (`OneWeb Gen1 · HLD`), aligned the
+ANALYSIS TARGET panel with the analysis column below it (they were 4 px apart),
+numbered the recommendation `5 ·`, marked its measured gap as a consequence with
+a `→`, and dropped `max-gap definition` from the KPI qualification line.
+
+A third pass fixed the light theme, where every outcome verdict was unreadable
+(`Requirement missed` measured 1.01:1 — an empty pill) and the two header chrome
+controls were dark on dark (1.34:1). Both are now 5.4:1 and 12.2:1 on rendered
+pixels.
 
 ## Current phase
 

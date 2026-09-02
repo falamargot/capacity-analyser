@@ -1,6 +1,29 @@
 # Review Report
 
-_Last updated 2026-08-28._
+_Last updated 2026-09-02._
+
+## The per-target requirement is withdrawn — 2026-09-02
+
+The 2026-08-28 entry below fixed three consumers that had not followed the
+threshold when it was split per target. The split itself is now reverted, for a
+reason none of that work could have surfaced: **the split was invisible in the
+UI.** One label, one select, one place in the scenario header — and it wrote to
+whichever target happened to be selected. Reproduced in the browser: with the
+Secondary selected, changing 2 h to 6 h left the footer printing
+`4 h 15 min MISSES` above `4 h 16 min MEETS`, with a toolbar reading
+`Target-specific requirements` to explain it.
+
+The rule the split introduced — *a threshold belongs to a target and must travel
+with it* — was sound engineering applied to a product decision that did not
+hold: a comparison of two sites asks which site serves THIS mission better, and
+a mission has one requirement. What survives is its structural half: the
+consumers that draw or export several targets at once are still indexed by role
+and still receive a per-role value; that value is now derived from one state, so
+the classes of defect the August entry describes cannot recur — there is nothing
+left to keep in step.
+
+Detail, and five further findings from the same walkthrough:
+`docs/REVISIT_UIX_REVIEW_2026-09-02.md`.
 
 ## Per-target requirements: three consequences the split missed — 2026-08-28
 

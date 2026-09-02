@@ -208,19 +208,17 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
     const trackColumns = isComparison
         ? 'grid-cols-[6rem_minmax(0,1fr)_7rem] sm:grid-cols-[8rem_minmax(0,1fr)_8.5rem]'
         : 'grid-cols-[6rem_minmax(0,1fr)_7rem] sm:grid-cols-[8rem_minmax(0,1fr)_8.5rem]';
-    const laneRequirements = targetRows.map((lane) => lane.requirementMs ?? requirementMs);
-    const sharedRequirementMs = laneRequirements.length === 0
-        ? requirementMs
-        : laneRequirements.every((value) => value === laneRequirements[0])
-            ? laneRequirements[0]
-            : null;
-    const requirementSummary = sharedRequirementMs === null
-        ? 'Target-specific requirements'
-        : `Requirement ≤ ${formatGap(sharedRequirementMs)}`;
-    const hasMissingLongestGap = targetRows.some((lane) => (
-        lane.longestGap !== null
-        && lane.longestGap.durationMs > (lane.requirementMs ?? requirementMs)
-    ));
+    /* One requirement for every lane since 2026-09-02. The per-lane value is
+     * still read rather than assumed, because a lane is what carries a
+     * threshold into the verdict beside it; they are simply equal now. */
+    const requirementSummary = `Requirement ≤ ${formatGap(
+        targetRows[0]?.requirementMs ?? requirementMs,
+    )}`;
+    const gapOutcomes = targetRows
+        .filter((lane) => lane.longestGap !== null)
+        .map((lane) => lane.longestGap!.durationMs > (lane.requirementMs ?? requirementMs));
+    const hasMissingLongestGap = gapOutcomes.some(Boolean);
+    const hasMeetingLongestGap = gapOutcomes.some((misses) => !misses);
     /** AREA without an analysis shows a placeholder, not a timeline: nothing to seek on. */
     const hasSeekableTrack = targetRows.some((row) => row.kind === 'POINT' || row.intervals.length > 0);
 
@@ -228,9 +226,23 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
         laneIntervals: AccessInterval[], longestGap: ReturnType<typeof longestInteriorGap>,
         color: string, laneRequirementMs: number, emphasised = true,
     ) => {
+        /*
+         * The outlined span is the lane's VERDICT, so it is painted in the
+         * outcome vocabulary — green passes, orange misses — and never in the
+         * lane's identity colour.
+         *
+         * It used to fall back to that identity colour when the gap met the
+         * requirement, which made the Primary lane's passing gap amber
+         * (#FBBF24) beside a missing one in orange (#F97316): two hues 12° apart
+         * carrying opposite meanings, on the one element in the module whose
+         * entire job is to say pass or fail. Green is already the module's pass
+         * colour everywhere else (`REVISIT_OUTCOME.meets`, the area heat scale,
+         * the KPI verdict), and it is reserved for outcomes, so it cannot be
+         * confused with either target identity.
+         */
         const gapColor = longestGap?.durationMs && longestGap.durationMs > laneRequirementMs
             ? REVISIT_COLORS.miss
-            : color;
+            : REVISIT_COLORS.pass;
         return (
         <svg className={`block w-full transition-opacity ${emphasised ? 'opacity-100' : 'opacity-75'}`} height={TRACK_HEIGHT} aria-hidden="true">
             <rect width="100%" height={TRACK_HEIGHT} rx={3} fill="#111a2b" stroke="#1e2b42" />
@@ -299,15 +311,35 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                             {targetRows.some((row) => row.longestGap !== null) && (
                                 <span
                                     className="hidden items-center gap-1.5 text-[11px] font-semibold text-slate-500 xl:flex"
-                                    title="The outlined span marks the longest interval without target access."
+                                    title="The outlined span marks the longest interval without target access. Green is within the requirement, orange is beyond it."
                                 >
-                                    <span
-                                        aria-hidden="true"
-                                        className={`h-2.5 w-5 rounded-sm border ${hasMissingLongestGap
-                                            ? 'border-orange-500 bg-orange-500/15'
-                                            : 'border-sky-400 bg-sky-400/15'}`}
-                                    />
-                                    {hasMissingLongestGap ? 'Orange outline · longest gap' : 'Outline · longest gap'}
+                                    {/* Both swatches appear when the lanes
+                                      * disagree, so the legend names the colour
+                                      * the reader is actually looking at. */}
+                                    {hasMeetingLongestGap && (
+                                        <span
+                                            aria-hidden="true"
+                                            className="h-2.5 w-5 rounded-sm border"
+                                            style={{
+                                                borderColor: REVISIT_COLORS.pass,
+                                                background: `${REVISIT_COLORS.pass}26`,
+                                            }}
+                                        />
+                                    )}
+                                    {hasMissingLongestGap && (
+                                        <span
+                                            aria-hidden="true"
+                                            className="h-2.5 w-5 rounded-sm border"
+                                            style={{
+                                                borderColor: REVISIT_COLORS.miss,
+                                                background: `${REVISIT_COLORS.miss}26`,
+                                            }}
+                                        />
+                                    )}
+                                    Longest gap ·{' '}
+                                    {hasMeetingLongestGap && hasMissingLongestGap
+                                        ? 'green meets, orange misses'
+                                        : hasMissingLongestGap ? 'misses the requirement' : 'within the requirement'}
                                 </span>
                             )}
                             {analysisContext === 'AREA' && areaAnalysis?.worstCell && (

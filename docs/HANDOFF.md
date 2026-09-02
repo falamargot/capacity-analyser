@@ -1,6 +1,153 @@
 # Handoff
 
-_Last updated 2026-08-31._
+_Last updated 2026-09-02._
+
+## 2026-09-02 — REVISIT UI/UX review: six findings, all implemented
+
+Full review, with the reproductions and the measurements:
+`docs/REVISIT_UIX_REVIEW_2026-09-02.md`. Four items came from the brief; two
+more were found while reproducing them. Headline, in the order they matter:
+
+1. **The header frames were not being drawn.**
+   `.capacity-header [class*='border-slate-'] { border-color: var(--neutral-rule) !important }`
+   — the ENG/COMM quiet-chrome rule — outranks `.revisit-panel` (0,2,0 vs 0,1,0,
+   both `!important`), and every REVISIT header card carries
+   `border-slate-700/70`. All four header frames were painted at
+   `rgb(148 163 184 / 0.11)`: **1.14 : 1**, measured in the live page. The
+   sidebar and timeline cards sit outside `.capacity-header` and kept the token,
+   so the two zones had drifted — the one thing a shared token exists to
+   prevent. `.capacity-header .revisit-shell .revisit-panel` restores it, and
+   the token itself went to `rgba(148 163 184 / 0.62)` on a `0.86` fill:
+   **3.49–3.55 : 1** over both starfield and lit globe (WCAG 1.4.11 wants 3:1).
+   **If you add a REVISIT surface, check its computed border in the page —
+   `.capacity-header` will quietly overrule a class-level colour.**
+
+2. **One requirement for every target.** The threshold used to belong to a
+   target while the single header select wrote to whichever was selected, so the
+   footer could print `4 h 15 min MISSES` directly above `4 h 16 min MEETS`
+   (reproduced). `requirementMs` is now one value; `targetRequirementsMs` is a
+   DERIVED per-role map kept only because `RevisitGlobe.areaRequirementsMs` and
+   the exported comparison table are indexed by role — they get the same number
+   twice by construction. Ten mutation sites whose only job was keeping the two
+   copies in step are gone. `comparisonRequirementMs` is out of the snapshot;
+   older snapshots still validate and restore their Primary value.
+
+3. **The longest-gap outline is a verdict, so it is painted like one** — green
+   `#C0DD97` within the requirement, orange `#F97316` beyond it, never the
+   lane's identity colour. It used to fall back to identity, which made a
+   passing Primary gap amber `#FBBF24` beside a failing one at `#F97316`: 12° of
+   hue between opposite meanings, on the one element whose whole job is to say
+   which. The legend now shows the swatch(es) actually on screen and names them.
+
+4. **A plain globe click no longer moves the wrong target.** A Secondary row
+   created without a location was selected, said "…or place this point on the
+   globe", and a click moved the PRIMARY and took the selection with it.
+   Shift-click was the only gesture that worked and was documented only inside a
+   popover you had to have opened. A plain click now completes the selected
+   Secondary when that row has no location — and only then. The rule is a pure
+   function, `globePickDestination` in `domain/analysisTargets.ts`, so it is
+   unit-tested without a Cesium canvas.
+
+5. **The display rail has a `Display` heading at every width** (the `summary`
+   that carried it is `md:hidden`, so above `md` the stage opened with six
+   unheaded buttons), and each toggle carries a filled/hollow dot — on and off
+   differed only in ink weight.
+
+6. **`How this works`** — a `<details>` on the stage rail, closed by default,
+   stating what the module answers, the four panels as a sequence, the globe's
+   gestures, how to read the timeline, and what the four KPI figures mean. No
+   portal, no focus trap, no state in `RevisitApp`. Its open height is
+   `calc(100vh - 42rem)`: the budget between rail and timeline moves 1:1 with
+   viewport height, so a `vh` fraction overflows the timeline on a short window.
+   Hidden below `md` and below 640 px of height.
+
+### Second pass, same day — seven refinements
+
+Requested after reading the first pass on screen; detail in the review doc under
+"Second pass".
+
+7. **`How this works` moved to the header chrome.** It is a `?` sharing the rail's
+   left column with the back-to-ENG/COMM control, above it — the column of
+   things that are about the TOOL. The return control stretches to the rail, so
+   it simply gives up the 32 px the `?` takes. The panel became a portalled card
+   anchored to the button's live rect (Escape or an outside press closes it,
+   focus returns to the trigger) because a `<details>` opening inside a 44 px
+   rail would push the whole stage down. Deliberately non-modal.
+8. **`Result drivers` steps back** — a `revisit-panel-quiet` modifier at `0.26`
+   border alpha against the answer cards' `0.62`. Supporting evidence, closed by
+   default; its summary row keeps full contrast, which is where the 3:1 floor
+   actually applies.
+9. **The constellation chip is `OneWeb Gen1 · HLD`**, spelled exactly like the
+   drawer tab it opens (and `Custom HLD` likewise). Two e2e assertions followed.
+10. **ANALYSIS TARGET lines up with the analysis column.** Measured 1184→1584
+    against 1188→1588: the same `min(400px, 32vw)`, 4 px apart, because the rail
+    carried `lg:px-4` where the stage overlay carries `sm:p-3`. Dropping it puts
+    both edges at 0 px difference. **Keep the rail's horizontal padding equal to
+    the stage overlay's** — that equality is the alignment.
+11. **The recommendation is `5 ·`**, numbered like the four before it.
+12. **The recommended gap is led by a green `→`** and named
+    `Maximum gap once this configuration is applied`: it is a consequence of the
+    button under it, not a second current value.
+13. **`max-gap definition` is gone from the KPI qualification line** — it named a
+    definition without giving one. `72 h window · boundary gaps discarded`.
+
+### Third pass — the light theme could not show a verdict
+
+Found by reading the regenerated light baseline; not requested, and the most
+serious defect in the review.
+
+14. **Every outcome verdict was invisible in the light theme.**
+    `REVISIT_OUTCOME`'s 200/300-weight inks are chosen for a black stage and
+    nothing remapped them: `Requirement missed` measured **1.01 : 1** — an empty
+    pill — `Requirement met` 1.11, the error badge 1.01, the `MEETS`/`MISSES`
+    lane text 1.10/1.42. Two partial `[class*="text-…"]` rules existed for red
+    and `lime-200` only; they are replaced by exact-token `:is()` rules for
+    lime, orange and red (amber already had a correct block). **After, on
+    rendered pixels: 5.37 : 1.**
+15. **`‹ ENG` and the new `?` were dark on dark** in the light theme — they
+    paint their own `slate-700/70` tile instead of using `.revisit-panel`, so
+    the theme reached their ink and not their fill: **1.34 : 1**. The tile now
+    follows the theme. **After: 12.19 and 12.31 : 1.**
+
+**Trap worth remembering:** confirming this fix against the regenerated golden
+said "not fixed". The golden was stale — `--update-snapshots` had left the
+baselines alone because a badge's ink plus two 44 px tiles fall under
+`maxDiffPixelRatio: 0.01`. A baseline that does not move is not evidence that
+nothing changed; take a fresh `page.screenshot()` and sample the element's
+measured rect.
+
+### One pre-existing e2e failure fixed
+
+`revisit-p2c-c` › *computes and retains both polygon roles independently*
+asserted `toHaveClass(/revisit-target-reference/)` on the active-result
+cartouche. That element became `className="sr-only"` in `10d1ff9` (Sidebar
+display optimization) and lost the role class with it, so the assertion had been
+failing since. **Verified failing on a pristine `10d1ff9` worktree before
+touching it**, then removed — the `data-revisit-target-role` assertion beside it
+already carries the contract, and a class that paints a border is meaningless on
+an element with no box.
+
+**Method note for the next session:** the first desktop run reported three
+failures that were all artefacts of editing source while Playwright ran — Vite
+HMR remounts the app mid-test, which reads as `element was detached from the
+DOM` and as a scenario reset to defaults. And a `git worktree` used for a
+baseline run reuses port 4173 (`reuseExistingServer`), so its dev server will
+silently serve the OTHER tree's code to any run started after it. Kill the
+worktree's server before trusting the next result.
+
+### Consequences for tests
+
+Four e2e specs addressed the select by
+`Requirement for {Primary,Secondary} target` → `Requirement for all targets`
+(p1, p2c-b, p7a, p7c). `revisit-p2c-b`'s swap test asserted that a swap
+exchanges two thresholds; with one threshold it asserts the invariant that
+replaces it — a swap changes neither the requirement nor the payload count.
+`RevisitP0Ui` now expects `#C0DD97` on a meeting gap and the new legend wording;
+`RevisitP1Ui` expects a neutral, always-enabled select. `revisit-p0` and
+`revisit-advanced` follow the renamed model chips (`OneWeb Gen1 · HLD`,
+`Custom HLD`). The 18 visual baselines were regenerated: the panel borders, the
+rail dots and heading, the `?`, the `5 ·` and the `→` all move pixels well past
+`maxDiffPixelRatio: 0.01`.
 
 ## 2026-09-01 — GUI clarification P3, P4, P5, P7, P8 implemented
 

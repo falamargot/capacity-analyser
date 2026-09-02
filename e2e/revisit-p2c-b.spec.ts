@@ -86,19 +86,21 @@ test.describe('REVISIT P2c-B unified target set', () => {
     expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.viewportWidth + 1);
   });
 
-  test('swaps two point roles with their requirements without changing payload count', async ({ page }, testInfo) => {
+  test('swaps two point roles without changing the requirement or the payload count', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop-chromium', 'Role ownership is viewport-independent');
     const targetSet = page.locator('[data-revisit-context-panel="analysis-target"]');
     const hostedPayloads = page.locator('[data-revisit-context-panel="hosted-payloads"]');
 
     await targetSet.getByRole('button', { name: 'Add primary target' }).click();
     await targetSet.getByRole('menuitem', { name: 'Add Primary point target' }).click();
-    await hostedPayloads.getByRole('combobox', { name: 'Requirement for Primary target' })
+    await hostedPayloads.getByRole('combobox', { name: 'Requirement for all targets' })
       .selectOption(String(3600_000));
 
     await addSecondaryPoint(page);
     await page.getByRole('combobox', { name: 'Secondary target', exact: true }).selectOption('Singapore');
-    await hostedPayloads.getByRole('combobox', { name: 'Requirement for Secondary target' })
+    // Set from the Secondary row: the threshold belongs to the analysis, so it
+    // is the same control and the same value whichever target is selected.
+    await hostedPayloads.getByRole('combobox', { name: 'Requirement for all targets' })
       .selectOption(String(6 * 3600_000));
     const payloadCountBefore = await hostedPayloads.locator('[data-revisit-payload-count]').textContent();
 
@@ -107,12 +109,14 @@ test.describe('REVISIT P2c-B unified target set', () => {
     await expect(page.getByRole('combobox', { name: 'Target', exact: true })).toHaveValue('Singapore');
     await expect(page.getByRole('combobox', { name: 'Secondary target', exact: true })).toHaveValue('London');
     await expect(page.getByLabel('Active result context')).toContainText('Point result · Primary target');
-    await expect(hostedPayloads.getByRole('combobox', { name: 'Requirement for Primary target' }))
+    // A swap exchanges the targets, not the threshold: 6 h before, 6 h after,
+    // and 6 h again with the Secondary selected.
+    await expect(hostedPayloads.getByRole('combobox', { name: 'Requirement for all targets' }))
       .toHaveValue(String(6 * 3600_000));
     await expect(hostedPayloads.locator('[data-revisit-payload-count]')).toHaveText(payloadCountBefore ?? '');
 
     await targetSet.locator('button[aria-pressed]').filter({ hasText: 'Secondary target' }).click();
-    await expect(hostedPayloads.getByRole('combobox', { name: 'Requirement for Secondary target' }))
-      .toHaveValue(String(3600_000));
+    await expect(hostedPayloads.getByRole('combobox', { name: 'Requirement for all targets' }))
+      .toHaveValue(String(6 * 3600_000));
   });
 });

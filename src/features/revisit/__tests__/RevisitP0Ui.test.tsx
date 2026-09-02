@@ -444,7 +444,7 @@ describe('REVISIT P0 presentation UI', () => {
         expect(onSelectPoint).toHaveBeenCalledWith('comparison-1');
     });
 
-    it('uses orange for finite misses while keeping compliant gaps green or target-coloured', async () => {
+    it('paints the longest-gap outline in the outcome vocabulary: green meets, orange misses', async () => {
         const startMs = Date.UTC(2026, 7, 12, 0);
         const hour = 3600_000;
         await act(async () => root?.render(
@@ -487,11 +487,14 @@ describe('REVISIT P0 presentation UI', () => {
         expect(meetRow?.querySelector('[data-revisit-lane-verdict]')?.className).toContain('text-lime-300');
         expect(container.querySelector('[data-revisit-gap-outcome="misses"]')
             ?.getAttribute('stroke')).toBe('#F97316');
+        // Not the lane's identity colour (#38BDF8 here): amber and orange are
+        // 12 degrees apart, so a passing Primary gap was indistinguishable from
+        // a missing one on the element whose only job is to say which it is.
         expect(container.querySelector('[data-revisit-gap-outcome="meets"]')
-            ?.getAttribute('stroke')).toBe('#38BDF8');
+            ?.getAttribute('stroke')).toBe('#C0DD97');
         const toolbar = container.querySelector('[data-revisit-timeline-toolbar]')!;
         expect(toolbar.textContent).toContain('Requirement ≤ 2 h');
-        expect(toolbar.textContent).toContain('Orange outline · longest gap');
+        expect(toolbar.textContent).toContain('Longest gap · green meets, orange misses');
         expect(toolbar.querySelector('[aria-label="Simulation time controls"]')).not.toBeNull();
     });
 

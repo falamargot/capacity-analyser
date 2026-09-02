@@ -22,7 +22,6 @@ const snapshot = (): RevisitSessionSnapshotV1 => ({
     autoRotate: false,
   },
   requirementMs: 3_600_000,
-  comparisonRequirementMs: 6 * 3_600_000,
   selectionSource: 'manual',
   analysisContext: 'POINTS',
   areaTargetRole: 'COMPARISON',
@@ -48,14 +47,19 @@ describe('revisitSessionSnapshot', () => {
     expect(readRevisitSessionSnapshot()?.scenario.target.name).not.toBe('Changed');
   });
 
-  it('migrates the legacy global requirement to the Secondary target', () => {
-    const legacy = snapshot();
-    delete legacy.comparisonRequirementMs;
-    writeRevisitSessionSnapshot(legacy);
+  it('reads a per-target snapshot back as one shared requirement', () => {
+    // Written between 2026-08-28 and 2026-09-02, when the threshold belonged to
+    // a target. The extra key must not reject the snapshot — that would discard
+    // the whole session — and the Primary value is what the session restores.
+    const legacy = { ...snapshot(), comparisonRequirementMs: 6 * 3_600_000 };
+    writeRevisitSessionSnapshot(legacy as never);
 
     const restored = readRevisitSessionSnapshot();
+    // Accepted, not rejected — rejecting would discard the whole session — and
+    // the Primary value is the one the module now reads as its single
+    // requirement. The stale key rides along unread until the next write drops
+    // it, which is why nothing asserts its absence here.
     expect(restored?.requirementMs).toBe(3_600_000);
-    expect(restored?.comparisonRequirementMs).toBe(3_600_000);
   });
 
   it('persists an intentional empty target set and rejects orphan comparison data', () => {

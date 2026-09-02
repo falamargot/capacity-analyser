@@ -43,7 +43,7 @@ test.describe('REVISIT P0 demonstration contract', () => {
      * label and the button containing it and reports two "occurrences" of a
      * label rendered once.
      */
-    await expect(page.getByText('HLD reference profile', { exact: true })).toHaveCount(1);
+    await expect(page.getByText('OneWeb Gen1 · HLD', { exact: true })).toHaveCount(1);
     await expect(page.getByText(/not yet calibrated/i)).toHaveCount(0);
 
     // One panel owns the model: the chip and the settings button open the same one.

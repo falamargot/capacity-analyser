@@ -129,7 +129,7 @@ describe('REVISIT P1 functional UI', () => {
         expect(onTargetCoordinatesChange).toHaveBeenCalledWith(48.86, 2.35, undefined);
     });
 
-    it('keeps the selected target requirement beside the swath input', async () => {
+    it('keeps one shared requirement beside the swath input', async () => {
         const scenario = defaultScenario(Date.UTC(2026, 7, 12));
         const onRequirementChange = vi.fn();
         await act(async () => root?.render(
@@ -144,7 +144,6 @@ describe('REVISIT P1 functional UI', () => {
                 requirementMs={2 * 3600_000}
                 requirementChoicesHours={[1, 2, 6]}
                 onRequirementChange={onRequirementChange}
-                activeTargetRole="REFERENCE"
                 spreadNote={null}
             />
         ));
@@ -155,9 +154,13 @@ describe('REVISIT P1 functional UI', () => {
         expect(hostedPayloads.textContent).toContain('Assumed sensor swath');
         expect(hostedPayloads.textContent).toContain('Requirement');
         const requirement = hostedPayloads.querySelector(
-            '[aria-label="Requirement for Primary target"]'
+            '[aria-label="Requirement for all targets"]'
         ) as HTMLSelectElement;
-        expect(requirement.className).toContain('border-amber');
+        // Neutral, not the selected target's colour: the threshold belongs to
+        // the analysis, not to whichever target is in focus.
+        expect(requirement.className).not.toContain('border-amber');
+        expect(requirement.className).not.toContain('border-sky');
+        expect(requirement.disabled).toBe(false);
         await act(async () => change(requirement, String(6 * 3600_000)));
         expect(onRequirementChange).toHaveBeenCalledWith(6 * 3600_000);
     });

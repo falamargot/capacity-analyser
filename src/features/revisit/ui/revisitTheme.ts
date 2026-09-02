@@ -142,17 +142,25 @@ export interface ModelBadge {
     dot: string;
 }
 
+/*
+ * The label is the one the drawer's mode tab carries (`MODE_OPTIONS` in
+ * `AdvancedDrawer`), not a second name for the same thing. The chip is the
+ * button that OPENS that drawer, so `HLD reference profile` on the button over
+ * `OneWeb Gen1 · HLD` in the tab it selects made one choice read as two — and
+ * the button was the only one of the two that never named the constellation.
+ * Keep these two lists spelled identically.
+ */
 export function modelBadge(mode: ReferenceMode | undefined): ModelBadge {
     if (mode === 'CUSTOM') {
         return {
-            label: 'Custom constellation',
+            label: 'Custom HLD',
             chip: 'border-amber-400/35 bg-amber-400/10 text-amber-200',
             text: 'text-amber-200',
             dot: 'bg-amber-400',
         };
     }
     return {
-        label: 'HLD reference profile',
+        label: 'OneWeb Gen1 · HLD',
         chip: 'border-lime-400/35 bg-lime-400/10 text-lime-200',
         text: 'text-lime-200',
         dot: 'bg-lime-400',

@@ -461,6 +461,16 @@ function RecommendedCost({ payloadCount, currentPayloadCount }: {
  * The measured worst case of the proposal, in the shape the current block uses
  * for its own — same label, same size, same alignment, one card apart.
  */
+/**
+ * What the proposed configuration MEASURES — printed with the same label as the
+ * current block's figure so the two compare, and led by an arrow so the reader
+ * cannot mistake the second for a restatement of the first.
+ *
+ * Without the arrow the card carried `Maximum gap 4 h 16 min` under the current
+ * configuration and `Maximum gap 1 h 53 min` under the recommendation, in the
+ * same typeface at the same indent: two facts, where one is a fact and the
+ * other is a consequence of pressing the button underneath it.
+ */
 function RecommendedMeasurement({ label, maxGapMs }: {
     label: string;
     maxGapMs: number | null;
@@ -468,8 +478,14 @@ function RecommendedMeasurement({ label, maxGapMs }: {
     if (maxGapMs === null) return null;
     return (
         <dl className="mt-2 text-[13px] leading-5">
-            <div className="flex items-baseline justify-between gap-3">
-                <dt className="text-slate-400">{label}</dt>
+            <div
+                className="flex items-baseline justify-between gap-3"
+                aria-label={`${label} once this configuration is applied`}
+            >
+                <dt className="text-slate-400">
+                    <span aria-hidden="true" className="mr-1 font-black text-lime-300">→</span>
+                    {label}
+                </dt>
                 <dd className="font-black tabular-nums text-slate-100">{formatGap(maxGapMs)}</dd>
             </div>
         </dl>
@@ -525,7 +541,14 @@ function SizingBlock({
             aria-live="polite"
             aria-busy={sizing.kind === 'COMPUTING' || undefined}
         >
-            <span className={REVISIT_LABEL}>Recommended configuration</span>
+            {/* Step 5 of the same path the header numbers 1-3 and the block
+                above numbers 4. It was the only unnumbered stop on it, which
+                made the sequence look like it ended at the verdict — when the
+                whole point of this card is that there is something to do next. */}
+            <span className={REVISIT_LABEL} aria-label="Step 5 · Recommended configuration">
+                <span aria-hidden="true" className="mr-1 text-slate-600">5 ·</span>
+                Recommended configuration
+            </span>
             {status && (
                 <span
                     title={status.title}

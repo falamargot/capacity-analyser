@@ -128,7 +128,7 @@ test.describe('REVISIT P7C freshness contract', () => {
     await expect(card).not.toContainText('Calculating fleet sizing', { timeout: 60_000 });
 
     await startRecording(page);
-    await page.getByRole('combobox', { name: 'Requirement for Primary target' }).selectOption(String(24 * 3600_000));
+    await page.getByRole('combobox', { name: 'Requirement for all targets' }).selectOption(String(24 * 3600_000));
     await expect(card).toContainText('at least every 24 h');
     await expect(card).toContainText('Requirement met');
     const frames = await stopRecording(page);

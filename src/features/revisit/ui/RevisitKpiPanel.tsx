@@ -178,9 +178,15 @@ export const RevisitKpiPanel: React.FC<RevisitKpiPanelProps> = ({
             </div>
 
             {/* The qualification line. The boundary-gap convention is stated here
-                because it materially changes the headline number. */}
+                because it materially changes the headline number.
+
+                `max-gap definition` used to sit between the two. It qualified
+                nothing — the row above is already labelled `Maximum gap`, and
+                the phrase names a definition without giving it. What the
+                definition actually says is the clause beside it (boundary gaps
+                are discarded) and, in full, the `How this works` card. */}
             <p className="revisit-kpi-qualification mt-2 text-[12px] leading-4 text-slate-500">
-                {windowHours} h window · max-gap definition · boundary gaps discarded
+                {windowHours} h window · boundary gaps discarded
                 {isComputing && ' · recomputing…'}
             </p>
 

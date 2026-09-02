@@ -101,7 +101,6 @@ interface RevisitHeaderProps {
     requirementMs?: number;
     requirementChoicesHours?: readonly number[];
     onRequirementChange?: (requirementMs: number) => void;
-    activeTargetRole?: RevisitAreaTargetRole | null;
     analysisContext?: RevisitAnalysisContext;
     onAnalysisContextChange?: (context: RevisitAnalysisContext) => void;
     comparisonPoints?: RevisitComparisonPoint[];
@@ -425,7 +424,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
     scenario, payloadCounts, currentPayloadCount, onPayloadCountChange,
     targetNames, onTargetChange, onTargetCoordinatesChange,
     onInstrumentPresetChange, requirementMs, requirementChoicesHours = [],
-    onRequirementChange = () => undefined, activeTargetRole = null,
+    onRequirementChange = () => undefined,
     spreadNote, analysisContext = 'POINTS',
     onAnalysisContextChange = () => undefined, comparisonPoints = [],
     pendingComparisonPointIds = [], secondaryTargetOrder,
@@ -816,19 +815,27 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                         <label className="flex min-w-0 flex-col gap-0.5">
                             <span className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">
                                 Requirement
+                                {/* The scope is stated only once a second target
+                                  * exists, which is the only moment the reader can
+                                  * wonder which target this select is about. */}
+                                {orderedSecondaryTargetIds.length > 0 && (
+                                    <span className="font-semibold normal-case tracking-normal text-slate-500">
+                                        {' '}· all targets
+                                    </span>
+                                )}
                             </span>
                             <select
                                 data-revisit-requirement
-                                aria-label={`Requirement for ${activeTargetRole === 'COMPARISON' ? 'Secondary target' : 'Primary target'}`}
+                                /* One requirement for the whole analysis, so the
+                                 * name never changes with the selection — and the
+                                 * control is no longer painted in the selected
+                                 * target's colour, which is what made a shared
+                                 * setting read as a per-target one. */
+                                aria-label="Requirement for all targets"
                                 value={requirementMs}
-                                disabled={!activeTargetRole}
                                 onChange={(event) => onRequirementChange(Number(event.target.value))}
-                                className={`min-h-11 rounded border bg-transparent px-2 py-1 text-sm font-black text-slate-100 outline-none disabled:cursor-not-allowed disabled:border-slate-600/70 disabled:opacity-50 md:min-h-8 md:text-base ${activeTargetRole === 'REFERENCE'
-                                    ? 'border-amber-400/60 focus:border-amber-300'
-                                    : activeTargetRole === 'COMPARISON'
-                                        ? 'border-sky-400/60 focus:border-sky-300'
-                                        : 'border-slate-600/70 focus:border-slate-300'}`}
-                                title="Maximum acceptable gap between two observations for the selected target"
+                                className="min-h-11 rounded border border-slate-500/70 bg-transparent px-2 py-1 text-sm font-black text-slate-100 outline-none focus:border-slate-200 md:min-h-8 md:text-base"
+                                title="Maximum acceptable gap between two observations. One requirement is applied to every target in the analysis."
                             >
                                 {requirementChoicesHours.map((hours) => (
                                     <option key={hours} value={hours * 3600_000}>

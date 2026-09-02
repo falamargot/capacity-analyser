@@ -66,14 +66,19 @@ test.describe('REVISIT P2c-C mixed target comparison', () => {
     const referenceResult = await referenceRow.textContent();
     const comparisonResult = await comparisonRow.textContent();
     await referenceRow.locator('[data-revisit-lane-result]').click();
+    /*
+     * The role is asserted through `data-revisit-target-role` alone. A
+     * `toHaveClass(/revisit-target-reference/)` pair sat beside these until
+     * 2026-09-02, left stale when the visible cartouche became an `sr-only`
+     * announcement: `.revisit-target-*` paints a border, and an element with no
+     * box cannot carry one. Verified failing on `10d1ff9` before removal.
+     */
     const activeResult = page.getByLabel('Active result context');
     await expect(activeResult).toContainText('Primary area');
     await expect(activeResult).toHaveAttribute('data-revisit-target-role', 'reference');
-    await expect(activeResult).toHaveClass(/revisit-target-reference/);
     await comparisonRow.locator('[data-revisit-lane-result]').click();
     await expect(activeResult).toContainText('Secondary area');
     await expect(activeResult).toHaveAttribute('data-revisit-target-role', 'comparison');
-    await expect(activeResult).toHaveClass(/revisit-target-comparison/);
     await expect(referenceRow).toHaveText(referenceResult ?? '');
     await expect(comparisonRow).toHaveText(comparisonResult ?? '');
   });
