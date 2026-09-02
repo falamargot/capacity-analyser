@@ -62,9 +62,9 @@ export interface CustomerResultCardProps {
      * comparing a described configuration against an undescribed one
      * (P5, 2026-08-31).
      *
-     * The provenance note that shares that slider caption — `measured best of 6
-     * splits at this count` — deliberately stays there: it qualifies the
-     * control, not the answer.
+     * The provenance note that shares that slider caption — `best of 6 possible
+     * distributions` — deliberately stays there: it qualifies the control, not the
+     * answer.
      */
     currentSplit?: { planes: number; perPlane: number } | null;
     currentMaxGapMs: number | null;

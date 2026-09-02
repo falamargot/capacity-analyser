@@ -1,6 +1,6 @@
 import type { RevisitAnalysis } from './runScenario';
 import { formatGap } from './gapStatistics';
-import type { RevisitScenario } from '../domain/types';
+import type { FovSpec, RevisitScenario } from '../domain/types';
 import type { RevisitTargetComparisonRow } from '../workers/revisitProtocol';
 import type { AreaAnalysis } from './areaAnalysis';
 import type { AreaSizingResult } from './areaSizing';
@@ -76,6 +76,22 @@ export type SizingOutcome =
  * screen making different claims about the same result, which is the defect
  * this function exists to prevent.
  */
+/**
+ * The instrument line of the assumptions table.
+ *
+ * The elevation mask belongs here and was missing: it changes every figure in
+ * the sheet — it can only remove accesses — yet two runs at different masks
+ * produced assumption tables that read identically. A reader could not tell
+ * which assumption produced the numbers they were being shown, which is the
+ * one thing an assumptions table exists to prevent.
+ */
+function fovAssumption(payload: FovSpec): string {
+    const base = `${payload.shape.toLowerCase()} · ${payload.halfAngle1Deg}° × ${payload.halfAngle2Deg}° half-angles`;
+    return payload.minElevationDeg === undefined
+        ? base
+        : `${base} · accesses above ${payload.minElevationDeg}° elevation`;
+}
+
 export function customerVerdict(meets: boolean, outcome: SizingOutcome): string {
     if (meets) return 'REQUIREMENT COVERED';
     if (outcome === 'ADDITIONAL_PAYLOADS') return 'MORE PAYLOADS REQUIRED';
@@ -276,7 +292,7 @@ export function buildRevisitResultSheet(
             { label: 'Hosted payloads', value: `${payloadCount} (${planes} planes × ${perPlane})` },
             { label: 'Host fleet', value: `${scenario.reference.planes} planes × ${scenario.reference.satsPerPlane} active satellites` },
             { label: 'Orbit', value: `${scenario.reference.altitudeKm} km · ${scenario.reference.inclinationDeg}° inclination` },
-            { label: 'FOV', value: `${scenario.payload.shape.toLowerCase()} · ${scenario.payload.halfAngle1Deg}° × ${scenario.payload.halfAngle2Deg}° half-angles` },
+            { label: 'FOV', value: fovAssumption(scenario.payload) },
             { label: 'Analysis window', value: `${scenario.window.durationHours} h · ${scenario.window.stepSeconds} s sampling` },
         ],
         comparisons: comparisonRows.map((row, index) => {
@@ -405,7 +421,7 @@ export function buildAreaResultSheet(
             { label: 'Hosted payloads', value: `${planes * perPlane} (${planes} planes × ${perPlane})` },
             { label: 'Host fleet', value: `${scenario.reference.planes} planes × ${scenario.reference.satsPerPlane} active satellites` },
             { label: 'Orbit', value: `${scenario.reference.altitudeKm} km · ${scenario.reference.inclinationDeg}° inclination` },
-            { label: 'FOV', value: `${scenario.payload.shape.toLowerCase()} · ${scenario.payload.halfAngle1Deg}° × ${scenario.payload.halfAngle2Deg}° half-angles` },
+            { label: 'FOV', value: fovAssumption(scenario.payload) },
             { label: 'Area grid', value: `${analysis.area.gridSpacingDeg.toFixed(2)}° · ${analysis.cells.length} cell centres` },
             { label: 'Analysis window', value: `${scenario.window.durationHours} h · ${scenario.window.stepSeconds} s sampling` },
         ],

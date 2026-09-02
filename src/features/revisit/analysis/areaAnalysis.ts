@@ -39,6 +39,17 @@ import { computeAccessIntervalsForCells } from './accessIntervals';
  * 1 returns to the old cost.
  */
 const AREA_CELL_BATCH = 12;
+
+/**
+ * Time bins of the in-view profile (R32).
+ *
+ * 360 divides the default 72 h window into 12-minute bins and a 24 h one into
+ * 4-minute bins. The profile is a smooth spatial quantity — what share of the
+ * grid is visible right now — not a pass list, so it does not need the
+ * resolution the access lanes have; and the timeline it is drawn behind is
+ * ~900 px wide at most, which is where the ceiling really comes from.
+ */
+export const COVERAGE_PROFILE_BINS = 360;
 import { computeGapStatistics } from './gapStatistics';
 import { validateScenarioBase } from './scenarioValidation';
 
@@ -80,6 +91,32 @@ export interface AreaAnalysis {
      * needs the geometry, and the per-cell figures are already in `cells`.
      */
     bindingCells: PointTarget[];
+    /**
+     * Share of the grid's cells in view, per time bin over the window (R32).
+     *
+     * ── WHAT THIS IS, AND WHAT IT IS NOT ────────────────────────────────────
+     * This module refuses to average an area's GAPS: a mean of per-cell revisit
+     * intervals has no mission meaning, and presenting one would soften the
+     * worst-case figure that is the actual commitment. This is a different
+     * quantity and it is well defined — at instant t, how much of the area can
+     * be seen — which is the question a customer asks that the worst-cell lane
+     * cannot answer.
+     *
+     * It must never be read as a verdict. Drawn behind the worst-cell lane as a
+     * faint band, it says WHEN the area is served; the lane above it still says
+     * whether it is served well enough.
+     *
+     * Each entry is time-weighted within its bin, so a pass shorter than a bin
+     * contributes its real duration rather than filling the bin. The unit is
+     * CELLS, not area: the grid is regular in latitude/longitude and therefore
+     * not equal-area, the same bias `meanCellMaxGapMs` carries and the UI
+     * already discloses.
+     *
+     * Accumulated while each cell's intervals are in hand and then discarded,
+     * so it costs one fixed-size array and does not reopen the decision not to
+     * retain per-cell timelines.
+     */
+    inViewProfile: Float32Array;
     /** Accesses of the contractual worst cell only; avoids retaining every cell timeline. */
     worstCellIntervals: AccessInterval[];
     warnings: string[];
@@ -123,6 +160,10 @@ interface CollectedCells {
     stoppedAt: AreaCellResult | null;
     /** The window's sampling step — the resolution the cells were measured at. */
     stepSeconds: number;
+    /** Cell-milliseconds of visibility per bin, before division by the grid. */
+    inViewCellMs: Float32Array;
+    /** The window those bins span, so the divisor is not recomputed from inputs. */
+    windowMs: number;
 }
 
 function collectCells(
@@ -152,6 +193,28 @@ function collectCells(
     let worstCellIntervals: AccessInterval[] = [];
     let hasNeverInViewCell = false;
 
+    // The in-view profile (R32), accumulated in cell-milliseconds per bin.
+    const windowStartMs = scenario.window.startMs;
+    const windowMs = scenario.window.durationHours * 3600_000;
+    const binMs = windowMs / COVERAGE_PROFILE_BINS;
+    const inViewCellMs = new Float32Array(COVERAGE_PROFILE_BINS);
+    const accumulateInterval = (intervalStartMs: number, intervalEndMs: number) => {
+        const from = Math.max(intervalStartMs, windowStartMs);
+        const to = Math.min(intervalEndMs, windowStartMs + windowMs);
+        if (!(to > from) || binMs <= 0) return;
+        const firstBin = Math.max(0, Math.floor((from - windowStartMs) / binMs));
+        const lastBin = Math.min(
+            COVERAGE_PROFILE_BINS - 1,
+            Math.floor((to - windowStartMs) / binMs),
+        );
+        for (let bin = firstBin; bin <= lastBin; bin += 1) {
+            const binStartMs = windowStartMs + bin * binMs;
+            // Time-weighted, not "touched": a two-minute pass inside a
+            // twelve-minute bin must not read as twelve minutes of visibility.
+            inViewCellMs[bin] += Math.min(to, binStartMs + binMs) - Math.max(from, binStartMs);
+        }
+    };
+
     /*
      * Cells are computed in batches that share one propagation pass.
      *
@@ -180,6 +243,9 @@ function collectCells(
                 access.intervals, scenario.window, access.warnings
             );
             cells.push({ target, statistics, maxGapMs: statistics.maxGapMs });
+            for (const interval of access.intervals) {
+                accumulateInterval(interval.startMs, interval.endMs);
+            }
 
             if (statistics.coverage === 'NEVER_IN_VIEW') {
                 if (!hasNeverInViewCell) worstCellIntervals = [];
@@ -208,6 +274,7 @@ function collectCells(
                 return {
                     cells, warnings: warningSet, worstCellIntervals,
                     stoppedAt: failing, stepSeconds: scenario.window.stepSeconds,
+                    inViewCellMs, windowMs,
                 };
             }
         }
@@ -215,7 +282,7 @@ function collectCells(
 
     return {
         cells, warnings: warningSet, worstCellIntervals,
-        stoppedAt: null, stepSeconds: scenario.window.stepSeconds,
+        stoppedAt: null, stepSeconds: scenario.window.stepSeconds, inViewCellMs, windowMs,
     };
 }
 
@@ -318,11 +385,29 @@ function finaliseArea(area: AreaTarget, collected: CollectedCells): AreaAnalysis
                 .map((c) => c.target)
             : [];
 
+    /*
+     * Cell-milliseconds become a share of the grid. Bins are equal in width, so
+     * one divisor covers them all; the clamp guards nothing but floating-point
+     * accumulation, since an interval can only be counted once per cell.
+     */
+    const inViewProfile = new Float32Array(collected.inViewCellMs.length);
+    if (cells.length > 0 && collected.inViewCellMs.length > 0) {
+        const binMs = collected.windowMs / collected.inViewCellMs.length;
+        if (binMs > 0) {
+            for (let bin = 0; bin < inViewProfile.length; bin += 1) {
+                inViewProfile[bin] = Math.min(
+                    1, collected.inViewCellMs[bin] / (binMs * cells.length)
+                );
+            }
+        }
+    }
+
     return {
         area,
         cells,
         worstCell,
         bindingCells,
+        inViewProfile,
         bestCell: measured.length > 0
             ? measured.reduce((a, b) => (b.maxGapMs! < a.maxGapMs! ? b : a))
             : null,

@@ -24,6 +24,11 @@ test.describe('REVISIT P2c-B unified target set', () => {
     await expect(targetSet.getByRole('button', { name: 'Add primary target' })).toBeVisible();
     await targetSet.getByRole('button', { name: 'Add primary target' }).click();
     await targetSet.getByRole('menuitem', { name: 'Add Primary point target' }).click();
+    const primaryCanvas = page.locator('.cesium-widget canvas');
+    const primaryBox = await primaryCanvas.boundingBox();
+    expect(primaryBox).not.toBeNull();
+    await expect(primaryCanvas).toHaveCSS('cursor', 'crosshair');
+    await primaryCanvas.click({ position: { x: primaryBox!.width * 0.5, y: primaryBox!.height * 0.5 }, force: true });
     await expect(targetSet).toContainText('Primary target');
     await expect(targetSet).not.toContainText('Area ·');
     await expect(targetSet).not.toContainText('Primary drives configuration');
@@ -93,6 +98,15 @@ test.describe('REVISIT P2c-B unified target set', () => {
 
     await targetSet.getByRole('button', { name: 'Add primary target' }).click();
     await targetSet.getByRole('menuitem', { name: 'Add Primary point target' }).click();
+    const canvas = page.locator('.cesium-widget canvas');
+    const box = await canvas.boundingBox();
+    expect(box).not.toBeNull();
+    await canvas.click({ position: { x: box!.width * 0.5, y: box!.height * 0.5 }, force: true });
+    // The globe click satisfies the placement flow; the swap this test
+    // describes is then asserted between two NAMED targets, because a role
+    // exchange is only legible when each side can be identified by name rather
+    // than by whatever coordinates the centre of the globe happened to be.
+    await page.getByRole('combobox', { name: 'Target', exact: true }).selectOption('London');
     await hostedPayloads.getByRole('combobox', { name: 'Requirement for all targets' })
       .selectOption(String(3600_000));
 

@@ -2749,3 +2749,81 @@ Then continue autonomously. No previous conversation is required.
   bounds). Unit suite 680, typecheck and lint clean; browser-verified on a
   5°N–45°N polygon at a 12 h requirement, where passing and missing cells appear
   in the same grid.
+
+## Latest change — R32 in-view band behind the Area lane (2026-09-02)
+
+- `areaAnalysis.ts`: `AreaAnalysis.inViewProfile`, a `Float32Array` of
+  `COVERAGE_PROFILE_BINS` (360) entries — the share of grid cells in view per
+  time bin, time-weighted so a pass shorter than a bin contributes its real
+  duration. Accumulated in the existing `AREA_CELL_BATCH` loop from intervals
+  already in hand: one fixed-size array, no per-cell timeline retained, so the
+  standing decision not to keep them is untouched.
+- `CoverageRibbon.tsx`: `accessTrack` paints the profile as the lane background
+  when one is present — Area lanes only; a Point is in view or it is not. Lane
+  identity colour, `0.07 + 0.38 × share`, linear, no curve and no axis. The
+  toolbar carries `Shading · cells in view (context)`.
+- Why this is not the averaged area timeline the module refuses: that refusal is
+  about averaging GAPS, which has no mission meaning. This is "how much of the
+  area is visible at instant t" — well defined, and the question the worst-cell
+  lane cannot answer. It is stated as context so it can never be quoted as the
+  verdict.
+- Tests: `areaTarget.test.ts` asserts bin count and bounds, that the profile's
+  mean equals the mean per-cell `fractionInView` (independent oracle through
+  `computeGapStatistics`), and that bins are not all-or-nothing;
+  `RevisitP0Ui.test.tsx` asserts the band renders under an Area lane only, in
+  the identity colour, at an opacity that cannot be mistaken for an access tick.
+- Unit suite 684, typecheck and lint clean; browser-verified on a 12°N–24°N
+  polygon where the band's peaks sit between the worst cell's access ticks.
+
+## Follow-up — least-covered cell label centred and stacked (2026-09-02)
+
+- `RevisitGlobe.tsx`: the label now sits at the CENTRE of the least-covered cell
+  (it was hung below it, from when an outline was the mark and the label only
+  named it) and breaks over two lines — `Least-covered cell` then
+  `56 min · 16 tied`. A single line grew with the tie count until it was wider
+  than the polygon and ran over neighbouring cells; the block stays roughly
+  square whatever it has to say. `Never seen` / `N cells` follows the same
+  shape.
+
+- Fix, same day: the label was intermittently painted over by the polygon fill
+  and the heat rectangles. Those are translucent geometry at height 0, and
+  translucent geometry writes no depth — within that pass whatever Cesium sorts
+  last wins, and a label 300 m above the ground sat at practically the same
+  distance. It now carries `eyeOffset (0, 0, -50 km)`, which moves it along the
+  view axis only: screen position unchanged (still centred on its cell), depth
+  pulled clear of the ground layers, and still occluded when the area is on the
+  far side of the globe — which simply raising its altitude would have lost.
+
+
+## Latest change — elevation mask propagated to swath, globe and exports (2026-09-03)
+
+The mask existed only inside the access predicate (`containment.ts` step 8).
+Three surfaces still described the bare optical cone; all three are closed.
+
+- `fov/footprint.ts`: new `maskLimbRad(satRadiusKm, minElevationRad)` — an
+  elevation mask IS a tightened limb (`sin η = (R_e/r)·cos ε`; at ε = 0 it
+  returns the geometric horizon `groundArcRad` already clamps to). `maskRay`
+  pulls each footprint ray back to that cone, keeping its azimuth, so the drawn
+  footprint is the FOV projection INTERSECTED with the mask circle. Body +Z is
+  nadir, which is what makes the polar angle here the off-nadir angle.
+- `domain/areaTarget.ts` — `swathWidthDeg` now caps the off-nadir angle by the
+  mask. This one is load-bearing: it is what `validateArea` sizes the area grid
+  against, so an unmasked figure could admit a grid too coarse for what is
+  actually seen — an aliased heat map, the outcome the area analysis refuses.
+- `domain/presets.ts` — `swathKmForFov` capped likewise, so the header's
+  "approx. N km swath" matches the run beside it.
+- Exports: CSV `# min elevation deg,<value|none>` (explicit `none` keeps two
+  files comparable line by line), and the result sheet's FOV assumption gains
+  `· accesses above N° elevation`.
+- Measured behaviour, for anyone demonstrating this: a mask only bites once it
+  exceeds the cone's own edge elevation — 80° for NARROW, 71° for STANDARD, 54°
+  for WIDE at 1200 km. With the executive presets no realistic mask changes a
+  single figure; the control looks dead because geometrically it is.
+- Browser-verified end to end at half-angle 45°: the header swath goes
+  2706 → 1138 km, the drawn swath ellipses shrink to match, time in view falls
+  9.9% → 1.7%, the max gap goes 2 h 51 → 3 h 09 (from meets to misses) and the
+  recommendation changes from "no change required" to "+12 payloads".
+- Tests: `footprint.test.ts` covers the untouched case (mask looser than the
+  cone), the clamped case (every boundary vertex at the mask limit AND at the
+  mask elevation, measured with the WGS84 normal) and the swath narrowing;
+  `csvExport.test.ts` and `resultSheet.test.ts` cover the two export lines.

@@ -110,7 +110,7 @@ describe('REVISIT P1 functional UI', () => {
             />
         ));
 
-        expect(container.textContent).toContain('Illustrative IR preset');
+        expect(container.textContent).not.toContain('Illustrative IR preset');
         const preset = container.querySelector('[aria-label="Instrument preset"]') as HTMLSelectElement;
         await act(async () => change(preset, 'WIDE'));
         expect(onInstrumentPresetChange).toHaveBeenCalledWith('WIDE');

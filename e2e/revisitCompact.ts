@@ -154,6 +154,11 @@ export async function seedReferenceTarget(page: Page): Promise<void> {
     if (await add.count() === 0) return;
     await add.click();
     await page.getByRole('menuitem', { name: 'Add Primary point target' }).click();
+    const canvas = page.locator('.cesium-widget canvas');
+    await expect(canvas).toHaveCSS('cursor', 'crosshair');
+    const box = await canvas.boundingBox();
+    if (!box) throw new Error('Revisit globe canvas is not visible');
+    await canvas.click({ position: { x: box.width * 0.5, y: box.height * 0.5 }, force: true });
     await expect(add).toHaveCount(0);
 }
 
@@ -164,6 +169,10 @@ export async function addSecondaryPoint(page: Page): Promise<void> {
     if (await addReference.isVisible()) {
         await addReference.click({ force: true });
         await page.getByRole('menuitem', { name: 'Add Primary point target' }).click({ force: true });
+        const canvas = page.locator('.cesium-widget canvas');
+        const box = await canvas.boundingBox();
+        if (!box) throw new Error('Revisit globe canvas is not visible');
+        await canvas.click({ position: { x: box.width * 0.5, y: box.height * 0.5 }, force: true });
     }
     await page.getByRole('button', { name: 'Add secondary target' }).click({ force: true });
     await page.getByRole('menuitem', { name: 'Add Secondary point target' }).click({ force: true });

@@ -755,8 +755,28 @@ output belongs with a test-matrix pass, not with a same-day correctness fix.
 
 ## R32. Area timeline — instantaneous covered-cell band behind the worst-cell lane
 
-**Proposed 2026-09-02, not implemented. Accepted in principle, with three
-conditions that are load-bearing rather than cosmetic.**
+**IMPLEMENTED 2026-09-02, with all three conditions honoured. Kept here for the
+reasoning.**
+
+What shipped: `AreaAnalysis.inViewProfile` — 360 time-weighted bins over the
+window, accumulated inside the existing batch loop while each cell's intervals
+are already in hand, so nothing extra is retained; and a background band in
+`CoverageRibbon`'s `accessTrack`, drawn only for lanes that carry a profile.
+The three conditions became, concretely: the toolbar names it
+`Shading · cells in view (context)` — cells, never "% of the zone"; the band is
+painted in the lane's own identity colour at `0.07 + 0.38 × share`, adding no
+hue and staying far below the 0.94 access ticks; and the mapping is linear on
+purpose, since a curve lifting small shares would read as more of the area being
+served than is.
+
+The cross-check that makes the profile more than a restatement of its own
+arithmetic: its mean over the window must equal the mean of the per-cell
+`fractionInView`, which `computeGapStatistics` derives by a different path.
+
+The original reasoning follows.
+
+**Proposed 2026-09-02. Accepted in principle, with three conditions that are
+load-bearing rather than cosmetic.**
 
 Today an AREA lane in `CoverageRibbon` draws exactly one thing: the access
 intervals of the single least-covered cell (`worstCellIntervals`). That is the

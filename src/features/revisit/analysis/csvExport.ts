@@ -121,6 +121,11 @@ export function provenanceHeader(
         `# clocking deg,${payload.clockingDeg}`,
         `# bias along-track deg,${payload.biasDeg.alongTrack}`,
         `# bias cross-track deg,${payload.biasDeg.crossTrack}`,
+        // An elevation mask can only remove accesses, so it changes every
+        // number below it. Recording `none` rather than omitting the row keeps
+        // two exports comparable line by line — an absent row reads as an older
+        // format, an explicit `none` reads as a stated assumption.
+        `# min elevation deg,${payload.minElevationDeg ?? 'none'}`,
         '#',
         '# WINDOW',
         `# start utc,${iso(analysisWindow.startMs)}`,

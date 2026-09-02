@@ -36,6 +36,12 @@ export interface CoverageRibbonTarget extends CoverageRibbonLane {
     unbounded?: boolean;
     /** Target-owned business threshold; falls back to the legacy global prop. */
     requirementMs?: number;
+    /**
+     * Share of the area's cells in view per time bin, drawn as the lane's
+     * background (R32). Points do not have one: a point is in view or it is
+     * not, which the ticks above already say.
+     */
+    inViewProfile?: Float32Array;
 }
 
 interface CoverageRibbonProps {
@@ -78,6 +84,48 @@ interface CoverageRibbonProps {
 }
 
 const TRACK_HEIGHT = 18;
+
+/**
+ * The in-view band (R32), isolated behind `React.memo`.
+ *
+ * The band is 360 rectangles per Area lane, and the ribbon re-renders for
+ * reasons that have nothing to do with it — the playhead's clock read, a
+ * comparison landing, a selection change. Its two inputs are stable: the
+ * profile is the analysis's own array and the colour is a constant, so memoing
+ * makes those renders skip it entirely. The ribbon is the one surface this
+ * module presents from, and it has paid for avoidable work before.
+ */
+const InViewBand: React.FC<{ profile: Float32Array; color: string }> = React.memo(
+    ({ profile, color }) => (
+        <g data-revisit-inview-band={profile.length}>
+            {Array.from(profile, (share, bin) => (
+                share <= 0 ? null : (
+                    <rect
+                        key={bin}
+                        x={`${bin / profile.length * 100}%`}
+                        y={0}
+                        width={`${100 / profile.length}%`}
+                        height={TRACK_HEIGHT}
+                        fill={color}
+                        /*
+                         * Linear in the share, deliberately: a curve that
+                         * lifted small shares would read as more of the area
+                         * being served than is.
+                         *
+                         * The floor is what keeps a barely-covered instant
+                         * distinguishable from an empty one on this near-black
+                         * track, and the ceiling leaves a full bin far below
+                         * the 0.94 access ticks — the band must never be
+                         * mistaken for one.
+                         */
+                        fillOpacity={0.07 + 0.38 * Math.min(1, share)}
+                    />
+                )
+            ))}
+        </g>
+    )
+);
+InViewBand.displayName = 'InViewBand';
 
 function goalTextClass(maxGapMs: number | null, requirementMs: number, unbounded = false): string {
     if (unbounded) return REVISIT_OUTCOME.error.text;
@@ -225,6 +273,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
     const accessTrack = (
         laneIntervals: AccessInterval[], longestGap: ReturnType<typeof longestInteriorGap>,
         color: string, laneRequirementMs: number, emphasised = true,
+        inViewProfile?: Float32Array,
     ) => {
         /*
          * The outlined span is the lane's VERDICT, so it is painted in the
@@ -247,6 +296,27 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
         return (
         <svg className={`block w-full transition-opacity ${emphasised ? 'opacity-100' : 'opacity-75'}`} height={TRACK_HEIGHT} aria-hidden="true">
             <rect width="100%" height={TRACK_HEIGHT} rx={3} fill="#111a2b" stroke="#1e2b42" />
+            {/*
+              * The in-view band (R32): how much of the AREA is visible at each
+              * instant, behind the lane that says how well its worst cell is
+              * served. Two rules make it safe to put here.
+              *
+              * It is drawn in the lane's OWN colour at low alpha, never a new
+              * hue: green and red are outcomes, amber and blue are target
+              * identity, and the heat map owns the per-cell ramp. A fifth
+              * colour language on the one strip that carries the verdict would
+              * cost more than the band is worth.
+              *
+              * And it stays a background — no curve, no axis, no figure. The
+              * band answers "when is the zone seen", which is context; the
+              * ticks and the outlined gap above it answer "is the commitment
+              * met", which is the result. Anything that made the band legible
+              * enough to read a number off would invite the sentence this
+              * module exists to prevent: "we cover 80 % of the zone".
+              */}
+            {inViewProfile && inViewProfile.length > 0 && (
+                <InViewBand profile={inViewProfile} color={color} />
+            )}
             {laneIntervals.map((interval, index) => {
                 const clippedStart = Math.max(interval.startMs, windowStartMs);
                 const clippedEnd = Math.min(interval.endMs, windowEndMs);
@@ -302,6 +372,21 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                             {targetRows.some((row) => row.kind === 'AREA') && (
                                 <span className="hidden text-[11px] font-semibold text-slate-500 sm:inline">
                                     Point lanes + Area worst-cell lane
+                                </span>
+                            )}
+                            {/* The band needs one sentence, and the sentence has
+                              * to say CELLS. The grid is regular in lat/lon and
+                              * so is not equal-area — the same disclosure the
+                              * recommendation panel already carries — and
+                              * "% of the zone" would overstate it near the
+                              * poles. "Context" is there to stop the band being
+                              * quoted as a result. */}
+                            {targetRows.some((row) => (row.inViewProfile?.length ?? 0) > 0) && (
+                                <span
+                                    className="hidden text-[11px] font-semibold text-slate-500 xl:inline"
+                                    title="Shading behind an Area lane: the share of that area's grid cells in view at each instant. Context for the schedule — the requirement is judged on the least-covered cell alone."
+                                >
+                                    Shading · cells in view (context)
                                 </span>
                             )}
                             {targetRows.length === 0 && (
@@ -442,6 +527,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                                             isReference ? REVISIT_COLORS.target : REVISIT_COLORS.comparison,
                                             lane.requirementMs ?? requirementMs,
                                             lane.selected || targetRows.length === 1,
+                                            lane.inViewProfile,
                                         )}
                                         <button
                                             type="button"

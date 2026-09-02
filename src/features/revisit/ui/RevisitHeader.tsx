@@ -266,6 +266,7 @@ const TargetEditor: React.FC<TargetEditorProps> = ({
     const longitudeValid = parsedLongitude !== null && isValidLonDeg(parsedLongitude);
     const coordinatesValid = latitudeValid && longitudeValid;
     const hasCoordinateDraft = latitudeDraft.trim() !== '' || longitudeDraft.trim() !== '';
+    const isUnplaced = latitude === undefined || longitude === undefined;
 
     const close = useCallback(() => {
         setIsOpen(false);
@@ -403,7 +404,9 @@ const TargetEditor: React.FC<TargetEditorProps> = ({
                     Apply coordinates
                 </button>
                 <p className="leading-3">
-                    {coordinateLabel === 'Target'
+                    {isUnplaced
+                        ? 'Point placement: click the globe once to set this target.'
+                        : coordinateLabel === 'Target'
                         ? 'Point mode: click the globe to move the primary target.'
                         : 'Point mode: Shift-click the globe to place or move the secondary target.'}
                 </p>
@@ -867,7 +870,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                     {spreadNote}
                 </div>
                 <div className="text-[11px] leading-3 text-slate-400">
-                    {presetName ? 'Illustrative IR preset · not an instrument datasheet' : `Custom FOV · approx. ${swathKm} km swath`}
+                    {!presetName && `Custom FOV · approx. ${swathKm} km swath`}
                 </div>
             </Panel>
 
@@ -928,7 +931,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                             <div
                                 data-revisit-target-row
                                 data-revisit-target-selected={analysisContext === 'AREA' && areaTargetRole === 'REFERENCE'}
-                                className={`flex items-center gap-1 rounded border px-2 py-1 ${targetSelectionFrame(analysisContext === 'AREA' && areaTargetRole === 'REFERENCE', 'REFERENCE')}`}
+                                className={`flex items-center gap-1 rounded border px-2 py-1.5 ${targetSelectionFrame(analysisContext === 'AREA' && areaTargetRole === 'REFERENCE', 'REFERENCE')}`}
                             >
                                 <button
                                     type="button"
@@ -937,9 +940,9 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                     aria-label="Select primary target polygon"
                                     className="min-w-0 flex-1 text-left"
                                 >
-                                    <div className="text-[11px] font-black uppercase tracking-wide text-amber-300">Primary target</div>
-                                    <div className="truncate text-[12px] font-bold text-amber-100">Polygon · {referenceArea.name}</div>
-                                    <div className="mt-0.5 truncate text-[11px] text-slate-400">
+                                    <div className="whitespace-nowrap text-[11px] font-black uppercase leading-4 tracking-wide text-amber-300">Primary target</div>
+                                    <div className="truncate text-[12px] font-bold leading-4 text-amber-100">Polygon · {referenceArea.name}</div>
+                                    <div className="mt-0.5 truncate text-[11px] leading-4 text-slate-400">
                                         {referenceArea.boundary.length} vertices · {referenceAreaCellCount === null ? 'not analysed' : `${referenceAreaCellCount} cells`} · grid {referenceArea.gridSpacingDeg}°
                                     </div>
                                 </button>
@@ -980,17 +983,17 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                         <div
                             data-revisit-target-row
                             data-revisit-target-selected={analysisContext === 'POINTS' && selectedPointId === REFERENCE_POINT_ID}
-                            className={`rounded border px-1.5 py-1 ${targetSelectionFrame(analysisContext === 'POINTS' && selectedPointId === REFERENCE_POINT_ID, 'REFERENCE')}`}
+                            className={`rounded border px-1.5 py-1.5 ${targetSelectionFrame(analysisContext === 'POINTS' && selectedPointId === REFERENCE_POINT_ID, 'REFERENCE')}`}
                         >
                             <div className="flex min-w-0 items-center gap-1">
                                 <button
                                     type="button"
                                     onClick={() => onSelectedPointChange(REFERENCE_POINT_ID)}
                                     aria-pressed={analysisContext === 'POINTS' && selectedPointId === REFERENCE_POINT_ID}
-                                    className="w-[88px] shrink-0 text-left"
+                                    className="w-[104px] shrink-0 text-left"
                                 >
-                                    <span className="block text-[11px] font-black uppercase tracking-wide text-amber-300">Primary target</span>
-                                    <span className="block text-[11px] tabular-nums text-slate-400">
+                                    <span className="block whitespace-nowrap text-[11px] font-black uppercase leading-4 tracking-wide text-amber-300">Primary target</span>
+                                    <span className="block text-[11px] leading-4 tabular-nums text-slate-400">
                                         {target.latDeg.toFixed(2)}° · {target.lonDeg.toFixed(2)}°
                                     </span>
                                 </button>
@@ -1063,7 +1066,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                     <div
                                         data-revisit-target-row
                                         data-revisit-target-selected={analysisContext === 'AREA' && areaTargetRole === 'COMPARISON'}
-                                        className={`flex items-center gap-1 rounded border px-2 py-1 ${targetSelectionFrame(analysisContext === 'AREA' && areaTargetRole === 'COMPARISON', 'COMPARISON')}`}
+                                        className={`flex items-center gap-1 rounded border px-2 py-1.5 ${targetSelectionFrame(analysisContext === 'AREA' && areaTargetRole === 'COMPARISON', 'COMPARISON')}`}
                                     >
                                         <button
                                             type="button"
@@ -1072,11 +1075,11 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                             aria-label="Select secondary target polygon"
                                             className="min-w-0 flex-1 text-left"
                                         >
-                                            <div className="text-[11px] font-black uppercase tracking-wide text-sky-700 dark:text-sky-300">Secondary target</div>
-                                            <div className="truncate text-[12px] font-bold text-sky-900 dark:text-sky-100">
+                                            <div className="whitespace-nowrap text-[11px] font-black uppercase leading-4 tracking-wide text-sky-700 dark:text-sky-300">Secondary target</div>
+                                            <div className="truncate text-[12px] font-bold leading-4 text-sky-900 dark:text-sky-100">
                                                 Polygon · {comparisonArea?.name ?? 'Secondary area'}
                                             </div>
-                                            <div className="mt-0.5 truncate text-[11px] text-slate-400">
+                                            <div className="mt-0.5 truncate text-[11px] leading-4 text-slate-400">
                                                 {comparisonArea
                                                     ? `${comparisonArea.boundary.length} vertices · ${comparisonAreaCellCount === null ? 'not analysed' : `${comparisonAreaCellCount} cells`} · grid ${comparisonArea.gridSpacingDeg}°`
                                                     : 'Draw or import a polygon'}
@@ -1144,16 +1147,16 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                 key={point.id}
                                 data-revisit-target-row
                                 data-revisit-target-selected={analysisContext === 'POINTS' && selectedPointId === point.id}
-                                className={`flex min-w-0 items-center gap-1 rounded border px-1.5 py-1 ${targetSelectionFrame(analysisContext === 'POINTS' && selectedPointId === point.id, 'COMPARISON')}`}
+                                className={`flex min-w-0 items-center gap-1 rounded border px-1.5 py-1.5 ${targetSelectionFrame(analysisContext === 'POINTS' && selectedPointId === point.id, 'COMPARISON')}`}
                             >
                                 <button
                                     type="button"
                                     onClick={() => onSelectedPointChange(point.id)}
                                     aria-pressed={analysisContext === 'POINTS' && selectedPointId === point.id}
-                                    className="w-[88px] shrink-0 text-left"
+                                    className="w-[104px] shrink-0 text-left"
                                 >
-                                    <span className="block text-[11px] font-black uppercase tracking-wide text-sky-700 dark:text-sky-300">Secondary target</span>
-                                    <span className="block text-[11px] tabular-nums text-slate-400">
+                                    <span className="block whitespace-nowrap text-[11px] font-black uppercase leading-4 tracking-wide text-sky-700 dark:text-sky-300">Secondary target</span>
+                                    <span className="block text-[11px] leading-4 tabular-nums text-slate-400">
                                         {point.target
                                             ? `${point.target.latDeg.toFixed(2)}° · ${point.target.lonDeg.toFixed(2)}°`
                                             : 'Not set'}

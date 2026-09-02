@@ -3,8 +3,9 @@ import { WGS84_A_KM, orbitalRadiusKm } from '../../../utils/wgs84Geometry';
 import { toRad, toDeg, v3 } from '../../../utils/sphericalGeometry';
 import {
     DEFAULT_FOOTPRINT_SAMPLES, computeFootprint, groundArcRad,
-    halfSwathKm, horizonOffNadirDeg,
+    halfSwathKm, horizonOffNadirDeg, maskLimbRad,
 } from '../fov/footprint';
+import { swathWidthDeg } from '../domain/areaTarget';
 import { prepareFov } from '../fov/containment';
 import { argLatRateRadPerSec, earthRotationRad, eciToEcef, geodeticToEcef } from '../propagation/keplerJ2';
 import type { EciState, FovSpec } from '../domain/types';
@@ -172,6 +173,65 @@ const ALT_KM = 600;
             expect(lookAngleFromSatDeg(sat, EPOCH, 0, p)).toBeCloseTo(25, 6);
         }
         expect(fp.clampedVertices).toBe(0);
+    });
+
+    /*
+     * ── The drawn footprint must obey the elevation mask ────────────────────
+     *
+     * The mask lives in the access predicate, and the globe used to draw the
+     * bare optical cone regardless: the picture claimed coverage the numbers
+     * had already refused. These pin the two together.
+     */
+    describe('elevation mask', () => {
+        /** Elevation of the satellite above the WGS84 horizon at a ground point. */
+        const elevationDeg = (p: { lat: number; lng: number }): number => {
+            const theta = earthRotationRad(EPOCH, 0);
+            const satEcef = eciToEcef(v3(sat.x, sat.y, sat.z), theta);
+            const g = geodeticToEcef(p.lat, p.lng, 0);
+            const d = v3(satEcef.x - g.x, satEcef.y - g.y, satEcef.z - g.z);
+            const f = 1 / 298.257223563;
+            const bSq = (WGS84_A_KM * (1 - f)) ** 2;
+            // Unnormalised WGS84 normal at the ground point.
+            const n = v3(g.x / (WGS84_A_KM ** 2), g.y / (WGS84_A_KM ** 2), g.z / bSq);
+            const dot = d.x * n.x + d.y * n.y + d.z * n.z;
+            return toDeg(Math.asin(dot / (Math.hypot(d.x, d.y, d.z) * Math.hypot(n.x, n.y, n.z))));
+        };
+
+        it('leaves the footprint untouched when the mask is looser than the cone', () => {
+            const bare = computeFootprint(sat, prepareFov(cone(25)), EPOCH, 0)!;
+            const masked = computeFootprint(
+                sat, prepareFov({ ...cone(25), minElevationDeg: 10 }), EPOCH, 0
+            )!;
+            expect(masked.boundary).toEqual(bare.boundary);
+        });
+
+        it('pulls the boundary back to the mask when the cone reaches past it', () => {
+            const masked = computeFootprint(
+                sat, prepareFov({ ...cone(45), minElevationDeg: 40 }), EPOCH, 0
+            )!;
+            const limit = toDeg(maskLimbRad(A_KM, toRad(40)));
+            expect(limit).toBeLessThan(45);
+            for (const p of masked.boundary) {
+                expect(lookAngleFromSatDeg(sat, EPOCH, 0, p)).toBeCloseTo(limit, 6);
+                // And the point of the whole exercise: the drawn edge is where
+                // the access test stops counting. Equatorial satellite, so the
+                // WGS84 normal and the spherical clamp agree closely.
+                expect(elevationDeg(p)).toBeCloseTo(40, 1);
+            }
+        });
+
+        it('shrinks the swath figure the area grid guard is sized against', () => {
+            const reference = {
+                pattern: 'STAR', planes: 6, satsPerPlane: 4, inclinationDeg: 87.9,
+                altitudeKm: ALT_KM, phasingF: 1, fudge: 1,
+            } as const;
+            const wide = cone(45);
+            const bare = swathWidthDeg(reference, wide);
+            const masked = swathWidthDeg(reference, { ...wide, minElevationDeg: 40 });
+            expect(masked).toBeLessThan(bare);
+            // A mask below the cone's own edge elevation changes nothing.
+            expect(swathWidthDeg(reference, { ...wide, minElevationDeg: 1 })).toBeCloseTo(bare, 9);
+        });
     });
 
     it('draws an elongated footprint for unequal half-angles', () => {

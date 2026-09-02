@@ -4,9 +4,9 @@
  * REVISIT is read by people who did not build it and who have nobody beside
  * them to ask. Everything they need was already on screen and none of it was
  * named: the numbered header panels are a sequence but never say so, the globe
- * takes a plain click for the Primary target and a Shift-click for the
- * Secondary (the second is stated only inside a popover you must already have
- * opened), the timeline is seekable by clicking it, and four KPI figures are
+ * takes one plain click to place a Point chosen from Analysis target, then a
+ * plain click to move the Primary and a Shift-click to move the Secondary; the
+ * timeline is seekable by clicking it, and four KPI figures are
  * printed with no definition of what a "gap" or "in view" is.
  *
  * The trigger is a `?` sharing the header rail's left column with the
@@ -184,7 +184,7 @@ export function HowThisWorks({ stretch = false }: {
 
                             <div className="flex flex-col gap-1">
                                 <span className={HEADING}>On the globe</span>
-                                <p>Click to place or move the Primary target. Shift-click to place or move the Secondary. Drag to rotate, scroll to zoom.</p>
+                                <p>After choosing Point, click once to place the selected target. Later, click to move the Primary or Shift-click to move the Secondary. Drag to rotate, scroll to zoom.</p>
                             </div>
 
                             <div className="flex flex-col gap-1">

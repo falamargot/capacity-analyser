@@ -22,7 +22,7 @@
 
 import { orbitalRadiusKm } from '../../../utils/wgs84Geometry';
 import { toDeg, toRad } from '../../../utils/sphericalGeometry';
-import { groundArcRad } from '../fov/footprint';
+import { groundArcRad, maskLimbRad } from '../fov/footprint';
 import type { FovSpec, PointTarget, WalkerSpec } from './types';
 
 export interface LatLonDeg {
@@ -141,12 +141,30 @@ export function isAreaTargetDraft(value: unknown): value is AreaTarget {
         ));
 }
 
-/** Swath width in degrees of ground arc, for the aliasing check. */
+/**
+ * Swath width in degrees of ground arc, for the aliasing check.
+ *
+ * An elevation mask narrows this, and the narrowing is load-bearing rather than
+ * cosmetic: this figure is what `validateArea` compares the grid spacing
+ * against, so a mask that shrinks the real footprint while the guard still
+ * reasoned on the bare optical cone would let through a grid too coarse for
+ * what is actually seen — an aliased heat map that looks authoritative, which
+ * is the one outcome the area analysis refuses.
+ */
 export function swathWidthDeg(reference: WalkerSpec, payload: FovSpec): number {
     const a = orbitalRadiusKm(reference.altitudeKm);
     const widest = Math.max(payload.halfAngle1Deg, payload.halfAngle2Deg);
     const bias = Math.hypot(payload.biasDeg.alongTrack, payload.biasDeg.crossTrack);
-    return 2 * toDeg(groundArcRad(a, toRad(Math.min(widest + bias, 89))).arcRad);
+    const offNadirRad = effectiveOffNadirRad(a, toRad(Math.min(widest + bias, 89)), payload);
+    return 2 * toDeg(groundArcRad(a, offNadirRad).arcRad);
+}
+
+/** The off-nadir angle actually reachable: the FOV's, or the mask's if tighter. */
+function effectiveOffNadirRad(
+    satRadiusKm: number, fovOffNadirRad: number, payload: FovSpec
+): number {
+    if (payload.minElevationDeg === undefined) return fovOffNadirRad;
+    return Math.min(fovOffNadirRad, maskLimbRad(satRadiusKm, toRad(payload.minElevationDeg)));
 }
 
 /**

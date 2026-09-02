@@ -19,7 +19,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Viewer as ResiumViewer, type CesiumComponentRef } from 'resium';
 import {
-    Cartesian2, Cartesian3, Cartographic, Color, Ellipsoid, ImageryLayer, LabelStyle,
+    Cartesian2, Cartesian3, Cartographic, Color, Ellipsoid, HorizontalOrigin,
+    ImageryLayer, LabelStyle,
     Math as CesiumMath, PointPrimitiveCollection, PolygonHierarchy, Rectangle,
     VerticalOrigin,
     KeyboardEventModifier, ScreenSpaceEventHandler, ScreenSpaceEventType, TileMapServiceImageryProvider,
@@ -51,6 +52,8 @@ interface RevisitGlobeProps {
     referenceArea: AreaTarget | null;
     comparisonArea: AreaTarget | null;
     isDrawingArea: boolean;
+    /** A Point chosen from Analysis target is waiting for one globe click. */
+    isPlacingPoint: boolean;
     analysisContext: RevisitAnalysisContext;
     hasReferenceTarget: boolean;
     areaTargetRole: RevisitAreaTargetRole;
@@ -128,7 +131,7 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
     scenario, fleet, selectedIds, options, getTimeMs,
     referenceAreaAnalysis, comparisonAreaAnalysis,
     referenceArea, comparisonArea,
-    isDrawingArea, analysisContext, hasReferenceTarget, areaTargetRole, referenceIsArea,
+    isDrawingArea, isPlacingPoint, analysisContext, hasReferenceTarget, areaTargetRole, referenceIsArea,
     comparisonPoints, secondaryTargetOrder, selectedPointId,
     areaRequirementsMs, autoRotate, onPickTarget,
     onDrawAreaVertex, onAddComparisonPoint, onClearTargets, onRemoveComparisonTarget,
@@ -344,11 +347,15 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
                 return;
             }
             if (!point) {
+                // A missed click must not cancel the target set while the
+                // crosshair is asking for a location. Keep placement active so
+                // the next click on the Earth can complete it.
+                if (isPlacingPoint) return;
                 onClearTargets();
                 return;
             }
             const { latDeg, lonDeg } = point;
-            if (analysisContext === 'POINTS' && !referenceIsArea) {
+            if (analysisContext === 'POINTS' && (!referenceIsArea || isPlacingPoint)) {
                 onPickTarget(latDeg, lonDeg);
             }
         }, ScreenSpaceEventType.LEFT_CLICK);
@@ -367,18 +374,18 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
 
         return () => handler.destroy();
     }, [
-        viewer, hasReferenceTarget, isDrawingArea, analysisContext, referenceIsArea,
+        viewer, hasReferenceTarget, isDrawingArea, isPlacingPoint, analysisContext, referenceIsArea,
         onAddComparisonPoint, onClearTargets, onDrawAreaVertex, onPickTarget,
         onRemoveComparisonTarget,
     ]);
 
     useEffect(() => {
-        if (!viewer || viewer.isDestroyed?.() || !isDrawingArea) return;
+        if (!viewer || viewer.isDestroyed?.() || (!isDrawingArea && !isPlacingPoint)) return;
         const canvas = viewer.scene.canvas;
         const previousCursor = canvas.style.cursor;
         canvas.style.cursor = 'crosshair';
         return () => { canvas.style.cursor = previousCursor; };
-    }, [viewer, isDrawingArea]);
+    }, [viewer, isDrawingArea, isPlacingPoint]);
 
     useRevisitScene(viewer, scenario, fleet, selectedIds, options, getTimeMs);
 
@@ -636,24 +643,28 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
             const worst = analysis.worstCell;
             const selected = analysisContext === 'AREA' && areaTargetRole === role;
             if (!worst || !selected) return [];
-            const half = analysis.area.gridSpacingDeg / 2;
             const roleColor = Color.fromCssColorString(
                 role === 'REFERENCE' ? REVISIT_COLORS.target : REVISIT_COLORS.comparison
             );
             const halo = Color.fromCssColorString('#05070D');
             const unbounded = analysis.neverInViewCount > 0;
             const tied = analysis.bindingCells.length - 1;
+            /*
+             * Two lines: what it is, then the figure. A single line grew with
+             * the tie count until it was wider than the polygon it sits on and
+             * ran across neighbouring cells; a block stays roughly square
+             * whatever it has to say.
+             */
             const text = unbounded
-                ? `Never seen · ${analysis.neverInViewCount} cell${analysis.neverInViewCount > 1 ? 's' : ''}`
-                : `Least-covered cell · ${formatGap(worst.maxGapMs)}`
+                ? `Never seen\n${analysis.neverInViewCount} cell${analysis.neverInViewCount > 1 ? 's' : ''}`
+                : `Least-covered cell\n${formatGap(worst.maxGapMs)}`
                 + (tied > 0 ? ` · ${tied} tied` : '');
-            // Anchored BELOW the cell: every other ground label in this scene —
-            // satellites, target points — sits above its anchor, so above is
-            // where the collisions are, and a polygon usually holds the point
-            // target whose label is already there.
+            // Centred ON the cell rather than hung below it: the block IS the
+            // mark now, so it must sit where the measurement is. Its own dark
+            // background keeps it readable over the heat rectangle underneath.
             return [viewer.entities.add({
                 position: Cartesian3.fromDegrees(
-                    worst.target.lonDeg, worst.target.latDeg - half, 300
+                    worst.target.lonDeg, worst.target.latDeg, 300
                 ),
                 label: {
                     text,
@@ -664,9 +675,29 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
                     outlineWidth: 3,
                     showBackground: true,
                     backgroundColor: halo.withAlpha(0.72),
-                    backgroundPadding: new Cartesian2(4, 3),
-                    pixelOffset: new Cartesian2(0, 8),
-                    verticalOrigin: VerticalOrigin.TOP,
+                    backgroundPadding: new Cartesian2(5, 4),
+                    horizontalOrigin: HorizontalOrigin.CENTER,
+                    verticalOrigin: VerticalOrigin.CENTER,
+                    /*
+                     * Pulled 50 km toward the eye, in EYE space.
+                     *
+                     * The heat rectangles and the polygon fill are translucent
+                     * geometry at height 0, and translucent geometry does not
+                     * write depth: within that pass the last thing drawn wins,
+                     * and Cesium orders it by distance. A label 300 m above the
+                     * ground sat at almost exactly the ground's distance, so
+                     * the polygon it belongs to was painted over it whenever
+                     * the sort put it later — which is why it disappeared only
+                     * from some angles.
+                     *
+                     * An eye-space offset moves the label along the view axis
+                     * alone, so its screen position does not shift by a pixel
+                     * and it stays centred on its cell. And 50 km against a
+                     * 6371 km globe still leaves it hidden when the area is on
+                     * the far side, which raising its altitude instead would
+                     * have cost.
+                     */
+                    eyeOffset: new Cartesian3(0, 0, -50_000),
                 },
             })];
         });

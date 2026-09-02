@@ -46,6 +46,26 @@ export interface LatLng { lat: number; lng: number }
 export const DEFAULT_FOOTPRINT_SAMPLES = 48;
 
 /**
+ * Largest off-nadir angle whose ray still reaches the ground at or above
+ * `minElevationRad`, from `sin η = (R_e / r)·cos ε`.
+ *
+ * ── WHY THIS BELONGS BESIDE `groundArcRad` ──────────────────────────────────
+ * An elevation mask IS a tightened limb. At ε = 0 this returns `asin(R_e / r)`,
+ * exactly the geometric horizon `groundArcRad` clamps to; every ε above that
+ * pulls the same circle inward. Treating the two as one construct is what lets
+ * the drawn footprint, the swath figure and the access test agree instead of
+ * each carrying its own idea of how far the instrument can see.
+ *
+ * The access test itself (`containment.ts` step 8) works from the target's own
+ * WGS84 normal, which is the exact statement; this is its spherical companion,
+ * for the places that need one angle rather than one target.
+ */
+export function maskLimbRad(satRadiusKm: number, minElevationRad: number): number {
+    if (satRadiusKm <= 0) return 0;
+    return Math.asin(clamp((WGS84_A_KM / satRadiusKm) * Math.cos(minElevationRad), -1, 1));
+}
+
+/**
  * Ground arc λ (radians) subtended by a ray leaving the satellite at off-nadir
  * angle η, from `sin(η + λ) = (r/R_e)·sin η`.
  *
@@ -206,6 +226,31 @@ export interface FootprintResult {
 }
 
 /**
+ * Pull a body-frame ray back to the elevation mask when it points past it.
+ *
+ * The masked footprint is the FOV's ground projection INTERSECTED with the mask
+ * circle, and clamping each ray's polar angle while keeping its azimuth traces
+ * exactly that intersection: rays inside the mask are untouched, rays outside
+ * land on the mask circle itself.
+ *
+ * Without this the globe drew the bare optical cone while the access test
+ * counted the masked one — the picture claimed coverage the numbers had already
+ * refused. Body +Z is nadir (see `prepareFov`), which is what makes the polar
+ * angle here the off-nadir angle the mask is expressed in.
+ */
+function maskRay(dirBody: Vec3, minElevationRad: number | null, satRadiusKm: number): Vec3 {
+    if (minElevationRad === null) return dirBody;
+    const maxOffNadirRad = maskLimbRad(satRadiusKm, minElevationRad);
+    const cosMax = Math.cos(maxOffNadirRad);
+    if (dirBody.z >= cosMax) return dirBody;
+    const transverse = Math.hypot(dirBody.x, dirBody.y);
+    // Straight down: no azimuth to preserve, and nothing to clamp.
+    if (transverse === 0) return dirBody;
+    const scale = Math.sin(maxOffNadirRad) / transverse;
+    return v3(dirBody.x * scale, dirBody.y * scale, cosMax);
+}
+
+/**
  * Project the FOV boundary onto the ground.
  *
  * `epochMs` + `tSeconds` must be the instant `sat` was propagated to — the Earth
@@ -245,7 +290,9 @@ export function computeFootprint(
     const normalGeo = wgsEcefToGeodetic(satEcef);
     const ellipsoidNormalPoint: LatLng = { lat: normalGeo.latDeg, lng: normalGeo.lonDeg };
 
-    const centerHit = groundPointOfRay(fov.bHat, basis, satEcef, thetaRad);
+    const centerHit = groundPointOfRay(
+        maskRay(fov.bHat, fov.minElevationRad, satRadiusKm), basis, satEcef, thetaRad
+    );
 
     // Boundary offsets in tangent space — the same metric containment.ts tests in,
     // so the drawn edge is exactly the set the access test calls the boundary.
@@ -257,11 +304,11 @@ export function computeFootprint(
     let clampedVertices = 0;
 
     for (const [t1, t2] of offsets) {
-        const dirBody = normalize(v3(
+        const dirBody = maskRay(normalize(v3(
             fov.bHat.x + t1 * fov.u1Hat.x + t2 * fov.u2Hat.x,
             fov.bHat.y + t1 * fov.u1Hat.y + t2 * fov.u2Hat.y,
             fov.bHat.z + t1 * fov.u1Hat.z + t2 * fov.u2Hat.z,
-        ));
+        )), fov.minElevationRad, satRadiusKm);
         const hit = groundPointOfRay(dirBody, basis, satEcef, thetaRad);
         if (hit.clampedToLimb) clampedVertices++;
         boundary.push(hit.point);

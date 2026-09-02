@@ -9,6 +9,7 @@ import { CoverageRibbon } from '../ui/CoverageRibbon';
 import { TleComparisonDialog } from '../ui/TleComparisonDialog';
 import { AnalysisWindowControl } from '../ui/AnalysisWindowControl';
 import type { GapStatistics } from '../domain/types';
+import { REVISIT_COLORS } from '../ui/revisitTheme';
 
 let root: Root | null = null;
 let container: HTMLDivElement;
@@ -360,6 +361,61 @@ describe('REVISIT P0 presentation UI', () => {
         expect(result.textContent).toContain('MISSES');
         expect(result.querySelector('[data-revisit-lane-verdict]')?.className)
             .toContain('text-red-300');
+    });
+
+    /*
+     * R32 — the in-view band behind an Area lane.
+     *
+     * The two things that must hold are not "it renders": the band has to stay
+     * a BACKGROUND (painted under the access ticks, in the lane's own colour,
+     * at an opacity no full bin can push into tick territory) and it must not
+     * appear on a Point lane, which has no such quantity.
+     */
+    it('paints the in-view band under an Area lane only, and keeps it a background', async () => {
+        const startMs = Date.UTC(2026, 7, 12, 12);
+        const profile = new Float32Array([0, 0.25, 1, 0.5]);
+        await act(async () => root?.render(
+            <CoverageRibbon
+                intervals={[]}
+                statistics={null}
+                targetLanes={[
+                    {
+                        id: 'REFERENCE', kind: 'POINT', roleLabel: 'Primary', basisLabel: 'Point',
+                        label: 'Primary · London', name: 'London',
+                        intervals: [], statistics: null, selected: true,
+                    },
+                    {
+                        id: 'AREA_TARGET', kind: 'AREA', roleLabel: 'Secondary',
+                        basisLabel: 'Least-covered cell',
+                        label: 'Secondary · North Sea · least-covered cell', name: 'North Sea',
+                        intervals: [], statistics: null, inViewProfile: profile,
+                    },
+                ]}
+                windowStartMs={startMs}
+                windowHours={72}
+                getTimeMs={() => startMs}
+                onSeek={() => undefined}
+                speed={0}
+                onSetSpeed={() => undefined}
+            />
+        ));
+
+        const pointLane = container.querySelector('[data-revisit-timeline-lane="REFERENCE"]')!;
+        expect(pointLane.querySelector('[data-revisit-inview-band]')).toBeNull();
+
+        const band = container
+            .querySelector('[data-revisit-timeline-lane="AREA_TARGET"] [data-revisit-inview-band]')!;
+        expect(band).not.toBeNull();
+        // The empty bin is omitted rather than painted at zero opacity.
+        const bins = [...band.querySelectorAll('rect')];
+        expect(bins).toHaveLength(3);
+        const opacities = bins.map((bin) => Number(bin.getAttribute('fill-opacity')));
+        expect(opacities[0]).toBeLessThan(opacities[1]);
+        expect(opacities[1]).toBeGreaterThan(opacities[2]);
+        // A fully covered bin still sits well under the 0.94 access ticks.
+        expect(Math.max(...opacities)).toBeLessThan(0.5);
+        // The band carries target identity, never an outcome colour.
+        expect(bins[0].getAttribute('fill')).toBe(REVISIT_COLORS.comparison);
     });
 
     /**

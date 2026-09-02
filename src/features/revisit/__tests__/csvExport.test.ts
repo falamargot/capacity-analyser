@@ -77,6 +77,21 @@ describe('provenanceHeader', () => {
         expect(header).toMatch(/# duration h,24/);
     });
 
+    /*
+     * The elevation mask can only remove accesses, so it changes every figure
+     * in the file. It was absent from the instrument block, which made two runs
+     * at different masks export byte-identical assumptions — the file could not
+     * be reproduced from its own header, which is the point of the header.
+     */
+    it('records the elevation mask, present or not', () => {
+        expect(header).toMatch(/# min elevation deg,none/);
+        const masked = provenanceHeader({
+            ...scenario,
+            payload: { ...scenario.payload, minElevationDeg: 12.5 },
+        }).join('\n');
+        expect(masked).toMatch(/# min elevation deg,12\.5/);
+    });
+
     it('labels an edited scenario as custom instead of the authoritative HLD profile', () => {
         expect(header).toMatch(/# profile,CUSTOM/);
         expect(header).toMatch(/# profile authoritative,unknown/);

@@ -56,6 +56,11 @@ test.beforeEach(async ({ page }) => {
   // REVISIT opens with no target selected; these specs describe the state
   // after one has been chosen.
   await seedReferenceTarget(page);
+  // Seeding now places the Primary by clicking the globe, which yields a
+  // coordinate target. These specs follow a NAMED target across a change —
+  // London to Singapore — so the identity they track is readable in the card;
+  // this restores that precondition without weakening any assertion.
+  await page.getByRole('combobox', { name: 'Target', exact: true }).selectOption('London');
 });
 
 test.describe('REVISIT P7C freshness contract', () => {

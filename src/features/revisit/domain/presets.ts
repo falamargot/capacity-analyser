@@ -47,6 +47,7 @@ import type {
     AnalysisWindow, FovSpec, RevisitScenario, SubConstellationSpec, Target, WalkerSpec,
 } from './types';
 import { DEFAULT_STEP_SECONDS, DEFAULT_WINDOW_HOURS } from '../analysis/accessIntervals';
+import { maskLimbRad } from '../fov/footprint';
 import { DEFAULT_PROFILE } from './referenceProfiles';
 
 /**
@@ -199,10 +200,20 @@ export function fovPresetNameFor(
 /** Presets at the default altitude — the common case. */
 export const FOV_PRESETS = fovPresets(DEFAULT_REFERENCE.altitudeKm);
 
-/** The ground swath a FOV actually produces, km — for labelling a preset. */
+/**
+ * The ground swath a FOV actually produces, km — for labelling a preset.
+ *
+ * An elevation mask caps the off-nadir angle, so it caps this figure too: the
+ * header prints it beside a masked instrument, and a number describing the bare
+ * optical cone there would overstate what the same screen has just finished
+ * computing.
+ */
 export function swathKmForFov(altitudeKm: number, fov: FovSpec): number {
     const r = orbitalRadiusKm(altitudeKm);
-    const eta = toRad(Math.max(fov.halfAngle1Deg, fov.halfAngle2Deg));
+    const fovEta = toRad(Math.max(fov.halfAngle1Deg, fov.halfAngle2Deg));
+    const eta = fov.minElevationDeg === undefined
+        ? fovEta
+        : Math.min(fovEta, maskLimbRad(r, toRad(fov.minElevationDeg)));
     const s = (r / WGS84_A_KM) * Math.sin(eta);
     const lambda = s >= 1
         ? Math.PI / 2 - Math.asin(WGS84_A_KM / r)

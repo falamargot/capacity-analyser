@@ -3,7 +3,7 @@ import {
     boxArea, generateGrid, hasSelfIntersection, isPointInRing, longitudeSpanDeg, MAX_GRID_CELLS,
     swathWidthDeg, validateArea, type AreaTarget,
 } from '../domain/areaTarget';
-import { analyseArea } from '../analysis/areaAnalysis';
+import { analyseArea, COVERAGE_PROFILE_BINS } from '../analysis/areaAnalysis';
 import { FOV_PRESETS } from '../domain/presets';
 import type { FovSpec, RevisitScenario, WalkerSpec } from '../domain/types';
 
@@ -329,6 +329,53 @@ describe('analyseArea', () => {
         );
         expect(result.bindingCells.length).toBe(neverSeen.length);
         expect(result.bindingCells).toEqual(neverSeen.map((c) => c.target));
+    });
+
+    /*
+     * The in-view profile (R32) is the one aggregate this module allows over an
+     * area, and only because it is not an average of gaps: it is the share of
+     * cells visible at an instant. These assert that it stays that — a bounded,
+     * time-weighted share — rather than drifting into a second, softer verdict.
+     */
+    describe('inViewProfile', () => {
+        it('spans the window in equal bins and stays a share of the grid', () => {
+            const result = analyseArea(scenarioBase, area);
+            expect(result.inViewProfile.length).toBe(COVERAGE_PROFILE_BINS);
+            for (const share of result.inViewProfile) {
+                expect(share).toBeGreaterThanOrEqual(0);
+                expect(share).toBeLessThanOrEqual(1);
+            }
+            expect([...result.inViewProfile].some((share) => share > 0)).toBe(true);
+        });
+
+        /*
+         * The profile's mean over the window IS the grid's mean duty cycle, so
+         * it must equal the mean of the per-cell `fractionInView` — computed by
+         * `computeGapStatistics` from the same intervals through an entirely
+         * different path. That makes this a cross-check rather than a
+         * restatement of the accumulator's own arithmetic.
+         */
+        it('averages to the mean per-cell time in view', () => {
+            const result = analyseArea(scenarioBase, area);
+            const expected = result.cells.reduce(
+                (total, cell) => total + cell.statistics.fractionInView, 0,
+            ) / result.cells.length;
+            const measured = [...result.inViewProfile].reduce((a, b) => a + b, 0)
+                / result.inViewProfile.length;
+            expect(measured).toBeCloseTo(expected, 3);
+        });
+
+        /*
+         * A pass shorter than a bin must contribute its own duration, not the
+         * bin's. Counting "the cell was seen in this bin" would inflate a
+         * 12-minute bin holding a 2-minute pass by a factor of six — and the
+         * band would then say the area is served when it is barely brushed.
+         */
+        it('weights a short pass by its duration, not by the bin it lands in', () => {
+            const result = analyseArea(scenarioBase, area);
+            expect([...result.inViewProfile].every((share) => share === 0 || share === 1))
+                .toBe(false);
+        });
     });
 
     /*

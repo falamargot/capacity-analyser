@@ -307,9 +307,15 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     );
     const [comparisonPoints, setComparisonPoints] = useState<RevisitComparisonPoint[]>([]);
     const [pendingComparisonPointIds, setPendingComparisonPointIds] = useState<string[]>([]);
+    const [isPlacingReferencePoint, setIsPlacingReferencePoint] = useState(false);
     const [secondaryTargetOrder, setSecondaryTargetOrder] = useState<string[]>([]);
     const [selectedPointId, setSelectedPointId] = useState<typeof REFERENCE_POINT_ID | string>(
         REFERENCE_POINT_ID
+    );
+    const isPlacingPoint = isPlacingReferencePoint || (
+        analysisContext === 'POINTS'
+        && selectedPointId !== REFERENCE_POINT_ID
+        && pendingComparisonPointIds.includes(selectedPointId)
     );
     const analysisColumnRef = useRef<HTMLElement | null>(null);
     /** The stage-rail launcher the Scenario workspace popup hangs from. */
@@ -607,6 +613,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
     const handleTargetChange = useCallback((name: string) => {
         const target = TARGET_PRESETS.find((t) => t.name === name);
         if (target) {
+            setIsPlacingReferencePoint(false);
             setHasReferenceTarget(true);
             setScenario((current) => ({ ...current, target }));
             setAnalysisContext('POINTS');
@@ -667,6 +674,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
             upsertComparisonPoint(destination.id, target);
             return;
         }
+        setIsPlacingReferencePoint(false);
         setHasReferenceTarget(true);
         setScenario((current) => ({ ...current, target }));
         setAnalysisContext('POINTS');
@@ -711,14 +719,20 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         setSecondaryTargetOrder((current) => [...current, id]);
         setSelectedPointId(id);
         setAnalysisContext('POINTS');
+        setCompactPanel('none');
     }, [hasReferenceTarget, secondaryTargetOrder.length]);
 
     const handleCreateReferencePoint = useCallback(() => {
-        setHasReferenceTarget(true);
+        // Choosing Point starts the same direct-on-globe flow as Polygon: the
+        // scenario's dormant default coordinate is not accepted as the new
+        // target. One plain click supplies and validates the actual location.
+        setHasReferenceTarget(false);
+        setIsPlacingReferencePoint(true);
         setAreaTargets((current) => ({ ...current, REFERENCE: null }));
         setAreaTargetRole('REFERENCE');
         setAnalysisContext('POINTS');
         setSelectedPointId(REFERENCE_POINT_ID);
+        setCompactPanel('none');
     }, []);
 
     const handleSecondaryPointTargetChange = useCallback((id: string, name: string) => {
@@ -830,14 +844,14 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
             + `${scenario.reference.satsPerPlane / scenario.selection.satStride} per plane`;
         if (!referenceSweep) {
             return isReferenceSweeping
-                ? `${currentTopology} · comparing exact-count splits…`
+                ? `${currentTopology} · Finding the best distribution…`
                 : currentTopology;
         }
         if (referenceStatus.configurationCount < 2 || !referenceStatus.bestSplit) return currentTopology;
 
         if (referenceStatus.isBest) {
             return `${referenceStatus.bestSplit.planes} planes × ${referenceStatus.bestSplit.perPlane} per plane`
-                + ` — measured best of ${referenceStatus.configurationCount} splits at this count`;
+                + ` (best of ${referenceStatus.configurationCount} possible distributions)`;
         }
         const gain = referenceStatus.improvementAvailable !== null
             ? ` (${Math.round(referenceStatus.improvementAvailable * 100)}% better)`
@@ -1295,6 +1309,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
             name: referenceArea.name,
             intervals: displayedReferenceAreaAnalysis?.worstCellIntervals ?? [],
             statistics: displayedReferenceAreaAnalysis?.worstCell?.statistics ?? null,
+            inViewProfile: displayedReferenceAreaAnalysis?.inViewProfile,
             statusLabel: referenceAreaRun.isRunning ? 'Computing…' : referenceArea.boundary.length < 3 ? 'Define polygon' : null,
             unbounded: Boolean(displayedReferenceAreaAnalysis?.neverInViewCount),
             requirementMs: requirementMs,
@@ -1328,6 +1343,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                     name: comparisonArea?.name ?? 'Area',
                     intervals: area?.worstCellIntervals ?? [],
                     statistics: area?.worstCell?.statistics ?? null,
+                    inViewProfile: area?.inViewProfile,
                     statusLabel: comparisonAreaRun.isRunning
                         ? 'Computing…'
                         : !comparisonArea || comparisonArea.boundary.length < 3
@@ -1381,6 +1397,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         if (role === 'COMPARISON' && !hasReferenceTarget) return;
         if (role === 'COMPARISON' && secondaryTargetOrder.length >= MAX_SECONDARY_TARGETS) return;
         if (role === 'REFERENCE') setHasReferenceTarget(true);
+        setIsPlacingReferencePoint(false);
         (role === 'REFERENCE' ? referenceAreaRun : comparisonAreaRun).clear();
         setAreaTargetRole(role);
         setAreaTargets((current) => ({
@@ -1447,6 +1464,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         if (role === 'COMPARISON' && !hasReferenceTarget) return;
         if (role === 'COMPARISON' && secondaryTargetOrder.length >= MAX_SECONDARY_TARGETS) return;
         if (role === 'REFERENCE') setHasReferenceTarget(true);
+        setIsPlacingReferencePoint(false);
         (role === 'REFERENCE' ? referenceAreaRun : comparisonAreaRun).clear();
         setAreaTargetRole(role);
         // No previous area to restore: cancelling removes the target outright.
@@ -1657,6 +1675,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         });
 
         setIsDrawingArea(false);
+        setIsPlacingReferencePoint(false);
         setPendingComparisonPointIds([]);
         setComparisonPoints([]);
         setSecondaryTargetOrder([]);
@@ -1891,6 +1910,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
         setAreaTargets({ REFERENCE: null, COMPARISON: null });
         setAreaTargetRole('REFERENCE');
         setIsDrawingArea(false);
+        setIsPlacingReferencePoint(false);
         setAnalysisContext('POINTS');
         setComparisonPoints([]);
         setPendingComparisonPointIds([]);
@@ -1957,6 +1977,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                 : null,
         });
         setIsDrawingArea(false);
+        setIsPlacingReferencePoint(false);
         setAnalysisContext(snapshot.analysisContext ?? 'POINTS');
         setComparisonPoints(loadedHasReferenceTarget ? snapshot.comparisonPoints ?? [] : []);
         setPendingComparisonPointIds([]);
@@ -2219,6 +2240,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                     referenceArea={referenceArea}
                     comparisonArea={comparisonArea}
                     isDrawingArea={isDrawingArea}
+                    isPlacingPoint={isPlacingPoint}
                     analysisContext={analysisContext}
                     hasReferenceTarget={hasReferenceTarget}
                     areaTargetRole={areaTargetRole}
@@ -2227,7 +2249,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                     secondaryTargetOrder={secondaryTargetOrder}
                     selectedPointId={selectedPointId}
                     areaRequirementsMs={targetRequirementsMs}
-                    autoRotate={options.autoRotate && !isDrawingArea}
+                    autoRotate={options.autoRotate && !isDrawingArea && !isPlacingPoint}
                     onPickTarget={handlePickTarget}
                     onDrawAreaVertex={handleDrawAreaVertex}
                     onAddComparisonPoint={handleAddComparisonPoint}

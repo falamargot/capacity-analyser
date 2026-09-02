@@ -127,6 +127,32 @@ describe('REVISIT result sheet', () => {
         expect(sheet.generatedAtIso).toBe('2026-08-13T12:00:00.000Z');
     });
 
+    /*
+     * An assumptions table exists so a reader can tell which assumptions
+     * produced the numbers beside them. The elevation mask changes every one of
+     * those numbers — it can only remove accesses — and used to leave no trace
+     * here at all.
+     */
+    it('states the elevation mask in the FOV assumption when one is applied', () => {
+        const bare = buildRevisitResultSheet(
+            scenario, runRevisitScenario(scenario), 2 * 3600_000, [],
+            new Date('2026-08-13T12:00:00Z'),
+        );
+        const fovOf = (sheet: { assumptions: Array<{ label: string; value: string }> }) =>
+            sheet.assumptions.find((row) => row.label === 'FOV')?.value ?? '';
+        expect(fovOf(bare)).not.toMatch(/elevation/);
+
+        const masked: RevisitScenario = {
+            ...scenario,
+            payload: { ...scenario.payload, minElevationDeg: 15 },
+        };
+        const sheet = buildRevisitResultSheet(
+            masked, runRevisitScenario(masked), 2 * 3600_000, [],
+            new Date('2026-08-13T12:00:00Z'),
+        );
+        expect(fovOf(sheet)).toMatch(/accesses above 15° elevation/);
+    });
+
     it('exports the determining cell and area-specific qualifications', () => {
         const statistics = {
             maxGapMs: 4 * 3600_000, meanGapMs: 3 * 3600_000, p95GapMs: 4 * 3600_000,
@@ -158,6 +184,8 @@ describe('REVISIT result sheet', () => {
             neverInViewCount: 0,
             unmeasuredCount: 0,
             bindingCells: [],
+        inViewProfile: new Float32Array(0),
+            inViewProfile: new Float32Array(0),
             worstCellIntervals: [],
             warnings: [],
         };
