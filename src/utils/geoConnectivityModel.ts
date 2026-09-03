@@ -2,6 +2,7 @@ import type { SatelliteData } from '../types/satellites';
 import type { CandidateCoverage } from '../types/analysis';
 import type { GatewayTrafficStatus, GeoGatewayData } from '../components/globe/GlobeConfig';
 import {
+  hasControlRole,
   canonicalStarTrafficTopologySatelliteId,
   getGroundSiteById,
   getGroundSiteByPublicCode,
@@ -612,13 +613,14 @@ function toTrafficGatewaySelection(
  *      by direct inspection of the table, not inferred from tests passing.
  *   2. Fallback (selectBestGeoGateway, below) — used when the satellite has no
  *      entry in GEO_GATEWAY_ASSIGNMENTS. It picks the geometrically nearest
- *      *visible* site among ALL gateways passed in, with NO role or
- *      trafficStatus filter. This CAN resolve to an UNVERIFIED site
- *      (MAR/DUB/SIN/IBA/PER) for a satellite not yet entered in the static
- *      table. selectTrafficGeoGateway() still correctly returns null in that
- *      case (it filters on trafficStatus downstream of this function), but the
- *      fallback itself is role-blind. Known and accepted as of the GEO ground
- *      segment role refactor; not addressed by that refactor's scope.
+ *      *visible* site that carries a CONTROL role, and reports the role the
+ *      policy asked for. It can still resolve to an UNVERIFIED-traffic site
+ *      (MAR/DUB/SIN/IBA/PER), which is correct: traffic eligibility is a
+ *      different question, and selectTrafficGeoGateway() filters on
+ *      trafficStatus downstream of this function.
+ *
+ *      Until 2026-09-03 this path was role-blind — nearest visible site of any
+ *      kind, role hard-coded to `'nominal'`.
  */
 export function resolveGatewayForSatellite(
   satellite: SatelliteData,
@@ -651,14 +653,35 @@ export function resolveGatewayForSatellite(
     );
   }
 
-  const fallback = selectBestGeoGateway(satellite, gateways, minVisibilityDeg);
+  /*
+   * Fallback, now role-aware (deferred item 2).
+   *
+   * This function resolves the SCC NOMINAL/BACKUP site for a satellite, so its
+   * fallback may only propose a site that actually carries a control role. It
+   * used to take the nearest visible gateway of ANY kind and stamp it
+   * `'nominal'` — a teleport-only site could be returned as the satellite's
+   * nominal control site, and the label layer would then say so.
+   *
+   * Measured before changing it: all ten sites in the legacy `GEO_GATEWAYS`
+   * projection carry a control role today, so this filter removes NO candidate
+   * and changes no resolution on the current data. It is a guard against the
+   * next site added to that projection, not a behaviour change.
+   *
+   * The role also follows the requested policy now: `STATIC_BACKUP` used to
+   * silently return `'nominal'` from this path.
+   */
+  const fallbackRole: ResolvedGatewayRole = gatewayPolicy === 'STATIC_BACKUP' ? 'backup' : 'nominal';
+  const fallback = selectBestGeoGateway(
+    satellite, gateways, minVisibilityDeg, (gateway) => hasControlRole(gateway.roles),
+  );
   if (!fallback) return null;
   return toResolvedGeoGateway(
     satellite,
     fallback.gateway,
-    'nominal',
+    fallbackRole,
     'fallback-visible-gateway',
-    'No reference allocation entry matched; selected nearest visible fallback GEO gateway.',
+    `No reference allocation entry matched; selected nearest visible ${fallbackRole} `
+      + 'control-capable GEO gateway.',
   );
 }
 
@@ -1033,14 +1056,23 @@ export function resolveStarTrafficGatewayForCoverage(
   };
 }
 
+/**
+ * Nearest visible gateway.
+ *
+ * `accept` narrows the candidate set without allocating a filtered array — this
+ * runs per satellite, and the control-role fallback below is the only caller
+ * that needs it.
+ */
 export function selectBestGeoGateway(
   satellite: SatelliteData,
   gateways: GeoGatewayData[],
-  minGatewayElevationDeg = DEFAULT_RANGES.minGatewayElevationDeg
+  minGatewayElevationDeg = DEFAULT_RANGES.minGatewayElevationDeg,
+  accept?: (gateway: GeoGatewayData) => boolean
 ): GeoGatewaySelection | null {
   let best: GeoGatewaySelection | null = null;
 
   for (const gateway of gateways) {
+    if (accept && !accept(gateway)) continue;
     const candidate = getGatewaySelectionForCandidate(satellite, gateway, minGatewayElevationDeg);
     if (!candidate) continue;
     if (!best || candidate.satToGatewayDistanceKm < best.satToGatewayDistanceKm) {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GEO_GATEWAYS } from '../../components/globe/GlobeConfig';
+import { hasControlRole, type GeoGatewayData, type GroundInfraRole } from '../geoGroundInfrastructure';
 import type { SatelliteData } from '../../types/satellites';
 import {
   GEO_GATEWAY_ASSIGNMENTS,
@@ -253,5 +254,70 @@ describe('formatResolvedGatewayRoleLabel', () => {
   it('annotates a backup-assigned gateway as failover, matching the live Inspector and COMM wording', () => {
     const gateway = { gatewayName: 'Sarajevo', controlAssignmentRole: 'backup' } as ResolvedGeoGateway;
     expect(formatResolvedGatewayRoleLabel(gateway)).toBe('Sarajevo (failover)');
+  });
+});
+
+/*
+ * ── The SCC fallback may only propose a control site (deferred item 2) ──────
+ *
+ * `resolveGatewayForSatellite` resolves the satellite's SCC nominal/backup
+ * site. Its fallback used to take the geometrically nearest visible gateway of
+ * ANY kind and stamp the role `'nominal'`, so a teleport-only site could be
+ * returned — and named — as a satellite's nominal control site.
+ *
+ * Measured when this was fixed: all ten sites in the legacy `GEO_GATEWAYS`
+ * projection carry a control role, so the filter removes no candidate today.
+ * These tests use a synthetic gateway set precisely because the real data
+ * cannot exercise the branch.
+ */
+describe('SCC fallback is role-aware', () => {
+  const gatewayAt = (
+    name: string, lat: number, lng: number, roles: GroundInfraRole[],
+  ): GeoGatewayData => ({
+    ...GEO_GATEWAYS[0],
+    name,
+    teleportCode: name,
+    lat,
+    lng,
+    roles,
+  });
+
+  // A satellite with no reference-allocation entry, so the fallback runs.
+  const unassigned = createGeoSatellite('UNASSIGNED-SAT', 10, 'unassigned-sat');
+
+  it('skips a nearer teleport-only site in favour of a control site', () => {
+    const nearTeleport = gatewayAt('NEAR-TELEPORT', 5, 10, ['TELEPORT_GATEWAY']);
+    const farControl = gatewayAt('FAR-CONTROL', 35, 25, ['SCC_NOMINAL']);
+
+    const resolved = resolveGatewayForSatellite(unassigned, [nearTeleport, farControl]);
+
+    expect(resolved).not.toBeNull();
+    expect(resolved!.gatewayName).toBe('FAR-CONTROL');
+    expect(resolved!.assignmentSource).toBe('fallback-visible-gateway');
+  });
+
+  it('resolves nothing rather than naming a non-control site', () => {
+    const onlyTeleports = [
+      gatewayAt('T1', 5, 10, ['TELEPORT_GATEWAY']),
+      gatewayAt('T2', -5, 12, []),
+    ];
+
+    expect(resolveGatewayForSatellite(unassigned, onlyTeleports)).toBeNull();
+  });
+
+  it('reports the role the policy asked for, not always nominal', () => {
+    const control = [gatewayAt('CTRL', 5, 10, ['SCC_NOMINAL', 'SCC_BACKUP'])];
+
+    expect(resolveGatewayForSatellite(unassigned, control)!.controlAssignmentRole).toBe('nominal');
+    expect(
+      resolveGatewayForSatellite(unassigned, control, { gatewayPolicy: 'STATIC_BACKUP' })!
+        .controlAssignmentRole,
+    ).toBe('backup');
+  });
+
+  it('changes no resolution on the real gateway data — every site is control-capable', () => {
+    for (const gateway of GEO_GATEWAYS) {
+      expect(hasControlRole(gateway.roles), gateway.name).toBe(true);
+    }
   });
 });

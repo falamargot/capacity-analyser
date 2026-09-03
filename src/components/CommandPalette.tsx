@@ -4,7 +4,7 @@ import { Search, Satellite, Plane, Ship, Radio, MapPin, Waypoints, Moon as MoonI
 import type { SatelliteData } from '../types/satellites';
 import type { Aircraft } from '../modules/airTraffic/airTrafficService';
 import type { Vessel } from '../modules/maritimeTraffic/maritimeTrafficService';
-import { GEO_GATEWAYS, SNPS_DATA, getPrimaryControlRoleLabel, type GeoGatewayData, type SNPData } from './globe/GlobeConfig';
+import { GEO_GATEWAYS, SNPS_DATA, getGroundSiteRoleLabel, type GeoGatewayData, type SNPData } from './globe/GlobeConfig';
 import { buildGeoGatewayMarkerMetadata } from './cesium-globe/geoGatewayMarkerModel';
 
 type ResultItem =
@@ -294,7 +294,7 @@ const CommandPalette = memo<CommandPaletteProps>(({
         const metadata = buildGeoGatewayMarkerMetadata(item.data);
         const capabilities = metadata.capabilityLabels.length > 0
           ? metadata.capabilityLabels.join(' / ')
-          : getPrimaryControlRoleLabel(item.data.roles);
+          : getGroundSiteRoleLabel(item.data.roles);
         return { primary: item.data.name, secondary: `${capabilities} · ${item.data.region}` };
       }
       case 'moon': return { primary: item.data.name, secondary: 'Natural satellite of Earth' };

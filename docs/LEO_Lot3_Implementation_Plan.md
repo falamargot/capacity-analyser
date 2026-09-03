@@ -241,6 +241,33 @@ export function gsoInactiveBeamSet(satLatDeg: number): ReadonlySet<number>
 
 ## Item 5 — L-Mo6: One latency semantic across GEO/LEO KPIs
 
+> **✅ IMPLEMENTED — confirmed 2026-09-03, but NOT by this plan.** The goal was
+> reached through the canonical route metrics layer
+> (`utils/canonicalRouteMetrics.ts`, `useEngineeringAnalysis`), which arrived
+> later and settled the semantics from the other end:
+> - `analyzeLeoConnectivity` publishes `oneWayLatencyMs = oneWayRadioMs +
+>   overheadMs.total + snpToPopFiberDelayMs` with `rttTotalMs = 2 ×
+>   oneWayLatencyMs` (`leoConnectivityModel.ts:74,113,119`) — the formula this
+>   section specified, verbatim.
+> - `MobileLinkMetrics.rtt` carries the ONE-WAY figure for both technologies:
+>   LEO at `activeLeoRouteEvidence.ts:1025,1189`, GEO at
+>   `geoRouteAnalysisViewModel.ts:442`.
+> - The plan proposed making LEO conform to GEO's one-way convention and leaving
+>   the RTT behind. What shipped keeps BOTH contracts and separates them: GEO
+>   gained a true round trip on the canonical metrics (`useEngineeringAnalysis`
+>   — MESH: forward + reverse, STAR: 2 × one-way), so
+>   `CommercialKpiBar`'s `otherOption.rttMs / option.rttMs` compares RTT to RTT
+>   and the header compares one-way to one-way. Better than the plan: no
+>   information was traded away for comparability.
+> - Pinned by `activeLeoRouteEvidence.test.ts` — `evidence.rttMs` is the round
+>   trip, `metrics.rtt` is one-way, and the test asserts they differ.
+>
+> **Why this banner is late.** Nothing marked the item done, and
+> `types/analysis.ts` kept a comment describing the old split for months after
+> it was fixed. A 2026-09-03 audit sweep read that comment plus this plan and
+> reported the defect as live. Both artefacts have been corrected. The lesson is
+> recorded in `AUDIT_BACKLOG.md`: a doc comment is not evidence of behaviour.
+
 **Goal.** The shared "Latency" tile and the GEO/LEO comparison currently mix semantics: GEO publishes **one-way + overhead** (its D5 convention), LEO publishes **round-trip** (`rttTotalMs`). Fix by making **LEO conform to GEO** — one-way user latency including overhead — leaving GEO code untouched.
 
 ### Current anchors

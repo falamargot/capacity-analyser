@@ -104,11 +104,31 @@ export interface ModcodTableConfig {
   entries: ReadonlyArray<ModcodEntry>;
 }
 
+/**
+ * ── THE MARGIN BUILT INTO THESE THRESHOLDS (audit L-Mi7) ────────────────────
+ *
+ * Every `cnThresholdDb` below sits roughly 4–6 dB above the quasi-error-free
+ * reference figures published for the corresponding DVB-S2 MODCOD (ETSI EN 302
+ * 307-1) — QPSK 1/2 at 5.0 dB here against ~1.0 dB published, 32APSK 3/4 at
+ * 18.5 against ~12.7. That conservatism is ON TOP of the explicit
+ * implementation margin the link budget applies separately, so a verdict of
+ * "closes" from this table is a stronger statement than a datasheet threshold
+ * would make, and "does not close" is correspondingly pessimistic.
+ *
+ * The audit asked for the intent to be documented. The intent was never
+ * recorded, so this note states the measurable fact rather than inventing one:
+ * whoever set these values should confirm whether the offset is meant to stand
+ * in for pointing loss, ageing, rain-margin-on-top, or an absent ACM loop. Until
+ * then, treat the table as deliberately conservative and do not quote its
+ * thresholds as DVB-S2X requirements.
+ */
 export const ENGINEERING_MODCOD_TABLE: ModcodTableConfig = {
   id: 'dvb-s2x-engineering-approx',
   label: 'DVB-S2X-like MODCOD table (engineering approximation)',
   metric: 'C/N',
-  sourceNote: 'Representative engineering approximation for simulation.',
+  sourceNote: 'Representative engineering approximation for simulation — thresholds '
+    + 'sit ~4-6 dB above published DVB-S2 QEF reference values, on top of the '
+    + 'explicit implementation margin. Conservative by construction; not a datasheet.',
   entries: [
   { name: 'QPSK 1/2',   cnThresholdDb:  5.0, spectralEfficiencyBpHz: 1.0  },
   { name: 'QPSK 3/4',   cnThresholdDb:  8.0, spectralEfficiencyBpHz: 1.5  },

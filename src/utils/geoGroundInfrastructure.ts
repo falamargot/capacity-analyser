@@ -7,6 +7,21 @@ export type GroundInfraRole =
   | 'MONITORING_CSC'
   | 'TELEPORT_GATEWAY';
 
+/** The roles that make a site part of the satellite-CONTROL segment. */
+export const CONTROL_GROUND_ROLES: ReadonlySet<GroundInfraRole> = new Set<GroundInfraRole>([
+  'SCC_NOMINAL', 'SCC_BACKUP', 'TTC_STATION', 'MONITORING_CSC',
+]);
+
+/**
+ * Does this site carry any satellite-control role?
+ *
+ * Lives here, beside the role union, rather than in `components/globe` — the
+ * connectivity model asks this question and must not take a value dependency on
+ * a components module to do it.
+ */
+export const hasControlRole = (roles: GroundInfraRole[]): boolean =>
+  roles.some((role) => CONTROL_GROUND_ROLES.has(role));
+
 export type GatewayTrafficStatus =
   | 'CONFIRMED'
   | 'PUBLICLY_LIKELY'

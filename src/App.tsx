@@ -45,7 +45,8 @@ import {
   GEO_GROUND_SITES,
   SNPS_DATA,
   formatGroundRoles,
-  getPrimaryControlRoleLabel,
+  getGroundSiteRoleLabel,
+  secondaryGroundRoleLabel,
   projectGroundSiteToLegacyGeoGateway,
   type GeoGatewayData,
   type SNPData,
@@ -4319,7 +4320,14 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
         backgroundImageLabel: 'Representative teleport infrastructure photo',
         tone: 'gateway' as const,
         badges: [
-          { label: getPrimaryControlRoleLabel(selectedGateway.roles), tone: selectedGateway.roles.includes('SCC_BACKUP') ? 'amber' as const : 'blue' as const },
+          // A site with no control role is NOT badged as one: `getGroundSiteRoleLabel`
+          // says what it actually is (deferred item 1). The second badge carries the
+          // roles a single control label cannot show — Rambouillet is SCC nominal AND
+          // a teleport, and only the first used to survive.
+          { label: getGroundSiteRoleLabel(selectedGateway.roles), tone: selectedGateway.roles.includes('SCC_BACKUP') ? 'amber' as const : 'blue' as const },
+          ...(secondaryGroundRoleLabel(selectedGateway.roles)
+            ? [{ label: secondaryGroundRoleLabel(selectedGateway.roles)!, tone: 'slate' as const }]
+            : []),
           { label: selectedGateway.region, tone: 'slate' as const },
           { label: selectedGateway.teleportCode, tone: 'slate' as const },
           ...(selectedGatewayHeroData?.hasKaVerification ? [{ label: 'Ka Verification', tone: 'teal' as const }] : []),

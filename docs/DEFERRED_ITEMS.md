@@ -1,44 +1,74 @@
 # Deferred Items — GEO Ground Segment Role Refactor
 
-> **R31 — 2026-09-02 REVISIT UI/UX pass slowed one mobile e2e flow; cause not
-> isolated.** `revisit-p2c-a` › *keeps the reference as benchmark while the
-> selected point owns the result* (mobile-chromium) runs measurably slower after
-> the 2026-09-02 UI work — close enough to its 90 s budget to fail
-> intermittently. Timed on one machine, sequentially, with the port-4173 dev
-> server killed between runs so no worktree served another's code:
->
-> | tree | runs |
-> |---|---|
-> | `10d1ff9` (before the pass) | 45.5 s, 53.1 s — pass |
-> | `aa703dd` (first batch) | 78 s — pass |
-> | `fcdcae8` (whole pass) | 60 s, 66 s — pass; once **timed out at 90 s** |
->
-> It arrived with the FIRST batch: contrast tokens, shared requirement, outcome
-> colours, globe-pick rule, display rail, `HowThisWorks`. The failure is a
-> `locator.evaluate` that never returns on a `<details>` the locator has already
-> resolved, which reads like main-thread starvation rather than a missing
-> element.
->
-> Candidates, none confirmed: the panel fill going `0.74` → `0.86` alpha under
-> `backdrop-blur-sm` over the live WebGL canvas (the only change touching
-> per-frame compositing); the two extra `!important` border rules matching every
-> panel; the six toggle dots. An attempt to compare `requestAnimationFrame`
-> deltas with and without the blur was blocked — a hidden browser pane throttles
-> rAF, so the instrument reads nothing either way.
->
-> **Next step:** measure frame cost with the pane visible, or bisect that first
-> batch's six changes against this one spec. Do NOT simply raise the timeout:
-> the spec was not slow before, and the budget is the only thing currently
-> reporting this.
-
 Decisions consciously deferred during the GEO ground segment categorisation
-refactor (steps 1–6, June 2026). Each item was identified, discussed, and
-explicitly left for a future iteration. This file exists so these decisions
-survive beyond the session history.
+refactor (steps 1–6, June 2026), and everything deferred since. Each item was
+identified, discussed, and explicitly left for a future iteration. This file
+exists so these decisions survive beyond the session history.
+
+## How to read this file
+
+It is **not** a backlog. It holds four different kinds of item, and every
+section now carries its status on the line under its heading:
+
+| Status | Meaning |
+|---|---|
+| **OPEN** | real work not done. This is the backlog. |
+| **ACCEPTED** | known, bounded, and deliberately left as it is. A decision, not a debt — changing it needs a new decision, not a fix. |
+| **CLOSED** | done. Kept for the reasoning, which is usually why the item existed. |
+| **SUPERSEDED** | folded into a later item; follow the pointer instead. |
+
+### The OPEN list, in full
+
+Every line below was re-verified against the code on 2026-09-03. One item that
+was on this list (3 — UNVERIFIED gateway sites) turned out to be closed and has
+been moved out; `AUDIT_BACKLOG.md` records what else closed without anyone
+ticking it.
+
+| Item | What is actually undone |
+|---|---|
+| **4** | `types/linkMode.ts` topology labels still say "GEO teleport" |
+| **5** | `CONFIRMED` promotion is an operational process nobody owns |
+| **R12** | 60 fps at 256 satellites has never been measured |
+| **R14** | the Walker fit is never checked against a trajectory over the window |
+| **R30** | `swapTargetRoles` can name an empty Area slot |
+| **R31** | a mobile e2e spec is intermittently over its 90 s budget |
+| *inside R24* | E8 — visual WGS84 against the analytical sphere (not re-verified) |
+
+R24's other buried item — URL / browser-history semantics — is **closed**:
+`useAppModeState.ts:61-68` writes the mode into the URL and pushes history
+state. E8 has no section of its own, which is how it became invisible; give it a
+number when it is picked up.
+
+### Where the rest of the debt lives
+
+This file covers REVISIT and the GEO ground-segment refactor. It is **not** the
+whole ledger — see `AUDIT_BACKLOG.md` for the findings still open in the audit
+documents, which cover LEO, GEO connectivity and cross-surface consistency.
 
 ---
 
 ## 1. `getPrimaryControlRoleLabel` — mono-role masking, now two consumers
+
+**Status: CLOSED 2026-09-03 — and it was worse than this section records.**
+
+The recorded defect was masking: a site with several roles showed only the
+first. The live defect was **fabrication**: `getPrimaryControlRoleLabel` fell
+through to `'Nominal SCC'` for ANY role set, so the seven ground sites with no
+control role — Makarios, Palermo, Nemea, Sintra, Madeira, Sarajevo (teleport
+only) and Arganda (no role at all) — were badged as the satellite-control
+nominal site. All seven are drawn on the globe and selectable
+(`geoGatewayMarkerModel.ts` draws every `GEO_GROUND_SITES` entry;
+`App.tsx:2911` resolves the click through a map that contains them), so the
+badge, the command palette, the mobile subtitle and the GEO section copy all
+asserted a control role that does not exist.
+
+Fixed: the function returns `null` when there is no control role;
+`getGroundSiteRoleLabel` gives every site a truthful one-line label; and
+`secondaryGroundRoleLabel` surfaces the roles a single badge cannot show, which
+is the masking half this section asked for. Pinned by
+`GlobeConfig.test.ts` — including a test that fails if the data ever stops
+containing a site without a control role, since that is what makes the contract
+testable.
 
 **Where:** `src/components/globe/GlobeConfig.ts`  
 **Consumers:** `App.tsx` (hero badge) + `GEOConnectivitySection.tsx` (`gatewayInfraRoleLabel`)
@@ -63,6 +93,17 @@ be deleted.
 ---
 
 ## 2. `selectBestGeoGateway` fallback — role-blind gateway resolution
+
+**Status: CLOSED 2026-09-03.** The fallback now only considers sites that carry
+a control role, and reports the role the policy asked for instead of hard-coding
+`'nominal'` (`STATIC_BACKUP` used to return `'nominal'` from this path).
+
+Measured before changing it: **all ten sites in the legacy `GEO_GATEWAYS`
+projection are control-capable**, so the filter removes no candidate and changes
+no resolution on the current data — it is a guard for the next site added, not a
+behaviour change. `geoConnectivityModel.test.ts` covers it with a synthetic
+gateway set, precisely because the real data cannot exercise the branch, plus an
+assertion that the real data still cannot.
 
 **Where:** `src/utils/geoConnectivityModel.ts` → `resolveGatewayForSatellite`  
 **Documented at:** the JSDoc comment above `resolveGatewayForSatellite`
@@ -90,6 +131,10 @@ covered by the 29 `GEO_GATEWAY_ASSIGNMENTS` entries (verified June 2026).
 
 ## 3. No UI surface for `selectTrafficGeoGateway() === null` (UNVERIFIED sites)
 
+**Status: CLOSED** — verified 2026-09-03: `getGatewayTrafficStatusNote` returns
+an explicit note for `UNVERIFIED` / `NOT_APPLICABLE`, rendered in
+`GEOConnectivitySection.tsx:386-389`.
+
 **Where:** `App.tsx` eligibility filter (line ~1444), `geoTopologySelection.ts`  
 **Status type added:** `CandidateCoverageStatus = 'teleport_unconfirmed'`
 
@@ -115,6 +160,8 @@ unreachable with real data (linked to item 2 above).
 
 ## 4. `types/linkMode.ts` topology labels — left unchanged
 
+**Status: OPEN** — label wording, cosmetic.
+
 **Where:** `src/types/linkMode.ts:4,5,19,20`
 
 **Issue:** Link mode topology labels still use "GEO teleport":
@@ -136,6 +183,11 @@ change required.
 ---
 
 ## 5. `CONFIRMED` promotion process — operational, not code
+
+**Status: OPEN** — operational process, not code. Note 2026-09-03: the data has
+moved to `utils/geoGroundInfrastructure.ts` and now carries a mix of `CONFIRMED`
+and `PUBLICLY_LIKELY`, so this section's "all 5 sites" wording is stale even
+though the process question is not.
 
 **Where:** `src/components/globe/GlobeConfig.ts` → `GEO_GATEWAYS` data
 
@@ -159,6 +211,8 @@ Items recorded during **Lot 1** (headless engine), 2026-08-06. Lot 1 exit gate
 passed: 0 TypeScript errors, 1614 tests passing.
 
 ## R1. Design note §4.3 swath table mixes two Earth radii
+
+**Status: SUPERSEDED** — resolved by R28, and in the opposite direction to the one recorded here.
 
 **Where:** `docs/REVISIT_SIMULATOR_DESIGN.md` §4.3, and `REVISIT_LOT1_KICKOFF.md`
 §7 test 2, which repeats it.
@@ -184,6 +238,8 @@ internally consistent. Cosmetic — no code change.
 
 ## R2. ELLIPSE containment is tested in tangent space, not angle space
 
+**Status: ACCEPTED** — deliberate, documented deviation that moves the model toward the spec’s own validation case.
+
 **Where:** `src/features/revisit/fov/containment.ts`
 
 **Issue:** The design note §4.2(a) writes the ellipse test as
@@ -206,6 +262,8 @@ half-widths. Then add a metric flag rather than changing the default.
 
 ## R3. The payload/revisit curve is not monotonic — by design
 
+**Status: ACCEPTED** — a finding about the physics, not a defect.
+
 **Where:** `src/features/revisit/analysis/payloadSweep.ts`
 
 **Finding, not a defect.** Ladder configurations are **not nested**: the next
@@ -218,6 +276,8 @@ pins it explicitly so that nobody later "fixes" the sweep into a tidy 1/N curve
 and erases the tool's most persuasive output.
 
 ## R4. Not carried out in Lot 1
+
+**Status: CLOSED** — closed against NASA GMAT R2026a — see R27.
 
 - **External cross-check against GMAT or STK** (design note §7.4). This is the
   credibility anchor to cite on the slide and it has *not* been done. An
@@ -232,6 +292,8 @@ and erases the tool's most persuasive output.
   clearly-marked section. Split it out if a second propagator ever arrives.
 
 ## R5. Small, deliberate implementation choices
+
+**Status: ACCEPTED** — bounded, measured, and stated in the export.
 
 - **Velocity omits the `∂r/∂Ω · Ω̇` term.** Ω̇ ~1e-7 rad/s against u̇ ~1e-3, so it
   perturbs the along-track *direction* by ~0.006° — four orders of magnitude
@@ -250,6 +312,8 @@ and erases the tool's most persuasive output.
   warning text. UI should present the warning only for `z ≠ 0`.
 
 ## R6. Independent-oracle validation suite — added, with one open residual
+
+**Status: CLOSED** — suite added; its residual is carried by R28 and R29.
 
 **Where:** `src/features/revisit/__tests__/validation.test.ts` (26 tests)
 
@@ -289,6 +353,8 @@ Items recorded during **Lot 2** (the view), 2026-08-07.
 
 ## R7. requestRenderMode needs a render request for every async completion
 
+**Status: CLOSED** — render requests added at every async completion.
+
 **Where:** `src/features/revisit/render/RevisitGlobe.tsx`
 
 **Found by running it, not by reading it.** REVISIT is the first place in this
@@ -322,6 +388,8 @@ it wired its own viewer from scratch rather than reusing that machinery.
 
 ## R8. The 60 fps at 256 satellites target is still unmeasured
 
+**Status: SUPERSEDED** — carried forward unchanged as R12.
+
 **Where:** proposal §4, Lot 2 exit criterion
 
 Frame rate could NOT be measured: the automation browser pane keeps its tab
@@ -340,6 +408,8 @@ Lot 0 audit said of it.
 
 ## R9. Orbit rings are drawn in ECEF, not the inertial frame
 
+**Status: ACCEPTED** — visual-only frame choice, stated where it matters.
+
 **Where:** `src/features/revisit/render/useRevisitScene.ts`
 
 Everything is computed in ECEF from the engine's own GMST, so a satellite is
@@ -355,6 +425,8 @@ observer on the ground actually sees, which makes ground-track drift legible.
 presentation change only — no number moves.
 
 ## R10. Preset constants are placeholders
+
+**Status: SUPERSEDED** — the FOV half is R13; the hard-coded requirement became a user input.
 
 **Where:** `src/features/revisit/domain/presets.ts`
 
@@ -373,6 +445,8 @@ The 2 h requirement the verdict badge compares against is likewise hard-coded in
 Items recorded during **Lot 3** (the business case), 2026-08-07.
 
 ## R11. "Spread beats concentration" is false as a general rule
+
+**Status: CLOSED** — the live bug is fixed — the slider takes the swept result; the prose is corrected.
 
 **Where:** `domain/subConstellation.ts`, `analysis/payloadSweep.ts`
 
@@ -394,6 +468,8 @@ justification for paying one engine run per ladder rung.
 
 ## R12. The 60 fps / 256-satellite target is STILL unmeasured
 
+**Status: OPEN** — 60 fps at 256 satellites has never been measured.
+
 Carried forward unchanged from R8. Lot 3 added three sidebar panels and a second
 worker, so the case for measuring it is stronger, not weaker. Still blocked on
 the same cause: the automation pane keeps its tab hidden, which suspends rAF.
@@ -402,6 +478,8 @@ the same cause: the automation pane keeps its tab hidden, which suspends rAF.
 
 ## R13. FOV presets are still not from an instrument datasheet
 
+**Status: ACCEPTED** — presets are internally consistent and disclosed as illustrative, not datasheet values.
+
 The swath-based presets (350 / 700 / 1400 km) are internally consistent and
 portable across altitude — a genuine improvement on fixed off-nadir angles — but
 they remain an `ONEWEB_GEN1_OPERATIONAL_APPROXIMATION`-class assumption. Replace
@@ -409,6 +487,8 @@ them with real optics before any figure derived from them is quoted externally.
 Flagged at the top of `domain/presets.ts`.
 
 ## R14. Calibration fits ONE epoch, not a trajectory
+
+**Status: OPEN** — the fit is never checked against a trajectory over the window.
 
 `fitWalker` fits mean elements at a single instant. It says nothing about how
 well the parametric model tracks the real fleet over hours or days — which is
@@ -422,6 +502,8 @@ provenance line from "fits the shell today" to "tracks the fleet over the
 window".
 
 ## R15. The phasing factor is the weakest fitted parameter
+
+**Status: ACCEPTED** — not resolvable by the fit; stated rather than hidden.
 
 On the real fleet one f-step is 0.57° while the in-plane residual is 1.88°, so
 `f` is not resolvable — the fit reports it as indicative and says why. The
@@ -438,6 +520,8 @@ likely a global least-squares fit over all satellites simultaneously.
 Items recorded during **Lot 4** (depth), 2026-08-07.
 
 ## R16. Promotion to a third `uiMode` — deliberately NOT done
+
+**Status: ACCEPTED** — considered and rejected, for reasons ADR-001 §4 still holds.
 
 Proposal §4 lists "promotion to a third `uiMode`" as optional Lot 4 work. It was
 considered and rejected, and this is the record so it is not read as an
@@ -460,6 +544,8 @@ not — they share the clock and the theme and nothing else.
 
 ## R17. Area support is points-in-a-trench-coat, and that is deliberate
 
+**Status: ACCEPTED** — the area engine is the point engine by design.
+
 `analyseArea` grids the polygon and calls the *unchanged* point engine per cell.
 `containment.ts`, `accessIntervals.ts` and `gapStatistics.ts` do not know areas
 exist. This keeps the validated core validated (Lot 1 gate test 5) at the cost of
@@ -472,6 +558,8 @@ same category as §6.6. Not worth it until grids larger than a few hundred cells
 are actually needed.
 
 ## R18. Area cell means are not area-weighted
+
+**Status: ACCEPTED** — disclosed on screen and in the export.
 
 Cells sit on a regular lat/lon lattice, so they cover less ground as latitude
 rises and high-latitude cells are over-weighted in `meanCellMaxGapMs`. For the
@@ -486,6 +574,8 @@ lattice.
 
 ## R19. Heat map uses one entity per cell
 
+**Status: ACCEPTED** — bounded to 400 cells, which the entity layer handles.
+
 Design note §5.2 recommends rasterising coverage into an offscreen canvas draped
 as a `SingleTileImageryProvider`. The heat map instead adds one rectangle entity
 per cell, because `validateArea` bounds the grid to 400 — well inside what the
@@ -497,6 +587,8 @@ coverage painting (which is unbounded, and is what §5.2 was actually written
 about) gets built.
 
 ## R20. Still outstanding from earlier lots
+
+**Status: SUPERSEDED** — roll-up of R4, R12, R13, R14 — follow those.
 
 - **R4** — external GMAT/STK cross-check. Unchanged since Lot 1 and still the
   single most valuable thing to do before this is shown to anyone senior.
@@ -511,6 +603,8 @@ about) gets built.
 Recorded 2026-08-07, after the external review's P1 set.
 
 ## R21. Exact-pole footprint: fixed frame, known geodesic limit
+
+**Status: ACCEPTED** — known geodesic limit at the exact pole.
 
 `east = ẑ × up` has magnitude cos(latitude) and vanishes exactly over a pole,
 degenerating the local ENU frame. Now guarded — but on the CROSS PRODUCT's
@@ -531,6 +625,8 @@ zero). Pinned by a test instead, so the behaviour is documented rather than
 discovered.
 
 ## R22. Cesium hot path: structure separated from geometry
+
+**Status: CLOSED** — structure and geometry separated; allocations removed.
 
 Orbit and swath polylines were torn down and rebuilt at the 20 Hz satellite
 cadence, and every satellite position allocated a `Cartesian3` clone. Counted
@@ -557,6 +653,8 @@ satellites, swaths and rings all advance correctly after the refactor.
 
 ## R23. Keyboard access added to the two custom controls
 
+**Status: CLOSED** — both custom controls are keyboard-reachable.
+
 The value curve's rungs were `<g onClick>` and the coverage ribbon carried
 `role="presentation"` alongside a click handler — the one combination that
 guarantees assistive technology cannot reach an interactive element.
@@ -576,6 +674,8 @@ value to at most twice a second, and only when the tenth-of-an-hour changes.
 
 ## R24. Still open after P1
 
+**Status: SUPERSEDED** — roll-up — but it is the ONLY record of two live items: URL/browser-history semantics, and E8 visual WGS84 vs analytical sphere.
+
 - **R4** — external GMAT/STK cross-check. Unchanged, and still the highest-value
   item before any senior demo.
 - **R12** — 60 fps at 256 satellites, still unmeasured (see R22).
@@ -594,6 +694,8 @@ value to at most twice a second, and only when the tenth-of-an-hour changes.
 # REVISIT — independent propagation cross-check
 
 ## R25. SGP4 cross-check done; R4 (GMAT/STK) still open
+
+**Status: SUPERSEDED** — the SGP4 half is done; the GMAT half closed in R27.
 
 **Where:** `src/utils/__tests__/revisitSgp4CrossCheck.test.ts`
 
@@ -631,6 +733,8 @@ closed against GMAT on 2026-08-09; see R27.)*
 
 ## R26. GMAT is installable here; it needs an operator decision
 
+**Status: SUPERSEDED** — the decision was taken and carried out — see R27.
+
 Earlier notes assumed GMAT could not run on this machine. **That was wrong.**
 GMAT R2026a ships `gmat-mac-x64-R2026a-signed.dmg` (455.5 MB) — a signed
 universal build for macOS 14.5+ on Intel or Apple Silicon — from the NASA
@@ -650,6 +754,8 @@ recorded in `REVIEW_REPORT.md`.
 # REVISIT — R4 closed
 
 ## R27. R4 is CLOSED against NASA GMAT R2026a — and it found two real bugs
+
+**Status: CLOSED** — GMAT cross-check done; it found and fixed two real propagator bugs.
 
 **Date:** 2026-08-09. **Where:** `src/utils/__tests__/revisitGmatCrossCheck.test.ts`,
 scripts in `docs/revisit/gmat/`, committed fixture under
@@ -693,6 +799,8 @@ targets. Full tables in `REVIEW_REPORT.md`.
 
 ## R28. Altitude convention — `a = 6371 + h` is not the aerospace convention
 
+**Status: ACCEPTED** — product decision on a convention, measured and disclosed in the export header.
+
 **Open. Product decision, not a defect.**
 
 The engine computes the semi-major axis as `EARTH_RADIUS_KM + altitudeKm`, using
@@ -716,6 +824,8 @@ export discloses the convention in its header.
 
 ## R29. Ω̇ still carries up to ~0.3 % against GMAT
 
+**Status: ACCEPTED** — bounded residual, negligible at the reference inclination, re-measure before quoting a low-inclination shell.
+
 **Open, accepted, bounded.**
 
 The equatorial-radius fix removed most of the nodal-rate error, but a residual
@@ -731,6 +841,9 @@ for a low-inclination shell, where it should be re-measured before quoting
 numbers.
 
 ## R30. `swapTargetRoles` can name an empty Area slot
+
+**Status: OPEN** — verified 2026-09-03 at `targetRoleSwap.ts:88,101`. Broken
+invariant, cosmetic today, worth closing before the next Area feature.
 
 **Open, cosmetic-only today, worth closing before the next Area feature.**
 
@@ -753,7 +866,44 @@ branch. Deferred rather than fixed here because the swap's role/selection
 matrix is covered by `targetRoleSwap.test.ts` and changing a branch's asserted
 output belongs with a test-matrix pass, not with a same-day correctness fix.
 
+## R31. REVISIT UI/UX pass slowed one mobile e2e flow; cause not isolated
+
+**Status: OPEN** — intermittent CI failure, bisected to a batch, cause not
+isolated inside it.
+
+`revisit-p2c-a` › *keeps the reference as benchmark while the
+selected point owns the result* (mobile-chromium) runs measurably slower after
+the 2026-09-02 UI work — close enough to its 90 s budget to fail
+intermittently. Timed on one machine, sequentially, with the port-4173 dev
+server killed between runs so no worktree served another's code:
+
+| tree | runs |
+|---|---|
+| `10d1ff9` (before the pass) | 45.5 s, 53.1 s — pass |
+| `aa703dd` (first batch) | 78 s — pass |
+| `fcdcae8` (whole pass) | 60 s, 66 s — pass; once **timed out at 90 s** |
+
+It arrived with the FIRST batch: contrast tokens, shared requirement, outcome
+colours, globe-pick rule, display rail, `HowThisWorks`. The failure is a
+`locator.evaluate` that never returns on a `<details>` the locator has already
+resolved, which reads like main-thread starvation rather than a missing
+element.
+
+Candidates, none confirmed: the panel fill going `0.74` → `0.86` alpha under
+`backdrop-blur-sm` over the live WebGL canvas (the only change touching
+per-frame compositing); the two extra `!important` border rules matching every
+panel; the six toggle dots. An attempt to compare `requestAnimationFrame`
+deltas with and without the blur was blocked — a hidden browser pane throttles
+rAF, so the instrument reads nothing either way.
+
+**Next step:** measure frame cost with the pane visible, or bisect that first
+batch's six changes against this one spec. Do NOT simply raise the timeout:
+the spec was not slow before, and the budget is the only thing currently
+reporting this.
+
 ## R32. Area timeline — instantaneous covered-cell band behind the worst-cell lane
+
+**Status: CLOSED** — implemented 2026-09-02; kept for the reasoning.
 
 **IMPLEMENTED 2026-09-02, with all three conditions honoured. Kept here for the
 reasoning.**
@@ -819,6 +969,8 @@ Three conditions:
    overstates coverage.
 
 ## R33. Mark the least-covered cell on the globe
+
+**Status: CLOSED** — implemented 2026-09-02; kept for the reasoning.
 
 **IMPLEMENTED 2026-09-02. Kept here for the reasoning; the two open questions
 below were both answered in the implementation.**

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { GEO_GATEWAYS, getGatewayTrafficStatusNote, type GatewayTrafficStatus } from '../GlobeConfig';
+import {
+  GEO_GATEWAYS, getGatewayTrafficStatusNote, getGroundSiteRoleLabel,
+  getPrimaryControlRoleLabel, secondaryGroundRoleLabel, type GatewayTrafficStatus,
+} from '../GlobeConfig';
+import { GEO_GROUND_SITES, getLegacyGroundRolesForSite, hasControlRole } from '../../../utils/geoGroundInfrastructure';
 
 describe('getGatewayTrafficStatusNote', () => {
   it('returns null for CONFIRMED — no note shown, no badge', () => {
@@ -48,5 +52,56 @@ describe('GEO_GATEWAYS trafficStatus data integrity', () => {
 
   it('no site is CONFIRMED yet — promotion is a deliberate future data change', () => {
     expect(GEO_GATEWAYS.some((g) => g.trafficStatus === 'CONFIRMED')).toBe(false);
+  });
+});
+
+/*
+ * ── A site is never labelled with a control role it does not have ───────────
+ *
+ * `getPrimaryControlRoleLabel` used to fall through to 'Nominal SCC' for ANY
+ * role set. Seven ground sites carry no control role — six teleport-only, one
+ * with none at all — and all of them are drawn on the globe and selectable, so
+ * the badge asserted a satellite-control role that does not exist.
+ */
+describe('ground-site role labelling', () => {
+  it('returns null when a site has no control role', () => {
+    expect(getPrimaryControlRoleLabel(['TELEPORT_GATEWAY'])).toBeNull();
+    expect(getPrimaryControlRoleLabel([])).toBeNull();
+  });
+
+  it('still names each control role, in priority order', () => {
+    expect(getPrimaryControlRoleLabel(['MONITORING_CSC'])).toBe('Monitoring');
+    expect(getPrimaryControlRoleLabel(['TTC_STATION'])).toBe('Monitoring');
+    expect(getPrimaryControlRoleLabel(['SCC_BACKUP', 'TELEPORT_GATEWAY'])).toBe('Backup SCC');
+    expect(getPrimaryControlRoleLabel(['SCC_NOMINAL', 'TELEPORT_GATEWAY'])).toBe('Nominal SCC');
+  });
+
+  it('gives every real site a truthful one-line label', () => {
+    for (const site of GEO_GROUND_SITES) {
+      const roles = getLegacyGroundRolesForSite(site);
+      const label = getGroundSiteRoleLabel(roles);
+      expect(label.length).toBeGreaterThan(0);
+      if (!hasControlRole(roles)) {
+        expect(label).not.toMatch(/SCC|Monitoring/);
+      }
+    }
+  });
+
+  /*
+   * The other half of the finding: a site that cumulates roles used to have
+   * every role but the first silently dropped.
+   */
+  it('surfaces the roles a single control badge cannot show', () => {
+    expect(secondaryGroundRoleLabel(['SCC_NOMINAL', 'TELEPORT_GATEWAY'])).toBe('Teleport / Gateway');
+    expect(secondaryGroundRoleLabel(['SCC_NOMINAL'])).toBeNull();
+    // Nothing to add beside a label that is already the full story.
+    expect(secondaryGroundRoleLabel(['TELEPORT_GATEWAY'])).toBeNull();
+  });
+
+  it('finds at least one site with no control role, or this contract is untested', () => {
+    const uncontrolled = GEO_GROUND_SITES.filter(
+      (site) => !hasControlRole(getLegacyGroundRolesForSite(site)),
+    );
+    expect(uncontrolled.length).toBeGreaterThan(0);
   });
 });

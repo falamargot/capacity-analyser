@@ -112,11 +112,22 @@ export type SelectedSNP = SNPData | null;
 
 export interface MobileLinkMetrics {
     /**
-     * Displayed latency in ms — legacy field name, NOT always a round trip.
-     * LEO publishes its round-trip estimate; GEO publishes the one-way user
-     * latency for the active direction including network overhead (same
-     * figure as the ENG headline). UI surfaces must label this "latency",
-     * never "RTT".
+     * One-way user latency in ms for the active direction, including network
+     * overhead — for BOTH technologies. The field name is legacy; it is not a
+     * round trip and must never be labelled "RTT" on any surface.
+     *
+     * This comment used to say that LEO published a round trip here while GEO
+     * published one-way (audit finding L-Mo6). That split is gone: LEO's
+     * `activeLeoRouteEvidence` publishes `oneWayLatencyMs` into `metrics.rtt`,
+     * and GEO's `geoRouteAnalysisViewModel` publishes its own one-way figure,
+     * so the two are directly comparable. The stale comment outlived the fix by
+     * long enough to be read as evidence that the defect was still live — hence
+     * this paragraph rather than a silent edit.
+     *
+     * The true round trip is not lost: it lives on
+     * `CanonicalTechnologyRouteMetrics.rttMs` (both technologies) and on the LEO
+     * evidence's own `rttMs`, and `activeLeoRouteEvidence.test.ts` pins the two
+     * contracts apart.
      */
     rtt: number | null;
     downlinkGbps: number | null;

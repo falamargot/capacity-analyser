@@ -1,5 +1,10 @@
 import { fileURLToPath, URL } from 'node:url';
-import { defineConfig, loadEnv, type Plugin } from 'vite';
+import { loadEnv, type Plugin } from 'vite';
+// `vitest/config` re-exports Vite's own `defineConfig` widened with the `test`
+// block below. Without it the exclusion lived only in the `npm test` script, so
+// a bare `npx vitest run` collected the Playwright specs and reported 19 failing
+// files that mean nothing — a wall of red for anyone who runs vitest directly.
+import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import cesium from 'vite-plugin-cesium';
 import tailwindcss from '@tailwindcss/vite';
@@ -254,5 +259,9 @@ export default defineConfig({
   server: {
     port: 3000,
     open: process.env.PLAYWRIGHT_TEST !== '1'
+  },
+  test: {
+    // Playwright owns `e2e/`; vitest must never collect it.
+    exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**']
   }
 });

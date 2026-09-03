@@ -2,6 +2,37 @@
 
 _Last updated 2026-09-03._
 
+## 2026-09-03 — Three backlog items closed, and one of them was a false claim on screen
+
+L-Mi7, deferred item 1 and deferred item 2, all verified in code before and
+after. Gates: **2 177 unit tests** (9 new), `tsc`, `eslint`, `npm run build`.
+
+**Item 1 was not the defect it was filed as.** It was recorded as "the helper
+masks a site's second role". What it actually did was fall through to
+`'Nominal SCC'` for ANY role set, so seven ground sites with no satellite-control
+role — Makarios, Palermo, Nemea, Sintra, Madeira, Sarajevo, Arganda — were
+badged as the nominal SCC. Every one of them is drawn on the globe and
+selectable, and four surfaces read that label. `getPrimaryControlRoleLabel` now
+returns `null` when there is no control role, `getGroundSiteRoleLabel` gives a
+truthful line, and `secondaryGroundRoleLabel` shows the roles a single badge
+cannot — the masking half, which is what the item asked for.
+
+**Item 2 changes no behaviour today, on purpose.** The SCC fallback now only
+proposes control-capable sites and honours the requested policy role. Measured
+first: all ten sites in the legacy `GEO_GATEWAYS` projection already carry a
+control role, so nothing moves on the current data. The tests use a synthetic
+gateway set to exercise the branch, and assert that the real data still cannot.
+
+**L-Mi7 is documentation only.** The MODCOD thresholds sit ~4–6 dB above
+published DVB-S2 QEF references, on top of the explicit implementation margin.
+The `sourceNote` says so now. The *intent* behind that offset is not recorded
+anywhere in the repository, so the note says that rather than inventing one —
+whoever set the values should confirm it.
+
+**Method note.** `tsc` passed on an import that landed in the wrong block and
+left `CONTROL_GROUND_ROLES` undefined at runtime; the new unit test caught it.
+Worth remembering the next time a green typecheck is taken as evidence.
+
 ## 2026-09-03 — Area presentation: R32, R33, and the elevation mask made honest
 
 **Where this leaves the module.** Both proposals recorded in
@@ -40,6 +71,25 @@ the e2e specs that touch this work (`revisit-visual`, `-advanced`, `-p0`, `-p1`,
   without a presenter beside it — but it is now a choice rather than a
   consistency, and `revisit-p1.spec.ts` pins the screen half of it.
 - **R31 in `DEFERRED_ITEMS.md`** (mobile `revisit-p2c-a` slowdown) is untouched.
+
+**The debt ledger was reorganised, and it was not one ledger.**
+`DEFERRED_ITEMS.md` now carries a status on every item — OPEN / ACCEPTED /
+CLOSED / SUPERSEDED — plus an index of the eleven that are actually OPEN, and
+R31 was promoted from a blockquote at the top of the file to a numbered section
+(it was the least findable item and the most likely to bite). A new
+`AUDIT_BACKLOG.md` covers what the seventeen audit documents leave open, with
+each status verified in code where an anchor existed.
+
+That sweep also produced its own correction, worth keeping. It first reported
+**L-Mo6 — GEO and LEO publish different latency semantics** as the one live,
+customer-visible defect, on the strength of an unticked plan item and a doc
+comment in `types/analysis.ts`. Following the data flow shows it was fixed long
+ago by the canonical route metrics layer: `metrics.rtt` is one-way for both
+technologies, `canonical.rttMs` is a true round trip for both, and
+`activeLeoRouteEvidence.test.ts` pins the two apart. Both stale artefacts are
+now corrected, and `AUDIT_BACKLOG.md` keeps the correction visible rather than
+quietly deleting the claim — **a doc comment is a claim about the code, not an
+observation of it**, which is exactly the trap an audit sweep exists to avoid.
 
 **Method, re-confirmed the hard way.** The note at the top of this file —
 never edit the tree while Playwright runs — cost time again today, and with a

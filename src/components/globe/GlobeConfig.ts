@@ -1,4 +1,5 @@
 import {
+  CONTROL_GROUND_ROLES,
   projectGroundSitesToLegacyGeoGateways,
   type GatewayTrafficStatus,
   type GeoGatewayData,
@@ -89,11 +90,53 @@ const GROUND_INFRA_ROLE_LABELS: Record<GroundInfraRole, string> = {
 export const formatGroundRoles = (roles: GroundInfraRole[]): string =>
   roles.map((r) => GROUND_INFRA_ROLE_LABELS[r]).join(' · ');
 
-/** Returns the primary control role label (SCC/TTC/Monitoring) for UI badge use. */
-export const getPrimaryControlRoleLabel = (roles: GroundInfraRole[]): 'Monitoring' | 'Backup SCC' | 'Nominal SCC' => {
+export type ControlRoleLabel = 'Monitoring' | 'Backup SCC' | 'Nominal SCC';
+
+/**
+ * The primary control role label (SCC / TT&C / Monitoring), or `null` for a site
+ * that has no control role.
+ *
+ * ── WHY THIS RETURNS NULL ───────────────────────────────────────────────────
+ * It used to fall through to `'Nominal SCC'` for ANY role set, which made it
+ * assert a satellite-control role the site does not have. That was reachable and
+ * live: seven of the ground sites carry no control role — Makarios, Palermo,
+ * Nemea, Sintra, Madeira, Sarajevo (teleport only) and Arganda (no role at all)
+ * — and every one of them is drawn on the globe and selectable, so selecting one
+ * badged it `Nominal SCC`. On a tool that spends a whole vocabulary on
+ * CONFIRMED / PUBLICLY_LIKELY / UNVERIFIED, a fabricated control role is the
+ * worst kind of label.
+ *
+ * Callers must decide what a site with no control role shows;
+ * `getGroundSiteRoleLabel` is the ready-made answer for the common case.
+ */
+export const getPrimaryControlRoleLabel = (roles: GroundInfraRole[]): ControlRoleLabel | null => {
   if (roles.some((r) => r === 'MONITORING_CSC' || r === 'TTC_STATION')) return 'Monitoring';
   if (roles.includes('SCC_BACKUP')) return 'Backup SCC';
-  return 'Nominal SCC';
+  if (roles.includes('SCC_NOMINAL')) return 'Nominal SCC';
+  return null;
+};
+
+/**
+ * One truthful label for any site: its control role when it has one, otherwise
+ * what it actually is.
+ *
+ * The secondary roles are NOT folded in here — a badge has one line — but they
+ * are no longer lost either: `secondaryGroundRoleLabel` returns them for the
+ * surfaces that have room, which is what deferred item 1 asked for.
+ */
+export const getGroundSiteRoleLabel = (roles: GroundInfraRole[]): string =>
+  getPrimaryControlRoleLabel(roles) ?? (roles.length > 0 ? formatGroundRoles(roles) : 'Ground site');
+
+/**
+ * The roles a single control badge cannot show, formatted — `null` when there
+ * are none. This is the other half of deferred item 1: a site that cumulates
+ * roles (Rambouillet is `SCC_NOMINAL + TELEPORT_GATEWAY`) used to have every
+ * role but the first silently dropped.
+ */
+export const secondaryGroundRoleLabel = (roles: GroundInfraRole[]): string | null => {
+  if (getPrimaryControlRoleLabel(roles) === null) return null;
+  const rest = roles.filter((role) => !CONTROL_GROUND_ROLES.has(role));
+  return rest.length > 0 ? formatGroundRoles(rest) : null;
 };
 
 /**

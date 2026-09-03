@@ -404,7 +404,9 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   const gatewayInfraRoleLabel = starTrafficGateway
     ? ENGINEERING_TERMS.GEO.gateway
     : resolvedGateway
-    ? getPrimaryControlRoleLabel(resolvedGateway.gateway.roles)
+    // A resolved control gateway that carries no control role falls back to the
+    // neutral noun rather than being named "Nominal SCC" (deferred item 1).
+    ? getPrimaryControlRoleLabel(resolvedGateway.gateway.roles) ?? ENGINEERING_TERMS.GEO.gateway
     : ENGINEERING_TERMS.GEO.gateway;
   const pointACoordinatesLabel = activePoint ? formatCoordinates(activePoint) : '--';
   const pointBCoordinatesLabel = pointB ? formatCoordinates(pointB) : 'Shift+click to place';

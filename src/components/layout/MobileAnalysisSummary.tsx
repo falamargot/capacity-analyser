@@ -21,7 +21,7 @@ import {
     type SelectedPointStatusTone,
 } from '../../utils/selectedPointStatus';
 import { BACKHAUL_RADIUS_KM } from '../../utils/leoFootprint';
-import { GEO_GATEWAYS, getPrimaryControlRoleLabel } from '../globe/GlobeConfig';
+import { GEO_GATEWAYS, getGroundSiteRoleLabel } from '../globe/GlobeConfig';
 import { getAssignedGeoSatellitesForGateway } from '../../utils/geoConnectivityModel';
 import type { SNPConnectedSatellite } from '../../services/coverageService';
 import { getMoonSnapshot, MOON_MEAN_RADIUS_KM } from '../../utils/moonInfo';
@@ -272,7 +272,11 @@ function MetricCard({
     accentClassName,
     borderClassName,
     topologyLabel,
-    latencyLabel = 'RTT',
+    // `metrics.rtt` is a legacy field name carrying the ONE-WAY latency for both
+    // technologies (see `MobileLinkMetrics`), so the fallback label must not say
+    // RTT. Every card currently passes an explicit label, so nothing was
+    // mislabelled — but the default was a trap for the next one.
+    latencyLabel = 'Latency',
     downlinkLabel = 'Downlink',
     uplinkLabel = 'Uplink',
     extraMetrics,
@@ -540,7 +544,7 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
             return {
                 eyebrow: 'Ground Site',
                 title: selectedGateway.name,
-                subtitle: `${selectedGateway.region} · ${getPrimaryControlRoleLabel(selectedGateway.roles)}`,
+                subtitle: `${selectedGateway.region} · ${getGroundSiteRoleLabel(selectedGateway.roles)}`,
                 status: 'GEO routing view',
                 statusTone: 'neutral' as const,
             };
