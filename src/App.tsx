@@ -80,6 +80,7 @@ import { useSimulation } from './contexts/SimulationContext';
 import { getSatellitesConnectedToSNP, type SNPConnectedSatellite } from './services/coverageService';
 import { selectSnpForSatellite } from './utils/connectivityRules';
 import useKeyboardShortcuts from './hooks/useKeyboardShortcuts';
+import { useAutoWeather } from './hooks/useAutoWeather';
 import { useSelectionState } from './hooks/useSelectionState';
 import { useAuthorshipEasterEgg } from './hooks/useAuthorshipEasterEgg';
 import { useViewport, type ViewportSnapshot } from './hooks/useViewport';
@@ -1197,53 +1198,23 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     weatherType,
   ]);
 
-  useEffect(() => {
-    if (simulationClockSnapshot.mode !== 'live' || !autoWeatherEnabled || !activeAnalysisPoint) return;
+  /*
+   * Live weather for the analysis point (S-2: the fetch moved to
+   * `useAutoWeather`). Site A also publishes the derived `weatherCondition`,
+   * and repolls only while the analysis follows an aircraft — a fixed site's
+   * weather does not change fast enough to be worth a timer.
+   */
+  const applySiteAWeather = useCallback((nextType: WeatherType) => {
+    setWeatherType(nextType);
+    setWeatherCondition(toWeatherCondition(nextType));
+  }, [setWeatherCondition, setWeatherType]);
 
-    let cancelled = false;
-
-    const mapPrecipToWeatherType = (precipMmPerHour: number): WeatherType => {
-      if (!isFinite(precipMmPerHour)) return 'clear';
-      if (precipMmPerHour <= 0.0) return 'clear';
-      if (precipMmPerHour <= 1.0) return 'light_rain';
-      if (precipMmPerHour <= 5.0) return 'heavy_rain';
-      return 'storm';
-    };
-
-    const fetchWeather = async () => {
-      try {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${activeAnalysisPoint.lat}&longitude=${activeAnalysisPoint.lng}&current=precipitation,rain,showers&timezone=UTC`;
-        const res = await fetch(url);
-        const data = await res.json();
-        const precipitation = Number(data?.current?.precipitation ?? 0);
-        const nextType = mapPrecipToWeatherType(precipitation);
-
-        if (!cancelled) {
-          setWeatherType(nextType);
-          setWeatherCondition(toWeatherCondition(nextType));
-        }
-      } catch {
-        // Keep current weather selection on API failure.
-      }
-    };
-
-    fetchWeather();
-
-    const intervalMs = activeAnalysisSource === 'aircraft' ? 30_000 : 0;
-    const interval = intervalMs > 0 ? setInterval(fetchWeather, intervalMs) : null;
-
-    return () => {
-      cancelled = true;
-      if (interval) clearInterval(interval);
-    };
-  }, [
-    activeAnalysisPoint,
-    activeAnalysisSource,
-    autoWeatherEnabled,
-    setWeatherCondition,
-    setWeatherType,
-    simulationClockSnapshot.mode,
-  ]);
+  useAutoWeather({
+    enabled: simulationClockSnapshot.mode === 'live' && autoWeatherEnabled,
+    point: activeAnalysisPoint,
+    pollIntervalMs: activeAnalysisSource === 'aircraft' ? 30_000 : 0,
+    onWeather: applySiteAWeather,
+  });
 
   const handleWeatherTypeChange = useCallback((nextType: WeatherType) => {
     setWeatherType(nextType);
@@ -1251,36 +1222,13 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     setAutoWeatherEnabled(false);
   }, [setAutoWeatherEnabled, setWeatherCondition, setWeatherType]);
 
-  // Auto-weather detection for Site B — same logic as Site A but independent state.
-  // weatherTypeB is passed to CapacityDetails and used for Site B RF chain (GEO and LEO S2S).
-  useEffect(() => {
-    if (simulationClockSnapshot.mode !== 'live' || !autoWeatherEnabledB || !siteB) return;
-
-    let cancelled = false;
-
-    const mapPrecipToWeatherType = (precipMmPerHour: number): WeatherType => {
-      if (!isFinite(precipMmPerHour) || precipMmPerHour <= 0) return 'clear';
-      if (precipMmPerHour <= 1.0) return 'light_rain';
-      if (precipMmPerHour <= 5.0) return 'heavy_rain';
-      return 'storm';
-    };
-
-    const fetchWeather = async () => {
-      try {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${siteB.lat}&longitude=${siteB.lng}&current=precipitation,rain,showers&timezone=UTC`;
-        const res = await fetch(url);
-        const data = await res.json();
-        const precipitation = Number(data?.current?.precipitation ?? 0);
-        if (!cancelled) setWeatherTypeB(mapPrecipToWeatherType(precipitation));
-      } catch {
-        // Keep current weather selection on API failure.
-      }
-    };
-
-    fetchWeather();
-
-    return () => { cancelled = true; };
-  }, [siteB, autoWeatherEnabledB, setWeatherTypeB, simulationClockSnapshot.mode]);
+  // Site B: independent state, no `weatherCondition`, and no repoll — Site B is
+  // always a fixed location. Same hook, different call-site contract.
+  useAutoWeather({
+    enabled: simulationClockSnapshot.mode === 'live' && autoWeatherEnabledB,
+    point: siteB,
+    onWeather: setWeatherTypeB,
+  });
 
   const handleWeatherTypeBChange = useCallback((nextType: WeatherType) => {
     setWeatherTypeB(nextType);

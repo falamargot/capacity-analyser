@@ -1416,6 +1416,9 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
         {/* Latency Breakdown */}
         <LatencyBreakdownCard
           storageKey="leo-latency-breakdown"
+          // Single-site and site-to-site list different legs, so they are
+          // different sections and must not share one collapse preference.
+          scope={isS2S ? 'leo-s2s' : 'leo-single'}
           accentColor="#db2777"
           tooltip={isS2S
             ? "Full one-way propagation: Access A + Feeder A + Backbone + Feeder B + Access B + Processing margin."

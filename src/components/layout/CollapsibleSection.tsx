@@ -30,6 +30,20 @@ function persistState(key: string, open: boolean): void {
 interface CollapsibleSectionProps {
   /** Unique key used for localStorage persistence. Must be stable across renders. */
   storageKey: string;
+  /**
+   * The scenario dimension this preference belongs to — technology, topology,
+   * direction, whatever makes the section a different section (audit INT-9).
+   *
+   * Without it the same key governs a section across scenarios it does not
+   * describe: collapsing the LEO latency breakdown in single-site mode also
+   * collapsed it in site-to-site, where it lists different legs. Two GEO call
+   * sites also shared one key across MESH and STAR.
+   *
+   * Optional, because some sections genuinely are global — a utility panel's
+   * state should survive a topology switch. Omitting it keeps the old
+   * behaviour, deliberately, rather than forcing a scope on every caller.
+   */
+  scope?: string;
   /** Section title rendered in the header. */
   title: ReactNode;
   /** Optional subtitle shown below the title in smaller text. */
@@ -46,6 +60,7 @@ interface CollapsibleSectionProps {
 
 const CollapsibleSection = memo<CollapsibleSectionProps>(({
   storageKey,
+  scope,
   title,
   subtitle,
   accentColor,
@@ -53,7 +68,29 @@ const CollapsibleSection = memo<CollapsibleSectionProps>(({
   collapsible = true,
   children,
 }) => {
-  const [isOpen, setIsOpen] = useState(() => readPersistedState(storageKey, defaultOpen));
+  const persistenceKey = scope ? `${scope}:${storageKey}` : storageKey;
+  /*
+   * State is keyed by the persistence key, not just seeded from it.
+   *
+   * `useState`'s initialiser runs once per MOUNT, and a topology switch
+   * re-renders this same instance with a new scope — so namespacing the storage
+   * key alone would have left the previous scenario's collapse on screen until
+   * something unmounted the section. Re-reading during render (React's
+   * documented "adjust state when a prop changes" pattern) is what makes the
+   * section show what the user chose FOR THIS scenario, which is the whole
+   * point of INT-9.
+   */
+  const [persisted, setPersisted] = useState(() => ({
+    key: persistenceKey,
+    open: readPersistedState(persistenceKey, defaultOpen),
+  }));
+  if (persisted.key !== persistenceKey) {
+    setPersisted({ key: persistenceKey, open: readPersistedState(persistenceKey, defaultOpen) });
+  }
+  const isOpen = persisted.open;
+  const setIsOpen = useCallback((update: (previous: boolean) => boolean) => {
+    setPersisted((previous) => ({ key: previous.key, open: update(previous.open) }));
+  }, []);
   const isExpanded = collapsible ? isOpen : true;
   const contentId = useId();
   const accessibleName = typeof title === 'string'
@@ -64,10 +101,10 @@ const CollapsibleSection = memo<CollapsibleSectionProps>(({
     if (!collapsible) return;
     setIsOpen((prev) => {
       const next = !prev;
-      persistState(storageKey, next);
+      persistState(persistenceKey, next);
       return next;
     });
-  }, [collapsible, storageKey]);
+  }, [collapsible, persistenceKey, setIsOpen]);
 
   return (
     <div className="continuous-section bg-gray-50 dark:bg-slate-800/50 rounded-lg border border-gray-200/70 dark:border-slate-700/70 overflow-hidden">

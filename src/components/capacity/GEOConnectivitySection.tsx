@@ -963,6 +963,10 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           // ── MESH/P2P: selected one-way terminal path, no traffic gateway overhead ─
           <LatencyBreakdownCard
             storageKey="geo-latency-breakdown"
+            // Not collapsible today, so nothing persists — but the two branches
+            // below shared one key, which is a trap the moment either becomes
+            // collapsible again.
+            scope="geo-mesh"
             accentColor="#2563eb"
             collapsible={false}
             title={<>Latency breakdown<DirectionPill dir={meshDirectionLabel} /></>}
@@ -1003,6 +1007,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           // ── STAR: one-way via traffic gateway ────────────────────────────
           <LatencyBreakdownCard
             storageKey="geo-latency-breakdown"
+            scope="geo-star"
             accentColor="#2563eb"
             collapsible={false}
             title={`Latency breakdown (${isStarReturn ? 'RETURN' : 'FORWARD'})`}

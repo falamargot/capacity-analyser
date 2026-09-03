@@ -27,7 +27,6 @@ ticking it.
 | Item | What is actually undone |
 |---|---|
 | **R12** | 60 fps at 256 satellites has never been measured |
-| **R31** | a mobile e2e spec is intermittently over its 90 s budget |
 | *inside R24* | E8 — visual WGS84 against the analytical sphere (not re-verified) |
 
 R24's other buried item — URL / browser-history semantics — is **closed**:
@@ -911,8 +910,26 @@ output belongs with a test-matrix pass, not with a same-day correctness fix.
 
 ## R31. REVISIT UI/UX pass slowed one mobile e2e flow; cause not isolated
 
-**Status: OPEN** — intermittent CI failure, bisected to a batch, cause not
-isolated inside it.
+**Status: CLOSED 2026-09-03 by measurement — the cause was never isolated, in
+either direction.**
+
+Re-measured on `main` after the September work, three consecutive runs of the
+spec that motivated this item (`revisit-p2c-a` › *keeps the reference as
+benchmark while the selected point owns the result*, mobile-chromium):
+
+| run | duration |
+|---|---|
+| 1 | 36.7 s |
+| 2 | 37.6 s |
+| 3 | 36.7 s |
+
+Against a 90 s budget, and against the 60–78 s that opened this item. It is now
+faster than the 45–53 s baseline recorded below as "before the pass".
+
+Nobody worked on it. Whatever recovered the time is as unidentified as what cost
+it — closing on the measurement rather than on an explanation, and saying so.
+If it comes back, the timings below are the comparison points; do NOT raise the
+timeout, which is still the wrong move for the same reason.
 
 `revisit-p2c-a` › *keeps the reference as benchmark while the
 selected point owns the result* (mobile-chromium) runs measurably slower after

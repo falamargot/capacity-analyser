@@ -5,6 +5,8 @@ import CollapsibleSection from '../../layout/CollapsibleSection';
 interface LatencyBreakdownCardProps {
   /** Unique key used for localStorage persistence. Must be stable across renders. */
   storageKey: string;
+  /** Scenario dimension the persisted state belongs to — see `CollapsibleSection`. */
+  scope?: string;
   accentColor: string;
   summary: string;
   title?: ReactNode;
@@ -20,6 +22,7 @@ interface LatencyBreakdownCardProps {
  */
 const LatencyBreakdownCard = ({
   storageKey,
+  scope,
   accentColor,
   summary,
   title = 'Latency breakdown',
@@ -29,6 +32,7 @@ const LatencyBreakdownCard = ({
 }: LatencyBreakdownCardProps) => (
   <CollapsibleSection
     storageKey={storageKey}
+    scope={scope}
     accentColor={accentColor}
     defaultOpen={false}
     collapsible={collapsible}

@@ -2,6 +2,58 @@
 
 _Last updated 2026-09-03._
 
+## 2026-09-03 (end of day) — INT-9 closed, S-2 started
+
+Gates: **2 183 unit tests** (5 new), `tsc`, `eslint`, build, and 27 e2e
+(`revisit-visual`, `p2c-c`, `advanced`) all green.
+
+- **INT-9** — `CollapsibleSection` takes an optional `scope`. The first attempt
+  namespaced the storage key only; the new unit test caught that this fixes
+  nothing on screen, because `useState`'s initialiser runs once per mount and a
+  topology switch re-renders the same instance. State is now KEYED by the
+  persistence key and re-read during render when it changes. Live case: the LEO
+  latency breakdown shared one collapse preference between single-site and
+  site-to-site.
+- **S-2** — first slice only, and labelled as such. `App.tsx` measured at 5 366
+  logic lines against 1 302 of JSX (79 callbacks, 68 memos, 49 effects), so the
+  logic is the lever. Live weather moved to `hooks/useAutoWeather.ts`: two
+  near-identical in-component fetch loops, each with its own copy of the
+  precipitation→weather table. That table selects the rain-fade model the link
+  budget applies and now has its first tests. 6 667 → 6 615 lines.
+
+**Next slice, with a warning attached:** the inspection cluster
+(`inspectedSNP`, `selectedGateway`, `selectedMoon`, `selectedAircraft(B)`,
+`selectedVessel`, `selectedIss`) is the biggest coherent one, but its
+mutual-exclusion is ad-hoc — the handlers do not all clear the same entities.
+Extracting it as a strict "one inspected entity" reducer would change behaviour.
+That is a product decision to take deliberately, not a refactor side effect.
+
+## 2026-09-03 (later still) — R31 closed by measurement; the two UX audits sampled
+
+**R31 is closed, and nobody fixed it.** Re-measured on `main`: the spec that
+motivated it runs in **36.7 / 37.6 / 36.7 s** against a 90 s budget — faster than
+the 45–53 s baseline recorded as "before the pass" that opened the item, and well
+under the 60–78 s that made it flaky. What recovered the time is as unidentified
+as what cost it. Closed on the measurement, with the timings kept as the
+comparison points if it returns. The `DEFERRED_ITEMS` OPEN list is now **R12
+alone**, plus E8 buried in R24.
+
+**The two UX audits were UNKNOWN because nothing referenced them — that was a
+traceability gap, not an implementation gap.** `AUDIT_BACKLOG.md` now carries a
+verified verdict for all 23 items of `UX_UI_AUDIT`'s roadmap and a sample of
+`ENG_Sidebar_UX_Audit`, with the unchecked findings named.
+
+The two results worth carrying forward:
+
+- `ENG_Sidebar_UX_Audit`'s central recommendation **shipped**: the app has an
+  explicit cause chain (`scenario | path | rf | service | delivery`) where the
+  audit found a component-oriented sidebar. Built by the later Engineering UI
+  migration, with no document connecting the two.
+- `UX_UI_AUDIT`'s **S-2 went backwards**: `App.tsx` was 3 939 lines when the
+  audit called it unmanageable and is **6 667 today**. It is the only finding in
+  either audit that is worse than when it was written, and it already constrains
+  other decisions (R16).
+
 ## 2026-09-03 (later) — Items 4, 5, R30 and R14 closed; two OPEN items left
 
 Gates: **2 178 unit tests**, `tsc`, `eslint`, `npm run build`. The `DEFERRED_ITEMS`

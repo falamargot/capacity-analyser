@@ -36,8 +36,8 @@ original author would have caught.
 | `SPATIAL_PHYSICS_AUDIT` | "Phases 0–3 and R28 executed" | R28/R29 tracked in `DEFERRED_ITEMS` | **CLOSED**, residuals tracked elsewhere |
 | `GEO_Ground_Infrastructure_Audit` (07-08) + roadmap | roadmap P0–P3 | not checked | **UNKNOWN** |
 | `audit-geo-ground-segment-categorisation` | mapping only | superseded by items 1–5 of `DEFERRED_ITEMS` | **SUPERSEDED** |
-| `ENG_Sidebar_UX_Audit` (07-11) | "first-pass audit, no changes proposed" | **no traceability found anywhere** | **UNKNOWN** |
-| `UX_UI_AUDIT` | redesign plan | **no traceability found anywhere** | **UNKNOWN** |
+| `ENG_Sidebar_UX_Audit` (07-11) | "first-pass audit, no changes proposed" | sampled in code 2026-09-03 | **MOSTLY IMPLEMENTED** — see below |
+| `UX_UI_AUDIT` | redesign plan | all 23 roadmap items checked 2026-09-03 | **PARTIAL** — see below |
 | `REVISIT_Reuse_Map_Audit` (08-06) | Lot 0 mapping | historical | **SUPERSEDED** |
 | `REVISIT_UX_INTEGRATION_REVIEW` (08-11), `REVISIT_REQUIREMENT_RECHECK` (08-12) | reviews without status | not checked | **UNKNOWN** |
 | `Capacity_Analyzer_Engineering_Audit` | positioning + findings | not checked | **UNKNOWN** |
@@ -141,3 +141,112 @@ and these are the counter-example: work was done against findings that leave no
 trace here, so the next session cannot tell what was decided or why. If either
 still matters, it has to be re-derived and written down — **do not treat this
 paragraph as the finding list**, it is only the record that one is missing.
+
+## The two UX audits, sampled in code (2026-09-03)
+
+Both were marked UNKNOWN above because **no document references either of
+them**. That was a traceability gap, not an implementation gap: much of what
+they asked for exists. What follows is verified in code, item by item where the
+audit gave a list, by sampling where it gave prose. Items I did not check are
+named as such rather than assumed.
+
+### `UX_UI_AUDIT` — its own prioritised roadmap, 23 items
+
+| Item | Verdict | Evidence |
+|---|---|---|
+| QW-1 right-side Link Budget drawer | **REJECTED LATER** | `ENG_Sidebar_UX_Audit` concluded the opposite — a separate workspace is "materially better suited to dense engineering content than a narrow drawer". No drawer exists, and that is now the deliberate design. |
+| QW-2 sticky Mission KPI bar | **SUPERSEDED** | `headerRouteStatus` tiles in `App.tsx` + `CommercialKpiBar` |
+| QW-3 one `StatusChip` | **PARTIAL** | exists under `components/commercial/`, not app-wide |
+| QW-4 scope consolidation / drop Waypoints popup | **NOT DONE** | `Waypoints` still referenced in `App.tsx` |
+| QW-5 default-collapse low-priority sections | **DONE** | `defaultOpen` across the ENG sections |
+| QW-6 cinematic flyTo on selection | **DONE** | `flyToBoundingSphere` at four call sites in `CesiumGlobe.tsx` |
+| QW-7 type-scale & status tokens | **PARTIAL** | `@theme` holds two colours; the semantic status set never landed |
+| QW-8 compact-desktop header height | **NOT CHECKED** | needs a visual pass |
+| M-1 topology selector pill | **PARTIAL** | `LinkModeSelector.tsx` (112 lines) is the surviving piece |
+| M-2 constraint summary block | **SUPERSEDED** | the cause chain does this — `EngineeringCauseStage`, service gates |
+| M-3 generalise the path strip to GEO | **NOT DONE** | `LeoS2SPathStrip.tsx` contains no GEO branch |
+| M-4 left rail of map layers | **NOT CHECKED** | |
+| M-5 globe↔sidebar hover linking | **NOT DONE** | no `useHoveredEntity` |
+| M-6 diagnostics drawer | **NOT DONE** | |
+| M-7 keyboard 1-5 section jumps | **NOT DONE** | `useKeyboardShortcuts` handles `escape`, `k`, `s` only |
+| M-8 PDF export redesign | **NOT CHECKED** | |
+| S-1 design system in `components/ds/*` | **NOT DONE** | directory absent |
+| S-2 move state out of `App.tsx` | **STARTED 2026-09-03** | 3 939 at audit time → 6 667 → **6 615**. First slice extracted (`useAutoWeather`); see below |
+| S-3 split `CapacityDetails` | **DONE** | 2 323 → 531 lines, with `components/capacity/*` beside it |
+| S-4 narration engine | **NOT DONE** | |
+| S-5 side-by-side comparison | **NOT DONE** | |
+| S-6 semantic theme tokens | **PARTIAL** | as QW-7 |
+| S-7 accessibility pass | **PARTIAL** | axe gate in `e2e/accessibility.spec.ts`; keyboard work landed in REVISIT (R23), not app-wide |
+
+**Reading:** the quick wins split roughly half done / half abandoned, the
+strategic items are untouched **except** the one that mattered most and did land
+(S-3) — and the one that went backwards (S-2). `App.tsx` is now 70 % larger than
+when the audit called it unmanageable.
+
+### `ENG_Sidebar_UX_Audit` — its core recommendation shipped
+
+Its central finding was that the sidebar is component-oriented where it should
+be task-oriented (UX-1, UX-4, IA-2, IA-7). **That is implemented**: the app now
+carries an explicit reasoning chain —
+`EngineeringCauseStageId = 'scenario' | 'path' | 'rf' | 'service' | 'delivery'`
+with a `causeChain` per technology (`engineeringAnalysisViewModel.ts`) and an
+`EngineeringClosurePipeline` for the workspace. That is the audit's model, built
+by the later Engineering UI migration, with nothing linking the two.
+
+Sampled findings:
+
+| Finding | Verdict | Evidence |
+|---|---|---|
+| IA-4 — "no budget" and "no coverage" conflated | **CLOSED** | distinct states `path-unavailable` / `budget-unavailable` |
+| INT-5 — custom comboboxes are incomplete | **CLOSED in practice** | native `<select>` throughout the capacity panels; one `role="combobox"` left |
+| INT-9 — persisted expansion lacks scenario context | **CLOSED 2026-09-03** | `CollapsibleSection` takes an optional `scope`; state is keyed by it, not merely seeded from it |
+| INT-3 — topology controls inconsistent GEO/LEO | **NOT CHECKED** | needs a side-by-side UI comparison, not a grep |
+
+**Not checked at all:** UX-2, UX-3, UX-5, UX-6, UX-8, UX-9, INT-1, INT-2, INT-4,
+INT-6, INT-7, INT-8, INT-10, IA-1, IA-3, IA-5, IA-6, and the seven-phase plan's
+own acceptance criteria. They are prose findings about hierarchy and emphasis;
+settling them needs the app on screen, not a search.
+
+### Work done against these audits, 2026-09-03
+
+**INT-9 — closed.** `CollapsibleSection` gained an optional `scope` that
+namespaces the persisted key, and the live case was the LEO latency breakdown
+sharing one preference between single-site and site-to-site, which list
+different legs; two GEO call sites also shared a key across MESH and STAR.
+
+The first attempt — namespacing the key alone — was WRONG, and the unit test
+caught it: `useState`'s initialiser runs once per mount, and a topology switch
+re-renders the same instance, so the previous scenario's collapse stayed on
+screen with the new key underneath it. State is now keyed by the persistence key
+and re-read during render when it changes. `scope` is optional so a genuinely
+global section keeps the old behaviour.
+
+**S-2 — started, and it is a programme, not a commit.** Measured first rather
+than cut at random: `App.tsx` is **5 366 lines of logic against 1 302 of JSX**,
+with 79 `useCallback`, 68 `useMemo`, 49 `useEffect`. The logic is the lever, as
+the audit said.
+
+First slice: live weather. Two near-identical effects ran a `fetch`, an interval
+and a cancellation flag inside the component, each carrying **its own copy** of
+the precipitation→weather-class table. That moved to `hooks/useAutoWeather.ts`,
+and the table — the only part with engineering meaning, since it selects the
+rain-fade model the link budget applies — is now testable and tested for the
+first time. The two sites' real differences are preserved at the call sites, not
+smoothed away: Site A also publishes `weatherCondition` and repolls every 30 s
+while following an aircraft; Site B fetches once.
+
+**52 lines.** Stating the number rather than the intent: the value here is one
+verified slice, a test where there was none, and the measurement above so the
+next slice is chosen rather than guessed.
+
+### What is left
+
+1. **S-2, the rest of it.** The next slices by size are the inspection cluster
+   (7 pieces of state, mutually exclusive through ad-hoc clearing repeated at
+   each handler — extracting it would also remove that duplication) and the
+   terminal/topology cluster. Note the inconsistency found while looking: the
+   handlers do not all clear the same entities, so a strict "one inspected
+   entity" reducer would CHANGE behaviour and must be a deliberate decision, not
+   a side effect of a refactor.
+2. The rest of both audits is done, deliberately rejected, or needs a UX pass
+   with the app running — a different kind of work from this backlog.
