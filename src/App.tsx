@@ -81,6 +81,7 @@ import { getSatellitesConnectedToSNP, type SNPConnectedSatellite } from './servi
 import { selectSnpForSatellite } from './utils/connectivityRules';
 import useKeyboardShortcuts from './hooks/useKeyboardShortcuts';
 import { useAutoWeather } from './hooks/useAutoWeather';
+import { useGeoCoverageKeys, useGeoCoverageSelection } from './hooks/useGeoCoverageSelection';
 import { useSelectionState } from './hooks/useSelectionState';
 import { useAuthorshipEasterEgg } from './hooks/useAuthorshipEasterEgg';
 import { useViewport, type ViewportSnapshot } from './hooks/useViewport';
@@ -102,7 +103,7 @@ import {
 } from './utils/fillRateUx';
 import { getConnectivityStatus } from './utils/rfConnectivity';
 import { deriveLeoConnectivityViewModel } from './utils/leoServiceViewModel';
-import { getGroundSegmentRoutingForSatellite, resolveStarTrafficGatewayForCoverage, selectTrafficGeoGateway, type ResolvedGeoGateway } from './utils/geoConnectivityModel';
+import { getGroundSegmentRoutingForSatellite, resolveStarTrafficGatewayForCoverage, type ResolvedGeoGateway } from './utils/geoConnectivityModel';
 import type { GeoPointStatus } from './utils/selectedPointStatus';
 import type { CountryOverlayMode } from './types/countryOverlays';
 import type { LinkMode } from './types/linkMode';
@@ -113,17 +114,12 @@ import {
 } from './utils/activeRouteViewModel';
 import { canonicalHeaderMetrics } from './utils/canonicalRouteMetrics';
 import {
-  augmentCandidatesWithSynthesizedDirections,
-  selectBestTopologyPath,
-} from './utils/geoTopologySelection';
-import {
   USE_CASE_DEFAULT_RF_CLASS,
   getRFClassBand,
   getRFClassSpec,
   isRFClassCompatibleWithUseCase,
   type TerminalRFClassId,
 } from './utils/geoTerminalRFModel';
-import { supportsStarTrafficTopology } from './utils/geoGroundInfrastructure';
 import { buildGeoRouteAnalysisViewModel } from './utils/geoRouteAnalysisViewModel';
 import {
   resolveTerminalProfileTransition,
@@ -334,10 +330,6 @@ const flyToEngineeringCameraSnapshot = (
 };
 
 
-const getCandidateLinkMargin = (candidate: CandidateCoverage): number => (
-  Number.isFinite(candidate.linkMarginDb) ? candidate.linkMarginDb! : -Infinity
-);
-
 type SelectableCommercialTechnology = 'GEO' | 'LEO';
 
 function commercialTechnologyOption(
@@ -394,19 +386,6 @@ function autoSelectableCommercialTechnology(viewModel: CommercialScenarioViewMod
   if (recommended === 'hybrid') return selectBestHybridCommercialTechnology(viewModel);
   return null;
 }
-
-const compareCandidateLinkMargin = (left: CandidateCoverage, right: CandidateCoverage): number => {
-  const marginDelta = getCandidateLinkMargin(right) - getCandidateLinkMargin(left);
-  if (marginDelta !== 0) return marginDelta;
-  return right.score - left.score;
-};
-
-const pickBestGeoLinkMargin = (candidates: CandidateCoverage[]): CandidateCoverage | null => (
-  candidates.reduce<CandidateCoverage | null>(
-    (best, candidate) => (!best || compareCandidateLinkMargin(candidate, best) < 0 ? candidate : best),
-    null
-  )
-);
 
 const getCompactDesktopProgress = (viewportSnapshot: ViewportSnapshot) => {
   const normalizedDiag = clampNumber(viewportSnapshot.effectiveDiag, COMPACT_DESKTOP_DIAG_MIN, COMPACT_DESKTOP_DIAG_MAX);
@@ -1048,15 +1027,17 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
   selectedPositionRef.current = selectedPosition;
   const pointAIsUserDefined = selectedSelection.type === 'target' && selectedSelection.targetType === 'point';
   const pointBIsUserDefined = siteB !== null;
-  const [selectedUplinkKey, setSelectedUplinkKey] = useState<string | null>(restoredTelecomSession?.geoCoverageSelection.selectedUplinkKey ?? null);
-  const [selectedDownlinkKey, setSelectedDownlinkKey] = useState<string | null>(restoredTelecomSession?.geoCoverageSelection.selectedDownlinkKey ?? null);
-  const [selectedUplinkKeyB, setSelectedUplinkKeyB] = useState<string | null>(restoredTelecomSession?.geoCoverageSelection.selectedUplinkKeyB ?? null);
-  const [selectedDownlinkKeyB, setSelectedDownlinkKeyB] = useState<string | null>(restoredTelecomSession?.geoCoverageSelection.selectedDownlinkKeyB ?? null);
-  const geoSelectionPolicy = selectedUplinkKey || selectedDownlinkKey || selectedUplinkKeyB || selectedDownlinkKeyB
-    ? 'manual' as const
-    : 'auto' as const;
-  const preserveCoverageKeysOnNextTargetResetRef = useRef(false);
-  const preserveSiteBCoverageKeysOnNextPointBResetRef = useRef(false);
+  /* Keys, refs and the manual/auto policy — see `useGeoCoverageKeys`. */
+  const geoCoverageKeys = useGeoCoverageKeys(restoredTelecomSession?.geoCoverageSelection ?? null);
+  const {
+    selectedUplinkKey, setSelectedUplinkKey,
+    selectedDownlinkKey, setSelectedDownlinkKey,
+    selectedUplinkKeyB, setSelectedUplinkKeyB,
+    selectedDownlinkKeyB, setSelectedDownlinkKeyB,
+    geoSelectionPolicy,
+    preserveCoverageKeysOnNextTargetResetRef,
+    preserveSiteBCoverageKeysOnNextPointBResetRef,
+  } = geoCoverageKeys;
   const [manualGeoCoverageVisibility, setManualGeoCoverageVisibility] = useState<{
     satelliteId: string | null;
     keys: string[];
@@ -1655,361 +1636,38 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     pointB,
   ]);
 
-  const eligibleCandidateCoverages = useMemo(() => {
-    if (candidateCoverages.length === 0) return candidateCoverages;
-
-    const candidatePoolForMode = (linkMode === 'STAR_FORWARD' || linkMode === 'STAR_RETURN')
-      ? augmentCandidatesWithSynthesizedDirections(candidateCoverages, geoOperationalSatellites)
-      : candidateCoverages;
-
-    const hasRealDirectionPair = (pool: CandidateCoverage[], satelliteId: string) => {
-      const satelliteCandidates = pool.filter((candidate) => (
-        candidate.satelliteId === satelliteId &&
-        !candidate.isSynthesized
-      ));
-
-      return satelliteCandidates.some((candidate) => candidate.isUplink)
-        && satelliteCandidates.some((candidate) => !candidate.isUplink);
-    };
-
-    const candidateSatelliteIds = [...new Set(candidateCoverages.map((candidate) => candidate.satelliteId))];
-    const candidateSatelliteIdsWithRequiredUserDirection = new Set(
-      candidateSatelliteIds.filter((satelliteId) => {
-        if (linkMode === 'STAR_FORWARD') return candidatePoolForMode.some((candidate) => (
-          candidate.satelliteId === satelliteId && !candidate.isUplink
-        ));
-        if (linkMode === 'STAR_RETURN') return candidatePoolForMode.some((candidate) => (
-          candidate.satelliteId === satelliteId && candidate.isUplink
-        ));
-        return hasRealDirectionPair(candidateCoverages, satelliteId);
-      })
-    );
-
-    if (candidateSatelliteIdsWithRequiredUserDirection.size === 0) return [];
-
-    if (LINK_MODE_REQUIRES_POINT_B.has(linkMode)) {
-      if (candidateCoveragesB.length === 0) {
-        return candidatePoolForMode.filter((candidate) => candidateSatelliteIdsWithRequiredUserDirection.has(candidate.satelliteId));
-      }
-      const pointBSatelliteIdsWithPair = new Set(
-        [...new Set(candidateCoveragesB.map((candidate) => candidate.satelliteId))]
-          .filter((satelliteId) => hasRealDirectionPair(candidateCoveragesB, satelliteId))
-      );
-      return candidatePoolForMode.filter((candidate) => (
-        candidateSatelliteIdsWithRequiredUserDirection.has(candidate.satelliteId) &&
-        pointBSatelliteIdsWithPair.has(candidate.satelliteId)
-      ));
-    }
-
-    if (linkMode !== 'STAR_FORWARD' && linkMode !== 'STAR_RETURN') {
-      return candidateCoverages.filter((candidate) => candidateSatelliteIdsWithRequiredUserDirection.has(candidate.satelliteId));
-    }
-
-    const candidateSatellites = geoOperationalSatellites.filter((satellite) => candidateSatelliteIdsWithRequiredUserDirection.has(satellite.id));
-
-    const gatewayByPosition = new Map<string, { lat: number; lng: number }>();
-    const gatewayPositionBySatelliteId = new Map<string, string>();
-
-    for (const satellite of candidateSatellites) {
-      if (!supportsStarTrafficTopology(satellite)) continue;
-
-      // null here means the satellite's resolved SCC site has no CONFIRMED or
-      // PUBLICLY_LIKELY traffic role (see GatewayTrafficStatus). The satellite is
-      // intentionally excluded from STAR eligibility rather than falling back to
-      // the SCC site as if it were a confirmed teleport — this corresponds to
-      // CandidateCoverageStatus 'teleport_unconfirmed' conceptually, though no
-      // satellite reaches this branch with current reference allocation data
-      // (verified: every nominalSccCode/backupSccCode resolves to a
-      // PUBLICLY_LIKELY site as of this refactor).
-      const gatewaySelection = selectTrafficGeoGateway(satellite, GEO_GATEWAYS);
-      if (!gatewaySelection) continue;
-
-      const gatewayPosition = {
-        lat: gatewaySelection.gateway.lat,
-        lng: gatewaySelection.gateway.lng,
-      };
-      const positionKey = `${gatewayPosition.lat},${gatewayPosition.lng}`;
-      gatewayByPosition.set(positionKey, gatewayPosition);
-      gatewayPositionBySatelliteId.set(satellite.id, positionKey);
-    }
-
-    if (gatewayPositionBySatelliteId.size === 0) return [];
-
-    const coveredSatelliteIdsByGatewayPosition = new Map<string, Set<string>>();
-    for (const [positionKey, gatewayPosition] of gatewayByPosition) {
-      const gatewayCandidates = augmentCandidatesWithSynthesizedDirections(
-        findCandidateCoverages(
-          gatewayPosition,
-          geoOperationalSatellites
-        ),
-        geoOperationalSatellites,
-      );
-      coveredSatelliteIdsByGatewayPosition.set(
-        positionKey,
-        new Set(gatewayCandidates
-          .filter((candidate) => (
-            linkMode === 'STAR_FORWARD'
-              ? candidate.isUplink
-              : !candidate.isUplink
-          ))
-          .map((candidate) => candidate.satelliteId))
-      );
-    }
-
-    const eligibleSatelliteIds = new Set<string>();
-    const candidateSatelliteById = new Map(candidateSatellites.map((satellite) => [satellite.id, satellite]));
-    for (const [satelliteId, positionKey] of gatewayPositionBySatelliteId) {
-      const satellite = candidateSatelliteById.get(satelliteId);
-      const hasModeledGatewayContour = coveredSatelliteIdsByGatewayPosition.get(positionKey)?.has(satelliteId) === true;
-      const canUseEstimatedStarFeeder = satellite ? supportsStarTrafficTopology(satellite) : false;
-      if (hasModeledGatewayContour || canUseEstimatedStarFeeder) {
-        eligibleSatelliteIds.add(satelliteId);
-      }
-    }
-
-    return candidatePoolForMode.filter((candidate) => (
-      candidateSatelliteIdsWithRequiredUserDirection.has(candidate.satelliteId) &&
-      eligibleSatelliteIds.has(candidate.satelliteId)
-    ));
-  }, [candidateCoverages, candidateCoveragesB, linkMode, geoOperationalSatellites]);
-
-  const targetSelectionResetKey = useMemo(() => (
-    selectedSelection.type === 'target'
-      ? [
-          selectedSelection.targetType,
-          selectedSelection.position.lat,
-          selectedSelection.position.lng,
-          selectedSelection.position.altitude ?? 'ground',
-        ].join('::')
-      : selectedSelection.type
-  ), [selectedSelection]);
-
-  // Reset both keys whenever the target point changes
-  useEffect(() => {
-    if (preserveCoverageKeysOnNextTargetResetRef.current) {
-      preserveCoverageKeysOnNextTargetResetRef.current = false;
-      return;
-    }
-    setSelectedUplinkKey(null);
-    setSelectedDownlinkKey(null);
-    setSelectedUplinkKeyB(null);
-    setSelectedDownlinkKeyB(null);
-  }, [targetSelectionResetKey, geoRFClassIdA, geoRFClassIdB]);
-
-  useEffect(() => {
-    if (preserveSiteBCoverageKeysOnNextPointBResetRef.current) {
-      preserveSiteBCoverageKeysOnNextPointBResetRef.current = false;
-      return;
-    }
-    setSelectedUplinkKeyB(null);
-    setSelectedDownlinkKeyB(null);
-  }, [linkMode, pointB]);
-
-  // Invalidate stale keys when the candidate list changes.
-  useEffect(() => {
-    if (selectedSelection.type !== 'target') return;
-    if (selectedUplinkKey) {
-      const c = eligibleCandidateCoverages.find(cc => getCandidateCoverageKey(cc) === selectedUplinkKey);
-      if (!c) setSelectedUplinkKey(null);
-    }
-    if (selectedDownlinkKey) {
-      const c = eligibleCandidateCoverages.find(cc => getCandidateCoverageKey(cc) === selectedDownlinkKey);
-      if (!c) setSelectedDownlinkKey(null);
-    }
-  }, [eligibleCandidateCoverages, selectedSelection.type, selectedUplinkKey, selectedDownlinkKey]);
-
-  useEffect(() => {
-    if (selectedSelection.type !== 'target') return;
-    if (selectedUplinkKeyB) {
-      const c = candidateCoveragesB.find(cc => getCandidateCoverageKey(cc) === selectedUplinkKeyB);
-      if (!c) setSelectedUplinkKeyB(null);
-    }
-    if (selectedDownlinkKeyB) {
-      const c = candidateCoveragesB.find(cc => getCandidateCoverageKey(cc) === selectedDownlinkKeyB);
-      if (!c) setSelectedDownlinkKeyB(null);
-    }
-  }, [candidateCoveragesB, selectedSelection.type, selectedUplinkKeyB, selectedDownlinkKeyB]);
-
-  const topologyDefaultSelection = useMemo(() => {
-    if (selectedSelection.type !== 'target') return null;
-    if (eligibleCandidateCoverages.length === 0) return null;
-
-    return selectBestTopologyPath({
-      linkMode,
-      satellites: geoOperationalSatellites,
-      candidateCoveragesA: eligibleCandidateCoverages,
-      candidateCoveragesB,
-      pointB,
-      terminalTypeA: geoRFClassIdA,
-      terminalTypeB: geoRFClassIdB,
-      customParamsA: geoRFCustomParamsA,
-      customParamsB: geoRFCustomParamsB,
-      pointALabel: 'Terminal A',
-      pointBLabel: 'Terminal B',
-      failedGatewaySiteIds: failedGeoGatewaySiteIds,
-    });
-  }, [
+  /*
+   * GEO transponder-pair selection (S-2, second slice). The 355 lines that
+   * computed the eligible pool, the topology default, the resolved pairs and the
+   * key-invalidation effects now live in `useGeoCoverageSelection`, unchanged.
+   */
+  /*
+   * The `setSelected*Key` setters and the two preserve-refs now reach these
+   * callbacks through `useGeoCoverageKeys`'s return object, so the
+   * exhaustive-deps rule can no longer prove they are stable and asks for them
+   * in the arrays. They ARE stable — `useState` setters and `useRef` boxes — so
+   * listing them is free at runtime and keeps the repository at zero warnings.
+   */
+  const {
     eligibleCandidateCoverages,
+    selectedUplinkCoverage,
+    selectedDownlinkCoverage,
+    selectedUplinkCoverageB,
+    selectedDownlinkCoverageB,
+  } = useGeoCoverageSelection({
+    keys: geoCoverageKeys,
+    candidateCoverages,
     candidateCoveragesB,
-    failedGeoGatewaySiteIds,
+    geoOperationalSatellites,
+    linkMode,
+    selectedSelection,
     geoRFClassIdA,
     geoRFClassIdB,
     geoRFCustomParamsA,
     geoRFCustomParamsB,
-    linkMode,
+    failedGeoGatewaySiteIds,
     pointB,
-    geoOperationalSatellites,
-    selectedSelection.type,
-  ]);
-
-  const defaultCoveragePair = useMemo(() => {
-    if (selectedSelection.type !== 'target') {
-      return { uplink: null, downlink: null };
-    }
-
-    const satelliteIds = [...new Set(eligibleCandidateCoverages.map((candidate) => candidate.satelliteId))];
-    let best: {
-      uplink: CandidateCoverage;
-      downlink: CandidateCoverage;
-      limitingMargin: number;
-      score: number;
-    } | null = null;
-
-    for (const satelliteId of satelliteIds) {
-      const uplink = pickBestGeoLinkMargin(eligibleCandidateCoverages.filter((candidate) => (
-        candidate.satelliteId === satelliteId &&
-        candidate.isUplink &&
-        !candidate.isSynthesized
-      )));
-      const downlink = pickBestGeoLinkMargin(eligibleCandidateCoverages.filter((candidate) => (
-        candidate.satelliteId === satelliteId &&
-        !candidate.isUplink &&
-        !candidate.isSynthesized
-      )));
-
-      if (!uplink || !downlink) continue;
-
-      const limitingMargins = [getCandidateLinkMargin(uplink), getCandidateLinkMargin(downlink)];
-      if (LINK_MODE_REQUIRES_POINT_B.has(linkMode) && candidateCoveragesB.length > 0) {
-        const uplinkB = pickBestGeoLinkMargin(candidateCoveragesB.filter((candidate) => (
-          candidate.satelliteId === satelliteId &&
-          candidate.isUplink &&
-          !candidate.isSynthesized
-        )));
-        const downlinkB = pickBestGeoLinkMargin(candidateCoveragesB.filter((candidate) => (
-          candidate.satelliteId === satelliteId &&
-          !candidate.isUplink &&
-          !candidate.isSynthesized
-        )));
-
-        if (!uplinkB || !downlinkB) continue;
-        limitingMargins.push(getCandidateLinkMargin(uplinkB), getCandidateLinkMargin(downlinkB));
-      }
-
-      const limitingMargin = Math.min(...limitingMargins);
-      const score = uplink.score + downlink.score;
-      if (
-        !best ||
-        limitingMargin > best.limitingMargin ||
-        (limitingMargin === best.limitingMargin && score > best.score)
-      ) {
-        best = { uplink, downlink, limitingMargin, score };
-      }
-    }
-
-    return {
-      uplink: best?.uplink ?? topologyDefaultSelection?.uplinkA ?? null,
-      downlink: best?.downlink ?? topologyDefaultSelection?.downlinkA ?? null,
-    };
-  }, [candidateCoveragesB, eligibleCandidateCoverages, linkMode, selectedSelection.type, topologyDefaultSelection]);
-
-  // Default uplink / downlink when nothing is explicitly selected.
-  const defaultDownlinkCoverage = defaultCoveragePair.downlink;
-  const defaultUplinkCoverage = defaultCoveragePair.uplink;
-
-  const rawSelectedUplinkCoverage = useMemo(() => {
-    if (selectedSelection.type !== 'target') return null;
-    if (selectedUplinkKey) return eligibleCandidateCoverages.find(c => getCandidateCoverageKey(c) === selectedUplinkKey) ?? defaultUplinkCoverage;
-    return defaultUplinkCoverage;
-  }, [eligibleCandidateCoverages, defaultUplinkCoverage, selectedSelection.type, selectedUplinkKey]);
-
-  const rawSelectedDownlinkCoverage = useMemo(() => {
-    if (selectedSelection.type !== 'target') return null;
-    if (selectedDownlinkKey) return eligibleCandidateCoverages.find(c => getCandidateCoverageKey(c) === selectedDownlinkKey) ?? defaultDownlinkCoverage;
-    return defaultDownlinkCoverage;
-  }, [eligibleCandidateCoverages, defaultDownlinkCoverage, selectedSelection.type, selectedDownlinkKey]);
-
-  const selectedUplinkCoverageB = useMemo(() => {
-    if (selectedSelection.type !== 'target' || !selectedUplinkKeyB) return null;
-    return candidateCoveragesB.find(c => getCandidateCoverageKey(c) === selectedUplinkKeyB) ?? null;
-  }, [candidateCoveragesB, selectedSelection.type, selectedUplinkKeyB]);
-
-  const selectedDownlinkCoverageB = useMemo(() => {
-    if (selectedSelection.type !== 'target' || !selectedDownlinkKeyB) return null;
-    return candidateCoveragesB.find(c => getCandidateCoverageKey(c) === selectedDownlinkKeyB) ?? null;
-  }, [candidateCoveragesB, selectedSelection.type, selectedDownlinkKeyB]);
-
-  const selectedCoveragePair = useMemo(() => {
-    if (selectedSelection.type !== 'target') {
-      return { uplink: null, downlink: null };
-    }
-
-    const findCompanion = (anchor: CandidateCoverage, wantUplink: boolean) => {
-      const sameSatellite = eligibleCandidateCoverages.filter((candidate) => (
-        candidate.isUplink === wantUplink &&
-        candidate.satelliteId === anchor.satelliteId
-      ));
-
-      return pickBestGeoLinkMargin(sameSatellite.filter((candidate) => candidate.band === anchor.band && !candidate.isSynthesized))
-        ?? pickBestGeoLinkMargin(sameSatellite.filter((candidate) => !candidate.isSynthesized))
-        ?? pickBestGeoLinkMargin(sameSatellite.filter((candidate) => candidate.band === anchor.band))
-        ?? pickBestGeoLinkMargin(sameSatellite)
-        ?? null;
-    };
-
-    if (rawSelectedUplinkCoverage && rawSelectedDownlinkCoverage) {
-      if (
-        rawSelectedUplinkCoverage.satelliteId === rawSelectedDownlinkCoverage.satelliteId &&
-        rawSelectedUplinkCoverage.band === rawSelectedDownlinkCoverage.band
-      ) {
-        return { uplink: rawSelectedUplinkCoverage, downlink: rawSelectedDownlinkCoverage };
-      }
-
-      const anchor = linkMode === 'STAR_RETURN'
-        ? rawSelectedUplinkCoverage
-        : rawSelectedDownlinkCoverage;
-      const companion = findCompanion(anchor, !anchor.isUplink);
-
-      return anchor.isUplink
-        ? { uplink: anchor, downlink: companion }
-        : { uplink: companion, downlink: anchor };
-    }
-
-    if (rawSelectedDownlinkCoverage) {
-      return {
-        uplink: findCompanion(rawSelectedDownlinkCoverage, true),
-        downlink: rawSelectedDownlinkCoverage,
-      };
-    }
-
-    if (rawSelectedUplinkCoverage) {
-      return {
-        uplink: rawSelectedUplinkCoverage,
-        downlink: findCompanion(rawSelectedUplinkCoverage, false),
-      };
-    }
-
-    return { uplink: null, downlink: null };
-  }, [
-    eligibleCandidateCoverages,
-    linkMode,
-    rawSelectedDownlinkCoverage,
-    rawSelectedUplinkCoverage,
-    selectedSelection.type,
-  ]);
-
-  const selectedUplinkCoverage = selectedCoveragePair.uplink;
-  const selectedDownlinkCoverage = selectedCoveragePair.downlink;
+  });
 
   // Globe-visible coverages: only the user-terminal side for the active link mode,
   // only when real contour data exists (synthesised → nothing on globe),
@@ -3124,7 +2782,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     setSelectedUplinkKey(null);
     setSelectedDownlinkKey(null);
     selectTarget('point', { lat, lng });
-  }, [handleLeoTopologyModeChange, handleLinkModeChange, isSiteBArmed, linkMode, selectedPosition, selectTarget, syncScenarioDestination, syncScenarioOrigin, triggerEndpointSelectionMotion]);
+  }, [handleLeoTopologyModeChange, handleLinkModeChange, isSiteBArmed, linkMode, selectedPosition, selectTarget, syncScenarioDestination, syncScenarioOrigin, triggerEndpointSelectionMotion, setSelectedDownlinkKey, setSelectedUplinkKey]);
 
   // Handle click outside the globe — clears Site B and auto-downgrades mode.
   // Shift+click outside: clear Site B only, keep Site A.
@@ -3301,7 +2959,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     selectedAircraft,
     syncScenarioOrigin,
     triggerEndpointSelectionMotion,
-  ]);
+, setSelectedDownlinkKey, setSelectedUplinkKey]);
 
   // Handle vessel selection (vessel-based analyzis)
   const handleVesselSelect = useCallback((vessel: Vessel | null, fromComboBox: boolean = false) => {
@@ -3336,7 +2994,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     } else {
       clearSelection();
     }
-  }, [clearSelection, selectTarget, syncScenarioOrigin, triggerEndpointSelectionMotion]);
+  }, [clearSelection, selectTarget, syncScenarioOrigin, triggerEndpointSelectionMotion, setSelectedDownlinkKey, setSelectedUplinkKey]);
 
   const handleLocationSelect = useCallback((lat: number, lng: number) => {
     syncScenarioOrigin(lat, lng);
@@ -3353,7 +3011,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     selectTarget('point', { lat, lng });
 
     setSearchQuery('');
-  }, [selectTarget, syncScenarioOrigin, triggerEndpointSelectionMotion]);
+  }, [selectTarget, syncScenarioOrigin, triggerEndpointSelectionMotion, setSelectedDownlinkKey, setSelectedUplinkKey]);
 
   const handleDestinationLocationSelect = useCallback((lat: number, lng: number) => {
     syncScenarioDestination(lat, lng);
@@ -3411,7 +3069,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
         setSelectedUplinkKey(bestUl ? getCandidateCoverageKey(bestUl) : null);
       }
     }
-  }, [eligibleCandidateCoverages, linkMode, selectedSelection.type, selectedUplinkCoverage, selectedDownlinkCoverage]);
+  }, [eligibleCandidateCoverages, linkMode, selectedSelection.type, selectedUplinkCoverage, selectedDownlinkCoverage, setSelectedDownlinkKey, setSelectedUplinkKey]);
 
   const handleSelectUplinkCoverage = useCallback((coverage: CandidateCoverage) => {
     handleSelectTargetCoverageById(getCandidateCoverageKey(coverage));
@@ -3423,11 +3081,11 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
 
   const handleSelectUplinkCoverageB = useCallback((coverage: CandidateCoverage) => {
     setSelectedUplinkKeyB(getCandidateCoverageKey(coverage));
-  }, []);
+  }, [setSelectedUplinkKeyB]);
 
   const handleSelectDownlinkCoverageB = useCallback((coverage: CandidateCoverage) => {
     setSelectedDownlinkKeyB(getCandidateCoverageKey(coverage));
-  }, []);
+  }, [setSelectedDownlinkKeyB]);
 
   const handleSelectTargetCoverage = useCallback((coverage: CandidateCoverage) => {
     handleSelectTargetCoverageById(getCandidateCoverageKey(coverage));
@@ -3569,7 +3227,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     siteB,
     weatherType,
     weatherTypeB,
-  ]);
+, preserveCoverageKeysOnNextTargetResetRef, preserveSiteBCoverageKeysOnNextPointBResetRef, setSelectedDownlinkKey, setSelectedDownlinkKeyB, setSelectedUplinkKey, setSelectedUplinkKeyB]);
 
   const handleMobileTargetSearchFocus = useCallback(() => {
     setIsTargetSourcesMenuOpen(false);
@@ -3846,7 +3504,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     setSelectedUplinkKey(null);
     setSelectedDownlinkKey(null);
     setIsTargetSourcesMenuOpen(false);
-  }, [clearSelection]);
+  }, [clearSelection, setSelectedDownlinkKey, setSelectedUplinkKey]);
 
   const engineeringAnalyticalFocusActive = uiMode !== 'commercial'
     && engineeringFocusController.focus.kind === 'locked';
@@ -5048,7 +4706,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     handleWeatherTypeChange,
     selectedSelection.type,
     patchScenario,
-  ]);
+, setSelectedDownlinkKey, setSelectedDownlinkKeyB, setSelectedUplinkKey, setSelectedUplinkKeyB]);
 
   const mapCommercialState = useMemo<CommercialStateProps>(() => ({
     commercialMode: globeCommercialMode,
@@ -5141,7 +4799,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
         flyToEngineeringCameraSnapshot(viewer, cameraSnapshot, MODE_SWITCH_CAMERA_ANIMATION_SECONDS);
       });
     }
-  }, [handleLeoTopologyModeChange, handleLinkModeChange, handleTechnologyChange, handleTechnologyScopeChange, linkMode, setActiveMeshTab]);
+  }, [handleLeoTopologyModeChange, handleLinkModeChange, handleTechnologyChange, handleTechnologyScopeChange, linkMode, setActiveMeshTab, preserveSiteBCoverageKeysOnNextPointBResetRef, setSelectedDownlinkKey, setSelectedDownlinkKeyB, setSelectedUplinkKey, setSelectedUplinkKeyB]);
 
   const handleModeSwitch = useCallback((mode: AppMode) => {
     if (mode === appMode) return;

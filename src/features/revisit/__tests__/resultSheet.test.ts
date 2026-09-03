@@ -184,7 +184,6 @@ describe('REVISIT result sheet', () => {
             neverInViewCount: 0,
             unmeasuredCount: 0,
             bindingCells: [],
-        inViewProfile: new Float32Array(0),
             inViewProfile: new Float32Array(0),
             worstCellIntervals: [],
             warnings: [],
@@ -286,6 +285,7 @@ function missingAreaAnalysis(): AreaAnalysis {
         neverInViewCount: 0,
         unmeasuredCount: 0,
         bindingCells: [],
+        inViewProfile: new Float32Array(0),
         worstCellIntervals: [],
         warnings: [],
     };

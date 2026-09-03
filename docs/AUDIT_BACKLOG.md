@@ -171,7 +171,7 @@ named as such rather than assumed.
 | M-7 keyboard 1-5 section jumps | **NOT DONE** | `useKeyboardShortcuts` handles `escape`, `k`, `s` only |
 | M-8 PDF export redesign | **NOT CHECKED** | |
 | S-1 design system in `components/ds/*` | **NOT DONE** | directory absent |
-| S-2 move state out of `App.tsx` | **STARTED 2026-09-03** | 3 939 at audit time → 6 667 → **6 615**. First slice extracted (`useAutoWeather`); see below |
+| S-2 move state out of `App.tsx` | **IN PROGRESS 2026-09-03** | 3 939 at audit time → 6 667 → **6 273**. Two slices extracted (`useAutoWeather`, `useGeoCoverageSelection`); see below |
 | S-3 split `CapacityDetails` | **DONE** | 2 323 → 531 lines, with `components/capacity/*` beside it |
 | S-4 narration engine | **NOT DONE** | |
 | S-5 side-by-side comparison | **NOT DONE** | |
@@ -238,6 +238,19 @@ while following an aircraft; Site B fetches once.
 **52 lines.** Stating the number rather than the intent: the value here is one
 verified slice, a test where there was none, and the measurement above so the
 next slice is chosen rather than guessed.
+
+Second slice: **GEO coverage-pair selection**, 355 lines to
+`hooks/useGeoCoverageSelection.ts` — eligible candidate pool, topology default,
+the four per-site uplink/downlink keys, the effects that invalidate them when the
+world moves, and the resolved pairs. Split into two hooks because the keys are
+read early and the derivation needs inputs computed 600 lines later. Moved, not
+rewritten. **6 667 → 6 273 lines across the two slices.**
+
+One thing to expect on every further slice: setters that reach a callback
+through an object stop being provably stable to `exhaustive-deps`, so this move
+added 15 warnings to a repository at zero. They are genuinely stable, so listing
+them in the 11 affected arrays costs nothing at runtime — but it is work that
+comes with each extraction, not a one-off.
 
 ### What is left
 

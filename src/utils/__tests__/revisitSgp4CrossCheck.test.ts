@@ -51,7 +51,7 @@ import { computeAccessIntervals } from '../../features/revisit/analysis/accessIn
 import { computeGapStatistics } from '../../features/revisit/analysis/gapStatistics';
 import { FOV_PRESETS, TARGET_PRESETS } from '../../features/revisit/domain/presets';
 import type {
-    AccessInterval, EciState, OrbitalElements, RevisitScenario, WalkerSpec,
+    AccessInterval, EciState, RevisitScenario, WalkerSpec,
 } from '../../features/revisit/domain/types';
 
 const EPOCH = Date.UTC(2026, 7, 6, 0, 0, 0);

@@ -2,6 +2,60 @@
 
 _Last updated 2026-09-03._
 
+## 2026-09-03 — READ THIS FIRST: the typecheck gate was checking nothing
+
+`tsconfig.json` at the root has `"files": []` and only project references, so
+**`tsc --noEmit -p tsconfig.json` compiles an empty program and always passes.**
+Every "typecheck clean" claimed in this session's earlier entries was vacuous.
+The repository's own command is the correct one and always was:
+
+```
+npm run typecheck     # tsc -p tsconfig.app.json --noEmit
+```
+
+Run against the previous commit it surfaced four real errors, three of them
+introduced during this session and hidden by the vacuous gate: a duplicated
+`inViewProfile` property and a missing one in `resultSheet.test.ts`, a
+`WeatherType` imported from a module that does not export it in
+`useAutoWeather.ts`, and an unused import left by the `syntheticTle` extraction.
+All four are fixed. Neither Vitest nor `vite build` type-checks, so nothing else
+would have caught them.
+
+## 2026-09-03 — S-2 slice 2: GEO coverage-pair selection
+
+`App.tsx` **6 615 → 6 273 lines** (6 667 → 6 273 counting yesterday's weather
+slice). The 355-line GEO transponder-pair cluster — eligible pool, topology
+default, per-site uplink/downlink keys, the effects that invalidate them, and the
+resolved pairs — moved to `hooks/useGeoCoverageSelection.ts`.
+
+Split in two hooks on purpose: the keys are read early (the manual/auto policy
+depends on them) while the derivation needs candidate coverages computed 600
+lines later. One call would have meant moving unrelated code to satisfy hook
+order.
+
+Everything is MOVED, not rewritten — same memos, same dependency arrays, same
+effects in the same order.
+
+**Watch this if you extract more state:** the move introduced 15 eslint warnings
+into a repository that was at zero, because setters reaching a callback through
+an object are no longer provably stable to `exhaustive-deps`. They are stable
+(`useState` setters, `useRef` boxes), so they were added to the 11 affected
+arrays — free at runtime, back to zero warnings. Any further extraction of state
+out of `App.tsx` will hit the same thing.
+
+Gates: 2 183 unit tests, `npm run typecheck`, lint at zero, build, and e2e
+`revisit-p0`/`p1`/`standalone-mode` (17) plus `revisit-visual`/`p2c-b` green.
+`revisit-advanced` was run four times: one failure in a 27-test batch on the
+shared `seedReferenceTarget` placement assertion, then isolated pass, 6/6, 6/6.
+Not reproduced, cause not isolated — recorded as such rather than explained.
+
+**Second method note, same family as "never edit while the suite runs": never
+run two Playwright processes at once.** They share port 4173 with
+`reuseExistingServer`, so one run's teardown kills the server under the other and
+the victim reports `net::ERR_CONNECTION_REFUSED` — which reads like an
+application failure. One of the four runs above failed that way, and it was my
+own overlap, not the app.
+
 ## 2026-09-03 (end of day) — INT-9 closed, S-2 started
 
 Gates: **2 183 unit tests** (5 new), `tsc`, `eslint`, build, and 27 e2e

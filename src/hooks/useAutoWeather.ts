@@ -14,7 +14,7 @@
  */
 
 import { useEffect } from 'react';
-import type { WeatherType } from '../types/analysis';
+import type { WeatherType } from '../components/capacity/terminalAssumptions';
 
 /** Open-Meteo current-conditions endpoint, precipitation only. */
 const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
