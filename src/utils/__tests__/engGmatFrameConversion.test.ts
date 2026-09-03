@@ -41,7 +41,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import * as satellite from 'satellite.js';
-import { tleFromElements } from './revisitSgp4CrossCheck.test';
+import { tleFromElements } from './helpers/syntheticTle';
 import { generateWalkerConstellation } from '../../features/revisit/domain/walker';
 import type { WalkerSpec } from '../../features/revisit/domain/types';
 

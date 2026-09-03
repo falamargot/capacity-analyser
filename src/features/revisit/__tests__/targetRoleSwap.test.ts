@@ -58,6 +58,61 @@ describe('target role swap', () => {
         expect(swapped?.areaTargetRole).toBe('COMPARISON');
     });
 
+    /*
+     * The same branch with the OTHER selection — the case the test above does
+     * not reach, and the one R30 was about: the demoted polygon is the only
+     * populated area slot, so the role must name it whichever target was
+     * selected when the swap happened.
+     */
+    it('names the surviving polygon slot even when the Secondary was selected', () => {
+        const primaryArea = area('london-aoi', 'London AOI');
+        const swapped = swapTargetRoles({
+            primaryPoint: london, primaryArea, secondaryArea: null,
+            comparisonPoints: [{ id: 'secondary', target: singapore }],
+            secondaryTargetOrder: ['secondary'], activeTargetRole: 'COMPARISON',
+            demotedPointId: 'unused',
+        });
+
+        expect(swapped?.primaryArea).toBeNull();
+        expect(swapped?.secondaryArea).toBe(primaryArea);
+        expect(swapped?.areaTargetRole).toBe('COMPARISON');
+    });
+
+    /*
+     * The invariant behind R30, asserted over the whole matrix rather than case
+     * by case: `areaTargetRole` must never name an empty slot. A per-case
+     * assertion is what let the defect through — the one case that was wrong
+     * had no test.
+     */
+    it('never names an empty area slot, in any swap', () => {
+        const primaryArea = area('primary-aoi', 'Primary AOI');
+        const secondaryArea = area('secondary-aoi', 'Secondary AOI');
+        const inputs = [
+            { primaryArea, secondaryArea: null, comparisonPoints: [{ id: 'secondary', target: singapore }], secondaryTargetOrder: ['secondary'] },
+            { primaryArea, secondaryArea, comparisonPoints: [], secondaryTargetOrder: [AREA_TARGET_ID] },
+            { primaryArea: null, secondaryArea, comparisonPoints: [], secondaryTargetOrder: [AREA_TARGET_ID] },
+        ] as const;
+
+        for (const shape of inputs) {
+            for (const activeTargetRole of ['REFERENCE', 'COMPARISON'] as const) {
+                const swapped = swapTargetRoles({
+                    primaryPoint: london,
+                    primaryArea: shape.primaryArea,
+                    secondaryArea: shape.secondaryArea,
+                    comparisonPoints: [...shape.comparisonPoints],
+                    secondaryTargetOrder: [...shape.secondaryTargetOrder],
+                    activeTargetRole,
+                    demotedPointId: 'unused',
+                });
+                if (!swapped) continue;
+                const named = swapped.areaTargetRole === 'REFERENCE'
+                    ? swapped.primaryArea
+                    : swapped.secondaryArea;
+                expect(named, `${swapped.areaTargetRole} slot after swap`).not.toBeNull();
+            }
+        }
+    });
+
     it('exchanges two polygons without changing either geometry', () => {
         const primaryArea = area('primary-aoi', 'Primary AOI');
         const secondaryArea = area('secondary-aoi', 'Secondary AOI');

@@ -26,11 +26,7 @@ ticking it.
 
 | Item | What is actually undone |
 |---|---|
-| **4** | `types/linkMode.ts` topology labels still say "GEO teleport" |
-| **5** | `CONFIRMED` promotion is an operational process nobody owns |
 | **R12** | 60 fps at 256 satellites has never been measured |
-| **R14** | the Walker fit is never checked against a trajectory over the window |
-| **R30** | `swapTargetRoles` can name an empty Area slot |
 | **R31** | a mobile e2e spec is intermittently over its 90 s budget |
 | *inside R24* | E8 — visual WGS84 against the analytical sphere (not re-verified) |
 
@@ -160,7 +156,11 @@ unreachable with real data (linked to item 2 above).
 
 ## 4. `types/linkMode.ts` topology labels — left unchanged
 
-**Status: OPEN** — label wording, cosmetic.
+**Status: CLOSED 2026-09-03.** `LINK_MODE_DESCRIPTIONS` and the module's own
+doc comment now say "GEO gateway". Deliberately NOT derived from
+`ENGINEERING_TERMS.GEO.gateway` ("Traffic Gateway"): that noun names a RESOLVED
+gateway on a live route, and a topology label must not claim more than the
+topology knows.
 
 **Where:** `src/types/linkMode.ts:4,5,19,20`
 
@@ -184,10 +184,26 @@ change required.
 
 ## 5. `CONFIRMED` promotion process — operational, not code
 
-**Status: OPEN** — operational process, not code. Note 2026-09-03: the data has
-moved to `utils/geoGroundInfrastructure.ts` and now carries a mix of `CONFIRMED`
-and `PUBLICLY_LIKELY`, so this section's "all 5 sites" wording is stale even
-though the process question is not.
+**Status: CLOSED 2026-09-03 — as far as a repository can close it.**
+
+First, a correction to my own note of the same morning: I wrote here that the
+data "now carries a mix of CONFIRMED and PUBLICLY_LIKELY". That was wrong — I
+had grepped `confidence: 'CONFIRMED'` and matched *EvidenceSource* constants,
+not site capabilities. Measured properly: **all 21 capabilities are
+`PUBLICLY_LIKELY`, and none carries any evidence at all.** This section's
+original wording was right.
+
+The confirmation act stays outside the repository, but the CRITERION no longer
+does. `docs/GEO_Ground_Infrastructure_Roadmap.md` § Validation Strategy already
+named the evidence and the owner per capability kind; that rule is now
+executable — `geoGroundInfrastructure.test.ts` refuses a capability at
+`CONFIRMED` unless it carries at least one `EvidenceSource` that is itself
+CONFIRMED, is not an `ENGINEERING_NOTE`, and names a `reference`. Promotion by
+editing one word now fails the suite. A pointer to the rule sits above
+`BaseGroundCapability`, where the engineer editing the data will be.
+
+**This promotes nothing.** The "not internally confirmed" tooltip stays until
+Ops/Infra confirm — which is the honest state, and the item's real content.
 
 **Where:** `src/components/globe/GlobeConfig.ts` → `GEO_GATEWAYS` data
 
@@ -488,7 +504,27 @@ Flagged at the top of `domain/presets.ts`.
 
 ## R14. Calibration fits ONE epoch, not a trajectory
 
-**Status: OPEN** — the fit is never checked against a trajectory over the window.
+**Status: CLOSED 2026-09-03 — and it produced a number worth knowing.**
+
+`src/utils/__tests__/revisitFitTrajectory.test.ts` does what this item asked:
+fits a Walker shell to a deliberately jittered fleet (via synthetic TLEs read
+back through the app's own `observedElementsFromMeanElements` → `fitWalker`
+path), pairs each real satellite with its nearest fitted slot AT EPOCH, and
+holds that pairing while both are propagated — the fleet by SGP4, the shell by
+the engine.
+
+**Measured: the fitted shell separates from the fleet at ~100 km per day,
+linearly** — 23 km at epoch (the jitter itself), then 104, 206, 306 km at 24,
+48, 72 h; worst case 748 km. The growth is along-track and is set by the fleet's
+semi-major-axis spread: 2 km of `a` is a different mean motion. At the end of a
+72 h window that is a fraction of a 700 km swath, so the statistics stay
+representative — but "the fit tracks the fleet" is now a measured claim with a
+number attached instead of an assumption.
+
+The assertion is on the SHAPE, not the size: linear, not accelerating. A wrong
+secular rate in the J2 model would show as acceleration and fail the gate.
+Limit, stated in the test: the jitter is synthetic, so the RATE is a property of
+that spread, not of the real OneWeb fleet.
 
 `fitWalker` fits mean elements at a single instant. It says nothing about how
 well the parametric model tracks the real fleet over hours or days — which is
@@ -842,8 +878,15 @@ numbers.
 
 ## R30. `swapTargetRoles` can name an empty Area slot
 
-**Status: OPEN** — verified 2026-09-03 at `targetRoleSwap.ts:88,101`. Broken
-invariant, cosmetic today, worth closing before the next Area feature.
+**Status: CLOSED 2026-09-03.** The Primary-polygon → Secondary-point branch now
+returns `'COMPARISON'` unconditionally: it leaves exactly one populated area
+slot, so the selection-dependent form — correct for the two-polygon branch below
+it, where BOTH slots are populated — was simply wrong there.
+
+Two tests, and both were checked to FAIL on the old code: the missing case
+(`activeTargetRole: 'COMPARISON'`, which no test reached — that is how it
+survived), and the invariant over the whole swap matrix, "`areaTargetRole` never
+names an empty slot".
 
 **Open, cosmetic-only today, worth closing before the next Area feature.**
 

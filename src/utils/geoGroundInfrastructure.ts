@@ -196,6 +196,29 @@ export interface GroundSite {
   temporal?: TemporalValidity;
 }
 
+/**
+ * ── PROMOTING A CAPABILITY TO `CONFIRMED` ───────────────────────────────────
+ *
+ * Every capability in this file is `PUBLICLY_LIKELY` today. Promotion is an
+ * operational act, not an editorial one (deferred item 5): Ops/Infra confirm the
+ * capability, and only then does the value change here.
+ *
+ * The rule, from `docs/GEO_Ground_Infrastructure_Roadmap.md` § Validation
+ * Strategy — *"an assumption should become CONFIRMED only when the evidence is
+ * traceable, owned, current, and specific to the capability being promoted"* —
+ * is enforced by `geoGroundInfrastructure.test.ts`:
+ *
+ *   a capability at `CONFIRMED` MUST carry at least one `EvidenceSource` that is
+ *   itself `CONFIRMED` and whose `kind` is not `ENGINEERING_NOTE`
+ *   (INTERNAL_TICKET / GIPN / OPS_VALIDATION / PUBLIC_DOC — something a reader
+ *   can go and check), and that evidence must name a `reference`.
+ *
+ * So raising a `confidence` field alone fails the suite. That is deliberate: the
+ * "not internally confirmed" tooltip is the honest state until the evidence
+ * exists, and the way to remove it is to attach the evidence, not to delete the
+ * doubt. The roadmap's table names the confirmation owner for each capability
+ * kind.
+ */
 export interface BaseGroundCapability {
   capabilityId: string;
   siteId: string;

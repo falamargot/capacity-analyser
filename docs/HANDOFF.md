@@ -2,6 +2,40 @@
 
 _Last updated 2026-09-03._
 
+## 2026-09-03 (later) — Items 4, 5, R30 and R14 closed; two OPEN items left
+
+Gates: **2 178 unit tests**, `tsc`, `eslint`, `npm run build`. The `DEFERRED_ITEMS`
+OPEN list is down to **R12** (60 fps never measured) and **R31** (flaky mobile
+spec), plus E8 buried in R24.
+
+- **Item 4** — `LINK_MODE_DESCRIPTIONS` says "GEO gateway". Not derived from
+  `ENGINEERING_TERMS.GEO.gateway` ("Traffic Gateway") on purpose: that noun names
+  a resolved gateway on a live route, and a topology label must not claim more
+  than the topology knows.
+- **Item 5** — the promotion CRITERION is now executable. A capability at
+  `CONFIRMED` must carry traceable, referenced, non-note evidence, or the suite
+  fails. Verified by promoting one capability and watching it fail. **Nothing was
+  promoted**: measured properly, all 21 capabilities are `PUBLICLY_LIKELY` with
+  no evidence attached — which also corrects a note I wrote that morning claiming
+  a "mix of CONFIRMED and PUBLICLY_LIKELY". I had matched `EvidenceSource`
+  constants with a grep, not site capabilities.
+- **R30** — the empty-slot branch is fixed, with the missing case AND the
+  matrix-wide invariant covered. Both tests were checked to fail on the old code.
+- **R14** — the fit is now measured against a trajectory, not just an epoch.
+  **The fitted shell separates from the fleet at ~100 km/day, linearly** (23 km
+  at epoch, 306 km at 72 h, 748 km worst). Along-track, driven by the fleet's
+  semi-major-axis spread. The test asserts the SHAPE — linear, not accelerating —
+  since a wrong secular rate shows up as acceleration. The jitter is synthetic,
+  so the rate belongs to that spread, not to the real fleet.
+
+**Found while doing it: three test files were importing a test file.**
+`engGmatFrameConversion.test.ts` imported `tleFromElements` from
+`revisitSgp4CrossCheck.test.ts`, which re-ran that whole suite inside it — the
+same 8 SGP4 assertions executed twice per run and were counted twice. The helper
+moved to `__tests__/helpers/syntheticTle.ts`. **The suite total therefore DROPS
+by 8 while gaining 9 real tests**; nothing was deleted. Worth knowing before
+reading the count as a regression.
+
 ## 2026-09-03 — Three backlog items closed, and one of them was a false claim on screen
 
 L-Mi7, deferred item 1 and deferred item 2, all verified in code before and

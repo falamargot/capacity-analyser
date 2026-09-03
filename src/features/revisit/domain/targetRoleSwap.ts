@@ -85,7 +85,23 @@ export function swapTargetRoles(input: TargetRoleSwapInput): TargetRoleSwapResul
             comparisonPoints: [],
             secondaryTargetOrder: [AREA_TARGET_ID],
             analysisContext: primaryWasSelected ? 'AREA' : 'POINTS',
-            areaTargetRole: primaryWasSelected ? 'COMPARISON' : 'REFERENCE',
+            /*
+             * Always COMPARISON here, and it is not a matter of taste (R30).
+             *
+             * This branch leaves exactly one populated area slot — the demoted
+             * Primary polygon, now the Secondary — so `'REFERENCE'` named a slot
+             * holding `null`. It used to be written as
+             * `primaryWasSelected ? 'COMPARISON' : 'REFERENCE'`, which is the
+             * right shape for the two-polygon branch below (where BOTH slots are
+             * populated and the role follows the selection) and simply wrong
+             * here.
+             *
+             * Harmless today because every consumer of `areaTargetRole` sits
+             * behind `analysisContext === 'AREA'`, which this branch sets to
+             * `'POINTS'` in exactly the case that was wrong. That is a defence
+             * that holds by accident, not an invariant.
+             */
+            areaTargetRole: 'COMPARISON',
             selectedPointId: REFERENCE_POINT_ID,
         };
     }

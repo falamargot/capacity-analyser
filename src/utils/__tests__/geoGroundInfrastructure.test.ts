@@ -787,3 +787,55 @@ describe('GEO ground infrastructure canonical model', () => {
     expect(result.diagnostic).toBe('No beam gateway assignment found for KVHTS beam 9999.');
   });
 });
+
+/*
+ * ── The CONFIRMED promotion gate (deferred item 5) ──────────────────────────
+ *
+ * Item 5 was filed as "operational, not code": someone must confirm each site
+ * with Ops/Infra before its capabilities stop reading "not internally
+ * confirmed". That act stays outside the repository — but the CRITERION does
+ * not have to. The roadmap already states it; this makes it executable, so a
+ * capability cannot be promoted by editing one word.
+ *
+ * Today the suite passes with nothing to check: every capability is
+ * PUBLICLY_LIKELY. It becomes load-bearing on the first promotion, which is
+ * exactly when it is needed.
+ */
+describe('CONFIRMED promotion requires traceable evidence', () => {
+  const capabilities = GEO_GROUND_SITES.flatMap((site) => site.capabilities);
+
+  it('has capabilities to check at all', () => {
+    expect(capabilities.length).toBeGreaterThan(0);
+  });
+
+  it('accepts CONFIRMED only with checkable, referenced evidence', () => {
+    for (const capability of capabilities) {
+      if (capability.confidence !== 'CONFIRMED') continue;
+      const traceable = (capability.evidence ?? []).filter((source) => (
+        source.confidence === 'CONFIRMED' && source.kind !== 'ENGINEERING_NOTE'
+      ));
+      expect(
+        traceable.length,
+        `${capability.siteId} / ${capability.kind} is CONFIRMED with no traceable evidence — `
+        + 'see the promotion rule above BaseGroundCapability',
+      ).toBeGreaterThan(0);
+      for (const source of traceable) {
+        expect(
+          source.reference,
+          `${capability.siteId} / ${capability.kind}: evidence ${source.sourceId} has no reference`,
+        ).toBeTruthy();
+      }
+    }
+  });
+
+  /*
+   * The state this gate exists to make visible: nothing is confirmed yet, so
+   * the tooltip is telling the truth. When this stops being true the assertion
+   * above starts doing the work, and this one should be deleted with a note in
+   * `DEFERRED_ITEMS.md` item 5.
+   */
+  it('records that no capability has been promoted yet', () => {
+    const confirmed = capabilities.filter((capability) => capability.confidence === 'CONFIRMED');
+    expect(confirmed).toHaveLength(0);
+  });
+});
