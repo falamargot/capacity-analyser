@@ -98,7 +98,7 @@ export interface GeoRouteAnalysisViewModel {
   starGatewayResolutionDiagnostic?: StarTrafficGatewayDiagnostic | null;
 }
 
-interface GeoRouteAnalysisInput {
+export interface GeoRouteAnalysisInput {
   activePoint: { lat: number; lng: number; altitude?: number } | null;
   pointB: { lat: number; lng: number } | null;
   satellites: SatelliteData[];

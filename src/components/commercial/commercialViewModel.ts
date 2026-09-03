@@ -74,7 +74,7 @@ import {
 import { buildExecutiveSummary, buildRecommendation } from './commercialEngine';
 import { formatNumber } from '../../utils/formatters';
 
-interface BuildCommercialScenarioViewModelInput {
+export interface BuildCommercialScenarioViewModelInput {
   activeTechnology: 'LEO' | 'GEO';
   activeMeshTab: 'forward' | 'reverse';
   activeAnalysisPoint: CommercialPoint | null;

@@ -24,18 +24,14 @@ import CommercialNarrativePanel from './components/commercial/CommercialNarrativ
 import IFCNarrativePanel from './components/commercial/IFCNarrativePanel';
 import CommercialKpiBar from './components/commercial/CommercialKpiBar';
 import {
-  DECISION_GEO_ANALYSIS_SCOPE,
   DECISION_LEO_ANALYSIS_SCOPE,
   geoScenarioNeedsDestination,
-  shouldBuildGeoDecisionAnalysis,
 } from './components/commercial/decisionAnalysisPolicy';
 import {
-  buildCommercialScenarioViewModel,
   type CommercialScenarioViewModel,
   type CommercialTechnologyOption,
 } from './components/commercial/commercialViewModel';
-import { buildCommercialRouteModel } from './utils/commercialRouteModel';
-import { type TerminalType, type WeatherType, toWeatherCondition } from './components/capacity';
+import { type WeatherType, toWeatherCondition } from './components/capacity';
 import { SatelliteData } from './types/satellites';
 import type { CandidateCoverage, GEOBeam, SelectedSNP } from './types/analysis';
 import { useSatelliteLoader } from './hooks/useSatelliteLoader';
@@ -82,6 +78,9 @@ import { selectSnpForSatellite } from './utils/connectivityRules';
 import useKeyboardShortcuts from './hooks/useKeyboardShortcuts';
 import { useAutoWeather } from './hooks/useAutoWeather';
 import { useGeoCoverageKeys, useGeoCoverageSelection } from './hooks/useGeoCoverageSelection';
+import { useActiveLeoRouteEvidence, useGeoRouteAnalysis } from './hooks/useRouteAnalysis';
+import { useCommercialModels } from './hooks/useCommercialModels';
+import { useTerminalSelection } from './hooks/useTerminalSelection';
 import { useSelectionState } from './hooks/useSelectionState';
 import { useAuthorshipEasterEgg } from './hooks/useAuthorshipEasterEgg';
 import { useViewport, type ViewportSnapshot } from './hooks/useViewport';
@@ -115,12 +114,9 @@ import {
 import { canonicalHeaderMetrics } from './utils/canonicalRouteMetrics';
 import {
   USE_CASE_DEFAULT_RF_CLASS,
-  getRFClassBand,
   getRFClassSpec,
-  isRFClassCompatibleWithUseCase,
   type TerminalRFClassId,
 } from './utils/geoTerminalRFModel';
-import { buildGeoRouteAnalysisViewModel } from './utils/geoRouteAnalysisViewModel';
 import {
   resolveTerminalProfileTransition,
   type GroundTerminalProfile,
@@ -128,16 +124,12 @@ import {
 import { getLeoTerminalProfile } from './config/leoTerminals';
 import type { LeoSiteToSiteFailureReason } from './utils/leoSiteToSiteModel';
 import {
-  buildActiveLeoRouteEvidence,
   createActiveLeoRouteEvidenceState,
   resetActiveLeoRouteEvidenceState,
 } from './utils/activeLeoRouteEvidence';
 import { connectivityScenarioActions } from './state/connectivityScenario/connectivityScenarioActions';
 import { connectivityScenarioReducer, initialConnectivityScenario } from './state/connectivityScenario/connectivityScenarioReducer';
-import {
-  areTerminalCapabilitiesEqual,
-  buildEngineeringEndpointTerminalCapabilities,
-} from './state/connectivityScenario/connectivityScenarioEngineeringSync';
+import { areTerminalCapabilitiesEqual } from './state/connectivityScenario/connectivityScenarioEngineeringSync';
 import {
   buildEngineeringTerminalReadModelFromScenario,
   diagnoseEngineeringReadModelParity,
@@ -561,42 +553,21 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     weatherType: weatherTypeFromCondition(weatherCondition),
     ...restoredTelecomSession?.engineeringScenario,
   });
-  const handleLeoTerminalTypeChange = useCallback((type: TerminalType) => {
-    setLeoTerminalType(type);
-    setLeoTerminalModelId(getLeoTerminalProfile(type).id);
-  }, [setLeoTerminalModelId, setLeoTerminalType]);
-  const handleLeoTerminalTypeBChange = useCallback((type: TerminalType) => {
-    setLeoTerminalTypeB(type);
-    setLeoTerminalModelIdB(getLeoTerminalProfile(type).id);
-  }, [setLeoTerminalModelIdB, setLeoTerminalTypeB]);
-  const handleGeoTerminalTypeChange = useCallback((type: TerminalType) => {
-    setGeoTerminalType(type);
-    if (!isRFClassCompatibleWithUseCase(geoRFClassIdA, type)) {
-      const band = getRFClassBand(geoRFClassIdA) ?? 'Ku';
-      setGeoRFClassIdA(USE_CASE_DEFAULT_RF_CLASS[type]?.[band] ?? USE_CASE_DEFAULT_RF_CLASS[type]?.Ku ?? 'ku_standard_vsat');
-      setGeoRFCustomParamsA(null);
-    }
-  }, [geoRFClassIdA, setGeoRFClassIdA, setGeoRFCustomParamsA, setGeoTerminalType]);
-  const handleGeoTerminalTypeBChange = useCallback((type: TerminalType) => {
-    setGeoTerminalTypeB(type);
-    if (!isRFClassCompatibleWithUseCase(geoRFClassIdB, type)) {
-      const band = getRFClassBand(geoRFClassIdB) ?? 'Ku';
-      setGeoRFClassIdB(USE_CASE_DEFAULT_RF_CLASS[type]?.[band] ?? USE_CASE_DEFAULT_RF_CLASS[type]?.Ku ?? 'ku_standard_vsat');
-      setGeoRFCustomParamsB(null);
-    }
-  }, [geoRFClassIdB, setGeoRFClassIdB, setGeoRFCustomParamsB, setGeoTerminalTypeB]);
-  const engineeringOriginTerminalCapabilities = useMemo(() => buildEngineeringEndpointTerminalCapabilities({
-    geoRFClassId: geoRFClassIdA,
-    geoTerminalType,
-    leoTerminalModelId,
-    leoTerminalType,
-  }), [geoRFClassIdA, geoTerminalType, leoTerminalModelId, leoTerminalType]);
-  const engineeringDestinationTerminalCapabilities = useMemo(() => buildEngineeringEndpointTerminalCapabilities({
-    geoRFClassId: geoRFClassIdB,
-    geoTerminalType: geoTerminalTypeB,
-    leoTerminalModelId: leoTerminalModelIdB,
-    leoTerminalType: leoTerminalTypeB,
-  }), [geoRFClassIdB, geoTerminalTypeB, leoTerminalModelIdB, leoTerminalTypeB]);
+  /* Terminal type changes and capability read models — see `useTerminalSelection`. */
+  const {
+    handleLeoTerminalTypeChange,
+    handleLeoTerminalTypeBChange,
+    handleGeoTerminalTypeChange,
+    handleGeoTerminalTypeBChange,
+    engineeringOriginTerminalCapabilities,
+    engineeringDestinationTerminalCapabilities,
+  } = useTerminalSelection({
+    geoRFClassIdA, geoRFClassIdB, geoTerminalType, geoTerminalTypeB,
+    leoTerminalType, leoTerminalTypeB, leoTerminalModelId, leoTerminalModelIdB,
+    setGeoTerminalType, setGeoTerminalTypeB, setLeoTerminalType, setLeoTerminalTypeB,
+    setLeoTerminalModelId, setLeoTerminalModelIdB,
+    setGeoRFClassIdA, setGeoRFClassIdB, setGeoRFCustomParamsA, setGeoRFCustomParamsB,
+  });
   const engineeringScenarioReadModel = useMemo(
     () => buildEngineeringTerminalReadModelFromScenario(connectivityScenario),
     [connectivityScenario],
@@ -1942,83 +1913,42 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     resolvedAutoLEO,
   ]);
 
-  const activeLeoRouteEvidence = useMemo(() => {
-    if (!isCurrentTimelinePropagated) return null;
-    // Read satellite positions from the always-fresh ref rather than from resolvedAutoLEO /
-    // resolvedAutoLEOB React state. Those state values depend on satelliteById which rebuilds
-    // on every 1-second propagation tick, causing buildActiveLeoRouteEvidence (which runs
-    // calculateCombGeometry — 16-beam polygon generation) to fire *twice* per second:
-    // once from the satellite tick and once from leoEvidenceTick. That double execution
-    // on the main thread starves Cesium's rAF loop and freezes satellite animation.
-    // Using the ref gives identical, always-current data without adding a reactive dep.
-    const satA = autoSelectedLEOId
-      ? (satellites.find((s) => s.id === autoSelectedLEOId) ?? null)
-      : null;
-    const satB = autoSelectedLEOIdB
-      ? (satellites.find((s) => s.id === autoSelectedLEOIdB) ?? null)
-      : null;
-    return buildActiveLeoRouteEvidence({
-      topology: leoTopologyMode,
-      direction: activeMeshTab === 'reverse' ? 'B_TO_A' : 'A_TO_B',
-      activePoint: activeAnalysisPoint,
-      pointB: pointBLeo,
-      servingSatelliteA: satA,
-      servingSatelliteB: satB,
-      servingAssignmentA: leoServingAssignmentA,
-      servingAssignmentB: leoServingAssignmentB,
-      selectedSnpA: selectedSNP,
-      selectedSnpB: selectedSNPB,
-      regulatoryResultA: leoRegulatoryResult,
-      regulatoryResultB: leoRegulatoryResultB,
-      beamLoadA: leoBeamLoadResult,
-      beamLoadB: leoBeamLoadResultB,
-      terminalTypeA: leoTerminalType,
-      terminalTypeB: leoTerminalTypeB,
-      terminalModelIdA: leoTerminalModelId,
-      terminalModelIdB: leoTerminalModelIdB,
-      weatherTypeA: weatherType,
-      weatherTypeB,
-      simulationStateA: simulationState,
-      simulationStateB,
-      failedSnps,
-      now: JulianDate.fromDate(new Date(simulationClock.getTimeMs())),
-    }, activeLeoRouteEvidenceStateRef.current);
-  // Satellite data is sampled when propagatedTimelineRevision changes while
-  // leoEvidenceTick remains the sole driver during normal playback.
-  // autoSelectedLEOId / autoSelectedLEOIdB retained so a satellite-selection change
-  // triggers an immediate re-evaluation rather than waiting for the next tick.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    activeAnalysisPoint,
-    activeMeshTab,
+  /*
+   * The most expensive computation in the app, with a hand-tuned cadence — both
+   * moved verbatim into `useActiveLeoRouteEvidence` (S-2, third slice).
+   */
+  const { activeLeoRouteEvidence, activeLeoSiteToSiteResult } = useActiveLeoRouteEvidence({
+    isCurrentTimelinePropagated,
+    satellites,
     autoSelectedLEOId,
     autoSelectedLEOIdB,
-    failedSnps,
-    leoBeamLoadResult,
-    leoBeamLoadResultB,
-    leoEvidenceTick,
-    leoRegulatoryResult,
-    leoRegulatoryResultB,
     simulationClock,
-    simulationClockSnapshot.revision,
-    leoTerminalModelId,
-    leoTerminalModelIdB,
-    leoTerminalType,
-    leoTerminalTypeB,
-    leoTopologyMode,
-    leoServingAssignmentA,
-    leoServingAssignmentB,
-    pointBLeo,
+    simulationClockRevision: simulationClockSnapshot.revision,
+    leoEvidenceTick,
     propagatedTimelineRevision,
-    selectedSNP,
-    selectedSNPB,
-    simulationState,
-    simulationStateB,
-    weatherType,
+    stateRef: activeLeoRouteEvidenceStateRef,
+    topology: leoTopologyMode,
+    direction: activeMeshTab === 'reverse' ? 'B_TO_A' : 'A_TO_B',
+    activePoint: activeAnalysisPoint,
+    pointB: pointBLeo,
+    servingAssignmentA: leoServingAssignmentA,
+    servingAssignmentB: leoServingAssignmentB,
+    selectedSnpA: selectedSNP,
+    selectedSnpB: selectedSNPB,
+    regulatoryResultA: leoRegulatoryResult,
+    regulatoryResultB: leoRegulatoryResultB,
+    beamLoadA: leoBeamLoadResult,
+    beamLoadB: leoBeamLoadResultB,
+    terminalTypeA: leoTerminalType,
+    terminalTypeB: leoTerminalTypeB,
+    terminalModelIdA: leoTerminalModelId,
+    terminalModelIdB: leoTerminalModelIdB,
+    weatherTypeA: weatherType,
     weatherTypeB,
-  ]);
-
-  const activeLeoSiteToSiteResult = activeLeoRouteEvidence?.routeResult ?? null;
+    simulationStateA: simulationState,
+    simulationStateB,
+    failedSnps,
+  });
 
   // ── M2: single engineering analysis engine shared by every surface ────────
   const engineeringAnalysis = useEngineeringAnalysis({
@@ -2170,57 +2100,24 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     selectedUplinkCoverage,
   ]);
 
-  const geoRouteAnalysis = useMemo(() => {
-    // COMM needs stable cross-technology truth independently of the globe's
-    // display scope. ENG keeps this expensive GEO candidate analysis off.
-    if (!isCurrentTimelinePropagated || !shouldBuildGeoDecisionAnalysis({
-      uiMode,
-    })) return null;
-
-    // Keep GEO commercial analysis off the per-second satellite state tick.
-    // The live ref is fresh when the scenario changes, without forcing a
-    // constellation-wide route recomputation for every visual propagation sample.
-    const routeSatellites = satellites;
-
-    return buildGeoRouteAnalysisViewModel({
-      activePoint: activeAnalysisPoint,
-      pointB,
-      satellites: routeSatellites,
-      // Header scope is presentation state. Decision Support always evaluates
-      // the GEO route against the full analytical satellite set.
-      satelliteScope: DECISION_GEO_ANALYSIS_SCOPE,
-      linkMode,
-      activeMeshTab,
-      candidateCoverages: eligibleCandidateCoverages,
-      candidateCoveragesB,
-      selectedCoverage,
-      selectedUplinkCoverage,
-      selectedDownlinkCoverage,
-      selectedUplinkCoverageB,
-      selectedDownlinkCoverageB,
-      geoRFClassIdA,
-      geoRFClassIdB,
-      geoRFCustomParamsA,
-      geoRFCustomParamsB,
-      geoModemIdA,
-      geoModemIdB,
-      geoTerminalType,
-      geoTerminalTypeB,
-      weatherType,
-      weatherTypeB,
-      nearestLocation,
-      nearestLocationB,
-      failedGeoGatewaySiteIds,
-    });
-  // satellites / satellitesForResolutionRef intentionally omitted so this stays off
-  // the visual propagation tick; routeSatellites is read at execution time above.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    activeAnalysisPoint,
+  /* GEO decision-support route analysis — see `useGeoRouteAnalysis`. */
+  const geoRouteAnalysis = useGeoRouteAnalysis({
+    isCurrentTimelinePropagated,
+    uiMode,
+    simulationClockRevision: simulationClockSnapshot.revision,
+    propagatedTimelineRevision,
+    activePoint: activeAnalysisPoint,
+    pointB,
+    satellites,
+    linkMode,
     activeMeshTab,
-    candidateCoveragesB,
     eligibleCandidateCoverages,
-    failedGeoGatewaySiteIds,
+    candidateCoveragesB,
+    selectedCoverage,
+    selectedUplinkCoverage,
+    selectedDownlinkCoverage,
+    selectedUplinkCoverageB,
+    selectedDownlinkCoverageB,
     geoRFClassIdA,
     geoRFClassIdB,
     geoRFCustomParamsA,
@@ -2229,26 +2126,12 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     geoModemIdB,
     geoTerminalType,
     geoTerminalTypeB,
-    linkMode,
-    nearestLocation,
-    nearestLocationB,
-    pointB,
-    propagatedTimelineRevision,
-    // Paired with propagatedTimelineRevision so the gate above closes on the
-    // clock command and reopens on the first propagated batch. Without it, a
-    // seek left GEO showing the previous timeline's route while every LEO
-    // surface had already blanked.
-    simulationClockSnapshot.revision,
-    satellites.length,
-    selectedCoverage,
-    selectedDownlinkCoverage,
-    selectedDownlinkCoverageB,
-    selectedUplinkCoverage,
-    selectedUplinkCoverageB,
-    uiMode,
     weatherType,
     weatherTypeB,
-  ]);
+    nearestLocation,
+    nearestLocationB,
+    failedGeoGatewaySiteIds,
+  });
 
   // Update coverage features based on analyzis position or manual satellite selection
   const coverageFeaturesMemo = useMemo(() => {
@@ -4311,24 +4194,23 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
 
   // Memoized so buildCommercialScenarioViewModel only runs when its inputs actually change,
   // not on every satellite-tick render that leaves these values untouched.
-  const commercialScenarioViewModel = useMemo(() => buildCommercialScenarioViewModel({
-    activeTechnology: activeCommercialTechnology,
+  /* COMM scenario view model + route geometry — see `useCommercialModels`. */
+  const { commercialScenarioViewModel, commercialRouteModel } = useCommercialModels({
+    activeCommercialTechnology,
     activeMeshTab,
     activeAnalysisPoint,
     activeAnalysisSource,
     siteB,
     nearestLocation,
     nearestLocationB,
-    siteALabelOverride: selectedAircraft?.callsign
-      ?? selectedVessel?.name
-      ?? selectedVessel?.mmsi
-      ?? null,
-    siteBLabelOverride: selectedAircraftB?.callsign ?? null,
-    selectedSnpName: selectedSNP?.name ?? null,
+    selectedAircraft,
+    selectedAircraftB,
+    selectedVessel,
+    selectedSNP,
     selectedSatellite,
     activeGeoSatellite,
     resolvedAutoLEO,
-    metrics: mobileMetrics,
+    mobileMetrics,
     canonicalRouteMetrics,
     leoTopologyMode,
     activeLeoRouteEvidence,
@@ -4340,27 +4222,16 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     weatherTypeB,
     leoTerminalType,
     geoTerminalType,
-    originGeoTerminalLabel: geoRFPresetDisplayLabelA,
-    destinationGeoTerminalLabel: geoRFPresetDisplayLabelB,
-    originLeoTerminalLabel: leoTerminalDisplayLabelA,
-    destinationLeoTerminalLabel: leoTerminalDisplayLabelB,
-    geoGatewayName: activeCommercialTrafficGeoGateway?.gatewayName ?? null,
-    geoGatewayCoverage: activeCommercialTrafficGatewayCoverage,
-    geoGatewayTrafficStatus: activeCommercialTrafficGeoGateway?.gateway.trafficStatus ?? null,
-    selectedSegmentId: commercialSelectedSegment,
-  }), [
-    activeCommercialTechnology, activeMeshTab, activeAnalysisPoint, activeAnalysisSource,
-    siteB, nearestLocation, nearestLocationB, selectedAircraft, selectedAircraftB, selectedVessel,
-    selectedSNP?.name, selectedSatellite,
-    activeGeoSatellite, resolvedAutoLEO, mobileMetrics, canonicalRouteMetrics, leoTopologyMode,
-    activeLeoRouteEvidence, geoPointStatus, linkMode, selectedCoverage, geoRouteAnalysis,
-    weatherType, weatherTypeB, leoTerminalType, geoTerminalType, geoRFPresetDisplayLabelA,
-    geoRFPresetDisplayLabelB, leoTerminalDisplayLabelA, leoTerminalDisplayLabelB,
-    activeCommercialTrafficGeoGateway?.gatewayName,
-    activeCommercialTrafficGeoGateway?.gateway.trafficStatus,
+    geoRFPresetDisplayLabelA,
+    geoRFPresetDisplayLabelB,
+    leoTerminalDisplayLabelA,
+    leoTerminalDisplayLabelB,
+    activeCommercialTrafficGeoGateway,
     activeCommercialTrafficGatewayCoverage,
     commercialSelectedSegment,
-  ]);
+    resolvedAutoTrafficGeoGateway,
+    resolvedSelectedTrafficGeoGateway,
+  });
 
   const commercialSiteAutoSelectionSignature = (() => {
     if (!commercialMode || activeAnalysisSource === 'aircraft' || !activeAnalysisPoint) return null;
@@ -4466,43 +4337,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
   // CommercialRouteModel — canonical route geometry model (COMM-6C3B).
   // Built immediately after the scenario viewModel so both share the same
   // memoization cadence.
-  const commercialRouteModel = useMemo(() => buildCommercialRouteModel(
-    commercialScenarioViewModel,
-    {
-      activeAnalysisPoint,
-      siteB,
-      originEndpointKind: selectedAircraft
-        ? 'aircraft'
-        : selectedVessel ? 'vessel' : 'site',
-      destinationEndpointKind: selectedAircraftB ? 'aircraft' : 'site',
-      originEndpointLabel: selectedAircraft?.callsign
-        ?? selectedVessel?.name
-        ?? selectedVessel?.mmsi,
-      destinationEndpointLabel: selectedAircraftB?.callsign,
-      flowDirection: siteB
-        ? (activeMeshTab === 'reverse' ? 'B_TO_A' : 'A_TO_B')
-        : linkMode === 'STAR_FORWARD' ? 'B_TO_A' : 'A_TO_B',
-      resolvedAutoGeoGateway: resolvedAutoTrafficGeoGateway,
-      resolvedSelectedGeoGateway: resolvedSelectedTrafficGeoGateway,
-      activeLeoRouteEvidence,
-      geoRouteAnalysis,
-      activeGeoSatellite,
-    },
-  ), [
-    commercialScenarioViewModel,
-    activeAnalysisPoint,
-    siteB,
-    selectedAircraft,
-    selectedAircraftB,
-    selectedVessel,
-    activeMeshTab,
-    linkMode,
-    resolvedAutoTrafficGeoGateway,
-    resolvedSelectedTrafficGeoGateway,
-    activeLeoRouteEvidence,
-    geoRouteAnalysis,
-    activeGeoSatellite,
-  ]);
+
 
   const legacyScenarioType = useMemo(
     () => connectivityScenarioTypeFromDestinationType(commercialScenarioViewModel.display.destinationType),
