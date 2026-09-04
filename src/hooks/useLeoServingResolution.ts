@@ -225,7 +225,6 @@ export function useLeoServingResolution({
   return {
     autoSelectedLEOId,
     leoServingAssignmentA,
-    setLeoServingAssignmentA,
     autoSelectedLEOIdB,
     leoServingAssignmentB,
     clearLeoServingA,

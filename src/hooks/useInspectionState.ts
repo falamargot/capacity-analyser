@@ -4,43 +4,30 @@ import type { Aircraft } from '../modules/airTraffic/airTrafficService';
 import type { Vessel } from '../modules/maritimeTraffic/maritimeTrafficService';
 
 /**
- * The inspected-entity cluster (S-2 final slice: MOVED out of `App.tsx`).
+ * The inspected-entity cluster (extracted from `App.tsx` by S-2).
  *
- * These seven pieces of state are kept mutually exclusive by hand: every
- * selection handler clears the others before setting its own. The clearing sets
- * DO NOT all agree, and this hook does not make them agree — `applyInspection`
- * writes exactly the fields a call site names, so each handler still declares
- * its own set, in one call instead of five scattered setters.
+ * These entities are mutually exclusive: every selection handler clears the
+ * others before setting its own. `applyInspection` writes exactly the fields a
+ * call site names, so each handler still declares its own set in one call
+ * rather than five scattered setters.
  *
- * ── The divergences, as measured on 2026-09-04 ────────────────────────────────
+ * ── Resolved 2026-09-04 (S-2b): the ISS is an inspected entity ───────────────
  *
- * Full clear = { snp, gateway, moon, aircraft, aircraftB, vessel, iss }.
+ * It used to survive an SNP, gateway, aircraft, vessel or location selection
+ * while every other entity was cleared, so the ISS panel could stay open
+ * "behind" whatever was being inspected. S-2 documented that rather than
+ * changing it; S-2b decided it, and the ISS is now cleared wherever the Moon is
+ * — the two are the same kind of thing, a live-tracked body you inspect.
  *
- *   handleSatelliteClick        full clear
- *   handlePointClick            full clear
- *   handleResetView             full clear
- *   handleSwapRouteEndpoints    full clear, aircraft/aircraftB swapped
- *   handleMoonSelectionChange   clears iss, KEEPS aircraftB
- *   handleSnpClick              KEEPS iss and aircraftB
- *   handleGatewaySelect         KEEPS iss and aircraftB
- *   handleAircraftSelect        KEEPS iss and aircraftB
- *   handleVesselSelect          KEEPS iss and aircraftB
- *   handleLocationSelect        KEEPS iss and aircraftB
- *   handleIssClick              sets iss, KEEPS aircraftB
+ * ── Still asymmetric on purpose: `aircraftB` ─────────────────────────────────
  *
- * Two different things are going on, and only one of them is a defect:
+ * `aircraftB` is NOT an inspected entity. It is the Site B endpoint that
+ * happens to be an aircraft, so it survives an inspection change by design and
+ * is cleared only by endpoint operations — clear Site A/B, a plain point click,
+ * reset view, and the endpoint swap that exchanges it with `aircraft`.
  *
- * 1. `aircraftB` is NOT an inspection target — it is the Site B endpoint that
- *    happens to be an aircraft. It is meant to survive an inspection change and
- *    is cleared only by endpoint operations (clear Site A/B, point click, reset,
- *    swap). It lives here because it is set and cleared alongside the others.
- *
- * 2. `iss` surviving an SNP, gateway, aircraft, vessel or location selection is
- *    the real inconsistency: the ISS stays flagged as selected while another
- *    entity is being inspected. Normalising it is a BEHAVIOUR CHANGE — the ISS
- *    panel would close in five situations where it currently stays open — so it
- *    is left exactly as it is, and recorded here and in docs/AUDIT_BACKLOG.md
- *    for a deliberate decision rather than fixed in passing by a refactor.
+ * Full clear = { snp, gateway, moon, aircraft, aircraftB, vessel, iss }, used by
+ * satellite click, point click, reset view and swap endpoints.
  */
 
 export interface InspectionPatch {
@@ -53,13 +40,26 @@ export interface InspectionPatch {
   iss?: boolean;
 }
 
-/** Every inspected entity cleared — the set the four "full clear" handlers use. */
+/**
+ * Every inspected entity cleared, `aircraftB` included — the set the four
+ * "full clear" handlers use (satellite click, point click, reset view, swap).
+ */
 export const CLEAR_ALL_INSPECTION: InspectionPatch = {
   snp: null,
   gateway: null,
   moon: false,
   aircraft: null,
   aircraftB: null,
+  vessel: null,
+  iss: false,
+};
+
+/** The same set WITHOUT `aircraftB`, which is an endpoint rather than an inspection. */
+const CLEAR_INSPECTED_ENTITIES: InspectionPatch = {
+  snp: null,
+  gateway: null,
+  moon: false,
+  aircraft: null,
   vessel: null,
   iss: false,
 };
@@ -93,6 +93,19 @@ export function useInspectionState() {
     applyInspection(CLEAR_ALL_INSPECTION);
   }, [applyInspection]);
 
+  /**
+   * Select exactly one inspected entity: everything in the patch is set,
+   * everything else inspected is cleared, and `aircraftB` is left alone.
+   *
+   * This is where mutual exclusion lives now. Before S-2b each handler listed
+   * the entities it cleared, they did not agree, and the ISS was the one that
+   * kept falling off the list. A handler that says what it selects cannot
+   * forget what it clears.
+   */
+  const inspectOnly = useCallback((patch: InspectionPatch = {}) => {
+    applyInspection({ ...CLEAR_INSPECTED_ENTITIES, ...patch });
+  }, [applyInspection]);
+
   return {
     inspectedSNP,
     selectedGateway,
@@ -105,5 +118,6 @@ export function useInspectionState() {
     setHoveredSatelliteId,
     applyInspection,
     clearInspection,
+    inspectOnly,
   };
 }

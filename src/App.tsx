@@ -674,6 +674,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     setHoveredSatelliteId,
     applyInspection,
     clearInspection,
+    inspectOnly,
   } = useInspectionState();
   const {
     nearestLocation,
@@ -1303,7 +1304,6 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
   const {
     autoSelectedLEOId,
     leoServingAssignmentA,
-    setLeoServingAssignmentA,
     autoSelectedLEOIdB,
     leoServingAssignmentB,
     clearLeoServingA,
@@ -2031,10 +2031,12 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
   // Performance optimization: Memoize event handlers to prevent unnecessary re-renders
   const handleSnpClick = useCallback((snpName: string | { lat: number; lng: number; name: string } | null) => {
     if (!snpName) {
-      // Asymmetric on purpose (pre-existing): this path drops the serving
-      // assignment but KEEPS autoSelectedLEOId, so it cannot use
-      // clearLeoServingA() without changing behaviour.
-      setLeoServingAssignmentA(null);
+      // L-O1: the assignment is the single source of the (satellite, beam,
+      // feeder) tuple, so the resolver's satellite id goes with it. This path
+      // used to drop the assignment and KEEP `autoSelectedLEOId` — the one
+      // place in the app where the id could outlive the assignment it came
+      // from (S-2b, 2026-09-04).
+      clearLeoServingA();
       applyInspection({ snp: null, gateway: null, moon: false });
       setIsTargetSourcesMenuOpen(false);
       return;
@@ -2050,10 +2052,9 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     // Enter SNP inspection mode: clear other selections
     clearSelection();
     clearLeoServingA();
-    // Keeps `iss` and `aircraftB` — see useInspectionState's divergence table.
-    applyInspection({ snp, moon: false, gateway: null, aircraft: null, vessel: null });
+    inspectOnly({ snp });
     setIsTargetSourcesMenuOpen(false);
-  }, [applyInspection, clearLeoServingA, clearSelection, satelliteScope, setIsTargetSourcesMenuOpen, setLeoServingAssignmentA]);
+  }, [applyInspection, clearLeoServingA, clearSelection, inspectOnly, satelliteScope, setIsTargetSourcesMenuOpen]);
 
   const handleSnpSelectFromUI = useCallback((snpName: string | null) => {
     handleSnpClick(snpName);
@@ -2077,14 +2078,13 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
 
     clearSelection();
     clearLeoServingA();
-    // Keeps `iss` and `aircraftB` — see useInspectionState's divergence table.
-    applyInspection({ gateway, moon: false, snp: null, aircraft: null, vessel: null });
+    inspectOnly({ gateway });
     setIsTargetSourcesMenuOpen(false);
 
     if (fromComboBox) {
       setCameraTarget({ lat: gateway.lat, lng: gateway.lng, alt: 8000 });
     }
-  }, [applyInspection, clearLeoServingA, clearSelection, setIsTargetSourcesMenuOpen]);
+  }, [applyInspection, clearLeoServingA, clearSelection, inspectOnly, setIsTargetSourcesMenuOpen]);
 
   const canonicalGroundSiteGatewayByName = useMemo(
     () => new Map(GEO_GROUND_SITES
@@ -2108,10 +2108,9 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
   const handleIssClick = useCallback(() => {
     clearSelection();
     clearLeoServingA();
-    // Keeps `aircraftB` — see useInspectionState's divergence table.
-    applyInspection({ iss: true, moon: false, aircraft: null, vessel: null, snp: null, gateway: null });
+    inspectOnly({ iss: true });
     setIsTargetSourcesMenuOpen(false);
-  }, [applyInspection, clearLeoServingA, clearSelection, setIsTargetSourcesMenuOpen]);
+  }, [clearLeoServingA, clearSelection, inspectOnly, setIsTargetSourcesMenuOpen]);
 
   const handleIssCenterOnIss = useCallback(() => {
     if (!iss.position || !viewerRef.current) return;
@@ -2203,11 +2202,11 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     triggerEndpointSelectionMotion('origin');
     setIsSiteBArmed(false);
     // Full clear except `aircraftB`, which a plain Site A click preserves.
-    applyInspection({ moon: false, aircraft: null, vessel: null, gateway: null, snp: null, iss: false });
+    inspectOnly();
     setSelectedUplinkKey(null);
     setSelectedDownlinkKey(null);
     selectTarget('point', { lat, lng });
-  }, [applyInspection, handleLeoTopologyModeChange, handleLinkModeChange, isSiteBArmed, linkMode, selectedPosition, selectTarget, syncScenarioDestination, syncScenarioOrigin, triggerEndpointSelectionMotion, setSelectedDownlinkKey, setSelectedUplinkKey]);
+  }, [applyInspection, inspectOnly, handleLeoTopologyModeChange, handleLinkModeChange, isSiteBArmed, linkMode, selectedPosition, selectTarget, syncScenarioDestination, syncScenarioOrigin, triggerEndpointSelectionMotion, setSelectedDownlinkKey, setSelectedUplinkKey]);
 
   // Handle click outside the globe — clears Site B and auto-downgrades mode.
   // Shift+click outside: clear Site B only, keep Site A.
@@ -2347,15 +2346,16 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
       return;
     }
 
-    // Keeps `iss` and `aircraftB` — see useInspectionState's divergence table.
-    applyInspection({ moon: false, aircraft, vessel: null });
+    // One call, unconditional. The gateway/SNP clear used to sit inside the
+    // coordinates branch below, so an aircraft with no position left them
+    // inspected alongside it (S-2b).
+    inspectOnly({ aircraft });
     setIsTargetSourcesMenuOpen(false);
     setSelectedUplinkKey(null);
     setSelectedDownlinkKey(null);
 
     if (aircraft?.latitude != null && aircraft.longitude != null) {
       const altitude = aircraft.altitude_km || undefined;
-      applyInspection({ gateway: null, snp: null });
       syncScenarioOrigin(
         aircraft.latitude,
         aircraft.longitude,
@@ -2376,7 +2376,6 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
       }
     }
   }, [
-    applyInspection,
     activeAnalysisPoint,
     handleAircraftSelectForSiteB,
     handleClearSiteA,
@@ -2386,18 +2385,17 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     syncScenarioOrigin,
     triggerEndpointSelectionMotion,
     setIsTargetSourcesMenuOpen,
+    inspectOnly,
 , setSelectedDownlinkKey, setSelectedUplinkKey]);
 
   // Handle vessel selection (vessel-based analyzis)
   const handleVesselSelect = useCallback((vessel: Vessel | null, fromComboBox: boolean = false) => {
-    // Keeps `iss` and `aircraftB` — see useInspectionState's divergence table.
-    applyInspection({ moon: false, vessel, aircraft: null });
+    inspectOnly({ vessel });
     setIsTargetSourcesMenuOpen(false);
     setSelectedUplinkKey(null);
     setSelectedDownlinkKey(null);
 
     if (vessel?.latitude != null && vessel.longitude != null) {
-      applyInspection({ gateway: null, snp: null });
       syncScenarioOrigin(
         vessel.latitude,
         vessel.longitude,
@@ -2419,21 +2417,21 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     } else {
       clearSelection();
     }
-  }, [applyInspection, clearSelection, selectTarget, syncScenarioOrigin, triggerEndpointSelectionMotion, setIsTargetSourcesMenuOpen, setSelectedDownlinkKey, setSelectedUplinkKey]);
+  }, [clearSelection, inspectOnly, selectTarget, syncScenarioOrigin, triggerEndpointSelectionMotion, setIsTargetSourcesMenuOpen, setSelectedDownlinkKey, setSelectedUplinkKey]);
 
   const handleLocationSelect = useCallback((lat: number, lng: number) => {
     syncScenarioOrigin(lat, lng);
     triggerEndpointSelectionMotion('origin');
     setCameraTarget({ lat, lng, alt: 10000 });
-    // Keeps `iss` and `aircraftB` — see useInspectionState's divergence table.
-    applyInspection({ moon: false, aircraft: null, vessel: null, gateway: null, snp: null });
+    // A location is a point, not an entity: nothing stays inspected.
+    inspectOnly();
     setIsTargetSourcesMenuOpen(false);
     setSelectedUplinkKey(null);
     setSelectedDownlinkKey(null);
     selectTarget('point', { lat, lng });
 
     setSearchQuery('');
-  }, [applyInspection, selectTarget, syncScenarioOrigin, triggerEndpointSelectionMotion, setIsTargetSourcesMenuOpen, setSelectedDownlinkKey, setSelectedUplinkKey]);
+  }, [inspectOnly, selectTarget, syncScenarioOrigin, triggerEndpointSelectionMotion, setIsTargetSourcesMenuOpen, setSelectedDownlinkKey, setSelectedUplinkKey]);
 
   const handleDestinationLocationSelect = useCallback((lat: number, lng: number) => {
     syncScenarioDestination(lat, lng);
@@ -2832,12 +2830,11 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
 
     clearSelection();
     clearLeoServingA();
-    // Keeps `aircraftB` — see useInspectionState's divergence table.
-    applyInspection({ moon: true, snp: null, gateway: null, aircraft: null, vessel: null, iss: false });
+    inspectOnly({ moon: true });
     setSelectedUplinkKey(null);
     setSelectedDownlinkKey(null);
     setIsTargetSourcesMenuOpen(false);
-  }, [applyInspection, clearLeoServingA, clearSelection, setIsTargetSourcesMenuOpen, setSelectedDownlinkKey, setSelectedUplinkKey]);
+  }, [applyInspection, clearLeoServingA, clearSelection, inspectOnly, setIsTargetSourcesMenuOpen, setSelectedDownlinkKey, setSelectedUplinkKey]);
 
   const engineeringAnalyticalFocusActive = uiMode !== 'commercial'
     && engineeringFocusController.focus.kind === 'locked';

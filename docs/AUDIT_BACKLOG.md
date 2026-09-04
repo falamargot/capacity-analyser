@@ -288,8 +288,13 @@ comes with each extraction, not a one-off.
    `capture`/`restore`-style intentions. Passing 40 individual setters into a
    hook moves lines without reducing coupling.
 
-2. **S-2b — three behaviour decisions S-2 surfaced and deliberately did not
-   take.** Each is a real inconsistency; each fix changes what the app does, so
+2. ~~**S-2b — three behaviour decisions S-2 surfaced and deliberately did not
+   take.**~~ **DECIDED AND FIXED 2026-09-04** — see `HANDOFF.md`. In short: the
+   ISS is an inspected entity (and mutual exclusion moved into one
+   `inspectOnly` function rather than being re-listed per handler);
+   `handleSnpClick(null)` clears the whole serving tuple; one reverse geocoder
+   in `services/reverseGeocode.ts` with the first tests that rule has had. The
+   original statement of each follows. Each is a real inconsistency; each fix changes what the app does, so
    none belongs in a refactor. They are now documented at their call sites, in
    `useInspectionState`'s header, and pinned by tests.
 
@@ -308,8 +313,11 @@ comes with each extraction, not a one-off.
      answer differently, and only the endpoint pair seeds from the restored
      session.
 
-3. **ISS TLE retry has no backoff** (found during browser validation on
-   2026-09-04, pre-existing, NOT introduced by S-2). When `/api/iss/tle` fails,
+3. ~~**ISS TLE retry has no backoff**~~ **FIXED 2026-09-04** — 5 s doubling to a
+   5-minute ceiling, reset on success, user refresh exempt. The real cause was
+   not the periodic tick but `initialize()`, whose effect re-arms far more often
+   than "on mount"; guarding only the periodic path changed nothing measurable.
+   Measured 70 requests/47 s before, 18/101 s after. Original report: When `/api/iss/tle` fails,
    `useIssLiveTracking` leaves `lastTleFetchRef` at 0, so the 1 Hz position tick
    re-fetches the TLE every second for as long as the layer is on — ~400 failed
    requests in three minutes with the upstream unreachable. Add a backoff, or
@@ -337,5 +345,16 @@ comes with each extraction, not a one-off.
    incomplete) or the panel is collapsed there (product question). Decide which
    before touching either side.
 
-5. The rest of both audits is done, deliberately rejected, or needs a UX pass
+5. **`accessibility.spec.ts:55` (`revisit dark`) is a recurring flaky gate.**
+   Seen failing twice on 2026-09-04, in full-suite runs only, passing in
+   isolation both times (51 s, 1.2 min) — once timing out mid-click, once
+   waiting for the globe's `cursor: crosshair` inside `seedReferenceTarget`.
+   The spec already carries a 240 s timeout added for the same symptom, so this
+   is at least the third occurrence historically. It runs a real area analysis
+   plus six Axe sweeps in one test; the likely cause is contention with the
+   other workers rather than anything in the product, but that is a hypothesis,
+   not a finding. Worth either isolating it into its own serial project or
+   splitting the six sweeps, before it trains everyone to ignore a red gate.
+
+6. The rest of both audits is done, deliberately rejected, or needs a UX pass
    with the app running — a different kind of work from this backlog.

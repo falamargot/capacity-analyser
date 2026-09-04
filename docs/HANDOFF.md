@@ -2,6 +2,80 @@
 
 _Last updated 2026-09-04._
 
+## 2026-09-04 (evening) — S-2b decided, and the ISS retry storm fixed
+
+### S-2b #1 — the ISS is an inspected entity, and mutual exclusion now lives in one place
+
+The ISS used to survive an SNP, gateway, aircraft, vessel or location
+selection. Decided: it is cleared like the Moon — the two are the same kind of
+thing, a live-tracked body you inspect.
+
+The fix is NOT five added `iss: false`. Each handler used to spell out what it
+cleared, the lists disagreed, and `iss` is precisely the entry that kept falling
+off; adding a sixth copy invites a seventh divergence. `useInspectionState` now
+exposes **`inspectOnly(patch)`** — say what you select, and everything else
+inspected is cleared. Handlers read `inspectOnly({ snp })`,
+`inspectOnly({ gateway })`, `inspectOnly({ iss: true })`, `inspectOnly()` for a
+location. Mutual exclusion exists in one function and is tested there.
+
+`aircraftB` stays out of it, deliberately: it is the Site B endpoint that
+happens to be an aircraft, not an inspection.
+
+Two smaller behaviour changes came with it, both stated rather than slipped in:
+`handleAircraftSelect` and `handleVesselSelect` cleared the gateway and the SNP
+only INSIDE their "has coordinates" branch, so a platform with no position left
+them inspected beside it. `inspectOnly` clears unconditionally.
+
+### S-2b #2 — `handleSnpClick(null)` no longer keeps a widowed satellite id
+
+It dropped the serving assignment and kept `autoSelectedLEOId` — the one place
+where the id could outlive the assignment it came from, against L-O1. It calls
+`clearLeoServingA()` like every other path now.
+
+### S-2b #3 — one reverse geocoder instead of three
+
+`services/reverseGeocode.ts` holds the fetch and `parseNominatimLabel`, the
+single parsing rule, with its **first tests** (5). The rule that won is the one
+two of the three already used: a city with no country resolves to null, a
+country alone is kept. Site B's variant returned `{ city, country: undefined }`,
+which every call site was already discarding half of.
+`useNearestLocation` gained the optional `initial` seed that had been the reason
+for the endpoint pair to keep its own copy.
+
+Side effect worth knowing: the Site A effect now keys on the coordinates rather
+than the position object, so it stops re-fetching when only the object identity
+changes.
+
+### Backlog item 3 — ISS TLE retry backoff, and the real cause
+
+Doubling 5 s → 5 min, reset on success, and an explicit user `refresh()` is
+never held back.
+
+**Measured, and the first fix was not enough.** Guarding only the periodic path
+left the storm running at ~1 Hz: `initialize()` calls the fetcher directly, and
+its effect re-arms whenever its callbacks change identity — far more often than
+"on mount". That is what the 1 Hz actually was. With the guard on both paths,
+measured in the browser against the failing endpoint:
+
+    before   70 requests in 47 s, gaps 1 s
+    after    18 requests in 101 s, gaps growing 1 → 6 → 8 → 9 → 21 → 39 s
+
+Gates: `npm run typecheck`, lint at zero, **2 199 unit tests** (+12), build,
+browser check of SNP → gateway → Escape (mutual exclusion holds, panel clears),
+e2e `mode-smoke` + `accessibility` + `standalone-mode` (37 passed, 30 skipped)
+with ONE failure — `accessibility.spec.ts:55 revisit dark`, the same recurring
+flake, passing again in isolation (1.2 min). That test has now failed twice
+today in full-suite runs and never in isolation; it is logged as backlog item 5
+rather than waved through, because a gate that goes red at random is a gate
+people stop reading. Second batch — `revisit-p0` + `revisit-p1` + `revisit-p7e`,
+which includes every spec fixed earlier today — **55 passed, 17 skipped,
+EXIT=0**.
+
+**Not verified in the browser, and worth saying so:** the ISS-clearing
+behaviour itself. This environment cannot reach the TLE endpoint, so no ISS is
+ever drawn and it cannot be selected. The rule is covered by unit tests on
+`inspectOnly`, not by a UI check.
+
 ## 2026-09-04 (later still) — the REVISIT e2e failures, fixed (three found, four fixed)
 
 Four distinct causes, none of them a product bug: each spec encoded an
