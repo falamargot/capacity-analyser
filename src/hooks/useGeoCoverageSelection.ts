@@ -19,7 +19,7 @@
  * unrelated blocks.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CandidateCoverage, Selection } from '../types/analysis';
 import type { SatelliteData } from '../types/satellites';
 import { LINK_MODE_REQUIRES_POINT_B, type LinkMode } from '../types/linkMode';
@@ -54,6 +54,14 @@ const pickBestGeoLinkMargin = (candidates: CandidateCoverage[]): CandidateCovera
   )
 );
 
+/** The four explicit coverage keys, as one snapshot-able value. */
+export interface GeoCoverageKeySet {
+  selectedUplinkKey: string | null;
+  selectedDownlinkKey: string | null;
+  selectedUplinkKeyB: string | null;
+  selectedDownlinkKeyB: string | null;
+}
+
 export interface RestoredGeoCoverageSelection {
   selectedUplinkKey: string | null;
   selectedDownlinkKey: string | null;
@@ -77,7 +85,28 @@ export function useGeoCoverageKeys(restored?: RestoredGeoCoverageSelection | nul
   const preserveCoverageKeysOnNextTargetResetRef = useRef(false);
   const preserveSiteBCoverageKeysOnNextPointBResetRef = useRef(false);
 
+  /*
+   * The four keys as one value, for the engineering-mode snapshot (S-2). The
+   * snapshot used to take eight fields — four keys and four setters — from this
+   * hook; that was half of its input surface for one concept.
+   */
+  const captureCoverageKeys = useCallback((): GeoCoverageKeySet => ({
+    selectedUplinkKey,
+    selectedDownlinkKey,
+    selectedUplinkKeyB,
+    selectedDownlinkKeyB,
+  }), [selectedDownlinkKey, selectedDownlinkKeyB, selectedUplinkKey, selectedUplinkKeyB]);
+
+  const restoreCoverageKeys = useCallback((keys: GeoCoverageKeySet) => {
+    setSelectedUplinkKey(keys.selectedUplinkKey);
+    setSelectedDownlinkKey(keys.selectedDownlinkKey);
+    setSelectedUplinkKeyB(keys.selectedUplinkKeyB);
+    setSelectedDownlinkKeyB(keys.selectedDownlinkKeyB);
+  }, []);
+
   return {
+    captureCoverageKeys,
+    restoreCoverageKeys,
     selectedUplinkKey, setSelectedUplinkKey,
     selectedDownlinkKey, setSelectedDownlinkKey,
     selectedUplinkKeyB, setSelectedUplinkKeyB,

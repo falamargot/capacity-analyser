@@ -35,7 +35,6 @@ import { type WeatherType, toWeatherCondition } from './components/capacity';
 import { SatelliteData } from './types/satellites';
 import type { CandidateCoverage, GEOBeam, SelectedSNP } from './types/analysis';
 import { useSatelliteLoader } from './hooks/useSatelliteLoader';
-import { Feature, Geometry, GeoJsonProperties } from 'geojson';
 import {
   GEO_GATEWAYS,
   GEO_GROUND_SITES,
@@ -54,11 +53,8 @@ import {
   computeGeoConnectivity,
   findCandidateCoverages,
   getCandidateCoverageKey,
-  getCoverageBeamId,
   getCoverageGroupId,
-  getFeatureBeamCoverageKey,
   rankCandidateCoverages,
-  resolveCoverageSelection,
 } from './utils/geoCoverageSelection';
 import { pickStarGatewayReferenceCoverage } from './utils/geoStarGatewaySelection';
 import {
@@ -81,6 +77,9 @@ import { useGeoCoverageKeys, useGeoCoverageSelection } from './hooks/useGeoCover
 import { useActiveLeoRouteEvidence, useGeoRouteAnalysis } from './hooks/useRouteAnalysis';
 import { useCommercialModels } from './hooks/useCommercialModels';
 import { useTerminalSelection } from './hooks/useTerminalSelection';
+import { useGlobeCoverage } from './hooks/useGlobeCoverage';
+import { useGlobeLayerToggles } from './hooks/useGlobeLayerToggles';
+import { useEngineeringModeSnapshot } from './hooks/useEngineeringModeSnapshot';
 import { useSelectionState } from './hooks/useSelectionState';
 import { useAuthorshipEasterEgg } from './hooks/useAuthorshipEasterEgg';
 import { useViewport, type ViewportSnapshot } from './hooks/useViewport';
@@ -161,6 +160,14 @@ import { useScenarioState } from './state/scenario/useScenarioState';
 import { AppModeSwitch } from './components/navigation/AppModeSwitch';
 import { GlobalAppHeader } from './components/navigation/GlobalAppHeader';
 import {
+  ENGINEERING_CAMERA_ANIMATION_SECONDS,
+  captureEngineeringCameraSnapshot,
+  captureTelecomCameraSnapshot,
+  flyToEngineeringCameraSnapshot,
+  telecomCameraToEngineeringSnapshot,
+  type EngineeringCameraSnapshot,
+} from './utils/engineeringCameraSnapshot';
+import {
   readTelecomSessionSnapshot,
   TELECOM_SESSION_SCHEMA_VERSION,
   writeTelecomSessionSnapshot,
@@ -200,38 +207,7 @@ const clampNumber = (value: number, min: number, max: number) => Math.min(max, M
 const lerp = (start: number, end: number, progress: number) => start + (end - start) * progress;
 
 const ENGINEERING_CONTEXT_GROUND_ALTITUDE_KM = 0.08;
-const ENGINEERING_CAMERA_ANIMATION_SECONDS = 0.34;
 const MODE_SWITCH_CAMERA_ANIMATION_SECONDS = 0.22;
-
-interface EngineeringCameraSnapshot {
-  position: Cartesian3;
-  direction: Cartesian3;
-  up: Cartesian3;
-  viewportHeight: number;
-}
-
-interface EngineeringModeSnapshot {
-  camera: EngineeringCameraSnapshot | null;
-  satelliteScope: SatelliteScope;
-  activeConnectivityTab: 'LEO' | 'GEO';
-  showSatelliteTrajectory: boolean;
-  showAggregatedConnectivity: boolean;
-  showFillRateLayer: boolean;
-  showFootprintProjection: boolean;
-  showFlowAnimation: boolean;
-  countryOverlayMode: CountryOverlayMode;
-  linkMode: LinkMode;
-  leoTopologyMode: 'SINGLE_SITE' | 'SITE_TO_SITE';
-  activeMeshTab: 'forward' | 'reverse';
-  selectedUplinkKey: string | null;
-  selectedDownlinkKey: string | null;
-  selectedUplinkKeyB: string | null;
-  selectedDownlinkKeyB: string | null;
-  manualGeoCoverageVisibility: {
-    satelliteId: string | null;
-    keys: string[];
-  };
-}
 
 const groundPointToCartesian = (point: { lat: number; lng: number; altitude?: number } | null | undefined) => {
   if (!point || !Number.isFinite(point.lat) || !Number.isFinite(point.lng)) return null;
@@ -263,63 +239,7 @@ const geoGatewayToCartesian = (
   return Cartesian3.fromDegrees(lng, lat, ENGINEERING_CONTEXT_GROUND_ALTITUDE_KM * 1000);
 };
 
-const captureEngineeringCameraSnapshot = (
-  viewer: CesiumViewerType,
-  viewportHeight: number,
-): EngineeringCameraSnapshot => ({
-  position: Cartesian3.clone(viewer.camera.positionWC),
-  direction: Cartesian3.clone(viewer.camera.directionWC),
-  up: Cartesian3.clone(viewer.camera.upWC),
-  viewportHeight,
-});
 
-const captureTelecomCameraSnapshot = (
-  viewer: CesiumViewerType,
-  viewportHeight: number,
-): TelecomCameraSnapshot => ({
-  position: {
-    x: viewer.camera.positionWC.x,
-    y: viewer.camera.positionWC.y,
-    z: viewer.camera.positionWC.z,
-  },
-  direction: {
-    x: viewer.camera.directionWC.x,
-    y: viewer.camera.directionWC.y,
-    z: viewer.camera.directionWC.z,
-  },
-  up: {
-    x: viewer.camera.upWC.x,
-    y: viewer.camera.upWC.y,
-    z: viewer.camera.upWC.z,
-  },
-  viewportHeight,
-});
-
-const telecomCameraToEngineeringSnapshot = (
-  snapshot: TelecomCameraSnapshot,
-): EngineeringCameraSnapshot => ({
-  position: new Cartesian3(snapshot.position.x, snapshot.position.y, snapshot.position.z),
-  direction: new Cartesian3(snapshot.direction.x, snapshot.direction.y, snapshot.direction.z),
-  up: new Cartesian3(snapshot.up.x, snapshot.up.y, snapshot.up.z),
-  viewportHeight: snapshot.viewportHeight,
-});
-
-const flyToEngineeringCameraSnapshot = (
-  viewer: CesiumViewerType,
-  snapshot: EngineeringCameraSnapshot,
-  duration = ENGINEERING_CAMERA_ANIMATION_SECONDS,
-) => {
-  viewer.camera.cancelFlight();
-  viewer.camera.flyTo({
-    destination: snapshot.position,
-    orientation: {
-      direction: snapshot.direction,
-      up: snapshot.up,
-    },
-    duration,
-    easingFunction: EasingFunction.CUBIC_OUT,
-  });
-};
 
 
 type SelectableCommercialTechnology = 'GEO' | 'LEO';
@@ -843,12 +763,26 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
   const [selectedIss, setSelectedIss] = useState(false);
   const pendingIssAutoCenterRef = useRef(false);
   const [enableLighting, setEnableLighting] = useState(initialDisplayDefaults.enableLighting);
-  const [showSatelliteTrajectory, setShowSatelliteTrajectory] = useState(initialDisplayDefaults.showSatelliteTrajectory);
-  const [showAggregatedConnectivity, setShowAggregatedConnectivity] = useState(initialDisplayDefaults.showAggregatedConnectivity);
-  const [showFillRateLayer, setShowFillRateLayer] = useState(false);
+  /* Display layers + their snapshot pair — see `useGlobeLayerToggles`. */
+  const {
+    showSatelliteTrajectory, setShowSatelliteTrajectory,
+    showAggregatedConnectivity, setShowAggregatedConnectivity,
+    showFillRateLayer, setShowFillRateLayer,
+    showFootprintProjection, setShowFootprintProjection,
+    showFlowAnimation, setShowFlowAnimation,
+    manualGeoCoverageVisibility, setManualGeoCoverageVisibility,
+    captureLayerVisibility,
+    restoreLayerVisibility,
+  } = useGlobeLayerToggles(
+    {
+      showSatelliteTrajectory: initialDisplayDefaults.showSatelliteTrajectory,
+      showAggregatedConnectivity: initialDisplayDefaults.showAggregatedConnectivity,
+      showFootprintProjection: initialDisplayDefaults.showFootprintProjection,
+      showFlowAnimation: initialDisplayDefaults.showFlowAnimation,
+    },
+    restoredTelecomSession?.geoCoverageSelection.manualVisibility ?? null,
+  );
   const [leoFillRateCells, setLeoFillRateCells] = useState<FillRateCell[] | null>(null);
-  const [showFootprintProjection, setShowFootprintProjection] = useState(initialDisplayDefaults.showFootprintProjection);
-  const [showFlowAnimation, setShowFlowAnimation] = useState(initialDisplayDefaults.showFlowAnimation);
   const [countryOverlayMode, setCountryOverlayMode] = useState<CountryOverlayMode>(initialDisplayDefaults.countryOverlayMode);
   const commandPaletteSearchRef = useRef<HTMLInputElement>(null);
   const helpMenuRef = useRef<HTMLDivElement>(null);
@@ -892,7 +826,6 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
   const viewerRef = useRef<CesiumViewerType | null>(null);
   const globeContainerRef = useRef<HTMLDivElement>(null);
   const engineeringAnalyticalCameraSnapshotRef = useRef<EngineeringCameraSnapshot | null>(null);
-  const engineeringModeSnapshotRef = useRef<EngineeringModeSnapshot | null>(null);
   const engineeringFocusCameraKeyRef = useRef<string | null>(null);
   const lastManualCameraInputRef = useRef(0);
   const detachManualCameraListenersRef = useRef<(() => void) | null>(null);
@@ -1008,11 +941,9 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     geoSelectionPolicy,
     preserveCoverageKeysOnNextTargetResetRef,
     preserveSiteBCoverageKeysOnNextPointBResetRef,
+    captureCoverageKeys,
+    restoreCoverageKeys,
   } = geoCoverageKeys;
-  const [manualGeoCoverageVisibility, setManualGeoCoverageVisibility] = useState<{
-    satelliteId: string | null;
-    keys: string[];
-  }>(restoredTelecomSession?.geoCoverageSelection.manualVisibility ?? { satelliteId: null, keys: [] });
 
   const telecomSessionDataRef = useRef<TelecomSessionSnapshotV1 | null>(null);
   telecomSessionDataRef.current = {
@@ -1376,7 +1307,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
       satelliteId: selectedSatellite.id,
       keys: keys.filter((key) => validKeys.has(key)),
     });
-  }, [selectedSatellite, selectedSatelliteGeoCoverageKeys]);
+  }, [selectedSatellite, selectedSatelliteGeoCoverageKeys, setManualGeoCoverageVisibility]);
 
   // satelliteTypeByName: satellite types never change post-load, so only rebuild
   // when the constellation count changes (new TLE fetch), not every 2s position tick.
@@ -1645,83 +1576,43 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
   // and only when uplink + downlink share the same satellite (satellite mismatch
   // would show a footprint from a different satellite than what the sidebar displays).
   // For MESH/P2P the active side (uplink transmitter, downlink receiver) flips with direction.
-  const activeSatId = selectedDownlinkCoverage?.satelliteId ?? selectedUplinkCoverage?.satelliteId ?? null;
-  const uplinkAtBForGlobe = useMemo(() => {
-    if (!LINK_MODE_REQUIRES_POINT_B.has(linkMode) || !activeSatId) return null;
-    if (selectedUplinkCoverageB?.satelliteId === activeSatId) return selectedUplinkCoverageB;
-    return candidateCoveragesB.find(c => c.isUplink && !c.isSynthesized && c.satelliteId === activeSatId) ?? null;
-  }, [linkMode, activeSatId, candidateCoveragesB, selectedUplinkCoverageB]);
-  const downlinkAtBForGlobe = useMemo(() => {
-    if (!LINK_MODE_REQUIRES_POINT_B.has(linkMode) || !activeSatId) return null;
-    if (selectedDownlinkCoverageB?.satelliteId === activeSatId) return selectedDownlinkCoverageB;
-    return candidateCoveragesB.find(c => !c.isUplink && !c.isSynthesized && c.satelliteId === activeSatId) ?? null;
-  }, [linkMode, activeSatId, candidateCoveragesB, selectedDownlinkCoverageB]);
 
-  const globeUplinkCoverage = useMemo(() => {
-    if (linkMode === 'STAR_FORWARD') return null;
-    if (linkMode === 'STAR_RETURN') return selectedUplinkCoverage ?? null;
-    if (LINK_MODE_REQUIRES_POINT_B.has(linkMode)) {
-      // MESH/P2P forward (A→B): uplink transmitter is Point A
-      // MESH/P2P reverse (B→A): uplink transmitter is Point B
-      return (activeMeshTab === 'forward' ? selectedUplinkCoverage : uplinkAtBForGlobe) ?? null;
-    }
-    if (!selectedUplinkCoverage) return null;
-    if (selectedDownlinkCoverage && selectedUplinkCoverage.satelliteId !== selectedDownlinkCoverage.satelliteId) return null;
-    return selectedUplinkCoverage;
-  }, [linkMode, selectedUplinkCoverage, selectedDownlinkCoverage, activeMeshTab, uplinkAtBForGlobe]);
+  const liveSelectedSatellite = useMemo(
+    () => (selectedSatellite?.id ? (satelliteById.get(selectedSatellite.id) ?? null) : null),
+    [satelliteById, selectedSatellite?.id]
+  );
 
-  const globeDownlinkCoverage = useMemo(() => {
-    if (linkMode === 'STAR_RETURN') return null;
-    if (linkMode === 'STAR_FORWARD') return selectedDownlinkCoverage ?? null;
-    if (LINK_MODE_REQUIRES_POINT_B.has(linkMode)) {
-      // MESH/P2P forward (A→B): downlink receiver is Point B
-      // MESH/P2P reverse (B→A): downlink receiver is Point A
-      return (activeMeshTab === 'forward' ? downlinkAtBForGlobe : selectedDownlinkCoverage) ?? null;
-    }
-    if (!selectedDownlinkCoverage) return null;
-    if (selectedUplinkCoverage && selectedDownlinkCoverage.satelliteId !== selectedUplinkCoverage.satelliteId) return null;
-    return selectedDownlinkCoverage;
-  }, [linkMode, selectedDownlinkCoverage, selectedUplinkCoverage, activeMeshTab, downlinkAtBForGlobe]);
-
-  // Single coverage reference kept for legacy consumers and for the map switcher.
-  // It must represent the user-terminal side of the active topology:
-  //   STAR Forward: gateway uplink -> user downlink, so user side is downlink.
-  //   STAR Return: user uplink -> gateway downlink, so user side is uplink.
-  const selectedCoverage = useMemo(() => {
-    if (linkMode === 'STAR_RETURN') {
-      return selectedUplinkCoverage ?? null;
-    }
-
-    if (linkMode === 'STAR_FORWARD') {
-      return selectedDownlinkCoverage ?? null;
-    }
-
-    return selectedDownlinkCoverage ?? selectedUplinkCoverage ?? null;
-  }, [linkMode, selectedDownlinkCoverage, selectedUplinkCoverage]);
-  const resolvedSelectedGeoCoverage = useMemo(() => {
-    if (!selectedSatellite || selectedSatellite.type !== 'EUTELSAT' || !selectedGeoCoverageName) {
-      return null;
-    }
-
-    const beams = selectedSatellite.coverages.filter((coverage) => getCoverageGroupId(coverage) === selectedGeoCoverageName);
-    if (beams.length === 0) {
-      return null;
-    }
-
-    const primaryBeam = selectedGeoBeamId
-      ? beams.find((coverage) => getCoverageBeamId(coverage) === selectedGeoBeamId) ?? beams[0]
-      : beams[0];
-
-    return {
-      satellite: selectedSatellite,
-      beams,
-      primaryBeam,
-    };
-  }, [selectedGeoBeamId, selectedGeoCoverageName, selectedSatellite]);
-
-  const resolvedTargetGeoCoverage = useMemo(() => (
-    resolveCoverageSelection(selectedCoverage, satellites)
-  ), [selectedCoverage, satellites]);
+  /* What the globe draws, and the feature list it draws it from — see `useGlobeCoverage`. */
+  const {
+    uplinkAtBForGlobe,
+    downlinkAtBForGlobe,
+    globeUplinkCoverage,
+    globeDownlinkCoverage,
+    selectedCoverage,
+    resolvedSelectedGeoCoverage,
+    resolvedTargetGeoCoverage,
+    coverageFeaturesMemo,
+  } = useGlobeCoverage({
+    linkMode,
+    activeMeshTab,
+    satellites,
+    satellitesForResolutionRef,
+    candidateCoveragesB,
+    selectedUplinkCoverage,
+    selectedDownlinkCoverage,
+    selectedUplinkCoverageB,
+    selectedDownlinkCoverageB,
+    selectedSatellite,
+    liveSelectedSatellite,
+    selectedGeoCoverageName,
+    selectedGeoBeamId,
+    visibleManualGeoCoverageKeys,
+    satelliteScope,
+    analyzisPosition,
+    selectedPosition,
+    resolvedAutoLEO,
+    hoveredSatelliteId,
+  });
 
   const selectedGEOBeam = useMemo<GEOBeam | null>(() => {
     const resolvedCoverage = resolvedSelectedGeoCoverage ?? resolvedTargetGeoCoverage;
@@ -1769,10 +1660,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
   }, [failedGeoGatewaySiteIds, selectedCoverage, selectedSatellite]);
 
   // Resolve live satellite instance for selected satellite (real-time positions)
-  const liveSelectedSatellite = useMemo(
-    () => (selectedSatellite?.id ? (satelliteById.get(selectedSatellite.id) ?? null) : null),
-    [satelliteById, selectedSatellite?.id]
-  );
+
 
   const dedicatedSNPForSelectedLEO = useMemo(() => {
     if (!liveSelectedSatellite || liveSelectedSatellite.type !== 'ONEWEB') {
@@ -2134,112 +2022,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
   });
 
   // Update coverage features based on analyzis position or manual satellite selection
-  const coverageFeaturesMemo = useMemo(() => {
-    const features = new Map<string, Feature<Geometry, GeoJsonProperties>>();
-    const pushFeature = (feature: Feature<Geometry, GeoJsonProperties>) => {
-      // Some upstream coverage records can carry a null geometry; skip them so
-      // the Cesium coverage layer never crashes on malformed data.
-      if (!feature.geometry) {
-        return;
-      }
 
-      const coverageGeometryKey = typeof feature.properties?.coverageGeometryKey === 'string'
-        ? feature.properties.coverageGeometryKey
-        : null;
-      const baseKey = getFeatureBeamCoverageKey(feature)
-        ?? `${feature.properties?.type ?? 'feature'}::${feature.properties?.satelliteId ?? 'unknown'}::${feature.properties?.name ?? features.size}`;
-      const key = coverageGeometryKey ? `${baseKey}::${coverageGeometryKey}` : baseKey;
-      if (!features.has(key)) {
-        features.set(key, feature);
-      }
-    };
-
-    // If user has explicitly selected a satellite, show its coverage (Satellite Inspection mode)
-    if (liveSelectedSatellite) {
-      if (liveSelectedSatellite.type === 'EUTELSAT') {
-        const visibleCoverageKeys = new Set(visibleManualGeoCoverageKeys);
-        liveSelectedSatellite.coverages
-          .filter((coverage) => visibleCoverageKeys.has(getCoverageGroupId(coverage)))
-          .forEach((coverage) => pushFeature(coverage.feature));
-      } else {
-        liveSelectedSatellite.coverages.forEach(c => pushFeature(c.feature));
-      }
-
-      // Add hover effects for user interaction.
-      // Use the stable ref instead of filteredSatellites so this lookup doesn't
-      // add a dep that changes every 2 s on satellite position updates.
-      if (hoveredSatelliteId && hoveredSatelliteId !== liveSelectedSatellite.id) {
-        const hoveredSat = satellitesForResolutionRef.current.find(
-          sat => sat.id === hoveredSatelliteId &&
-            (satelliteScope === 'ALL' || sat.orbitType === satelliteScope)
-        );
-        if (hoveredSat) {
-          hoveredSat.coverages.forEach(c => pushFeature(c.feature));
-        }
-      }
-
-      return [...features.values()];
-    }
-
-    // Only show coverage when analyzis position is set (connectivity analyzis mode)
-    if (!analyzisPosition && !selectedPosition) {
-      return [...features.values()];
-    }
-
-    // SINGLE-COVERAGE RULE: only the SELECTED GEO coverage is ever rendered on
-    // the globe. All candidates are listed in the sidebar; CoverageLayer uses
-    // isSelected to apply the gradient style to the selected coverage's contours.
-    //
-    // resolvedSelectedGeoCoverage is the primary source. When it is null despite
-    // selectedCoverage being set (can happen on the first render before useMemo
-    // has resolved with the latest satellites), we fall back to a direct lookup
-    // from satellitesForResolutionRef (always current). This ensures the globe
-    // is NEVER stuck in an empty state when a valid coverage is selected.
-    const getSelectedGeoFeatures = (): Feature<Geometry, GeoJsonProperties>[] => {
-      if (resolvedSelectedGeoCoverage) {
-        return resolvedSelectedGeoCoverage.beams.map((beam) => beam.feature);
-      }
-      // Direct fallback: resolve features without going through React state
-      if (selectedCoverage) {
-        const sat = satellitesForResolutionRef.current.find(
-          (s) => s.id === selectedCoverage.satelliteId
-        );
-        if (sat) {
-          return sat.coverages
-            .filter((c) => getCoverageGroupId(c) === selectedCoverage.coverageKey)
-            .map((c) => c.feature)
-            .filter(Boolean) as Feature<Geometry, GeoJsonProperties>[];
-        }
-      }
-      return [];
-    };
-    const selectedGeoFeatures = getSelectedGeoFeatures();
-
-    // Show coverage based on scope rules:
-    //   LEO  → only LEO (ONEWEB) footprint from the auto-selected satellite
-    //   GEO  → only the one selected GEO coverage
-    //   ALL  → LEO footprint + one selected GEO coverage
-    // In all cases, NEVER inject hover-satellite features in analysis mode.
-    // Hover effects only apply in satellite-inspection mode (handled above).
-    if (satelliteScope === 'LEO' && resolvedAutoLEO) {
-      resolvedAutoLEO.coverages.forEach((c: any) => pushFeature(c.feature));
-    } else if (satelliteScope === 'GEO') {
-      selectedGeoFeatures.forEach((feature) => pushFeature(feature));
-    } else if (satelliteScope === 'ALL') {
-      if (resolvedAutoLEO) {
-        resolvedAutoLEO.coverages.forEach((c: any) => pushFeature(c.feature));
-      }
-      selectedGeoFeatures.forEach((feature) => pushFeature(feature));
-    }
-
-    return [...features.values()];
-  // Note: hoveredSatelliteId intentionally excluded — hover effects are suppressed
-  // in analysis mode to prevent feature bloat and visual clutter (CoverageLayer
-  // would filter them out anyway). satelliteScope, selectedCoverage and
-  // resolvedSelectedGeoCoverage cover all necessary re-computation triggers.
-  // filteredSatellites omitted: hover lookups use satellitesForResolutionRef.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [analyzisPosition, liveSelectedSatellite, resolvedAutoLEO, resolvedSelectedGeoCoverage, satelliteScope, selectedCoverage, selectedGeoBeamId, selectedGeoCoverageName, selectedPosition, visibleManualGeoCoverageKeys]);
 
 
   // coverageFeaturesMemo is used directly - no need to copy to state
@@ -2291,7 +2074,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     setSelectedGateway(null);
     setAutoSelectedLEOId(null);
     setSelectedIss(false);
-  }, [clearSelection, selectSatellite]);
+  }, [clearSelection, selectSatellite, setManualGeoCoverageVisibility]);
 
   // Wrapper for UI selection (triggers FlyTo)
   const handleSatelliteSelectFromUI = useCallback((satellite: SatelliteData | null) => {
@@ -3332,8 +3115,8 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
   // causes CesiumGlobe to re-render for no reason.
   const handleToggleFullscreen = useCallback(() => setIsFullscreen(v => !v), []);
   const handleToggleLighting = useCallback(() => setEnableLighting(v => !v), []);
-  const handleToggleSatelliteTrajectory = useCallback(() => setShowSatelliteTrajectory(v => !v), []);
-  const handleToggleAggregatedConnectivity = useCallback(() => setShowAggregatedConnectivity(v => !v), []);
+  const handleToggleSatelliteTrajectory = useCallback(() => setShowSatelliteTrajectory(v => !v), [setShowSatelliteTrajectory]);
+  const handleToggleAggregatedConnectivity = useCallback(() => setShowAggregatedConnectivity(v => !v), [setShowAggregatedConnectivity]);
   const handleToggleFillRateLayer = useCallback(() => {
     const next = getNextFillRateLayerToggleState({
       current: showFillRateLayer,
@@ -3342,9 +3125,9 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     });
     if (next.countryOverlayMode !== countryOverlayMode) setCountryOverlayMode(next.countryOverlayMode);
     setShowFillRateLayer(next.showFillRateLayer);
-  }, [countryOverlayMode, satelliteScope, showFillRateLayer]);
-  const handleToggleFootprintProjection = useCallback(() => setShowFootprintProjection(v => !v), []);
-  const handleToggleFlowAnimation = useCallback(() => setShowFlowAnimation(v => !v), []);
+  }, [countryOverlayMode, satelliteScope, showFillRateLayer, setShowFillRateLayer]);
+  const handleToggleFootprintProjection = useCallback(() => setShowFootprintProjection(v => !v), [setShowFootprintProjection]);
+  const handleToggleFlowAnimation = useCallback(() => setShowFlowAnimation(v => !v), [setShowFlowAnimation]);
   const handleToggleAirTraffic = useCallback(() => {
     if (liveTrafficAvailable) setAirTrafficEnabled(v => !v);
   }, [liveTrafficAvailable]);
@@ -3364,11 +3147,11 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
   const handleCountryOverlayModeChange = useCallback((mode: CountryOverlayMode) => {
     setShowFillRateLayer((current) => reconcileFillRateLayerWithCountryOverlay(current, mode));
     setCountryOverlayMode(mode);
-  }, []);
+  }, [setShowFillRateLayer]);
 
   useEffect(() => {
     if (shouldDisableFillRateLayerForScope(satelliteScope)) setShowFillRateLayer(false);
-  }, [satelliteScope]);
+  }, [satelliteScope, setShowFillRateLayer]);
   const handleMoonSelectionChange = useCallback((selected: boolean) => {
     if (!selected) {
       setSelectedMoon(false);
@@ -4550,120 +4333,35 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     suppressCommercialCameraFocus: isGlobeModePeekPressed,
   }), [commercialScenarioViewModel, commercialRouteModel, globeCommercialMode, isGlobeModePeekPressed]);
 
-  const captureEngineeringModeSnapshot = useCallback((): EngineeringModeSnapshot => {
-    const viewer = viewerRef.current;
-    const viewportHeight =
-      globeContainerRef.current?.getBoundingClientRect().height ??
-      viewportSnapshot.innerHeight;
-
-    return {
-      camera: viewer && !viewer.isDestroyed?.()
-        ? captureEngineeringCameraSnapshot(viewer, viewportHeight)
-        : null,
-      satelliteScope,
-      activeConnectivityTab,
-      showSatelliteTrajectory,
-      showAggregatedConnectivity,
-      showFillRateLayer,
-      showFootprintProjection,
-      showFlowAnimation,
-      countryOverlayMode,
-      linkMode,
-      leoTopologyMode,
-      activeMeshTab,
-      selectedUplinkKey,
-      selectedDownlinkKey,
-      selectedUplinkKeyB,
-      selectedDownlinkKeyB,
-      manualGeoCoverageVisibility: {
-        satelliteId: manualGeoCoverageVisibility.satelliteId,
-        keys: [...manualGeoCoverageVisibility.keys],
-      },
-    };
-  }, [
-    activeConnectivityTab,
-    activeMeshTab,
-    countryOverlayMode,
-    leoTopologyMode,
-    linkMode,
-    manualGeoCoverageVisibility,
+  /* Mode-switch snapshot protocol — see `useEngineeringModeSnapshot`. */
+  const { handleModeSwitch } = useEngineeringModeSnapshot({
+    appMode,
+    viewerRef,
+    globeContainerRef,
+    viewportSnapshot,
     satelliteScope,
-    selectedDownlinkKey,
-    selectedDownlinkKeyB,
-    selectedUplinkKey,
-    selectedUplinkKeyB,
-    showAggregatedConnectivity,
-    showFillRateLayer,
-    showFlowAnimation,
-    showFootprintProjection,
-    showSatelliteTrajectory,
-    viewportSnapshot.innerHeight,
-  ]);
-
-  const restoreEngineeringModeSnapshot = useCallback((snapshot: EngineeringModeSnapshot) => {
-    const linkModeWillChange = snapshot.linkMode !== linkMode;
-    preserveSiteBCoverageKeysOnNextPointBResetRef.current = linkModeWillChange;
-    preserveMeshTabOnNextLinkModeRef.current = linkModeWillChange;
-
-    handleTechnologyScopeChange(snapshot.satelliteScope);
-    handleTechnologyChange(snapshot.activeConnectivityTab);
-    setShowSatelliteTrajectory(snapshot.showSatelliteTrajectory);
-    setShowAggregatedConnectivity(snapshot.showAggregatedConnectivity);
-    setShowFillRateLayer(snapshot.showFillRateLayer);
-    setShowFootprintProjection(snapshot.showFootprintProjection);
-    setShowFlowAnimation(snapshot.showFlowAnimation);
-    setCountryOverlayMode(snapshot.countryOverlayMode);
-    handleLinkModeChange(snapshot.linkMode);
-    handleLeoTopologyModeChange(snapshot.leoTopologyMode);
-    setActiveMeshTab(snapshot.activeMeshTab);
-    setSelectedUplinkKey(snapshot.selectedUplinkKey);
-    setSelectedDownlinkKey(snapshot.selectedDownlinkKey);
-    setSelectedUplinkKeyB(snapshot.selectedUplinkKeyB);
-    setSelectedDownlinkKeyB(snapshot.selectedDownlinkKeyB);
-    setManualGeoCoverageVisibility({
-      satelliteId: snapshot.manualGeoCoverageVisibility.satelliteId,
-      keys: [...snapshot.manualGeoCoverageVisibility.keys],
-    });
-
-    const cameraSnapshot = snapshot.camera;
-    if (cameraSnapshot) {
-      requestAnimationFrame(() => {
-        const viewer = viewerRef.current;
-        if (!viewer || viewer.isDestroyed?.()) return;
-        viewer.resize?.();
-        flyToEngineeringCameraSnapshot(viewer, cameraSnapshot, MODE_SWITCH_CAMERA_ANIMATION_SECONDS);
-      });
-    }
-  }, [handleLeoTopologyModeChange, handleLinkModeChange, handleTechnologyChange, handleTechnologyScopeChange, linkMode, setActiveMeshTab, preserveSiteBCoverageKeysOnNextPointBResetRef, setSelectedDownlinkKey, setSelectedDownlinkKeyB, setSelectedUplinkKey, setSelectedUplinkKeyB]);
-
-  const handleModeSwitch = useCallback((mode: AppMode) => {
-    if (mode === appMode) return;
-
-    // REVISIT is a peer view, not a skin of this one: it unmounts App entirely,
-    // Persist only the explicit telecom-session contract before the runtime and
-    // its Cesium viewer are destroyed.
-    if (mode === 'revisit') {
-      persistTelecomSession();
-      handleUiModeChange(mode);
-      return;
-    }
-
-    if (mode === 'commercial') {
-      engineeringModeSnapshotRef.current = captureEngineeringModeSnapshot();
-      setCommercialSelectedSegment('summary');
-      setIsMobileAnalysisPanelOpen(false);
-      handleUiModeChange(mode);
-      return;
-    }
-
-    const snapshot = engineeringModeSnapshotRef.current;
-    handleUiModeChange(mode);
-
-    if (snapshot) {
-      restoreEngineeringModeSnapshot(snapshot);
-      engineeringModeSnapshotRef.current = null;
-    }
-  }, [appMode, captureEngineeringModeSnapshot, handleUiModeChange, persistTelecomSession, restoreEngineeringModeSnapshot]);
+    activeConnectivityTab,
+    countryOverlayMode,
+    linkMode,
+    leoTopologyMode,
+    activeMeshTab,
+    captureLayerVisibility,
+    restoreLayerVisibility,
+    captureCoverageKeys,
+    restoreCoverageKeys,
+    preserveSiteBCoverageKeysOnNextPointBResetRef,
+    preserveMeshTabOnNextLinkModeRef,
+    setActiveMeshTab,
+    setCountryOverlayMode,
+    setCommercialSelectedSegment,
+    setIsMobileAnalysisPanelOpen,
+    handleTechnologyScopeChange,
+    handleTechnologyChange,
+    handleLinkModeChange,
+    handleLeoTopologyModeChange,
+    handleUiModeChange,
+    persistTelecomSession,
+  });
 
   if (loading) {
     return (
