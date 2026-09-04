@@ -173,11 +173,18 @@ export async function seedReferenceTarget(page: Page): Promise<void> {
     await add.click();
     await page.getByRole('menuitem', { name: 'Add Primary point target' }).click();
     const canvas = page.locator('.cesium-widget canvas');
-    await expect(canvas).toHaveCSS('cursor', 'crosshair');
+    // APP-READINESS waits, not speed assertions — hence 30 s rather than the 5 s
+    // default. Arming placement mode and committing the target both cross the
+    // Cesium render loop, and this suite runs single-worker: by the time the
+    // accessibility spec reaches REVISIT, the same browser process has been
+    // running heavy tests for twenty minutes and those transitions get slower.
+    // The 5 s default was the sharp edge that made `accessibility.spec.ts:55`
+    // fail in full-suite runs and pass in isolation (AUDIT_BACKLOG item 5).
+    await expect(canvas).toHaveCSS('cursor', 'crosshair', { timeout: 30_000 });
     const box = await canvas.boundingBox();
     if (!box) throw new Error('Revisit globe canvas is not visible');
     await canvas.click({ position: { x: box.width * 0.5, y: box.height * 0.5 }, force: true });
-    await expect(add).toHaveCount(0);
+    await expect(add).toHaveCount(0, { timeout: 30_000 });
 }
 
 /** Create an empty secondary Point row through the polymorphic add control. */

@@ -345,16 +345,28 @@ comes with each extraction, not a one-off.
    incomplete) or the panel is collapsed there (product question). Decide which
    before touching either side.
 
-5. **`accessibility.spec.ts:55` (`revisit dark`) is a recurring flaky gate.**
-   Seen failing twice on 2026-09-04, in full-suite runs only, passing in
+5. ~~**`accessibility.spec.ts:55` (`revisit dark`) is a recurring flaky gate.**~~
+   **FIXED 2026-09-04.** Failed twice that day in full-suite runs, passed in
    isolation both times (51 s, 1.2 min) — once timing out mid-click, once
    waiting for the globe's `cursor: crosshair` inside `seedReferenceTarget`.
-   The spec already carries a 240 s timeout added for the same symptom, so this
-   is at least the third occurrence historically. It runs a real area analysis
-   plus six Axe sweeps in one test; the likely cause is contention with the
-   other workers rather than anything in the product, but that is a hypothesis,
-   not a finding. Worth either isolating it into its own serial project or
-   splitting the six sweeps, before it trains everyone to ignore a red gate.
+
+   **My first hypothesis — contention between parallel workers — was wrong**,
+   and reading the config is what falsified it: `playwright.config.ts` sets
+   `workers: 1` and `fullyParallel: false`, so nothing runs beside it. The
+   difference between a full-suite run and an isolated one is not parallelism
+   but ACCUMULATION: one browser process has been running heavy Cesium tests
+   for twenty minutes by the time the accessibility spec reaches REVISIT, and
+   the transitions get slower.
+
+   Against that, the sharp edge was Playwright's 5 s default expect timeout on
+   two waits in `seedReferenceTarget` that are app-readiness conditions, not
+   speed assertions: arming placement mode (`cursor: crosshair`) and committing
+   the target. Both now wait 30 s, the convention the rest of the suite already
+   uses for readiness.
+
+   Stated plainly: a green run afterwards does not PROVE an intermittent failure
+   is gone. What justifies this fix is the mechanism — the failing assertion was
+   the one with the tightest budget, on a condition with no reason to be fast.
 
 6. The rest of both audits is done, deliberately rejected, or needs a UX pass
    with the app running — a different kind of work from this backlog.

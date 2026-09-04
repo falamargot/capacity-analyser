@@ -806,7 +806,7 @@ function SizingBlock({
                         : 'Applies this split to the shared topology — every compared target is then analysed on this configuration.'}
                     className="revisit-apply-recommended mt-2 min-h-11 w-full rounded-lg border border-slate-400/70 bg-slate-100/10 px-3 py-2 text-[12px] font-black uppercase tracking-[0.12em] text-slate-100 transition-colors hover:border-white hover:bg-white/15"
                 >
-                    Apply recommended configuration
+                    Apply recommendation
                 </button>
             )}
 

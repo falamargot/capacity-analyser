@@ -2,6 +2,70 @@
 
 _Last updated 2026-09-04._
 
+## 2026-09-04 (night) — flaky gate, R12, E8b
+
+### The flaky accessibility gate — fixed, and my first diagnosis was wrong
+
+I had written that `accessibility.spec.ts:55` probably lost a race with parallel
+workers. **Reading the config falsified that**: `playwright.config.ts` sets
+`workers: 1` and `fullyParallel: false`. Nothing runs beside it.
+
+What differs between a full-suite run and an isolated one is ACCUMULATION — one
+browser process has been driving heavy Cesium tests for twenty minutes by the
+time the spec reaches REVISIT. Against that, the sharp edge was Playwright's 5 s
+default expect timeout on two waits in `seedReferenceTarget` that are
+app-readiness conditions, not speed assertions: arming placement mode
+(`cursor: crosshair`) and committing the target. Both now wait 30 s, the
+convention the suite already uses for readiness.
+
+A green run afterwards does not PROVE an intermittent failure is gone. What
+justifies the fix is the mechanism: the failing assertion was the one with the
+tightest budget on a condition with no reason to be fast.
+
+### R12 — one command instead of a console ritual, and one finding
+
+`e2e/perf-r12.spec.ts`, opt-in (`PERF_R12=1`) and inert in every normal run:
+
+```
+PERF_R12=1 npx playwright test perf-r12 --project=desktop-chromium --headed
+```
+
+**`--headed` is not optional, measured rather than assumed:** headless Chromium
+throttles rAF to **p50 152 ms (~6.5 fps)** — no compositor — and falls back to
+**SwiftShader**. Both numbers would be the harness's. A headed run from this
+environment closed the browser immediately (no display session), which is why
+R12 still has no end-to-end number: I could not honestly produce one here.
+
+**Finding from the attempt, and it changes how the measurement must be taken:**
+in a real visible page (1440 × 900, 634 points, 12 orbits, 12 swaths) the
+profiler counted **0 frames in 20.6 s** with the scene static. `requestRenderMode`
+is doing its job; an fps measurement has to start the clock first or it measures
+an idle app. The spec does.
+
+### E8b — the drawn footprint now shares the gate's datum
+
+A closer look changed the plan I had written. "Draw it on the ellipsoid" was
+already half done — Cesium's `EllipseGraphics` lays the circle out geodesically
+on WGS84. The only spherical thing left was the RADIUS, so the fix is
+`footprintRadiusKmOnEllipsoid(altKm, mask, subSatelliteLatDeg)` used by the two
+drawn footprints in `OneWebCombLayer.tsx`.
+
+`footprintRadiusKm` stays on the 6371 km sphere on purpose: ADR-001 §2 fixes it
+for coverage geometry — policy, grid, and the published `STANDARD_RADIUS_KM`
+= 688. **No ADR amendment was needed to make the picture agree with the gate.**
+
+Residue, stated: `gridCoverage.ts` still uses the spherical radius, so the grid
+now differs from the drawn footprint by the same margins (up to 9.6 km at the
+service mask). Right trade while the grid is a policy overlay; it is the next
+one to move if the two are ever compared closely.
+
+Six tests pin the measured table (`__tests__/leoFootprintEllipsoid.test.ts`).
+
+Gates: `npm run typecheck`, lint at zero, **2 205 unit tests** (+6), build, and
+e2e `mode-smoke` + `accessibility` + `standalone-mode` — **38 passed, 30 skipped,
+EXIT=0**, including the gate that had been failing. One green run, which is
+evidence and not proof; see above for why the fix stands on its mechanism.
+
 ## 2026-09-04 (evening) — S-2b decided, and the ISS retry storm fixed
 
 ### S-2b #1 — the ISS is an inspected entity, and mutual exclusion now lives in one place

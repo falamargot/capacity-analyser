@@ -21,7 +21,7 @@ import {
 import type { SatelliteData } from '../../types/satellites';
 import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
 import { getBeamColor, TOTAL_BEAMS, getGsoMutedBeamSet } from '../../utils/oneWebComb';
-import { footprintRadiusKm, MIN_SNP_GATEWAY_ELEVATION_DEG, STANDARD_SERVICE_ELEVATION_DEG } from '../../utils/leoFootprint';
+import { footprintRadiusKmOnEllipsoid, MIN_SNP_GATEWAY_ELEVATION_DEG, STANDARD_SERVICE_ELEVATION_DEG } from '../../utils/leoFootprint';
 import { getCoverageColor, hasSNPInCoverage } from '../../services/coverageService';
 import { useSimulation } from '../../contexts/SimulationContext';
 import { useCombGeometry } from './hooks';
@@ -813,14 +813,34 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
 
     // These useMemo hooks MUST be before the early return to satisfy the Rules of Hooks.
     // They guard against null targetSat internally and produce no-op values in that case.
+    /*
+     * E8b: drawn on the WGS84 ellipsoid, like the elevation gate that decides
+     * service — not on the 6371 km coverage sphere. Cesium already lays the
+     * circle out geodesically on WGS84; what was still spherical was the radius
+     * itself, and it under-showed coverage by up to 9.6 km at the service mask
+     * (see `footprintRadiusKmOnEllipsoid`). Latitude is now an input, so these
+     * memos depend on it.
+     */
     const horizonRadius = useMemo(
-        () => targetSat ? footprintRadiusKm(targetSat.position.alt || 1200, MIN_SNP_GATEWAY_ELEVATION_DEG) * 1000 : 0,
-        [targetSat?.position.alt]
+        () => targetSat
+            ? footprintRadiusKmOnEllipsoid(
+                targetSat.position.alt || 1200,
+                MIN_SNP_GATEWAY_ELEVATION_DEG,
+                targetSat.position.lat,
+            ) * 1000
+            : 0,
+        [targetSat?.position.alt, targetSat?.position.lat]
     );
 
     const serviceZoneRadius = useMemo(
-        () => targetSat ? footprintRadiusKm(targetSat.position.alt || 1200, STANDARD_SERVICE_ELEVATION_DEG) * 1000 : 0,
-        [targetSat?.position.alt]
+        () => targetSat
+            ? footprintRadiusKmOnEllipsoid(
+                targetSat.position.alt || 1200,
+                STANDARD_SERVICE_ELEVATION_DEG,
+                targetSat.position.lat,
+            ) * 1000
+            : 0,
+        [targetSat?.position.alt, targetSat?.position.lat]
     );
 
     const backhaulColor = useMemo(

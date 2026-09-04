@@ -27,14 +27,13 @@ ticking it.
 | Item | What is actually undone |
 |---|---|
 | **R12** | end-to-end fps still needs one foreground-browser run; the JS half is now measured, and 256 is not the risky case — see R12 |
-| **E8b** | telecom draws a spherical LEO footprint while the gate is ellipsoidal — measured, needs an ADR call, see the E8 section |
 
 R24's other buried item — URL / browser-history semantics — is **closed**:
 `useAppModeState.ts:61-68` writes the mode into the URL and pushes history
 state. **E8 itself is now closed too** (2026-09-04): R28 put REVISIT's drawn and
 analysed geometry on the same ellipsoid, so the mismatch it described is gone.
-It finally has its own section, which records that and files the residue it
-uncovered on the telecom side as **E8b**.
+It finally has its own section, which records that — and **E8b**, the residue it
+uncovered on the telecom side, was fixed the same day.
 
 ### Where the rest of the debt lives
 
@@ -537,18 +536,33 @@ per satellite only when the elevation mask actually clamps the FOV.
 whole fleet with a clamping mask", and that one is already over budget on CPU
 alone. If R12 is picked up, that is the configuration to run — not 256.
 
-### To finish it (~2 minutes, foreground browser)
+### To finish it: ONE COMMAND
 
-The instrumentation already exists — `utils/runtimeProfiler.ts`, dev builds
-only:
+The five-step console ritual is now a spec — `e2e/perf-r12.spec.ts`, opt-in and
+inert in every normal run:
 
-1. `npm run dev`, open REVISIT in a normal browser window, leave the mouse still.
-2. Select the whole fleet and confirm the sensor swath is on.
-3. `__perfReset()` in the console.
-4. Wait 30 s without touching anything.
-5. `__perfReport()` — `fps`, `recentFps` and `frameMs.p95` are the answer.
+```
+PERF_R12=1 npx playwright test perf-r12 --project=desktop-chromium --headed
+```
 
-Repeat with a 16 × 16 sub-constellation for the number R12 originally asked for.
+It prints the scene it measured, the app profiler's frame stats and the
+browser's own rAF cadence. It asserts nothing: a frame rate is a property of the
+machine it was measured on, not a gate.
+
+**`--headed` is not optional, and this is why.** Measured 2026-09-04 in
+headless Chromium: rAF is throttled to **p50 152 ms (~6.5 fps)** because there is
+no compositor, and WebGL falls back to **SwiftShader**, a software rasteriser.
+Both numbers would be the harness's, not the app's. A headed run was attempted
+from this environment and the browser closed immediately — no display session —
+which is why the number is still missing rather than wrong.
+
+### A finding from the attempt: at rest, REVISIT renders nothing
+
+In a real visible page (`document.visibilityState === "visible"`, canvas
+1440 × 900, 634 points, 12 orbits, 12 swaths), the profiler counted **0 frames in
+20.6 s** with the scene static. That is `requestRenderMode` working exactly as
+Lot 2C intended, and it means any fps measurement has to put the clock in motion
+first or it measures an idle app. The spec does that before sampling.
 
 ## R13. FOV presets are still not from an instrument datasheet
 
@@ -808,15 +822,14 @@ the only surviving 6371 in REVISIT is the **camera standoff distance** in
 Earth, and nothing downstream reads it. Drawn and analysed now share one datum,
 so the offset E8 describes is zero by construction.
 
-### E8b — the same question, on the telecom side, where the two datums now differ
+### E8b — FIXED 2026-09-04: the drawn footprint now shares the gate's datum
 
-The picture and the gate use different models in ENG/COMM, and this one is
-measured rather than asserted:
+The picture and the gate had drifted onto different models in ENG/COMM:
 
-- the drawn LEO footprint radius is **spherical** — `footprintRadiusKm` on
-  `EARTH_RADIUS_KM` = 6371, deliberate under ADR-001 §2;
-- the elevation that actually decides service is **ellipsoidal**, since SPA-01
-  and SPA-02 consolidated every elevation onto `wgs84Geometry`.
+- the drawn LEO footprint radius was **spherical** — `footprintRadiusKm` on
+  `EARTH_RADIUS_KM` = 6371;
+- the elevation that decides service is **ellipsoidal**, since SPA-01 and SPA-02
+  consolidated every elevation onto `wgs84Geometry` (checked against GMAT).
 
 Measured at 1200 km altitude, ellipsoidal minus spherical ground radius:
 
@@ -826,31 +839,31 @@ Measured at 1200 km altitude, ellipsoidal minus spherical ground radius:
 | 25° | 1701 km | +0.6 km | +10.3 km | +15.1 km | +20.0 km |
 | 10° | 2672 km | +1.3 km | +12.6 km | +18.2 km | +23.8 km |
 
-The sign matters: the ellipsoidal footprint is LARGER away from the equator, so
-the drawn circle **under-shows** coverage at high latitudes. A terminal drawn
-just outside it can still pass the elevation gate. At the 55° service mask the
-worst case is 9.6 km on a 683 km radius — 1.4 %, and under a pixel at any globe
-zoom where the whole footprint is visible.
+The sign is what turned this from a note into a fix: the ellipsoidal footprint
+is LARGER away from the equator, so the spherical circle **under-showed**
+coverage — a terminal drawn just outside it could still pass the gate.
 
-**This is an ADR decision, not a bug fix**, which is why it is filed rather than
-patched: ADR-001 §2 fixes the coverage sphere on purpose, `STANDARD_RADIUS_KM`
-= 688 is a published constant, and `coveragePolicy.test.ts` pins numbers derived
-from it. Three ways out, cheapest first:
+**What was done, and what was deliberately not.** A closer look changed the
+options I first wrote here. "Draw it on the ellipsoid" was already half true:
+Cesium's `EllipseGraphics` lays the circle out geodesically on WGS84 by itself.
+The only spherical thing left was the RADIUS SCALAR. So the fix is
+`footprintRadiusKmOnEllipsoid(altKm, mask, subSatelliteLatDeg)` in
+`utils/leoFootprint.ts`, used by the two drawn footprints in
+`OneWebCombLayer.tsx`.
 
-1. **Accept and document.** The table above is the argument; nothing a user
-   reads off the globe moves. Costs nothing, keeps the ADR intact.
-2. **Feed the local geocentric radius** R(φ) of the sub-satellite point into
-   `footprintRadiusKm` instead of 6371. Removes the latitude-dependent part —
-   the whole of the error above — for a few lines, but it changes published
-   coverage numbers and their tests.
-3. **Draw the footprint on the ellipsoid**, as REVISIT's R28 did. The
-   ray/ellipsoid machinery already exists in `utils/wgs84Geometry.ts`. Removes
-   the question entirely; the most work.
+`footprintRadiusKm` itself is untouched, on purpose. ADR-001 §2 fixes the 6371 km
+sphere for coverage GEOMETRY — the policy, the coverage grid, and the published
+`STANDARD_RADIUS_KM` = 688 — and moving it would move reported numbers and their
+tests. No ADR amendment was needed to make the picture agree with the gate.
 
-Recommendation: **(1) now, (3) if and when the telecom footprint is next
-touched for another reason.** (2) is the tempting middle and the worst of the
-three — it spends test churn and an ADR amendment on a circle that is still a
-circle.
+Residue, stated rather than hidden: the coverage GRID (`gridCoverage.ts`) still
+uses the spherical radius, so it now differs from the drawn footprint by the
+same margins. That is the right trade while the grid is a policy overlay, but if
+the two are ever shown together and compared closely, the grid is the next one
+to move.
+
+Six unit tests pin the table above (`__tests__/leoFootprintEllipsoid.test.ts`),
+including that the spherical function still returns the published 683 km.
 
 ---
 

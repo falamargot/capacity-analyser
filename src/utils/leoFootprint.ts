@@ -1,4 +1,7 @@
 import { EARTH_RADIUS_KM, haversineDistanceKm } from './earthGeometry';
+import { WGS84_A_KM, WGS84_F } from './wgs84Geometry';
+
+const WGS84_B_KM = WGS84_A_KM * (1 - WGS84_F);
 
 // Single copy of the great-circle math lives in earthGeometry.ts (zero-dep leaf).
 export { haversineDistanceKm } from './earthGeometry';
@@ -101,11 +104,70 @@ export function isPointInFootprint(
  * - Increasing E monotonically shrinks the footprint
  */
 export function footprintRadiusKm(altKm: number, minElevationDeg: number): number {
+  return footprintRadiusOnRadiusKm(altKm, minElevationDeg, EARTH_RADIUS_KM, EARTH_RADIUS_KM + altKm);
+}
+
+/**
+ * Ground radius as DRAWN, on the WGS84 ellipsoid — E8b.
+ *
+ * The picture and the gate had drifted onto different datums. The serving
+ * decision runs on the ellipsoid (`elevationAngleDeg`, consolidated by SPA-01
+ * and SPA-02 and checked against GMAT), while this footprint was still drawn
+ * from the 6371 km coverage sphere. The two disagree by more than the Earth's
+ * flattening suggests, because the local ground radius varies with latitude:
+ *
+ *     alt 1200 km,          lat 0     lat 45    lat 60    lat 90
+ *     55 deg service mask   +0.1 km   +4.9 km   +7.2 km   +9.6 km
+ *     25 deg                +0.6 km  +10.3 km  +15.1 km  +20.0 km
+ *     10 deg                +1.3 km  +12.6 km  +18.2 km  +23.8 km
+ *
+ * The sign is what makes it worth fixing rather than noting: the ellipsoidal
+ * footprint is LARGER away from the equator, so the spherical circle
+ * UNDER-SHOWS coverage — a terminal drawn just outside it could still pass the
+ * gate.
+ *
+ * `footprintRadiusKm` above is deliberately left on the sphere. ADR-001 §2 fixes
+ * that sphere for coverage GEOMETRY — the policy, the coverage grid, and the
+ * published `STANDARD_RADIUS_KM` = 688 — and changing it would move reported
+ * numbers. This function is for what is DRAWN, where agreeing with the gate is
+ * what matters.
+ *
+ * Still an approximation, and a smaller one: the true boundary on an ellipsoid
+ * is not a circle. Using the local geocentric radius removes the latitude term,
+ * which is the whole of the error above; what remains is the ovality of the
+ * boundary itself, second-order at these radii.
+ */
+export function footprintRadiusKmOnEllipsoid(
+  altKm: number,
+  minElevationDeg: number,
+  subSatelliteLatDeg: number,
+): number {
+  if (!Number.isFinite(subSatelliteLatDeg)) return footprintRadiusKm(altKm, minElevationDeg);
+  const phi = toRad(subSatelliteLatDeg);
+  const c = Math.cos(phi);
+  const sn = Math.sin(phi);
+  const a2 = WGS84_A_KM * WGS84_A_KM;
+  const b2 = WGS84_B_KM * WGS84_B_KM;
+  // Geocentric radius of the ellipsoid at this geodetic latitude.
+  const localRadiusKm = Math.sqrt(
+    ((a2 * c) ** 2 + (b2 * sn) ** 2) / ((WGS84_A_KM * c) ** 2 + (WGS84_B_KM * sn) ** 2),
+  );
+  // Altitude is measured from the equatorial radius — the same convention
+  // `wgs84Geometry.orbitalRadiusKm` states and the propagator uses.
+  return footprintRadiusOnRadiusKm(altKm, minElevationDeg, localRadiusKm, WGS84_A_KM + altKm);
+}
+
+/** Shared solver: ground radius on a sphere of radius `R` for a satellite at radius `r`. */
+function footprintRadiusOnRadiusKm(
+  altKm: number,
+  minElevationDeg: number,
+  R: number,
+  r: number,
+): number {
   if (!Number.isFinite(altKm) || altKm <= 0) return 0;
   if (!Number.isFinite(minElevationDeg) || minElevationDeg < 0 || minElevationDeg >= 90) return 0;
 
-  const R = EARTH_RADIUS_KM;
-  const h = altKm;
+  const h = r - R;
   const E = toRad(minElevationDeg);
 
   // Central angle at the horizon (E = 0): cos(theta_h) = R / (R + h)
