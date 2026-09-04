@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { openRevisitStageControls, openRevisitSurfaces,
   openRevisitDisplayControls,
+  openRevisitSetup,
   seedReferenceTarget,
 } from './revisitCompact';
 
@@ -24,6 +25,11 @@ test.beforeEach(async ({ page }) => {
   // REVISIT opens with no target selected; these specs describe the state
   // after one has been chosen.
   await seedReferenceTarget(page);
+  // Placing the target ends with a click on the globe, which returns a phone to
+  // the globe with the setup triad folded away — and every control this spec
+  // reaches for lives in that triad. Reopen it, exactly as `revisit-p1` does.
+  // No-op at `md` and above, where the triad is always open.
+  await openRevisitSetup(page);
 });
 
 test.describe('REVISIT P7E commercial progressive disclosure', () => {

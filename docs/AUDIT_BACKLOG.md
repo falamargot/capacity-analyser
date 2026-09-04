@@ -254,19 +254,19 @@ comes with each extraction, not a one-off.
 
 ### What is left
 
-1. **S-2, the rest of it.** Updated 2026-09-04, after nine slices took
-   `App.tsx` from 6 667 to 5 497 lines. **Only the selection / inspection
-   cluster remains**, and it is the one gated on a product decision. The
-   terminal/topology cluster named here originally is DONE
-   (`useTerminalSelection`). Sizes are setter call sites in `App.tsx` as
-   measured on 2026-09-04:
+1. ~~**S-2, the rest of it.**~~ **CLOSED 2026-09-04.** All four clusters named
+   here are extracted; the terminal/topology one was already done
+   (`useTerminalSelection`). Sizes below are the setter call sites each cluster
+   had in `App.tsx` before extraction:
 
-   - **Selection / inspection — ~92 sites, the largest and the only one with a
-     product decision attached.** 7 pieces of state kept mutually exclusive by
-     ad-hoc clearing repeated at each handler. The inconsistency found while
-     looking still stands: the handlers do not all clear the same entities, so a
-     strict "one inspected entity" reducer would CHANGE behaviour and must be a
-     deliberate decision, not a side effect of a refactor.
+   - ~~**Selection / inspection — ~92 sites.**~~ **DONE 2026-09-04** —
+     `useInspectionState`, extracted WITHOUT resolving the inconsistency.
+     `applyInspection(patch)` writes only the fields a call site names, so each
+     handler still declares its own clearing set, in one call instead of five
+     scattered setters; `clearInspection()` is the full-clear the four
+     reset-like handlers share. The divergence table is now in the hook's
+     header and pinned by unit tests — see **S-2b** below for the decision that
+     is still open.
    - ~~**Endpoint A/B — ~74 sites.**~~ **DONE 2026-09-04** — three hooks
      (`useLeoServingResolution`, `useLeoRegulatoryLookup`,
      `useEndpointNearestLocations`). What stayed in `App.tsx`: `siteB`,
@@ -279,16 +279,63 @@ comes with each extraction, not a one-off.
    A fourth group (traffic/ISS/lighting/country overlay, ~16 sites) is too small
    to be worth its own hook.
 
-   **Two behaviour inconsistencies are now documented at their call sites rather
-   than silently normalised** — both would change what the app does:
-   `handleSnpClick(null)` clears the LEO serving assignment while keeping
-   `autoSelectedLEOId`, and the three reverse-geocode implementations
-   (`useNearestLocation` plus the two in `useEndpointNearestLocations`) parse a
-   city-without-country answer differently and only two of them seed from the
-   restored session.
+   **S-2 is now complete as a mechanical programme.** `App.tsx` went from 6 667
+   to 5 469 lines across ten slices. What it did NOT do is decide any of the
+   behaviour questions it uncovered; those are listed below.
 
-   Prerequisite for the remaining slice, learned on the snapshot slice: extract
-   only after the state group owns `capture`/`restore`-style intentions. Passing
-   40 individual setters into a hook moves lines without reducing coupling.
-2. The rest of both audits is done, deliberately rejected, or needs a UX pass
+   Prerequisite learned on the snapshot slice, kept here for the next
+   `App.tsx`-sized refactor: extract only after the state group owns
+   `capture`/`restore`-style intentions. Passing 40 individual setters into a
+   hook moves lines without reducing coupling.
+
+2. **S-2b — three behaviour decisions S-2 surfaced and deliberately did not
+   take.** Each is a real inconsistency; each fix changes what the app does, so
+   none belongs in a refactor. They are now documented at their call sites, in
+   `useInspectionState`'s header, and pinned by tests.
+
+   - **The ISS stays selected across five inspection changes.** Selecting an
+     SNP, a gateway, an aircraft, a vessel or a location clears every other
+     inspected entity but leaves `selectedIss` true, while a satellite click, a
+     point click, a moon selection and reset all clear it. Fixing it closes the
+     ISS panel in five situations where it currently stays open. **Decide:
+     is the ISS an inspected entity like the others, or a persistent overlay?**
+   - **`handleSnpClick(null)` drops the LEO serving assignment but keeps
+     `autoSelectedLEOId`**, so the resolver's satellite id can outlive the
+     assignment it came from — the one place in the app where L-O1's "the
+     assignment is the single source" is not enforced.
+   - **Three reverse-geocode implementations disagree.** `useNearestLocation`
+     and the two in `useEndpointNearestLocations` parse a city-without-country
+     answer differently, and only the endpoint pair seeds from the restored
+     session.
+
+3. **ISS TLE retry has no backoff** (found during browser validation on
+   2026-09-04, pre-existing, NOT introduced by S-2). When `/api/iss/tle` fails,
+   `useIssLiveTracking` leaves `lastTleFetchRef` at 0, so the 1 Hz position tick
+   re-fetches the TLE every second for as long as the layer is on — ~400 failed
+   requests in three minutes with the upstream unreachable. Add a backoff, or
+   stop re-fetching after N consecutive failures.
+
+4. ~~**Three REVISIT e2e tests fail on mobile/tablet.**~~ **FIXED 2026-09-04**,
+   same day as found — and a FOURTH (`revisit-p7e:30`, also pre-existing) turned
+   up in the regression sweep and was fixed with them. Four separate causes, all
+   test-side, detailed in `HANDOFF.md`. Kept here for the record of what the
+   gate was hiding.
+
+       revisit-p0.spec.ts:23   mobile-chromium   OneWeb fleet truth
+       revisit-p0.spec.ts:105  mobile-chromium   presenter reset controls
+       revisit-p1.spec.ts:51   tablet-chromium   instrument presets
+
+   All three assert `toBeVisible()` on an element that resolves as hidden.
+   Reproduced at `2692b23`, `c15a866` and `e7fc78f` in a detached worktree with
+   its own server, so it predates the S-2 slices by at least five commits.
+
+   Starting point: `revisit-p0.spec.ts:23` mirrors the CSS that hides
+   `.revisit-context-detail` — `@media (min-width: 768px) and (max-height: 700px)`
+   at index.css:1687 — and therefore takes the `toBeVisible` branch on a 390×844
+   mobile viewport, where that rule does not apply and the element is hidden
+   anyway. Either an ancestor hides it at narrow widths (test condition
+   incomplete) or the panel is collapsed there (product question). Decide which
+   before touching either side.
+
+5. The rest of both audits is done, deliberately rejected, or needs a UX pass
    with the app running — a different kind of work from this backlog.

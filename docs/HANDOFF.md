@@ -2,6 +2,159 @@
 
 _Last updated 2026-09-04._
 
+## 2026-09-04 (later still) — the REVISIT e2e failures, fixed (three found, four fixed)
+
+Four distinct causes, none of them a product bug: each spec encoded an
+assumption that the compact layouts (Programme 7B) had already invalidated.
+Every cause was confirmed in the live DOM at the failing viewport, not inferred.
+
+**1. `revisit-p0:23` — the fleet-truth line sits inside the collapsed drawer.**
+On a phone `.revisit-context-detail` is `display:block` but its ancestor
+`#revisit-mobile-setup` is `display:none`: the setup triad is folded behind its
+one-line bar. The spec handled only the OTHER hiding rule
+(`@media (min-width:768px) and (max-height:700px)`). It now opens the triad on a
+compact viewport — the presenter's own gesture — and keeps the visibility
+assertion.
+
+**2. `revisit-p0:105` — two faults stacked.** `openRevisitStageControls`
+asserted visibility without returning to the globe first, and the stage overlay
+is `display:none` while a compact panel is open (exactly one panel at a time).
+Fixed in the helper, the same way `openRevisitSetup` already worked. Past that
+step the test then hit the real reason it could never pass on a phone: the
+**Scenario workspace** launcher is `hidden … md:flex`, and `RevisitApp.tsx`
+carries the explicit comment "Scenario management is deliberately absent below
+`md`". The spec was asserting a desktop-only workflow on mobile. Split into
+three:
+
+- `supports presenter reset from the scenario workspace` — skipped below `md`;
+- `keeps scenario management off the phone rail` — NEW, pins that design
+  decision on the phone instead of losing it;
+- `supports explicit simulation time controls` — every viewport, and it no
+  longer needs to re-seed a target since it no longer resets the scenario.
+
+**3. `revisit-p1:51` — a race with recomputation.** `Result drivers`
+(`WhyThisRevisit`) renders only for an inspected point, so it UNMOUNTS while a
+sweep is in flight — the summary reads "Preparing" meanwhile. The spec changes
+the instrument preset to WIDE and reaches for the section immediately.
+`ensureDetailsOpen` now waits for the disclosure to be attached before reading
+it, which fixes every caller rather than that one line.
+
+**4. `revisit-p7e:30` — a FOURTH pre-existing failure, found by the regression
+sweep over the specs that use the helpers above.** `seedReferenceTarget` ends
+with a click on the globe to place the target, which folds the setup triad away
+on a phone — and every control that spec reaches for lives in that triad.
+`revisit-p1` reopens it at the end of its `beforeEach` for exactly this reason;
+`revisit-p7e` did not. Aligned the two. Confirmed pre-existing at `2692b23` in a
+detached worktree before touching it.
+
+All four fixes are test-side. No product code was changed to make a test pass.
+
+Verified:
+
+- `revisit-p0` + `revisit-p1`, all four viewport projects — **47 passed, 13
+  skipped, EXIT=0**
+- `revisit-p2c-a` + `p7b` + `p7e` + `revisit-visual` + `mode-smoke`, the specs
+  consuming the changed helpers — **60 passed, 36 skipped, EXIT=0**
+
+One unattributed flake seen once along the way: `mode-smoke:12` on
+desktop-chromium failed in a batch and passed in isolation (23 s) and on the
+re-run. The helper change is a no-op at that viewport (`closeRevisitPanels`
+returns immediately above `md`), so it is not attributed to this work — recorded,
+not explained.
+
+## 2026-09-04 (later) — S-2 slice 10: selection / inspection. S-2 is closed.
+
+`App.tsx` **5 497 → 5 469 lines**. The line count is not the point of this one:
+the cluster was 92 setter call sites across 18 handlers, and it is the slice
+that had a behaviour question attached.
+
+**What was done: the inconsistency is exposed, not resolved.**
+`hooks/useInspectionState.ts` owns the seven entities. `applyInspection(patch)`
+writes ONLY the fields the patch names, so every handler still declares its own
+clearing set — one call instead of five scattered setters — and
+`clearInspection()` is the full clear that four reset-like handlers share.
+Nothing about what the app does changed.
+
+The divergence table lives in the hook's header. Measured, not guessed:
+
+| handler | clears |
+|---|---|
+| satellite click, point click, reset view, swap endpoints | everything |
+| moon selection | everything but `aircraftB` |
+| SNP, gateway, aircraft, vessel, location | everything but `iss` and `aircraftB` |
+| ISS click | sets `iss`, keeps `aircraftB` |
+
+Two different things, and only one is a defect. `aircraftB` is the Site B
+endpoint that happens to be an aircraft — it is MEANT to survive an inspection
+change. `iss` surviving five of them is the real inconsistency, and normalising
+it would close the ISS panel in five situations where it currently stays open.
+That decision is now **S-2b** in `docs/AUDIT_BACKLOG.md`, with two others S-2
+surfaced (the `handleSnpClick(null)` asymmetry, the three disagreeing
+reverse-geocoders).
+
+4 unit tests pin the contract, including the two divergences: if someone later
+normalises `iss` or `aircraftB`, those tests fail and force the decision to be
+explicit rather than silent.
+
+**Browser validation** (dev server, 1280×800): SNP Woodbine inspection, then
+gateway Rambouillet replacing it, then satellite EUTELSAT 10B (the full-clear
+path), then Escape → back to "Select an origin". Mutual exclusion holds at every
+step.
+
+**Found while validating, NOT a regression** — recorded as item 3 in the
+backlog: with `/api/iss/tle` unreachable, `useIssLiveTracking` re-fetches the
+TLE on every 1 Hz position tick with no backoff (~400 failed requests in three
+minutes). Pre-existing, untouched by this work.
+
+**S-2 is closed.** Ten slices, `App.tsx` 6 667 → 5 469 lines, no behaviour
+change anywhere in the programme.
+
+Gates: `npm run typecheck`, lint at zero, **2 187 unit tests** (+4), `npm run
+build`, e2e `mode-smoke` + `accessibility` + `standalone-mode` — 38 passed, 30
+skipped, EXIT=0 on the second run. The `revisit-p0`/`p1`/`visual` batch is 58
+passed with **3 pre-existing failures** — see below.
+
+**Method error worth not repeating: never pipe `playwright test` into `tail`.**
+The first run of that batch reported `1 failed` —
+`accessibility.spec.ts:55 revisit dark has no critical or serious Axe
+violation` — and I read it as green, because `| tail -5` both truncated the
+summary line and, more importantly, made `$?` the exit status of `tail` rather
+than of Playwright. Redirect to a file and check the real exit code.
+
+That a11y failure did not reproduce (isolated pass, green on re-run) and the
+test already carries an in-code note about timing out under full-suite
+scheduling. But re-reading the earlier truncated logs with the pipe removed
+turned up something that IS reproducible, and that I had reported as green
+twice:
+
+**Three REVISIT e2e tests failed on mobile/tablet — PRE-EXISTING, now FIXED
+(see the entry below).**
+
+    revisit-p0.spec.ts:23   mobile-chromium   OneWeb fleet truth       hidden
+    revisit-p0.spec.ts:105  mobile-chromium   presenter reset controls hidden
+    revisit-p1.spec.ts:51   tablet-chromium   instrument presets       hidden
+
+Proved out of this session's work rather than assumed: a detached worktree was
+checked out at `2692b23` (HEAD), then `c15a866`, then `e7fc78f` — five commits
+back — with its own server on a free port. **The same test fails at all three.**
+It is not the inspection slice, and not the endpoint or overlay slices either.
+
+First characterisation, for whoever picks it up: `revisit-p0.spec.ts:23`
+mirrors the CSS that hides `.revisit-context-detail`
+(`@media (min-width: 768px) and (max-height: 700px)`, index.css:1687) and takes
+the `toBeVisible` branch on a 390×844 mobile viewport — where that rule does NOT
+apply, yet the element resolves as hidden. So either an ancestor hides it on
+narrow widths and the test's mirrored condition is incomplete, or the panel is
+collapsed at that size. Logged as item 5 in AUDIT_BACKLOG.
+
+**Method error, and the reason those failures went unreported for two runs:
+never pipe `playwright test` into `tail`.** `| tail -N` truncates the summary so
+the `N failed` header disappears — what survives looks like a list of passing
+test names — and `$?` becomes the exit status of `tail`, so a failing run
+reports "exit code 0". I called two batches green on that basis. Redirect to a
+file and check the real exit code. Third entry in the same family as "never edit
+during a run" and "never run two Playwright processes at once".
+
 ## 2026-09-04 — S-2 slices 8 and 9: overlays/modals, then endpoint A/B
 
 `App.tsx` **5 806 → 5 497 lines** (6 667 at the start of the S-2 programme).

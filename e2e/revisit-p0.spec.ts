@@ -21,12 +21,19 @@ test.beforeEach(async ({ page }) => {
 
 test.describe('REVISIT P0 demonstration contract', () => {
   test('opens on a business result with the complete OneWeb fleet truth', async ({ page }) => {
-    // The compact-height layout hides `.revisit-context-detail` to buy back globe
-    // height (index.css, `min-width:768px and max-height:700px`). The fleet truth
-    // is still rendered and still correct there, so mirror the CSS condition
-    // rather than assert a visibility the design deliberately removes.
+    // Two different layouts hide this line, and only the first was handled here:
+    //
+    //  1. The compact-HEIGHT layout drops `.revisit-context-detail` to buy back
+    //     globe height (index.css, `min-width:768px and max-height:700px`).
+    //     Mirror that CSS condition rather than assert a visibility the design
+    //     deliberately removes.
+    //  2. On a PHONE the line is inside `#revisit-mobile-setup`, the setup triad
+    //     collapsed behind a one-line bar since Programme 7B. It is one tap away,
+    //     not gone, so open the triad the way a presenter would and keep the
+    //     visibility assertion intact.
     const viewport = page.viewportSize();
     const detailLineHidden = (viewport?.width ?? 0) >= 768 && (viewport?.height ?? 0) <= 700;
+    if (isCompactViewport(page)) await openRevisitSetup(page);
     const fleetTruth = page.getByText('576 active + 58 spare · 634 total');
     if (detailLineHidden) {
       await expect(fleetTruth).toBeAttached();
@@ -102,10 +109,18 @@ test.describe('REVISIT P0 demonstration contract', () => {
     await expect(page.getByRole('button', { name: 'Show best per budget' })).toBeVisible();
   });
 
-  test('supports presenter reset and explicit simulation time controls', async ({ page }) => {
-    // The slider is in the setup triad and Reset is in the stage toolbar, which
-    // since Programme 7B cannot both be open on a phone. Each is opened at the
-    // moment it is used, which is what the presenter does too.
+  /*
+   * Split from the clock contract below on 2026-09-04, because it is NOT a
+   * phone contract. The Scenario workspace launcher is `hidden ... md:flex`
+   * with an explicit comment in `RevisitApp.tsx`: "Scenario management is
+   * deliberately absent below `md` — saving and sharing scenarios is a desktop
+   * workflow, while the phone rail needs to stay focused on the globe". The
+   * combined test asserted a desktop-only affordance on mobile-chromium and had
+   * been failing there; the phone side of the design is pinned in its own test
+   * rather than dropped.
+   */
+  test('supports presenter reset from the scenario workspace', async ({ page }) => {
+    test.skip(isCompactViewport(page), 'Scenario management is an md-and-up workflow by design');
     await openRevisitSetup(page);
     const payloadSlider = page.getByRole('slider', { name: 'Number of hosted payloads' });
     await expect(payloadSlider).toHaveClass(/revisit-payload-slider/);
@@ -120,27 +135,27 @@ test.describe('REVISIT P0 demonstration contract', () => {
     const reset = page.getByRole('button', { name: /Reset scenario/ });
     await reset.click();
     await page.getByRole('button', { name: /Confirm reset/ }).click();
-    // Reset returns a compact viewport to the globe with no panel open, so the
-    // slider has to be brought back to read it. A role locator needs the
-    // element in the accessibility tree, which `display: none` removes.
     await openRevisitSetup(page);
     await expect(payloadSlider).toHaveAttribute('aria-valuetext', '12 payloads');
+  });
 
+  test('keeps scenario management off the phone rail', async ({ page }) => {
+    test.skip(!isCompactViewport(page), 'The launcher is present and used above md');
+    await openRevisitStageControls(page);
+    await expect(page.getByRole('button', { name: /^(scenario )?workspace$/i })).toBeHidden();
+  });
+
+  test('supports explicit simulation time controls', async ({ page }) => {
     // The clock readout is an editable UTC field now, not a read-only `<time>`.
     const timestamp = page.getByRole('textbox', { name: 'Simulation date and time UTC' });
     const initial = await timestamp.inputValue();
     await page.getByRole('button', { name: 'Pause simulation' }).click();
     await expect(page.getByRole('button', { name: 'Play simulation' })).toBeVisible();
     // Hour stepping is a `sm`-and-up affordance; on a phone the same seek is
-    // done on the timeline itself, which is keyboard-operable everywhere.
+    // done on the timeline itself, which is keyboard-operable everywhere. The
+    // target seeded in `beforeEach` is still in place — this test no longer
+    // resets the scenario — so the access lane and its timeline exist.
     if (isCompactViewport(page)) {
-      /*
-       * The reset above returned the scenario to its opening state, which has
-       * NO target — so there is no access lane and therefore nothing to seek
-       * along. Seeking on the timeline is the contract being asserted here, so
-       * the timeline has to exist: seed a target back before pressing it.
-       */
-      await seedReferenceTarget(page);
       await page.getByRole('slider', { name: /Seek within the .* analysis window/ })
         .press('ArrowRight');
     } else {

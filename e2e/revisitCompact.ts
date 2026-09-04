@@ -82,14 +82,25 @@ export async function openRevisitAnalysis(page: Page): Promise<void> {
  * behavioural specs should not care which of the two they got.
  */
 export async function openRevisitDisplayControls(page: Page): Promise<void> {
+    await closeRevisitPanels(page);
     const controls = page.locator('#revisit-stage-controls');
     await expect(controls).toBeVisible();
     await ensureDetailsOpen(controls);
     await expect(page.getByRole('button', { name: 'Orbits', exact: true })).toBeVisible();
 }
 
-/** The scene-layer control panel over the globe, in whichever state it opens. */
+/**
+ * The scene-layer control panel over the globe, in whichever state it opens.
+ *
+ * Returns to the globe first: the stage overlay that carries these controls is
+ * `display:none` while a compact panel is open (Programme 7B — exactly one
+ * panel at a time), so asserting visibility without closing the setup triad
+ * first fails on a phone whenever a test opened the triad earlier. Same
+ * "go back to the globe, then open X" gesture as `openRevisitSetup`, and a
+ * no-op at `md` and above.
+ */
 export async function openRevisitStageControls(page: Page): Promise<void> {
+    await closeRevisitPanels(page);
     const controls = page.locator('#revisit-stage-controls');
     await expect(controls).toBeVisible();
 }
@@ -131,6 +142,13 @@ export async function openRevisitAnalysisTab(
  * content it had just hidden. Read the live property instead.
  */
 export async function ensureDetailsOpen(details: Locator): Promise<void> {
+    // Wait for the disclosure to EXIST before reading it. Sections such as
+    // `Result drivers` unmount while a recomputation is in flight (RevisitApp
+    // renders them only for an inspected point), so a caller that changes an
+    // input and immediately reaches for one races the sweep — on a slower
+    // viewport the locator resolved to nothing and the 5 s attribute wait
+    // reported "element(s) not found" as though the section were gone for good.
+    await expect(details).toBeAttached({ timeout: 30_000 });
     if (await details.evaluate((node) => (node as HTMLDetailsElement).open)) return;
     await details.locator('summary').first().click();
     await expect(details).toHaveAttribute('open', /.*/);
