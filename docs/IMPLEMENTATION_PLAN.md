@@ -1,5 +1,18 @@
 # Implementation Plan
 
+> **2026-09-04 — Loupe temporelle sur la timeline (instruit, non implémenté).**
+> Sur 72 h un passage dure ~90 s mais est dessiné à son plancher de lisibilité
+> de 5,2 min (`CoverageRibbon.tsx:325`), soit 3 à 4 fois trop large : le curseur
+> paraît sur un passage alors que le satellite est à 1 000–2 000 km de la cible.
+> Aucune incohérence géométrique — époque, horloge, sélection et FOV sont
+> communs au globe et au ruban. Réponse retenue : une loupe au survol qui
+> re-rend la **donnée** (jamais un `scale` sur des rects déjà plafonnés) sur un
+> **empan temporel** fixe (±30 min), et depuis laquelle on peut seeker. Budget
+> perf tenu par poignée impérative + rAF existante + pool de nœuds, et **prouvé
+> par mesure** (R12 rappelle ce que coûte une performance seulement déduite).
+> Plan complet, budget, découpage et gate :
+> `docs/REVISIT_TIMELINE_PASS_LENS_PLAN_2026-09-04.md`.
+
 > **2026-08-30 — Dimensionner une zone (instruit, non implémenté).** En mode
 > polygone la carte reste sur `ASSESSMENT REQUIRED` même sur 4 cellules : le
 > garde-fou Programme 5b teste la nature de la cible, pas le coût. Méthode

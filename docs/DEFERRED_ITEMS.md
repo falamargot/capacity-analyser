@@ -26,13 +26,15 @@ ticking it.
 
 | Item | What is actually undone |
 |---|---|
-| **R12** | 60 fps at 256 satellites has never been measured |
-| *inside R24* | E8 — visual WGS84 against the analytical sphere (not re-verified) |
+| **R12** | end-to-end fps still needs one foreground-browser run; the JS half is now measured, and 256 is not the risky case — see R12 |
+| **E8b** | telecom draws a spherical LEO footprint while the gate is ellipsoidal — measured, needs an ADR call, see the E8 section |
 
 R24's other buried item — URL / browser-history semantics — is **closed**:
 `useAppModeState.ts:61-68` writes the mode into the URL and pushes history
-state. E8 has no section of its own, which is how it became invisible; give it a
-number when it is picked up.
+state. **E8 itself is now closed too** (2026-09-04): R28 put REVISIT's drawn and
+analysed geometry on the same ellipsoid, so the mismatch it described is gone.
+It finally has its own section, which records that and files the residue it
+uncovered on the telecom side as **E8b**.
 
 ### Where the rest of the debt lives
 
@@ -481,15 +483,72 @@ concentration wins.
 measures which placement wins, and it is not predictable" — which is also the
 justification for paying one engine run per ladder rung.
 
-## R12. The 60 fps / 256-satellite target is STILL unmeasured
+## R12. The 60 fps / 256-satellite target — half measured, and reframed
 
-**Status: OPEN** — 60 fps at 256 satellites has never been measured.
+**Status: PARTIALLY MEASURED 2026-09-04.** The JS half of the frame budget is
+now measured and is the interesting half. The end-to-end frame rate still needs
+one run in a foreground browser, and the blocker was itself measured this time
+rather than restated.
 
-Carried forward unchanged from R8. Lot 3 added three sidebar panels and a second
-worker, so the case for measuring it is stronger, not weaker. Still blocked on
-the same cause: the automation pane keeps its tab hidden, which suspends rAF.
+### The blocker, quantified
 
-**One run in a real foreground browser at `P·S = 256` would close it.**
+The automation pane cannot produce a frame-rate number, and not only because of
+rAF:
+
+- `requestAnimationFrame` fired **0 frames in 4.3 s** (`document.hidden === true`).
+- Timers are clamped to ~1 Hz: a `setTimeout(…, 8)` render loop managed
+  **7 iterations in 12 s**, so the loop cannot even be driven manually at speed.
+- The canvas is **0 × 0** until `viewer.forceResize()` is called by hand — a
+  hidden pane has no layout, so Cesium was rendering into a 1 × 1 drawing buffer
+  and reporting a meaningless 0.3 ms/frame.
+- No Chrome extension is connected, so the real-browser route was unavailable
+  from here.
+
+Anything measured in that pane about rendering is an artefact. Recording this so
+nobody spends the afternoon rediscovering it.
+
+### What was measured: the per-tick JS cost
+
+Run in Node against the app's own `propagateState` / `computeFootprint` with
+`SWATH_SAMPLES = 32`, matching `useRevisitScene.ts`. Times are per tick.
+
+| fleet | propagate | + sensor swath | + swath and mask outline |
+|---|---|---|---|
+| **P·S = 256** (16 × 16) | 0.02 ms | **3.15 ms** (p95 3.22) | **6.49 ms** (p95 7.01) |
+| default 634-class (12 × 53) | 0.01 ms | **8.38 ms** (p95 9.31) | **15.61 ms** (p95 17.83) |
+
+Per satellite: ~12–13 µs for a 32-sample swath.
+
+**Propagation is free. The swath geometry is the entire cost**, and it is paid
+only for SELECTED satellites (`payloadIndices`), not for the whole fleet —
+`showSwaths` defaults on, and `showMaskOutline` adds a second `computeFootprint`
+per satellite only when the elevation mask actually clamps the FOV.
+
+### What that says about the 16.7 ms budget
+
+- At R12's stated target of 256 with swaths: **3.2 ms, 19 % of the budget.**
+  With the mask outline too: 6.5 ms, 39 %. Comfortable either way.
+- At the shipped 634-satellite fleet with everything selected and the mask
+  outline on: **15.6 ms p50, 17.8 ms p95 — the JS work alone meets or exceeds
+  the whole 16.7 ms budget**, before Cesium's scene update and before any GPU
+  work.
+
+**So 256 was never the risky number.** The reachable worst case is "select the
+whole fleet with a clamping mask", and that one is already over budget on CPU
+alone. If R12 is picked up, that is the configuration to run — not 256.
+
+### To finish it (~2 minutes, foreground browser)
+
+The instrumentation already exists — `utils/runtimeProfiler.ts`, dev builds
+only:
+
+1. `npm run dev`, open REVISIT in a normal browser window, leave the mouse still.
+2. Select the whole fleet and confirm the sensor swath is on.
+3. `__perfReset()` in the console.
+4. Wait 30 s without touching anything.
+5. `__perfReport()` — `fps`, `recentFps` and `frameMs.p95` are the answer.
+
+Repeat with a 16 × 16 sub-constellation for the number R12 originally asked for.
 
 ## R13. FOV presets are still not from an instrument datasheet
 
@@ -627,7 +686,7 @@ about) gets built.
 
 - **R4** — external GMAT/STK cross-check. Unchanged since Lot 1 and still the
   single most valuable thing to do before this is shown to anyone senior.
-- **R12** — 60 fps at 256 satellites, still unmeasured.
+- **R12** — partially measured 2026-09-04; see the R12 section.
 - **R13** — FOV presets still not from an instrument datasheet.
 - **R14** — calibration fits one epoch, not a trajectory.
 
@@ -682,8 +741,10 @@ allocates its own boundary array per swath per tick; that is untouched and is th
 next candidate if it ever matters.
 
 **⚠ Still unmeasured.** This is an allocation reduction derived from the code,
-NOT a frame-rate measurement. R12 stands: nobody has yet run the mode at
-`P·S = 256` in a foreground browser. Verified only that positions still track —
+NOT a frame-rate measurement. R12 still stands for the end-to-end frame rate —
+nobody has yet run the mode in a foreground browser — but its JS half was
+measured on 2026-09-04, and it found that the swath geometry, not the
+allocations this item removed, is what spends the budget. Verified only that positions still track —
 satellites, swaths and rings all advance correctly after the refactor.
 
 ## R23. Keyboard access added to the two custom controls
@@ -709,24 +770,89 @@ value to at most twice a second, and only when the tenth-of-an-hour changes.
 
 ## R24. Still open after P1
 
-**Status: SUPERSEDED** — roll-up — but it is the ONLY record of two live items: URL/browser-history semantics, and E8 visual WGS84 vs analytical sphere.
+**Status: SUPERSEDED** — roll-up. Both items it used to be the only record of
+(URL/browser-history semantics, E8) are now closed and documented in their own
+right; only R4 and R12 below are still live.
 
 - **R4** — external GMAT/STK cross-check. Unchanged, and still the highest-value
   item before any senior demo.
-- **R12** — 60 fps at 256 satellites, still unmeasured (see R22).
+- **R12** — partially measured 2026-09-04: the JS per-tick cost is quantified
+  and the risky configuration is not 256 but the full fleet with a clamping
+  mask. End-to-end fps still needs a foreground browser.
 - **URL / browser-history semantics.** `Back` now returns to the originating
   ENG/COMM mode, but mode changes still do not touch the URL or history. This
   app has no router; adding history semantics is a product decision, not a bug
   fix, and was deliberately left for one.
-- **E8, visual WGS84 vs analytical sphere.** The engine computes on a 6371 km
-  sphere; Cesium renders on WGS84, so drawn targets and footprints can sit up to
-  ~21 km from where the analysis places them. Presentation-only — no reported
-  number moves — but it needs a decision: spherical visual ellipsoid, or document
-  and accept.
+- **E8, visual WGS84 vs analytical sphere.** ~~Open.~~ **CLOSED 2026-09-04** by
+  R28 — see the E8 section, which also files the telecom-side residue as E8b.
 
 ---
 
 # REVISIT — independent propagation cross-check
+
+## E8. Visual WGS84 vs the analytical sphere — CLOSED for REVISIT, alive in telecom
+
+**Status: CLOSED as filed (2026-09-04), with a successor item below.** E8 had no
+section of its own, which is how it stayed invisible inside R24; this is it.
+
+**As filed:** the engine computed on a 6371 km sphere while Cesium renders on
+WGS84, so drawn targets and footprints could sit ~21 km from where the analysis
+placed them.
+
+**That is no longer true, and R28 is why.** The authoritative chain — target
+positions, access intervals, footprints, exported numbers — is on the WGS84
+ellipsoid, and the drawn footprint is now a ray/ellipsoid intersection
+(`fov/footprint.ts`), not a geodesic walked on a sphere. Verified 2026-09-04:
+the only surviving 6371 in REVISIT is the **camera standoff distance** in
+`render/useRevisitScene.ts`, which is a place to put the eye, not a model of the
+Earth, and nothing downstream reads it. Drawn and analysed now share one datum,
+so the offset E8 describes is zero by construction.
+
+### E8b — the same question, on the telecom side, where the two datums now differ
+
+The picture and the gate use different models in ENG/COMM, and this one is
+measured rather than asserted:
+
+- the drawn LEO footprint radius is **spherical** — `footprintRadiusKm` on
+  `EARTH_RADIUS_KM` = 6371, deliberate under ADR-001 §2;
+- the elevation that actually decides service is **ellipsoidal**, since SPA-01
+  and SPA-02 consolidated every elevation onto `wgs84Geometry`.
+
+Measured at 1200 km altitude, ellipsoidal minus spherical ground radius:
+
+| mask | sphere radius | lat 0 | lat 45 | lat 60 | lat 90 |
+|---|---|---|---|---|---|
+| 55° (service) | 683 km | +0.1 km | +4.9 km | +7.2 km | +9.6 km |
+| 25° | 1701 km | +0.6 km | +10.3 km | +15.1 km | +20.0 km |
+| 10° | 2672 km | +1.3 km | +12.6 km | +18.2 km | +23.8 km |
+
+The sign matters: the ellipsoidal footprint is LARGER away from the equator, so
+the drawn circle **under-shows** coverage at high latitudes. A terminal drawn
+just outside it can still pass the elevation gate. At the 55° service mask the
+worst case is 9.6 km on a 683 km radius — 1.4 %, and under a pixel at any globe
+zoom where the whole footprint is visible.
+
+**This is an ADR decision, not a bug fix**, which is why it is filed rather than
+patched: ADR-001 §2 fixes the coverage sphere on purpose, `STANDARD_RADIUS_KM`
+= 688 is a published constant, and `coveragePolicy.test.ts` pins numbers derived
+from it. Three ways out, cheapest first:
+
+1. **Accept and document.** The table above is the argument; nothing a user
+   reads off the globe moves. Costs nothing, keeps the ADR intact.
+2. **Feed the local geocentric radius** R(φ) of the sub-satellite point into
+   `footprintRadiusKm` instead of 6371. Removes the latitude-dependent part —
+   the whole of the error above — for a few lines, but it changes published
+   coverage numbers and their tests.
+3. **Draw the footprint on the ellipsoid**, as REVISIT's R28 did. The
+   ray/ellipsoid machinery already exists in `utils/wgs84Geometry.ts`. Removes
+   the question entirely; the most work.
+
+Recommendation: **(1) now, (3) if and when the telecom footprint is next
+touched for another reason.** (2) is the tempting middle and the worst of the
+three — it spends test churn and an ADR amendment on a circle that is still a
+circle.
+
+---
 
 ## R25. SGP4 cross-check done; R4 (GMAT/STK) still open
 
