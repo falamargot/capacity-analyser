@@ -26,7 +26,7 @@ ticking it.
 
 | Item | What is actually undone |
 |---|---|
-| **R12** | end-to-end fps still needs one foreground-browser run; the JS half is now measured, and 256 is not the risky case — see R12 |
+| **R12b** | R12 is measured and FAILS — 34 fps against a 60 fps target, missing every other vsync. Where the ~30 ms goes is not established; see R12 |
 
 R24's other buried item — URL / browser-history semantics — is **closed**:
 `useAppModeState.ts:61-68` writes the mode into the URL and pushes history
@@ -482,12 +482,53 @@ concentration wins.
 measures which placement wins, and it is not predictable" — which is also the
 justification for paying one engine run per ladder rung.
 
-## R12. The 60 fps / 256-satellite target — half measured, and reframed
+## R12. MEASURED 2026-09-04 — the 60 fps target is NOT met: 34 fps
 
-**Status: PARTIALLY MEASURED 2026-09-04.** The JS half of the frame budget is
-now measured and is the interesting half. The end-to-end frame rate still needs
-one run in a foreground browser, and the blocker was itself measured this time
-rather than restated.
+**Status: CLOSED as a measurement 2026-09-04 — and it FAILS.** Measured on an
+Apple M4 (ANGLE Metal, visible page, 1440 × 900) with the shipped fleet in
+motion at ×100:
+
+| | |
+|---|---|
+| browser ceiling (rAF) | **60.2 fps**, p50 16.6 ms |
+| **app, frames actually rendered** | **33.8 fps**, p50 **32.3 ms**, p95 51.5 ms, max 53.2 ms |
+| rendered / offered | 677 / ~1200 ≈ **56 %** |
+
+**The diagnostic number is 32.3 ms ≈ 1.95 × 16.6 ms: the app misses every other
+vsync.** That is the signature of work that is just over budget — a frame that
+takes more than 16.7 ms lands on the next refresh, and the rate halves rather
+than degrading smoothly. The p95 at 51.5 ms is three vsync intervals: sometimes
+two missed.
+
+**This is the FAVOURABLE case, not the worst one.** The scene carried 634 point
+primitives but only **12 satellites with orbits and swaths** — the default
+selection, not the full fleet whose per-tick JS cost is measured below at
+8.4–15.6 ms. Selecting more can only make it worse.
+
+R12 asked "60 fps at 256 satellites". At the shipped 634-satellite fleet the
+answer is 34 fps. The 256 case was not run separately; the point count scales,
+so it is the more likely of the two to pass, and it is now the less interesting
+question.
+
+### What this does NOT say
+
+Where the ~30 ms goes is not established. What is known:
+
+- **It is not React.** A profiler capture showed 11 commits in 20 s, p95 1.4 ms.
+- **It is not the swath geometry**, not in this configuration: only 12 satellites
+  carried one, and the Node benchmark below puts that at well under a
+  millisecond.
+- **Every frame was unattributed** (`unattributedFramePct: 100`): no camera
+  movement, no pointer input, no `notifySceneMutated()` call. Under playback the
+  render requests come from time-driven `CallbackProperty` evaluation, which is
+  exactly what Lot 2C.1 set out to attribute. That makes per-frame property
+  evaluation the first place to look, not a conclusion.
+
+**Successor item — R12b: find the 30 ms.** Bisect by display layer (points only,
+then orbits, then swaths, then the globe imagery) with the same spec, which
+already prints the primitive inventory it measured. Do that before optimising
+anything: the shape of the failure (a clean 2× vsync miss) says one thing is
+over budget, not that everything is slow.
 
 ### The blocker, quantified
 
@@ -536,7 +577,7 @@ per satellite only when the elevation mask actually clamps the FOV.
 whole fleet with a clamping mask", and that one is already over budget on CPU
 alone. If R12 is picked up, that is the configuration to run — not 256.
 
-### To finish it: ONE COMMAND
+### The command that produced it
 
 The five-step console ritual is now a spec — `e2e/perf-r12.spec.ts`, opt-in and
 inert in every normal run:
@@ -546,17 +587,42 @@ PERF_R12=1 npx playwright test perf-r12 --project=desktop-chromium --headed
 ```
 
 It prints the scene it measured, the app profiler's frame stats and the
-browser's own rAF cadence. It asserts nothing: a frame rate is a property of the
-machine it was measured on, not a gate.
+browser's own rAF cadence. It asserts its PRECONDITIONS — target seeded, clock
+running, `frames > 0` — but never the frame rate itself: that is a property of
+the machine it was measured on, not a gate. Re-run it after any change aimed at
+R12b.
 
 **`--headed` is not optional, and this is why.** Measured 2026-09-04 in
 headless Chromium: rAF is throttled to **p50 152 ms (~6.5 fps)** because there is
 no compositor, and WebGL falls back to **SwiftShader**, a software rasteriser.
-Both numbers would be the harness's, not the app's. A headed run was attempted
-from this environment and the browser closed immediately — no display session —
-which is why the number is still missing rather than wrong.
+Both numbers would be the harness's, not the app's. Headless is still useful for
+one thing — checking that the app's counter tracks the browser's cadence
+(7.83 vs 7.9 fps there, i.e. the app renders every frame offered) — but never for
+a frame rate.
 
-### A finding from the attempt: at rest, REVISIT renders nothing
+### The profiler was never wired to REVISIT — fixed 2026-09-04
+
+The first real-hardware run (Apple M4, ANGLE Metal, page visible, rAF at vsync
+**59.2 fps / p50 16.9 ms**) reported **0 rendered frames**. That looked like an
+idle app. It was not: `attachRuntimeProfilerToViewer` was called only from
+`App.tsx`, **which REVISIT unmounts**, so `__perfStats().frame.frames` was
+structurally zero in this mode whatever the app did. The profiler that exists to
+answer R12 was not attached to the mode R12 is about.
+
+`RevisitGlobe.tsx` now attaches and detaches it with the viewer, dev-only on both
+sides. With it wired, a headless run counts frames and — the point — the app's
+own counter tracks the browser's cadence exactly:
+
+    profiler 7.83 fps   rAF 7.9 fps   (SwiftShader ceiling, not the app's limit)
+
+Under motion the app therefore renders on EVERY frame the browser offers. What
+the M4 run still owes is the same measurement with that agreement in place; the
+59.2 fps it reported was an empty rAF loop, not a rendered scene.
+
+The spec now ASSERTS its preconditions — target seeded, clock running, frames
+> 0 — because its first version passed while measuring nothing.
+
+### A second finding: at rest, REVISIT renders nothing
 
 In a real visible page (`document.visibilityState === "visible"`, canvas
 1440 × 900, 634 points, 12 orbits, 12 swaths), the profiler counted **0 frames in

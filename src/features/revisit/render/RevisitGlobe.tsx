@@ -27,6 +27,7 @@ import {
     buildModuleUrl, Viewer as CesiumViewer,
 } from 'cesium';
 import { setMemoryMonitorViewerGetter } from '../../../utils/memoryMonitor';
+import { attachRuntimeProfilerToViewer } from '../../../utils/runtimeProfiler';
 import type { OrbitalElements, RevisitScenario } from '../domain/types';
 import { REVISIT_COLORS } from '../ui/revisitTheme';
 import { frameGlobe, useRevisitScene, type RevisitSceneOptions } from './useRevisitScene';
@@ -260,6 +261,20 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
             (window as unknown as { __revisitViewer?: CesiumViewer }).__revisitViewer = viewer;
         }
 
+        /*
+         * Count REVISIT's frames too (R12, 2026-09-04).
+         *
+         * `attachRuntimeProfilerToViewer` was called only from `App.tsx`, which
+         * REVISIT unmounts — so `__perfStats().frame.frames` was structurally
+         * ZERO here, whatever the app was doing. The profiler that exists to
+         * answer "60 fps at 256 satellites" was not wired to the mode the
+         * question is about; a measurement run read 0 frames on an Apple M4 and
+         * looked like an idle app rather than an unhooked counter.
+         *
+         * Dev-only on both sides: the profiler no-ops in production builds.
+         */
+        const detachProfiler = attachRuntimeProfilerToViewer(viewer);
+
         // Wire the memory monitor to THIS viewer from day one (ADR-001 §4):
         // this codebase has already been bitten by unbounded viewer retention.
         setMemoryMonitorViewerGetter(() => viewerRef.current);
@@ -272,6 +287,7 @@ export const RevisitGlobe: React.FC<RevisitGlobeProps> = ({
             document.removeEventListener('visibilitychange', handleVisibility);
             observer.disconnect();
             setMemoryMonitorViewerGetter(() => null);
+            detachProfiler();
         };
     }, [viewer]);
 

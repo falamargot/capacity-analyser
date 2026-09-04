@@ -171,17 +171,18 @@ named as such rather than assumed.
 | M-7 keyboard 1-5 section jumps | **NOT DONE** | `useKeyboardShortcuts` handles `escape`, `k`, `s` only |
 | M-8 PDF export redesign | **NOT CHECKED** | |
 | S-1 design system in `components/ds/*` | **NOT DONE** | directory absent |
-| S-2 move state out of `App.tsx` | **IN PROGRESS 2026-09-03** | 3 939 at audit time → 6 667 → **6 273**. Two slices extracted (`useAutoWeather`, `useGeoCoverageSelection`); see below |
+| S-2 move state out of `App.tsx` | **DONE 2026-09-04** | 3 939 at audit time → 6 667 at its worst → **5 469** across ten slices; ten hooks under `src/hooks/*`. See "What is left" §1 |
 | S-3 split `CapacityDetails` | **DONE** | 2 323 → 531 lines, with `components/capacity/*` beside it |
 | S-4 narration engine | **NOT DONE** | |
 | S-5 side-by-side comparison | **NOT DONE** | |
 | S-6 semantic theme tokens | **PARTIAL** | as QW-7 |
 | S-7 accessibility pass | **PARTIAL** | axe gate in `e2e/accessibility.spec.ts`; keyboard work landed in REVISIT (R23), not app-wide |
 
-**Reading:** the quick wins split roughly half done / half abandoned, the
-strategic items are untouched **except** the one that mattered most and did land
-(S-3) — and the one that went backwards (S-2). `App.tsx` is now 70 % larger than
-when the audit called it unmanageable.
+**Reading (revised 2026-09-04):** the quick wins split roughly half done / half
+abandoned; of the strategic items, S-3 landed, **S-2 is now done too**, and the
+rest — S-1, S-4, S-5, and the unfinished halves of S-6 and S-7 — are untouched.
+`App.tsx` peaked at 70 % larger than when the audit called it unmanageable and
+is now 39 % above that figure, with the state in named hooks rather than inline.
 
 ### `ENG_Sidebar_UX_Audit` — its core recommendation shipped
 
@@ -368,5 +369,24 @@ comes with each extraction, not a one-off.
    is gone. What justifies this fix is the mechanism — the failing assertion was
    the one with the tightest budget, on a condition with no reason to be fast.
 
-6. The rest of both audits is done, deliberately rejected, or needs a UX pass
+6. **`mode-smoke` clicks time out in long mixed batches — second sighting,
+   NOT today's change.** On 2026-09-04 `mode-smoke.spec.ts:31` ("can return from
+   revisit to the originating mode") timed out at 90 s inside `.click()` on the
+   Back button, in an 80-test batch. The trace is specific: the locator
+   RESOLVED — the button was found — and the click never became actionable.
+   Earlier the same day `mode-smoke.spec.ts:12` failed in the same file, also
+   only in a batch.
+
+   **Proved not to be the REVISIT profiler attachment** by an A/B run of the
+   same spec on the same machine: without the change 10 passed (4.1 min), with
+   it 10 passed (3.9 min), and the failing test passes in isolation in 16 s.
+
+   Same family as item 5 — accumulation in a single long-lived browser process —
+   but a DIFFERENT symptom: item 5 was a readiness wait too tight, this is
+   Playwright actionability on a click. Widening readiness waits does not cover
+   it. Worth one deliberate look at whether something in REVISIT keeps the page
+   from settling, now that R12 has shown it renders continuously under playback
+   with 100 % unattributed frames.
+
+7. The rest of both audits is done, deliberately rejected, or needs a UX pass
    with the app running — a different kind of work from this backlog.

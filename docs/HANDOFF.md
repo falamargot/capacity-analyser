@@ -42,6 +42,49 @@ profiler counted **0 frames in 20.6 s** with the scene static. `requestRenderMod
 is doing its job; an fps measurement has to start the clock first or it measures
 an idle app. The spec does.
 
+### R12 — MEASURED, and it fails: 34 fps against a 60 fps target
+
+Apple M4, ANGLE Metal, visible page, 1440 × 900, shipped fleet in motion:
+
+    browser ceiling (rAF)   60.2 fps   p50 16.6 ms
+    app (rendered frames)   33.8 fps   p50 32.3 ms   p95 51.5 ms
+    rendered / offered      677 / ~1200 = 56 %
+
+**32.3 ms ≈ 1.95 × 16.6 ms — the app misses every other vsync.** Work that is
+just over the 16.7 ms budget lands on the next refresh, so the rate halves
+instead of degrading smoothly. And this is the FAVOURABLE case: 634 points but
+only 12 satellites carrying orbits and swaths.
+
+Where the ~30 ms goes is NOT established. Ruled out: React (11 commits in 20 s,
+p95 1.4 ms) and swath geometry in this configuration. Noted:
+`unattributedFramePct: 100` — every frame came from a time-driven
+`CallbackProperty`, which is where to look first. Filed as **R12b**, with the
+instruction to bisect by display layer before optimising anything.
+
+### R12, the instrumentation — the profiler was not wired to REVISIT
+
+The first run on real hardware (Apple M4, ANGLE Metal, visible page, rAF at
+vsync: **59.2 fps, p50 16.9 ms**) reported **0 rendered frames**, which reads as
+an idle app. It was an unhooked counter: `attachRuntimeProfilerToViewer` is
+called only from `App.tsx`, and **REVISIT unmounts `App.tsx`**. Frames were
+structurally zero in this mode.
+
+`RevisitGlobe.tsx` now attaches it beside the existing `__revisitViewer` handle
+and detaches it with the viewer, dev-only on both sides. Verified headless: the
+app's counter and the browser's rAF cadence agree (7.83 vs 7.9 fps on
+SwiftShader), i.e. under motion the app renders on every frame offered.
+
+Two spec bugs were fixed with it, both of which had made a meaningless run look
+green:
+
+- it never seeded a target, so REVISIT had no timeline, no Play button and no
+  speed selector — the clock never started;
+- it read `viewer.clock.shouldAnimate` to check playback, but REVISIT drives
+  time through `SimulationClockContext`, so that flag is false while playing.
+
+The spec now asserts target, running clock and `frames > 0`. **A run that
+measures nothing fails.**
+
 ### E8b — the drawn footprint now shares the gate's datum
 
 A closer look changed the plan I had written. "Draw it on the ellipsoid" was
@@ -65,6 +108,14 @@ Gates: `npm run typecheck`, lint at zero, **2 205 unit tests** (+6), build, and
 e2e `mode-smoke` + `accessibility` + `standalone-mode` — **38 passed, 30 skipped,
 EXIT=0**, including the gate that had been failing. One green run, which is
 evidence and not proof; see above for why the fix stands on its mechanism.
+
+After the profiler wiring, `revisit-p0` + `mode-smoke` (80 tests) showed one
+failure: `mode-smoke:31`, a `.click()` timing out after the locator had already
+resolved. **A/B run proves it is not the profiler change** — the same spec on
+the same machine passed 10/10 both with (3.9 min) and without (4.1 min) it, and
+the test passes in isolation in 16 s. Filed as backlog item 6: same accumulation
+family as item 5, different symptom (actionability, not readiness), so the item-5
+fix does not cover it.
 
 ## 2026-09-04 (evening) — S-2b decided, and the ISS retry storm fixed
 

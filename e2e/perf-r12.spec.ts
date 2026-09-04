@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { openRevisitSurfaces, seedReferenceTarget } from './revisitCompact';
 
 /*
  * R12 — the 60 fps target, made one command instead of a console ritual.
@@ -17,6 +18,14 @@ import { expect, test } from '@playwright/test';
  *
  * Reads the app's own dev profiler (`utils/runtimeProfiler.ts`), which is why
  * this needs a DEV build — the profiler is stripped from production.
+ *
+ * ── IT ASSERTS ITS PRECONDITIONS, AND ONLY THOSE ────────────────────────────
+ * The first version of this spec passed while measuring nothing: REVISIT opens
+ * with NO target, so there is no timeline, no Play button and no speed
+ * selector — the clock never started, Cesium rendered 0 frames, and the 59 fps
+ * it reported was an empty rAF loop. A run that measures nothing must FAIL, so
+ * the target, the running clock and a non-zero frame count are now assertions.
+ * The frame rate itself is never asserted: that is a property of the machine.
  */
 
 const QUIET_MS = 20_000;
@@ -29,6 +38,11 @@ test.describe('R12 — REVISIT frame rate', () => {
 
     await page.goto('/?mode=revisit');
     await expect(page.getByRole('button', { name: /Back to / })).toBeVisible({ timeout: 60_000 });
+    await openRevisitSurfaces(page);
+    // Without a target there is no access lane, hence no timeline and no clock
+    // controls at all. This is the step whose absence made the first run
+    // measure an idle app.
+    await seedReferenceTarget(page);
     // Tiles, fleet and first analysis, before the sample window opens.
     await page.waitForTimeout(20_000);
 
@@ -59,10 +73,23 @@ test.describe('R12 — REVISIT frame rate', () => {
      * 60 fps target is actually about.
      */
     const speed = page.getByRole('combobox', { name: 'Simulation speed' });
-    if (await speed.count() > 0) await speed.selectOption('100');
+    await expect(speed, 'no speed control — the scenario has no timeline').toBeVisible({ timeout: 30_000 });
+    await speed.selectOption('100');
     const play = page.getByRole('button', { name: 'Play simulation' });
     if (await play.count() > 0 && await play.isVisible()) await play.click();
+    await expect(
+      page.getByRole('button', { name: 'Pause simulation' }),
+      'the clock is not running, so nothing would move',
+    ).toBeVisible({ timeout: 30_000 });
     await page.waitForTimeout(3_000);
+
+    /*
+     * Do NOT read `viewer.clock` here. REVISIT drives scenario time through
+     * `SimulationClockContext`, not Cesium's clock, so `shouldAnimate` is false
+     * even while playback runs — an earlier version of this spec logged that
+     * and read it as "the clock is not running". The Pause button above is the
+     * real signal.
+     */
 
     await page.evaluate(() => (window as unknown as { __perfReset?: () => void }).__perfReset?.());
     await page.waitForTimeout(QUIET_MS);
@@ -70,6 +97,12 @@ test.describe('R12 — REVISIT frame rate', () => {
       () => (window as unknown as { __perfStats?: () => unknown }).__perfStats?.(),
     ) as { frame?: Record<string, unknown> } | undefined;
     console.log('R12 profiler ' + JSON.stringify(stats?.frame));
+    // The whole point of the run. Zero frames means the sample window saw a
+    // static scene — inconclusive, and it must not read as a pass.
+    expect(
+      (stats?.frame as { frames?: number } | undefined)?.frames ?? 0,
+      'Cesium rendered no frames: the scene was static, so this run measured nothing',
+    ).toBeGreaterThan(0);
 
     // Independent of the app's counter: the browser's own rAF cadence.
     const raf = await page.evaluate(async () => {
@@ -98,5 +131,11 @@ test.describe('R12 — REVISIT frame rate', () => {
       };
     });
     console.log('R12 rAF      ' + JSON.stringify(raf));
+    /*
+     * Read the two together. `rAF` is what the BROWSER offers — at vsync it is
+     * ~16.7 ms whatever the app does, so it is the harness's ceiling, not a
+     * result. The app's frame rate is the profiler's `fps` / `frameMs.p95`,
+     * counted from frames Cesium actually rendered.
+     */
   });
 });
