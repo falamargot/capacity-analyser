@@ -369,24 +369,34 @@ comes with each extraction, not a one-off.
    is gone. What justifies this fix is the mechanism — the failing assertion was
    the one with the tightest budget, on a condition with no reason to be fast.
 
-6. **`mode-smoke` clicks time out in long mixed batches — second sighting,
-   NOT today's change.** On 2026-09-04 `mode-smoke.spec.ts:31` ("can return from
-   revisit to the originating mode") timed out at 90 s inside `.click()` on the
-   Back button, in an 80-test batch. The trace is specific: the locator
-   RESOLVED — the button was found — and the click never became actionable.
-   Earlier the same day `mode-smoke.spec.ts:12` failed in the same file, also
-   only in a batch.
+6. ~~**`mode-smoke` clicks time out in long mixed batches.**~~ **FIXED
+   2026-09-04**, on the mechanism rather than on a reproduction — stated plainly
+   because that is the weaker kind of evidence.
 
-   **Proved not to be the REVISIT profiler attachment** by an A/B run of the
-   same spec on the same machine: without the change 10 passed (4.1 min), with
-   it 10 passed (3.9 min), and the failing test passes in isolation in 16 s.
+   `mode-smoke.spec.ts:31` timed out at 90 s inside `.click()` on REVISIT's Back
+   button, with the locator already RESOLVED; `:12` failed in the same file
+   earlier the same day. Both pass in isolation.
 
-   Same family as item 5 — accumulation in a single long-lived browser process —
-   but a DIFFERENT symptom: item 5 was a readiness wait too tight, this is
-   Playwright actionability on a click. Widening readiness waits does not cover
-   it. Worth one deliberate look at whether something in REVISIT keeps the page
-   from settling, now that R12 has shown it renders continuously under playback
-   with 100 % unattributed frames.
+   **Not the REVISIT profiler attachment**, proved by an A/B run of the same
+   spec: 10/10 without it (4.1 min) and 10/10 with it (3.9 min).
+
+   **Mechanism.** The exit control is `flex-1` inside the header rail, so its
+   height follows a rail that GROWS while the module mounts — fleet, spread
+   note, target list; the button's own source comment says so. Playwright's
+   click actionability requires a bounding box unchanged across two animation
+   frames, so a click issued mid-mount can wait out the entire timeout while the
+   element is found and visible the whole time. A long batch makes the mount
+   slower and the unstable window wider, which is exactly the isolation/batch
+   asymmetry observed.
+
+   **Fix.** Both tests now call `waitForRevisitReady(page)` after entering the
+   module and before reaching for the button — the helper the suite already has
+   and every other REVISIT spec already calls. These two entered and clicked.
+
+   **Honest limit:** a dedicated 16-test reproduction run passed (5.4 min), so
+   there is no red-to-green demonstration. Same epistemic status as item 5: the
+   fix is justified by the mechanism and by matching the suite's own convention,
+   not by a failure I could summon on demand.
 
 7. The rest of both audits is done, deliberately rejected, or needs a UX pass
    with the app running — a different kind of work from this backlog.

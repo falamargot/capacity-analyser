@@ -49,7 +49,19 @@ export interface FrameStats {
   /** Cadence over the most recent rendered frames; excludes old idle history. */
   recentFps: number;
   /** Frame-to-frame interval percentiles, in ms. */
+  /** Frame-to-frame INTERVAL percentiles, in ms — the cadence. */
   frameMs: { mean: number; p50: number; p95: number; max: number };
+  /**
+   * How long ONE frame took to render, preRender → postRender, in ms.
+   *
+   * The interval above cannot answer "is a frame slow?" — a page rendering
+   * every 32 ms may be spending 30 ms per frame, or spending 3 ms and simply
+   * not asking for more. R12 measured 33.8 fps on an Apple M4 and the two
+   * readings are indistinguishable from the interval alone; this one separates
+   * them, and decides whether R12b is an optimisation problem or a cadence
+   * choice.
+   */
+  renderMs: { mean: number; p50: number; p95: number; max: number };
   /**
    * Frames rendered with NO ATTRIBUTED CAUSE — no camera movement, no pointer
    * input, and no `notifySceneMutated()` call from a layer.
@@ -176,6 +188,7 @@ export const ROOT_PROFILER_ID = 'app';
 let frameCount = 0;
 let unattributedFrameCount = 0;
 const frameIntervals = new Samples();
+const frameRenderDurations = new Samples();
 let lastFrameAt = 0;
 
 let commitCount = 0;
@@ -324,6 +337,7 @@ export function collectRuntimeStats(): RuntimeStats {
         ? 1000 / frameIntervals.meanOfLast(64)
         : 0,
       frameMs: frameIntervals.stats(),
+      renderMs: frameRenderDurations.stats(),
       unattributedFrames: unattributedFrameCount,
       unattributedFramePct: frameCount > 0 ? (unattributedFrameCount / frameCount) * 100 : 0,
       idleFrames: unattributedFrameCount,
@@ -346,6 +360,7 @@ export function resetRuntimeProfiler(): void {
   frameCount = 0;
   unattributedFrameCount = 0;
   frameIntervals.clear();
+  frameRenderDurations.clear();
   lastFrameAt = 0;
   commitCount = 0;
   mountCount = 0;
@@ -378,6 +393,7 @@ export function formatRuntimeReport(s: RuntimeStats = collectRuntimeStats()): st
     'FRAMES',
     `  rendered          : ${f.frames}  (${f.fps.toFixed(1)} avg fps, ${f.recentFps.toFixed(1)} recent fps)`,
     `  interval ms       : mean ${f.frameMs.mean.toFixed(2)}  p50 ${f.frameMs.p50.toFixed(2)}  p95 ${f.frameMs.p95.toFixed(2)}  max ${f.frameMs.max.toFixed(2)}`,
+    `  render ms/frame   : mean ${f.renderMs.mean.toFixed(2)}  p50 ${f.renderMs.p50.toFixed(2)}  p95 ${f.renderMs.p95.toFixed(2)}  max ${f.renderMs.max.toFixed(2)}`,
     `  UNATTRIBUTED      : ${f.unattributedFrames} (${f.unattributedFramePct.toFixed(1)}%)  ← no camera/input/mutation cause; upper bound on skippable work`,
     '',
     'REACT',
@@ -470,9 +486,18 @@ export function attachRuntimeProfilerToViewer(viewer: unknown): () => void {
   if (!v.scene?.postRender?.addEventListener) return () => {};
 
   let lastCameraKey = '';
+  let renderStartedAt = 0;
+
+  // preRender → postRender is the frame's own cost, independent of how often
+  // frames are requested. Without it, a 32 ms cadence and a 32 ms frame look
+  // identical (R12b).
+  const onPreRender = () => {
+    renderStartedAt = performance.now();
+  };
 
   const onPostRender = () => {
     const now = performance.now();
+    if (renderStartedAt) frameRenderDurations.push(now - renderStartedAt);
     if (lastFrameAt) frameIntervals.push(now - lastFrameAt);
     lastFrameAt = now;
     frameCount++;
@@ -497,10 +522,13 @@ export function attachRuntimeProfilerToViewer(viewer: unknown): () => void {
     dirtySinceLastFrame = false;
   };
 
+  v.scene.preRender?.addEventListener?.(onPreRender);
   v.scene.postRender.addEventListener(onPostRender);
   setRuntimeProfilerViewerGetter(() => viewer);
 
   return () => {
+    try { v.scene?.preRender?.removeEventListener?.(onPreRender); } catch { /* viewer already destroyed */ }
     try { v.scene?.postRender?.removeEventListener(onPostRender); } catch { /* viewer already destroyed */ }
+    setRuntimeProfilerViewerGetter(() => null);
   };
 }

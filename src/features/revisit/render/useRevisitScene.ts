@@ -52,7 +52,27 @@ import { prepareFov } from '../fov/containment';
 import { computeFootprint } from '../fov/footprint';
 import { REVISIT_COLORS } from '../ui/revisitTheme';
 
-/** Satellite positions refresh at this rate; the camera still renders on demand. */
+/**
+ * Satellite positions refresh at this rate; the camera still renders on demand.
+ *
+ * **This constant is what R12's frame rate actually measures.** Measured on an
+ * Apple M4 (2026-09-04, `e2e/perf-r12.spec.ts`) with the fleet in motion:
+ *
+ *     frame cost      p50 1.1 ms   p95 1.9 ms      (budget at 60 Hz: 16.7 ms)
+ *     frame interval  p50 17.8 ms  p95 50.7 ms     (50.7 ms = 1000/20)
+ *     rendered        35.5 fps     browser ceiling 59.9 fps
+ *
+ * So the app is CADENCE-bound, not cost-bound: a frame uses ~7 % of the budget,
+ * and the p95 interval is this constant. Raising it to 60 would buy the 60 fps
+ * target and cost three times the update work — which is the opposite of what
+ * Lot 2C set out to do, for motion that is ~2.4 px per tick at ×1 playback.
+ * Under accelerated playback the step is large at ANY cadence (~240 px per tick
+ * at ×100, ~80 px at 60 Hz), so raising it does not fix what is actually
+ * visible there either.
+ *
+ * Do not "optimise" the render path against R12 without re-reading that: there
+ * is no slow frame to find.
+ */
 const POSITION_UPDATE_HZ = 20;
 
 /**

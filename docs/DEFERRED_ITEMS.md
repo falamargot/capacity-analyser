@@ -26,7 +26,7 @@ ticking it.
 
 | Item | What is actually undone |
 |---|---|
-| **R12b** | R12 is measured and FAILS — 34 fps against a 60 fps target, missing every other vsync. Where the ~30 ms goes is not established; see R12 |
+| *(none)* | R12 closed 2026-09-04 — cadence-bound at 1.1 ms a frame, not a performance problem. `AUDIT_BACKLOG.md` carries what is still open elsewhere. |
 
 R24's other buried item — URL / browser-history semantics — is **closed**:
 `useAppModeState.ts:61-68` writes the mode into the URL and pushes history
@@ -482,100 +482,56 @@ concentration wins.
 measures which placement wins, and it is not predictable" — which is also the
 justification for paying one engine run per ladder rung.
 
-## R12. MEASURED 2026-09-04 — the 60 fps target is NOT met: 34 fps
+## R12. CLOSED 2026-09-04 — 35 fps, and nothing is slow
 
-**Status: CLOSED as a measurement 2026-09-04 — and it FAILS.** Measured on an
-Apple M4 (ANGLE Metal, visible page, 1440 × 900) with the shipped fleet in
-motion at ×100:
+**Status: CLOSED 2026-09-04.** The 60 fps target is not met — and the reason is
+not performance. Measured on an Apple M4 (ANGLE Metal, visible page, 1440 × 900)
+with the shipped fleet in motion:
 
 | | |
 |---|---|
-| browser ceiling (rAF) | **60.2 fps**, p50 16.6 ms |
-| **app, frames actually rendered** | **33.8 fps**, p50 **32.3 ms**, p95 51.5 ms, max 53.2 ms |
-| rendered / offered | 677 / ~1200 ≈ **56 %** |
+| **cost of one frame** | **p50 1.1 ms**, p95 1.9 ms, max 3.9 ms |
+| budget at 60 Hz | 16.7 ms → **~7 % used** |
+| frame interval | p50 **17.8 ms** (one vsync), p95 **50.7 ms** |
+| rendered | **35.5 fps**, browser ceiling 59.9 fps |
 
-**The diagnostic number is 32.3 ms ≈ 1.95 × 16.6 ms: the app misses every other
-vsync.** That is the signature of work that is just over budget — a frame that
-takes more than 16.7 ms lands on the next refresh, and the rate halves rather
-than degrading smoothly. The p95 at 51.5 ms is three vsync intervals: sometimes
-two missed.
+**50.7 ms is `1000 / 20`.** `POSITION_UPDATE_HZ = 20` in `useRevisitScene.ts` is
+the p95 interval, exactly. The app renders at vsync in bursts around each
+position tick and then waits for the next one; 35 fps is the average of those
+two regimes, not a struggle.
 
-**This is the FAVOURABLE case, not the worst one.** The scene carried 634 point
-primitives but only **12 satellites with orbits and swaths** — the default
-selection, not the full fleet whose per-tick JS cost is measured below at
-8.4–15.6 ms. Selecting more can only make it worse.
+**So the app is CADENCE-bound, not cost-bound.** There is no slow frame. Sixty
+fps is available for the asking — and asking would triple the update work, which
+is precisely what Lot 2C set out to avoid, for motion of ~2.4 px per tick at ×1
+playback. Under accelerated playback the step is large at any cadence (~240 px
+per tick at ×100, ~80 px at 60 Hz), so a higher cadence does not fix what is
+actually visible there either. **No code change: the cadence is a deliberate
+design, now measured and recorded at the constant itself.**
 
-R12 asked "60 fps at 256 satellites". At the shipped 634-satellite fleet the
-answer is 34 fps. The 256 case was not run separately; the point count scales,
-so it is the more likely of the two to pass, and it is now the less interesting
-question.
+### ⚠ A wrong reading, corrected the same day
 
-### What this does NOT say
+The first version of this entry said the app "misses every other vsync" and that
+frame work was "just over budget". **Both were false**, and they came from
+reading the INTERVAL as though it were a cost. `frameMs` cannot tell a 30 ms
+frame from a 3 ms frame nobody asked to repeat. That is why
+`FrameStats.renderMs` (preRender → postRender) now exists and why the spec
+prints a verdict line rather than a number to be interpreted by hand.
 
-Where the ~30 ms goes is not established. What is known:
+The lesson is worth more than the item: **an interval is not a cost.** A
+successor item ("find the 30 ms") was filed against a quantity that did not
+exist, and a layer-by-layer bisect was already under way against it.
 
-- **It is not React.** A profiler capture showed 11 commits in 20 s, p95 1.4 ms.
-- **It is not the swath geometry**, not in this configuration: only 12 satellites
-  carried one, and the Node benchmark below puts that at well under a
-  millisecond.
-- **Every frame was unattributed** (`unattributedFramePct: 100`): no camera
-  movement, no pointer input, no `notifySceneMutated()` call. Under playback the
-  render requests come from time-driven `CallbackProperty` evaluation, which is
-  exactly what Lot 2C.1 set out to attribute. That makes per-frame property
-  evaluation the first place to look, not a conclusion.
+### What the numbers still leave open
 
-**Successor item — R12b: find the 30 ms.** Bisect by display layer (points only,
-then orbits, then swaths, then the globe imagery) with the same spec, which
-already prints the primitive inventory it measured. Do that before optimising
-anything: the shape of the failure (a clean 2× vsync miss) says one thing is
-over budget, not that everything is slow.
-
-### The blocker, quantified
-
-The automation pane cannot produce a frame-rate number, and not only because of
-rAF:
-
-- `requestAnimationFrame` fired **0 frames in 4.3 s** (`document.hidden === true`).
-- Timers are clamped to ~1 Hz: a `setTimeout(…, 8)` render loop managed
-  **7 iterations in 12 s**, so the loop cannot even be driven manually at speed.
-- The canvas is **0 × 0** until `viewer.forceResize()` is called by hand — a
-  hidden pane has no layout, so Cesium was rendering into a 1 × 1 drawing buffer
-  and reporting a meaningless 0.3 ms/frame.
-- No Chrome extension is connected, so the real-browser route was unavailable
-  from here.
-
-Anything measured in that pane about rendering is an artefact. Recording this so
-nobody spends the afternoon rediscovering it.
-
-### What was measured: the per-tick JS cost
-
-Run in Node against the app's own `propagateState` / `computeFootprint` with
-`SWATH_SAMPLES = 32`, matching `useRevisitScene.ts`. Times are per tick.
-
-| fleet | propagate | + sensor swath | + swath and mask outline |
-|---|---|---|---|
-| **P·S = 256** (16 × 16) | 0.02 ms | **3.15 ms** (p95 3.22) | **6.49 ms** (p95 7.01) |
-| default 634-class (12 × 53) | 0.01 ms | **8.38 ms** (p95 9.31) | **15.61 ms** (p95 17.83) |
-
-Per satellite: ~12–13 µs for a 32-sample swath.
-
-**Propagation is free. The swath geometry is the entire cost**, and it is paid
-only for SELECTED satellites (`payloadIndices`), not for the whole fleet —
-`showSwaths` defaults on, and `showMaskOutline` adds a second `computeFootprint`
-per satellite only when the elevation mask actually clamps the FOV.
-
-### What that says about the 16.7 ms budget
-
-- At R12's stated target of 256 with swaths: **3.2 ms, 19 % of the budget.**
-  With the mask outline too: 6.5 ms, 39 %. Comfortable either way.
-- At the shipped 634-satellite fleet with everything selected and the mask
-  outline on: **15.6 ms p50, 17.8 ms p95 — the JS work alone meets or exceeds
-  the whole 16.7 ms budget**, before Cesium's scene update and before any GPU
-  work.
-
-**So 256 was never the risky number.** The reachable worst case is "select the
-whole fleet with a clamping mask", and that one is already over budget on CPU
-alone. If R12 is picked up, that is the configuration to run — not 256.
+- **Every frame is unattributed** (`unattributedFramePct: 100`): no camera
+  movement, no pointer input, no `notifySceneMutated()` call. That is the Lot
+  2C.1 counter doing its job — the renders come from the position tick and from
+  time-driven `CallbackProperty` evaluation. At 1.1 ms a frame it costs little,
+  so this is an accounting gap rather than waste, but it means the counter
+  cannot currently tell a needed frame from a skippable one in REVISIT.
+- **The 256-satellite case was never run separately.** The shipped 634-satellite
+  fleet answers the question more severely and passed on cost, so it was not
+  worth a second run.
 
 ### The command that produced it
 

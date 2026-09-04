@@ -25,6 +25,7 @@ import {
 /** Minimal stand-in for the parts of a Cesium Viewer the profiler touches. */
 function makeFakeViewer(options: { resolutionScale?: number; requestRenderMode?: boolean } = {}) {
   const listeners: (() => void)[] = [];
+  const preListeners: (() => void)[] = [];
   let camX = 0;
   const viewer = {
     resolutionScale: options.resolutionScale ?? 1,
@@ -37,6 +38,13 @@ function makeFakeViewer(options: { resolutionScale?: number; requestRenderMode?:
     scene: {
       requestRenderMode: options.requestRenderMode ?? false,
       canvas: { width: 1000, height: 500 },
+      preRender: {
+        addEventListener: (fn: () => void) => { preListeners.push(fn); },
+        removeEventListener: (fn: () => void) => {
+          const i = preListeners.indexOf(fn);
+          if (i >= 0) preListeners.splice(i, 1);
+        },
+      },
       postRender: {
         addEventListener: (fn: () => void) => { listeners.push(fn); },
         removeEventListener: (fn: () => void) => {
@@ -48,10 +56,20 @@ function makeFakeViewer(options: { resolutionScale?: number; requestRenderMode?:
   };
   return {
     viewer,
-    /** Simulates one rendered frame. */
-    renderFrame: () => { for (const fn of [...listeners]) fn(); },
+    /** Simulates one rendered frame: preRender, then postRender. */
+    renderFrame: () => {
+      for (const fn of [...preListeners]) fn();
+      for (const fn of [...listeners]) fn();
+    },
+    /** A frame that takes `ms` of wall time between pre and post. */
+    renderFrameTaking: (ms: number) => {
+      for (const fn of [...preListeners]) fn();
+      const until = performance.now() + ms;
+      while (performance.now() < until) { /* burn */ }
+      for (const fn of [...listeners]) fn();
+    },
     moveCamera: () => { camX += 100; },
-    listenerCount: () => listeners.length,
+    listenerCount: () => listeners.length + preListeners.length,
   };
 }
 
@@ -121,7 +139,8 @@ describe('frame accounting', () => {
   it('detaches cleanly so it cannot outlive the viewer', () => {
     const fake = makeFakeViewer();
     const detach = attachRuntimeProfilerToViewer(fake.viewer);
-    expect(fake.listenerCount()).toBe(1);
+    // Two since R12b: preRender and postRender, which bracket the frame.
+    expect(fake.listenerCount()).toBe(2);
 
     detach();
     expect(fake.listenerCount()).toBe(0);
@@ -213,6 +232,38 @@ describe('report', () => {
     expect(report).toContain('DISABLED');
     expect(report).toContain('UNATTRIBUTED');
     expect(report).not.toContain('IDLE frames');
+    detach();
+  });
+});
+
+/*
+ * R12b — the interval and the cost are different questions, and only one of
+ * them says whether anything is slow. A page rendering every 32 ms may be
+ * spending 30 ms per frame or 3 ms and not asking for more; `renderMs`
+ * separates them.
+ */
+describe('per-frame render cost', () => {
+  it('measures the frame itself, not the gap between frames', () => {
+    const fake = makeFakeViewer();
+    const detach = attachRuntimeProfilerToViewer(fake.viewer);
+
+    for (let i = 0; i < 5; i++) fake.renderFrameTaking(12);
+
+    const { renderMs, frameMs } = collectRuntimeStats().frame;
+    expect(renderMs.p50).toBeGreaterThanOrEqual(10);
+    expect(renderMs.max).toBeLessThan(120);
+    // The interval spans a whole cycle, so it can only be larger.
+    expect(frameMs.max).toBeGreaterThanOrEqual(renderMs.max - 1);
+    detach();
+  });
+
+  it('reports a cheap frame as cheap however rarely it is requested', () => {
+    const fake = makeFakeViewer();
+    const detach = attachRuntimeProfilerToViewer(fake.viewer);
+
+    for (let i = 0; i < 4; i++) fake.renderFrame();
+
+    expect(collectRuntimeStats().frame.renderMs.p50).toBeLessThan(5);
     detach();
   });
 });

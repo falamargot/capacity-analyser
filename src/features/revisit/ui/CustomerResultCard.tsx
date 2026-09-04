@@ -483,8 +483,7 @@ function RecommendedMeasurement({ label, maxGapMs }: {
                 aria-label={`${label} once this configuration is applied`}
             >
                 <dt className="text-slate-400">
-                    <span aria-hidden="true" className="mr-1 font-black text-lime-300">→</span>
-                    {label}
+                    Expected {label}
                 </dt>
                 <dd className="font-black tabular-nums text-slate-100">{formatGap(maxGapMs)}</dd>
             </div>

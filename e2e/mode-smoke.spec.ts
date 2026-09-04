@@ -4,6 +4,20 @@ import {
   waitForRevisitReady,
 } from './revisitCompact';
 
+/*
+ * REVISIT's exit control is `flex-1` inside the header rail, so its height
+ * follows a rail that grows while the module mounts — fleet, spread note,
+ * target list. Playwright's click actionability requires a bounding box that is
+ * unchanged across two animation frames, so clicking it mid-mount can wait out
+ * the whole 90 s timeout with the locator already resolved. That is what
+ * `mode-smoke:12` and `:31` did in long mixed batches on 2026-09-04, passing in
+ * isolation every time (AUDIT_BACKLOG item 6).
+ *
+ * `waitForRevisitReady` is the suite's existing answer and every REVISIT spec
+ * already calls it; these two entered the module and reached straight for the
+ * button.
+ */
+
 const waitForTelecomShell = async (page: import('@playwright/test').Page) => {
   await expect(page.getByRole('button', { name: 'Revisit', exact: true })).toBeVisible({ timeout: 30_000 });
 };
@@ -21,10 +35,12 @@ test.describe('application mode shell', () => {
     await expect(page.locator('.cesium-widget canvas')).toHaveCount(1);
 
     await page.getByRole('button', { name: 'Revisit', exact: true }).click();
+    await waitForRevisitReady(page);
     await openRevisitStageControls(page);
     // The exit control shortens to "‹ Back" below `sm` and lives in the stage
     // menu below `md`; it is the same button either way.
-    await expect(page.getByRole('button', { name: /Back( to Commercial)?$/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Back( to Commercial)?$/ }))
+      .toBeVisible({ timeout: 30_000 });
     await expect(page.locator('.cesium-widget canvas')).toHaveCount(1);
   });
 
@@ -33,6 +49,7 @@ test.describe('application mode shell', () => {
     await waitForTelecomShell(page);
     await page.getByRole('button', { name: /^(Comm|Commercial)$/ }).click();
     await page.getByRole('button', { name: 'Revisit', exact: true }).click();
+    await waitForRevisitReady(page);
     await openRevisitStageControls(page);
     await page.getByRole('button', { name: /Back( to Commercial)?$/ }).click();
 

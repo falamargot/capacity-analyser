@@ -96,7 +96,28 @@ test.describe('R12 — REVISIT frame rate', () => {
     const stats = await page.evaluate(
       () => (window as unknown as { __perfStats?: () => unknown }).__perfStats?.(),
     ) as { frame?: Record<string, unknown> } | undefined;
-    console.log('R12 profiler ' + JSON.stringify(stats?.frame));
+    const frame = stats?.frame as {
+      frames?: number;
+      fps?: number;
+      frameMs?: { p50?: number };
+      renderMs?: { p50?: number; p95?: number };
+    } | undefined;
+    console.log('R12 profiler ' + JSON.stringify(frame));
+    /*
+     * READ THESE TWO TOGETHER — it is the whole point of R12b.
+     *   frameMs  = the INTERVAL between frames, i.e. the cadence.
+     *   renderMs = what ONE frame cost, preRender → postRender.
+     * A 32 ms interval with a 3 ms render means nothing is slow and the app
+     * simply is not asking for more frames — a cadence choice, not an
+     * optimisation problem. A 32 ms interval with a 30 ms render is the
+     * opposite, and only then is there something to make faster.
+     */
+    const interval = frame?.frameMs?.p50 ?? 0;
+    const cost = frame?.renderMs?.p50 ?? 0;
+    console.log(
+      `R12 verdict  interval p50=${interval.toFixed(1)}ms  render p50=${cost.toFixed(1)}ms`
+      + `  -> ${cost > interval * 0.6 ? 'FRAME COST BOUND (optimise)' : 'CADENCE BOUND (nothing is slow)'}`,
+    );
     // The whole point of the run. Zero frames means the sample window saw a
     // static scene — inconclusive, and it must not read as a pass.
     expect(

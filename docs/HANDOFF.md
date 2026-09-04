@@ -2,6 +2,57 @@
 
 _Last updated 2026-09-04._
 
+## 2026-09-04 (late) — item 6: REVISIT's Back button, clicked mid-mount
+
+`mode-smoke:31` timed out at 90 s inside `.click()` with the locator already
+resolved; `:12` failed the same way earlier. The button is `flex-1` inside a
+header rail that grows while REVISIT mounts, and Playwright's click
+actionability waits for a bounding box unchanged across two animation frames —
+so a click issued mid-mount waits out the timeout while the element is found and
+visible throughout. A long batch widens that window, which is why isolation
+always passed.
+
+Both tests now call `waitForRevisitReady(page)` before reaching for the button:
+the helper the suite already has, and which every other REVISIT spec already
+calls. **No reproduction to show** — a dedicated 16-test run passed in 5.4 min —
+so this stands on the mechanism, not on red-to-green. Said plainly rather than
+dressed up.
+
+## 2026-09-04 (late) — R12 CLOSED: nothing is slow, and I had read it wrong
+
+**The correction first.** The previous entry said the app "misses every other
+vsync" and that frame work was "just over budget". Both were false. They came
+from reading the frame INTERVAL as if it were a cost — and an interval cannot
+tell a 30 ms frame from a 3 ms frame that nobody asked to repeat sooner.
+
+So the first R12b commit optimised nothing. It added the missing instrument:
+`FrameStats.renderMs` (preRender → postRender, dev-only, three unit tests), and
+a verdict line in `e2e/perf-r12.spec.ts` that says CADENCE BOUND or FRAME COST
+BOUND rather than leaving a number to be interpreted by hand.
+
+**The verdict, on an Apple M4:**
+
+    frame cost      p50 1.1 ms   p95 1.9 ms       budget 16.7 ms  -> ~7 % used
+    frame interval  p50 17.8 ms  p95 50.7 ms      50.7 = 1000/20
+    rendered        35.5 fps                      browser ceiling 59.9 fps
+
+`POSITION_UPDATE_HZ = 20` IS the p95 interval. The app renders at vsync in
+bursts around each position tick, then waits — 35 fps is the average of two
+regimes, not a struggle. **Cadence-bound, not cost-bound. There is no 30 ms to
+find, and R12b was filed against a quantity that does not exist.**
+
+**No code change to the render path.** Sixty fps is available for the asking and
+asking would triple the update work — the opposite of Lot 2C — for motion of
+~2.4 px per tick at ×1. Under accelerated playback the step is large at any
+cadence, so a higher rate does not fix what is visible there either. The
+measurement is now recorded in the header comment of the constant that explains
+it, so the next person does not re-open this.
+
+**Two dead ends, recorded so they are not repeated:** a layer-by-layer bisect is
+worthless headless (fps pinned at 7.9 through every configuration, globe off
+included — rAF is the ceiling), and a CPU profile of the same run attributes
+99.1 % to `(program)`, i.e. the software rasteriser.
+
 ## 2026-09-04 (night) — flaky gate, R12, E8b
 
 ### The flaky accessibility gate — fixed, and my first diagnosis was wrong
