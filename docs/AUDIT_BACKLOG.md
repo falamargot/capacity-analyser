@@ -254,12 +254,41 @@ comes with each extraction, not a one-off.
 
 ### What is left
 
-1. **S-2, the rest of it.** The next slices by size are the inspection cluster
-   (7 pieces of state, mutually exclusive through ad-hoc clearing repeated at
-   each handler — extracting it would also remove that duplication) and the
-   terminal/topology cluster. Note the inconsistency found while looking: the
-   handlers do not all clear the same entities, so a strict "one inspected
-   entity" reducer would CHANGE behaviour and must be a deliberate decision, not
-   a side effect of a refactor.
+1. **S-2, the rest of it.** Updated 2026-09-04, after nine slices took
+   `App.tsx` from 6 667 to 5 497 lines. **Only the selection / inspection
+   cluster remains**, and it is the one gated on a product decision. The
+   terminal/topology cluster named here originally is DONE
+   (`useTerminalSelection`). Sizes are setter call sites in `App.tsx` as
+   measured on 2026-09-04:
+
+   - **Selection / inspection — ~92 sites, the largest and the only one with a
+     product decision attached.** 7 pieces of state kept mutually exclusive by
+     ad-hoc clearing repeated at each handler. The inconsistency found while
+     looking still stands: the handlers do not all clear the same entities, so a
+     strict "one inspected entity" reducer would CHANGE behaviour and must be a
+     deliberate decision, not a side effect of a refactor.
+   - ~~**Endpoint A/B — ~74 sites.**~~ **DONE 2026-09-04** — three hooks
+     (`useLeoServingResolution`, `useLeoRegulatoryLookup`,
+     `useEndpointNearestLocations`). What stayed in `App.tsx`: `siteB`,
+     `isSiteBArmed` and the selection-motion trigger — four `useState` and a
+     five-line callback, too small to be worth a hook, and their setters are
+     called with real values from a dozen handlers rather than cleared.
+   - ~~**Overlays and modals — ~69 sites.**~~ **DONE 2026-09-04** —
+     `useOverlayState`, with `closeAllOverlays()` as the intention.
+
+   A fourth group (traffic/ISS/lighting/country overlay, ~16 sites) is too small
+   to be worth its own hook.
+
+   **Two behaviour inconsistencies are now documented at their call sites rather
+   than silently normalised** — both would change what the app does:
+   `handleSnpClick(null)` clears the LEO serving assignment while keeping
+   `autoSelectedLEOId`, and the three reverse-geocode implementations
+   (`useNearestLocation` plus the two in `useEndpointNearestLocations`) parse a
+   city-without-country answer differently and only two of them seed from the
+   restored session.
+
+   Prerequisite for the remaining slice, learned on the snapshot slice: extract
+   only after the state group owns `capture`/`restore`-style intentions. Passing
+   40 individual setters into a hook moves lines without reducing coupling.
 2. The rest of both audits is done, deliberately rejected, or needs a UX pass
    with the app running — a different kind of work from this backlog.

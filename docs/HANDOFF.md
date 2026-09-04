@@ -1,6 +1,68 @@
 # Handoff
 
-_Last updated 2026-09-03._
+_Last updated 2026-09-04._
+
+## 2026-09-04 — S-2 slices 8 and 9: overlays/modals, then endpoint A/B
+
+`App.tsx` **5 806 → 5 497 lines** (6 667 at the start of the S-2 programme).
+
+**Slice 8 — overlays and modals** → `hooks/useOverlayState.ts`. Eleven pieces of
+state (command palette + query, help menu, target-sources menu, satellite modal,
+simulation settings, desktop header collapse, mobile analysis panel and its
+summary-ready flag, engineering configure sheet and its focus signal), four DOM
+refs, six handlers and seven effects. `closeAllOverlays()` replaces the five
+setter calls `handleResetView` used to inline.
+
+Placed at the point where `hasMobileSelection` and the choreography key are
+computed, NOT with the other state declarations 400 lines above: the mobile
+reveal effects need those inputs, and nothing reads the overlay state in
+between. One call instead of two.
+
+Deliberately left behind: the `isCommandPaletteOpen → globe mode peek` effect,
+three lines that write state belonging to another cluster.
+
+**Slice 9 — endpoint A/B** → three hooks, because the cluster is not one thing:
+
+- `hooks/useLeoServingResolution.ts` — the four serving states and the three
+  resolution effects (§1.1 explicit re-resolve, §1.3 periodic re-resolve for
+  fixed points, and Point B), with their comments, their dependency arrays and
+  their two deliberate `exhaustive-deps` suppressions intact.
+- `hooks/useLeoRegulatoryLookup.ts` — the two endpoint lookups.
+- `hooks/useEndpointNearestLocations.ts` — split in two calls (state early for
+  the persisted telecom session, effects later where `analyzisPosition` exists).
+
+`clearLeoServingA` / `clearLeoServingB` replace seven pair-clearings across the
+selection handlers. **One call site is deliberately NOT converted**:
+`handleSnpClick(null)` drops the serving assignment while KEEPING
+`autoSelectedLEOId`. That asymmetry is pre-existing; making it symmetric is a
+behaviour change and needs a decision, so it keeps the raw setter and now
+carries a comment saying why.
+
+**One effect had to MOVE, not just relocate its declaration.** The endpoint-count
+topology normalisation (`siteB` → link mode / LEO topology) calls
+`clearLeoServingB`, and a dependency array cannot reference a value returned by
+a hook declared below it. It now sits directly under the serving hook. Its order
+relative to the route-evidence reset effects and to `useActiveLeoRouteEvidence`
+is unchanged, which is what actually matters here.
+
+**Browser validation** (dev server, 1280×800), since neither slice is covered by
+e2e: Explore menu and help menu open and close on outside click; ⌘K toggles the
+help panel (it maps to `onToggleHelpPanel`, so the panel's own "Press ⌘K to open
+the command palette" text is wrong — pre-existing, not touched); globe click
+resolves Site A to "Canada" with ONEWEB-0805 serving and a `/api/regulatory`
+call; Madrid as Site B switches LEO to Site-to-Site and GEO to Mesh, resolves
+both assignments, and renders the site-to-site path at 102 ms; clearing Site B
+returns both topologies to single-site. No console errors.
+
+Gates: `npm run typecheck`, lint at zero warnings, 2 183 unit tests, `npm run
+build`, e2e `mode-smoke` + `accessibility` + `standalone-mode` (38 passed) and
+`revisit-p0` + `revisit-p1` + `revisit-visual` (58 passed). 96 e2e in total,
+run as two non-overlapping Playwright processes.
+
+**Method note, third of the family:** the browser coordinate frame is not CSS
+pixels. An "outside click" I judged a regression was landing inside the help
+panel; a synthetic `document` mousedown closed the menu, proving the listener
+was fine. Verify the coordinate mapping before believing a UI regression.
 
 ## 2026-09-03 — READ THIS FIRST: the typecheck gate was checking nothing
 

@@ -47,8 +47,6 @@ import {
   type SNPData,
 } from './components/globe/GlobeConfig';
 
-import { resolveAutoSelectedSatellites } from './utils/satelliteResolution';
-import type { LeoServingAssignment } from './data/leoGroundSegment';
 import {
   computeGeoConnectivity,
   findCandidateCoverages,
@@ -81,6 +79,10 @@ import { useGlobeCoverage } from './hooks/useGlobeCoverage';
 import { useGlobeLayerToggles } from './hooks/useGlobeLayerToggles';
 import { useEngineeringModeSnapshot } from './hooks/useEngineeringModeSnapshot';
 import { useSelectionState } from './hooks/useSelectionState';
+import { useOverlayState } from './hooks/useOverlayState';
+import { useLeoServingResolution } from './hooks/useLeoServingResolution';
+import { useLeoRegulatoryLookup } from './hooks/useLeoRegulatoryLookup';
+import { useEndpointNearestLocationState, useEndpointNearestLocationSync } from './hooks/useEndpointNearestLocations';
 import { useAuthorshipEasterEgg } from './hooks/useAuthorshipEasterEgg';
 import { useViewport, type ViewportSnapshot } from './hooks/useViewport';
 import { useGlobeBootState } from './hooks/useGlobeBootState';
@@ -89,7 +91,6 @@ import type { AppMode } from './hooks/useAppModeState';
 import { useSecondTick } from './hooks/useSecondTick';
 import { formatCoordinates } from './utils/formatters';
 import { buildSimulationStateSnapshot } from './types/simulation';
-import { regulatoryLookup, type RegulatoryResult } from './services/regulatoryService';
 import { estimateBeamLoadWithFillRate } from './utils/capacityLayer';
 import { loadFillRateCells, lookupFillRateFromCells } from './services/fillRateService';
 import type { FillRateCell } from './types/fillRate';
@@ -543,13 +544,6 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     setActiveMeshTab('forward');
   }, [linkMode, setActiveMeshTab]);
 
-  const [autoSelectedLEOId, setAutoSelectedLEOId] = useState<string | null>(null);
-  // L-O1: the resolver's LeoServingAssignment is the single source of the
-  // serving (satellite, beam, feeder) tuple; the selected SNP is DERIVED from
-  // it, so no surface can hold an SNP that disagrees with the assignment.
-  const [leoServingAssignmentA, setLeoServingAssignmentA] = useState<LeoServingAssignment | null>(null);
-  const selectedSNP: SelectedSNP = leoServingAssignmentA?.feeder?.snp ?? null;
-
   // ── Unified Site B state (GEO Mesh/P2P and LEO Site-to-Site share one coordinate) ──
   const [siteB, setSiteB] = useState<{ lat: number; lng: number; altitude?: number } | null>(
     restoredTelecomSession?.siteB ?? null,
@@ -564,9 +558,6 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
   }, []);
 
   // ── LEO site-to-site state ────────────────────────────────────────────────
-  const [autoSelectedLEOIdB, setAutoSelectedLEOIdB] = useState<string | null>(null);
-  const [leoServingAssignmentB, setLeoServingAssignmentB] = useState<LeoServingAssignment | null>(null);
-  const selectedSNPB: SNPData | null = leoServingAssignmentB?.feeder?.snp ?? null;
   const activeLeoRouteEvidenceStateRef = useRef(createActiveLeoRouteEvidenceState());
   const leoEvidenceTick = useSecondTick();
 
@@ -674,10 +665,13 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
   const [selectedAircraft, setSelectedAircraft] = useState<Aircraft | null>(null);
   const [selectedAircraftB, setSelectedAircraftB] = useState<Aircraft | null>(null);
   const [selectedVessel, setSelectedVessel] = useState<Vessel | null>(null);
-  const [nearestLocation, setNearestLocation] = useState<{ city: string; country: string } | null>(
+  const {
+    nearestLocation,
+    setNearestLocation,
+    nearestLocationB,
+    setNearestLocationB,
+  } = useEndpointNearestLocationState(
     restoredTelecomSession?.labels.siteA ?? null,
-  );
-  const [nearestLocationB, setNearestLocationB] = useState<{ city: string; country: string } | null>(
     restoredTelecomSession?.labels.siteB ?? null,
   );
   const [hoveredSatelliteId, setHoveredSatelliteId] = useState<string | null>(null);
@@ -728,27 +722,6 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
   const pointB = siteB;
   const pointBLeo = siteB;
 
-  // Normalize both technology topologies from the shared endpoint count. A
-  // topology change must never remove a location.
-  useEffect(() => {
-    if (siteB) {
-      if (!geoNeedsPointB) handleLinkModeChange('MESH');
-      if (!leoNeedsPointB) handleLeoTopologyModeChange('SITE_TO_SITE');
-      return;
-    }
-    if (geoNeedsPointB) handleLinkModeChange('STAR_FORWARD');
-    if (leoNeedsPointB) handleLeoTopologyModeChange('SINGLE_SITE');
-    setAutoSelectedLEOIdB(null);
-    setLeoServingAssignmentB(null);
-    resetActiveLeoRouteEvidenceState(activeLeoRouteEvidenceStateRef.current);
-  }, [
-    geoNeedsPointB,
-    handleLeoTopologyModeChange,
-    handleLinkModeChange,
-    leoNeedsPointB,
-    siteB,
-  ]);
-
   const [airTrafficEnabled, setAirTrafficEnabled] = useState(false);
   const [maritimeTrafficEnabled, setMaritimeTrafficEnabled] = useState(false);
   const liveTrafficAvailable = simulationClockSnapshot.mode === 'live';
@@ -784,23 +757,8 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
   );
   const [leoFillRateCells, setLeoFillRateCells] = useState<FillRateCell[] | null>(null);
   const [countryOverlayMode, setCountryOverlayMode] = useState<CountryOverlayMode>(initialDisplayDefaults.countryOverlayMode);
-  const commandPaletteSearchRef = useRef<HTMLInputElement>(null);
-  const helpMenuRef = useRef<HTMLDivElement>(null);
-  const targetSourcesButtonRef = useRef<HTMLButtonElement>(null);
-  const targetSourcesMenuRef = useRef<HTMLDivElement>(null);
-  const [isMobileAnalysisPanelOpen, setIsMobileAnalysisPanelOpen] = useState(false);
   const mobileResultStoryScrollRef = useRef(0);
   const mobileAnalysisScrollElementRef = useRef<HTMLDivElement | null>(null);
-  const [isMobileAnalysisSummaryReady, setIsMobileAnalysisSummaryReady] = useState(false);
-  const [isEngineeringConfigureOpen, setIsEngineeringConfigureOpen] = useState(false);
-  const [engineeringHeaderConfigureFocusSignal, setEngineeringHeaderConfigureFocusSignal] = useState(0);
-  const [isSatelliteModalOpen, setIsSatelliteModalOpen] = useState(false);
-  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
-  const [isTargetSourcesMenuOpen, setIsTargetSourcesMenuOpen] = useState(false);
-  const [isDesktopHeaderCollapsed, setIsDesktopHeaderCollapsed] = useState(false);
-  const [commandPaletteQuery, setCommandPaletteQuery] = useState('');
-  const [isHelpMenuOpen, setIsHelpMenuOpen] = useState(false);
-  const [isSimulationSettingsOpen, setIsSimulationSettingsOpen] = useState(false);
 
   const {
     authorshipToastVisible,
@@ -1160,44 +1118,47 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     selectedVessel?.mmsi,
   ]);
 
-  useEffect(() => {
-    if (!isMobile) return;
-    if (isFullscreen || !hasMobileSelection) {
-      setIsMobileAnalysisPanelOpen(false);
-    }
-  }, [
-    hasMobileSelection,
+  // ── Overlays and modals — see hooks/useOverlayState.ts ──
+  // Declared here rather than with the other state above because the mobile
+  // reveal effects read `hasMobileSelection` and the choreography key, both
+  // computed just above.
+  const {
+    commandPaletteSearchRef,
+    helpMenuRef,
+    targetSourcesButtonRef,
+    targetSourcesMenuRef,
+    isMobileAnalysisPanelOpen,
+    setIsMobileAnalysisPanelOpen,
+    isMobileAnalysisSummaryReady,
+    isEngineeringConfigureOpen,
+    setIsEngineeringConfigureOpen,
+    engineeringHeaderConfigureFocusSignal,
+    setEngineeringHeaderConfigureFocusSignal,
+    isSatelliteModalOpen,
+    setIsSatelliteModalOpen,
+    isCommandPaletteOpen,
+    isTargetSourcesMenuOpen,
+    setIsTargetSourcesMenuOpen,
+    isDesktopHeaderCollapsed,
+    setIsDesktopHeaderCollapsed,
+    commandPaletteQuery,
+    setCommandPaletteQuery,
+    isHelpMenuOpen,
+    isSimulationSettingsOpen,
+    setIsSimulationSettingsOpen,
+    handleCloseCommandPalette,
+    handleMobileTargetSearchFocus,
+    handleMobileTargetSearchChange,
+    handleToggleTargetSourcesMenu,
+    handleToggleHelpMenu,
+    handleToggleSimulationSettings,
+    closeAllOverlays,
+  } = useOverlayState({
     isMobile,
     isFullscreen,
-  ]);
-
-  useEffect(() => {
-    if (!isMobile || !hasMobileSelection) {
-      setIsMobileAnalysisSummaryReady(false);
-      return undefined;
-    }
-
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReducedMotion) {
-      setIsMobileAnalysisSummaryReady(true);
-      return undefined;
-    }
-
-    setIsMobileAnalysisSummaryReady(false);
-    const timeout = window.setTimeout(() => setIsMobileAnalysisSummaryReady(true), 220);
-    return () => window.clearTimeout(timeout);
-  }, [hasMobileSelection, isMobile, mobileSelectionChoreographyKey]);
-
-  useEffect(() => {
-    if (!isMobile || !isMobileAnalysisPanelOpen) return undefined;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [isMobile, isMobileAnalysisPanelOpen]);
+    hasMobileSelection,
+    mobileSelectionChoreographyKey,
+  });
 
   // ─── Satellite loading + off-thread position propagation ──────────────────
   const { satellites, loading, satellitesForResolutionRef } = useSatelliteLoader({
@@ -1328,83 +1289,65 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     hsBeams: hsBeamsSet,
   }), [coveragePolicy, weatherTypeB, beamHealthFactors, hsBeamsSet]);
 
-  useEffect(() => {
-    const groundPoint = analyzisPosition?.source === 'earth'
-      ? analyzisPosition
-      : selectedPosition;
+  // ── LEO serving resolution, endpoint labels — see hooks/useLeoServingResolution.ts ──
+  // Declared here rather than with the endpoint state above because the three
+  // resolution effects read `simulationState`, computed just above.
+  const {
+    autoSelectedLEOId,
+    leoServingAssignmentA,
+    setLeoServingAssignmentA,
+    autoSelectedLEOIdB,
+    leoServingAssignmentB,
+    clearLeoServingA,
+    clearLeoServingB,
+  } = useLeoServingResolution({
+    analyzisPosition,
+    pointBLeo,
+    leoTopologyMode,
+    leoAnalysisScope,
+    satellites,
+    satellitesForResolutionRef,
+    simulationState,
+    simulationClock,
+    simulationClockSnapshot,
+    isCurrentTimelinePropagated,
+    propagatedTimelineRevision,
+    failedSnps,
+    geoRFClassIdA,
+  });
+  const selectedSNP: SelectedSNP = leoServingAssignmentA?.feeder?.snp ?? null;
+  const selectedSNPB: SNPData | null = leoServingAssignmentB?.feeder?.snp ?? null;
 
-    if (!groundPoint) {
-      setNearestLocation(null);
+  // Normalize both technology topologies from the shared endpoint count. A
+  // topology change must never remove a location. Moved down with the serving
+  // resolution it clears — `clearLeoServingB` cannot be referenced in a
+  // dependency array declared above the hook that returns it.
+  useEffect(() => {
+    if (siteB) {
+      if (!geoNeedsPointB) handleLinkModeChange('MESH');
+      if (!leoNeedsPointB) handleLeoTopologyModeChange('SITE_TO_SITE');
       return;
     }
+    if (geoNeedsPointB) handleLinkModeChange('STAR_FORWARD');
+    if (leoNeedsPointB) handleLeoTopologyModeChange('SINGLE_SITE');
+    clearLeoServingB();
+    resetActiveLeoRouteEvidenceState(activeLeoRouteEvidenceStateRef.current);
+  }, [
+    clearLeoServingB,
+    geoNeedsPointB,
+    handleLeoTopologyModeChange,
+    handleLinkModeChange,
+    leoNeedsPointB,
+    siteB,
+  ]);
 
-    let cancelled = false;
-
-    const fetchNearestLocation = async () => {
-      try {
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${groundPoint.lat}&lon=${groundPoint.lng}&zoom=10`
-        );
-        const data = await response.json();
-
-        if (cancelled) return;
-
-        if (data?.address) {
-          const city = data.address.city || data.address.town || data.address.village;
-          const country = data.address.country;
-
-          if (city && country) {
-            setNearestLocation({ city, country });
-          } else if (country) {
-            setNearestLocation({ city: '', country });
-          } else {
-            setNearestLocation(null);
-          }
-        } else {
-          setNearestLocation(null);
-        }
-      } catch {
-        if (!cancelled) {
-          setNearestLocation(null);
-        }
-      }
-    };
-
-    fetchNearestLocation();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [analyzisPosition, selectedPosition]);
-
-  // Reverse-geocode Site B location label whenever siteB changes
-  useEffect(() => {
-    if (!siteB) {
-      setNearestLocationB(null);
-      return;
-    }
-    let cancelled = false;
-    const fetchLocation = async () => {
-      try {
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${siteB.lat}&lon=${siteB.lng}&zoom=10`
-        );
-        const data = await response.json();
-        if (cancelled) return;
-        if (data?.address) {
-          const city = data.address.city || data.address.town || data.address.village;
-          const country = data.address.country;
-          setNearestLocationB(city || country ? { city: city ?? '', country } : null);
-        } else {
-          setNearestLocationB(null);
-        }
-      } catch {
-        if (!cancelled) setNearestLocationB(null);
-      }
-    };
-    fetchLocation();
-    return () => { cancelled = true; };
-  }, [siteB]);
+  useEndpointNearestLocationSync({
+    analyzisPosition,
+    selectedPosition,
+    siteB,
+    setNearestLocation,
+    setNearestLocationB,
+  });
 
   // resolveAutoSelectedSatellites is imported from utils/satelliteResolution.ts
   // It implements the Service Availability model with:
@@ -1677,32 +1620,11 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     return getSatellitesConnectedToSNP(inspectedSNP, satellites, failedSnps);
   }, [inspectedSNP, satellites, failedSnps]);
 
-  const [leoRegulatoryResult, setLeoRegulatoryResult] = useState<RegulatoryResult | null>(null);
-  const [leoRegulatoryResultB, setLeoRegulatoryResultB] = useState<RegulatoryResult | null>(null);
-
-  useEffect(() => {
-    if (!activeAnalysisPoint) {
-      setLeoRegulatoryResult(null);
-      return;
-    }
-    let cancelled = false;
-    regulatoryLookup(activeAnalysisPoint.lat, activeAnalysisPoint.lng).then((result) => {
-      if (!cancelled) setLeoRegulatoryResult(result);
-    });
-    return () => { cancelled = true; };
-  }, [activeAnalysisPoint]);
-
-  useEffect(() => {
-    if (!pointBLeo || leoTopologyMode !== 'SITE_TO_SITE') {
-      setLeoRegulatoryResultB(null);
-      return;
-    }
-    let cancelled = false;
-    regulatoryLookup(pointBLeo.lat, pointBLeo.lng).then((result) => {
-      if (!cancelled) setLeoRegulatoryResultB(result);
-    });
-    return () => { cancelled = true; };
-  }, [leoTopologyMode, pointBLeo]);
+  const { leoRegulatoryResult, leoRegulatoryResultB } = useLeoRegulatoryLookup({
+    activeAnalysisPoint,
+    pointBLeo,
+    leoTopologyMode,
+  });
 
   const leoBeamLoadResult = useMemo(() => {
     if (!activeAnalysisPoint || !leoRegulatoryResult) return null;
@@ -2042,12 +1964,11 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     // If currently selected satellite exists AND its type is NOT compatible with the new scope
     if (selectedSatellite && selectedSatellite.orbitType !== newScope && newScope !== 'ALL') {
       clearSelection();
-      setAutoSelectedLEOId(null);
-      setLeoServingAssignmentA(null);
+      clearLeoServingA();
       setSelectedAircraft(null);
       setSelectedVessel(null);
     }
-  }, [clearSelection, countryOverlayMode, handleTechnologyScopeChange, selectedSatellite]);
+  }, [clearLeoServingA, clearSelection, countryOverlayMode, handleTechnologyScopeChange, selectedSatellite]);
 
   // Performance optimization: Memoize event handlers to prevent unnecessary re-renders
   const handleSatelliteClick = useCallback((satellite: SatelliteData | null) => {
@@ -2069,12 +1990,11 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     setSelectedAircraft(null);
     setSelectedAircraftB(null);
     setSelectedVessel(null);
-    setLeoServingAssignmentA(null);
+    clearLeoServingA();
     setInspectedSNP(null);
     setSelectedGateway(null);
-    setAutoSelectedLEOId(null);
     setSelectedIss(false);
-  }, [clearSelection, selectSatellite, setManualGeoCoverageVisibility]);
+  }, [clearLeoServingA, clearSelection, selectSatellite, setManualGeoCoverageVisibility]);
 
   // Wrapper for UI selection (triggers FlyTo)
   const handleSatelliteSelectFromUI = useCallback((satellite: SatelliteData | null) => {
@@ -2101,7 +2021,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
         });
       }
     }
-  }, [handleSatelliteClick]);
+  }, [handleSatelliteClick, setIsTargetSourcesMenuOpen]);
 
   const handleSatelliteHover = useCallback((satelliteId: string | null) => {
     setHoveredSatelliteId(satelliteId);
@@ -2110,6 +2030,9 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
   // Performance optimization: Memoize event handlers to prevent unnecessary re-renders
   const handleSnpClick = useCallback((snpName: string | { lat: number; lng: number; name: string } | null) => {
     if (!snpName) {
+      // Asymmetric on purpose (pre-existing): this path drops the serving
+      // assignment but KEEPS autoSelectedLEOId, so it cannot use
+      // clearLeoServingA() without changing behaviour.
       setLeoServingAssignmentA(null);
       setInspectedSNP(null);
       setSelectedGateway(null);
@@ -2129,13 +2052,12 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     clearSelection();
     setSelectedMoon(false);
     setInspectedSNP(snp);
-    setLeoServingAssignmentA(null);
-    setAutoSelectedLEOId(null);
+    clearLeoServingA();
     setSelectedAircraft(null);
     setSelectedVessel(null);
     setSelectedGateway(null);
     setIsTargetSourcesMenuOpen(false);
-  }, [clearSelection, satelliteScope]);
+  }, [clearLeoServingA, clearSelection, satelliteScope, setIsTargetSourcesMenuOpen, setLeoServingAssignmentA]);
 
   const handleSnpSelectFromUI = useCallback((snpName: string | null) => {
     handleSnpClick(snpName);
@@ -2161,8 +2083,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     clearSelection();
     setSelectedMoon(false);
     setSelectedGateway(gateway);
-    setAutoSelectedLEOId(null);
-    setLeoServingAssignmentA(null);
+    clearLeoServingA();
     setInspectedSNP(null);
     setSelectedAircraft(null);
     setSelectedVessel(null);
@@ -2171,7 +2092,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     if (fromComboBox) {
       setCameraTarget({ lat: gateway.lat, lng: gateway.lng, alt: 8000 });
     }
-  }, [clearSelection]);
+  }, [clearLeoServingA, clearSelection, setIsTargetSourcesMenuOpen]);
 
   const canonicalGroundSiteGatewayByName = useMemo(
     () => new Map(GEO_GROUND_SITES
@@ -2198,12 +2119,11 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     setSelectedMoon(false);
     setSelectedAircraft(null);
     setSelectedVessel(null);
-    setLeoServingAssignmentA(null);
+    clearLeoServingA();
     setInspectedSNP(null);
     setSelectedGateway(null);
-    setAutoSelectedLEOId(null);
     setIsTargetSourcesMenuOpen(false);
-  }, [clearSelection]);
+  }, [clearLeoServingA, clearSelection, setIsTargetSourcesMenuOpen]);
 
   const handleIssCenterOnIss = useCallback(() => {
     if (!iss.position || !viewerRef.current) return;
@@ -2251,151 +2171,6 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
   // was triggering a second resolveAutoSelectedSatellites run in <1ms on every aircraft
   // selection — doubling an expensive SGP4 beam-polygon resolution pass.
   // The interval effect handles both the initial update and subsequent 5s refreshes.
-
-  // §1.1 — Re-resolve on explicit position/scope/policy changes and exactly
-  // once when the first propagated batch for a new timeline is published.
-  useEffect(() => {
-    if (!analyzisPosition || !isCurrentTimelinePropagated) return;
-    const now = JulianDate.fromDate(new Date(simulationClock.getTimeMs()));
-    const { autoSelectedLEOSat, servingAssignment } = resolveAutoSelectedSatellites(
-      { lat: analyzisPosition.lat, lng: analyzisPosition.lng },
-      satellites,
-      leoAnalysisScope,
-      simulationState,
-      now,
-      failedSnps,
-      autoSelectedLEOId,
-      geoRFClassIdA
-    );
-    setAutoSelectedLEOId(autoSelectedLEOSat?.id || null);
-    setLeoServingAssignmentA(servingAssignment);
-  // `satellites` is deliberately sampled without depending on its per-second
-  // array identity; propagatedTimelineRevision is the transactional trigger.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    analyzisPosition,
-    autoSelectedLEOId,
-    failedSnps,
-    geoRFClassIdA,
-    leoAnalysisScope,
-    propagatedTimelineRevision,
-    simulationClock,
-    simulationClockSnapshot.revision,
-    simulationState,
-  ]);
-
-  // §1.3 — Periodic re-resolution for fixed positions (earth / vessel).
-  //
-  // Problem: LEO satellites orbit at ~7 km/s. A satellite that covered a user position
-  // at T=0 may have left its beam footprint by T=60s, while a new satellite arrives from
-  // the north — but the auto-selection was never re-evaluated because analyzisPosition
-  // didn't change (no user interaction). The panel then shows 0 Mbps with an outdated
-  // satellite still displayed, until the user clicks again.
-  //
-  // Fix: for source='earth' (and 'vessel'), re-run the full satellite resolution every
-  // RESOLUTION_INTERVAL_MS. Aircraft positions already re-resolve via their own 5s interval
-  // (updateSelectedAircraftPosition) so they are explicitly excluded here.
-  //
-  // Interval choice: 15s — fast enough to catch satellite transitions (~105 km orbital travel),
-  // conservative enough to avoid overloading the SGP4 beam-polygon engine.
-  // satellitesForResolutionRef.current always holds the latest propagated positions,
-  // so there is no latency mismatch with the globe display.
-  useEffect(() => {
-    // Only run for static earth/vessel points — aircraft handles its own periodic update
-    if (!analyzisPosition || analyzisPosition.source === 'aircraft') return;
-
-    // Preserve the 15-second scenario cadence when playback is accelerated,
-    // without running faster than the one-second satellite propagation cadence.
-    const resolutionIntervalMs = Math.max(
-      1_000,
-      15_000 / Math.max(1, Math.abs(simulationClockSnapshot.speed)),
-    );
-
-    const reResolve = () => {
-      // Re-read position from ref in case it was cleared between ticks
-      const pos = analyzisPosition;
-      if (!pos || pos.source === 'aircraft') return;
-
-      const now = JulianDate.fromDate(new Date(simulationClock.getTimeMs()));
-      const { autoSelectedLEOSat, servingAssignment } = resolveAutoSelectedSatellites(
-        { lat: pos.lat, lng: pos.lng },
-        satellitesForResolutionRef.current,  // always-fresh satellite positions
-        leoAnalysisScope,
-        simulationState,
-        now,
-        failedSnps,
-        autoSelectedLEOId,
-        geoRFClassIdA
-      );
-
-      setAutoSelectedLEOId(autoSelectedLEOSat?.id || null);
-      setLeoServingAssignmentA(servingAssignment);
-    };
-
-    const interval = setInterval(reResolve, resolutionIntervalMs);
-    return () => clearInterval(interval);
-  }, [
-    analyzisPosition,
-    autoSelectedLEOId,
-    failedSnps,
-    geoRFClassIdA,
-    leoAnalysisScope,
-    simulationClock,
-    simulationClockSnapshot.revision,
-    simulationClockSnapshot.speed,
-    simulationState,
-    satellitesForResolutionRef,
-  ]); // re-arm when position/policy changes
-
-  // Resolve satellite + SNP for Point B (LEO site-to-site) whenever it changes.
-  useEffect(() => {
-    if (!pointBLeo || leoTopologyMode !== 'SITE_TO_SITE') {
-      setAutoSelectedLEOIdB(null);
-      setLeoServingAssignmentB(null);
-      return;
-    }
-    if (!isCurrentTimelinePropagated) return;
-
-    const resolutionIntervalMs = Math.max(
-      1_000,
-      15_000 / Math.max(1, Math.abs(simulationClockSnapshot.speed)),
-    );
-
-    const reResolve = (availableSatellites = satellitesForResolutionRef.current) => {
-      const now = JulianDate.fromDate(new Date(simulationClock.getTimeMs()));
-      const { autoSelectedLEOSat, servingAssignment } = resolveAutoSelectedSatellites(
-        { lat: pointBLeo.lat, lng: pointBLeo.lng },
-        availableSatellites,
-        leoAnalysisScope,
-        simulationState,
-        now,
-        failedSnps,
-        autoSelectedLEOIdB,
-        null
-      );
-      setAutoSelectedLEOIdB(autoSelectedLEOSat?.id ?? null);
-      setLeoServingAssignmentB(servingAssignment);
-    };
-
-    reResolve(satellites);
-    const interval = setInterval(reResolve, resolutionIntervalMs);
-    return () => clearInterval(interval);
-  // `satellites` is sampled only for the first batch of a new timeline;
-  // periodic refreshes continue to use the stable live ref.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    autoSelectedLEOIdB,
-    failedSnps,
-    leoAnalysisScope,
-    leoTopologyMode,
-    pointBLeo,
-    propagatedTimelineRevision,
-    satellitesForResolutionRef,
-    simulationClock,
-    simulationClockSnapshot.revision,
-    simulationClockSnapshot.speed,
-    simulationState,
-  ]);
 
   // Handle coverage polygon click on the globe
   const handleCoverageClick = useCallback((coverageKey: string) => {
@@ -2572,6 +2347,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     setWeatherTypeB,
     syncScenarioDestination,
     triggerEndpointSelectionMotion,
+    setIsTargetSourcesMenuOpen,
   ]);
 
   // Handle aircraft selection (aircraft-based analysis). When Site 2 placement
@@ -2625,6 +2401,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     selectedAircraft,
     syncScenarioOrigin,
     triggerEndpointSelectionMotion,
+    setIsTargetSourcesMenuOpen,
 , setSelectedDownlinkKey, setSelectedUplinkKey]);
 
   // Handle vessel selection (vessel-based analyzis)
@@ -2660,7 +2437,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     } else {
       clearSelection();
     }
-  }, [clearSelection, selectTarget, syncScenarioOrigin, triggerEndpointSelectionMotion, setSelectedDownlinkKey, setSelectedUplinkKey]);
+  }, [clearSelection, selectTarget, syncScenarioOrigin, triggerEndpointSelectionMotion, setIsTargetSourcesMenuOpen, setSelectedDownlinkKey, setSelectedUplinkKey]);
 
   const handleLocationSelect = useCallback((lat: number, lng: number) => {
     syncScenarioOrigin(lat, lng);
@@ -2677,7 +2454,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     selectTarget('point', { lat, lng });
 
     setSearchQuery('');
-  }, [selectTarget, syncScenarioOrigin, triggerEndpointSelectionMotion, setSelectedDownlinkKey, setSelectedUplinkKey]);
+  }, [selectTarget, syncScenarioOrigin, triggerEndpointSelectionMotion, setIsTargetSourcesMenuOpen, setSelectedDownlinkKey, setSelectedUplinkKey]);
 
   const handleDestinationLocationSelect = useCallback((lat: number, lng: number) => {
     syncScenarioDestination(lat, lng);
@@ -2761,11 +2538,6 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     if (!isTwoPointMode) return;
     setIsSiteBArmed((current) => !current);
   }, [isTwoPointMode]);
-
-  const handleCloseCommandPalette = useCallback(() => {
-    setIsCommandPaletteOpen(false);
-    setCommandPaletteQuery('');
-  }, []);
 
   const handleSwapRouteEndpoints = useCallback(() => {
     if (!activeAnalysisPoint || !siteB) return;
@@ -2895,33 +2667,6 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     weatherTypeB,
 , preserveCoverageKeysOnNextTargetResetRef, preserveSiteBCoverageKeysOnNextPointBResetRef, setSelectedDownlinkKey, setSelectedDownlinkKeyB, setSelectedUplinkKey, setSelectedUplinkKeyB]);
 
-  const handleMobileTargetSearchFocus = useCallback(() => {
-    setIsTargetSourcesMenuOpen(false);
-    setIsCommandPaletteOpen(true);
-  }, []);
-
-  const handleMobileTargetSearchChange = useCallback((value: string) => {
-    setCommandPaletteQuery(value);
-    setIsTargetSourcesMenuOpen(false);
-    setIsCommandPaletteOpen(true);
-  }, []);
-
-  const handleToggleTargetSourcesMenu = useCallback(() => {
-    setIsCommandPaletteOpen(false);
-    setCommandPaletteQuery('');
-    setIsTargetSourcesMenuOpen((current) => !current);
-  }, []);
-
-  const handleToggleHelpMenu = useCallback(() => {
-    if (!isHelpMenuOpen) {
-      setIsSatelliteModalOpen(false);
-      setIsTargetSourcesMenuOpen(false);
-      setIsCommandPaletteOpen(false);
-      setCommandPaletteQuery('');
-    }
-    setIsHelpMenuOpen((current) => !current);
-  }, [isHelpMenuOpen]);
-
   const handleResetView = useCallback(() => {
     setSearchQuery('');
     setCameraTarget(null);
@@ -2929,8 +2674,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     setSelectedDownlinkKey(null);
     clearSelection();
     setManualGeoCoverageVisibility({ satelliteId: null, keys: [] });
-    setAutoSelectedLEOId(null);
-    setLeoServingAssignmentA(null);
+    clearLeoServingA();
     setInspectedSNP(null);
     setSelectedGateway(null);
     setSelectedMoon(false);
@@ -2943,45 +2687,8 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     iss.setFollowing(false);
     setHoveredSatelliteId(null);
     setIsFullscreen(false);
-    setIsSatelliteModalOpen(false);
-    setIsCommandPaletteOpen(false);
-    setIsTargetSourcesMenuOpen(false);
-    setCommandPaletteQuery('');
-    setIsHelpMenuOpen(false);
-  }, [clearSelection, iss.setFollowing]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (!isHelpMenuOpen) return;
-
-    const handlePointerDown = (event: MouseEvent) => {
-      if (!helpMenuRef.current?.contains(event.target as Node)) {
-        setIsHelpMenuOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handlePointerDown);
-    return () => {
-      document.removeEventListener('mousedown', handlePointerDown);
-    };
-  }, [isHelpMenuOpen]);
-
-  useEffect(() => {
-    if (!isTargetSourcesMenuOpen) return;
-
-    const handlePointerDown = (event: MouseEvent) => {
-      if (
-        !targetSourcesMenuRef.current?.contains(event.target as Node)
-        && !targetSourcesButtonRef.current?.contains(event.target as Node)
-      ) {
-        setIsTargetSourcesMenuOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handlePointerDown);
-    return () => {
-      document.removeEventListener('mousedown', handlePointerDown);
-    };
-  }, [isTargetSourcesMenuOpen]);
+    closeAllOverlays();
+  }, [clearSelection, closeAllOverlays, iss.setFollowing]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const shortcutModifier = useMemo(() => (
     typeof navigator !== 'undefined' && navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'
@@ -3085,19 +2792,8 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
   }, [handleLocationSelect, searchQuery]);
 
   useEffect(() => {
-    if (!isSatelliteModalOpen) return;
-    setIsCommandPaletteOpen(false);
-  }, [isSatelliteModalOpen]);
-
-  useEffect(() => {
     if (isCommandPaletteOpen) setIsGlobeModePeekPressed(false);
   }, [isCommandPaletteOpen]);
-
-  useEffect(() => {
-    if (!isDesktopHeaderCollapsed) return;
-    setIsTargetSourcesMenuOpen(false);
-    setIsHelpMenuOpen(false);
-  }, [isDesktopHeaderCollapsed]);
 
   useKeyboardShortcuts({
     onScopeChange: handleSatelliteScopeChange,
@@ -3160,8 +2856,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
 
     clearSelection();
     setSelectedMoon(true);
-    setAutoSelectedLEOId(null);
-    setLeoServingAssignmentA(null);
+    clearLeoServingA();
     setInspectedSNP(null);
     setSelectedGateway(null);
     setSelectedAircraft(null);
@@ -3170,7 +2865,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     setSelectedUplinkKey(null);
     setSelectedDownlinkKey(null);
     setIsTargetSourcesMenuOpen(false);
-  }, [clearSelection, setSelectedDownlinkKey, setSelectedUplinkKey]);
+  }, [clearLeoServingA, clearSelection, setIsTargetSourcesMenuOpen, setSelectedDownlinkKey, setSelectedUplinkKey]);
 
   const engineeringAnalyticalFocusActive = uiMode !== 'commercial'
     && engineeringFocusController.focus.kind === 'locked';
@@ -3413,10 +3108,6 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     endpointSelectionMotion,
     visibleManualGeoCoverageKeys,
   ]);
-
-  const handleToggleSimulationSettings = useCallback(() => {
-    setIsSimulationSettingsOpen((open) => !open);
-  }, []);
 
   // §4.1 — Shared props for both mobile and desktop MapViewSwitcher instances.
   // Avoids duplicating the full prop list in two places.
@@ -4218,7 +3909,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
     setIsMobileAnalysisPanelOpen(false);
     if (isMobile) setIsEngineeringConfigureOpen(true);
     else setEngineeringHeaderConfigureFocusSignal((signal) => signal + 1);
-  }, [activeConnectivityTab, handleTechnologyChange, isMobile]);
+  }, [activeConnectivityTab, handleTechnologyChange, isMobile, setEngineeringHeaderConfigureFocusSignal, setIsEngineeringConfigureOpen, setIsMobileAnalysisPanelOpen]);
 
   const handleApplyEngineeringConfigure = useCallback((draft: EngineeringConfigureDraft) => {
     const changes = getEngineeringConfigureChanges(engineeringConfigureBaseline, draft);
