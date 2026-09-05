@@ -27,10 +27,20 @@
 
 import type { AccessInterval } from '../domain/types';
 
+/**
+ * Anything with a start and an end.
+ *
+ * The projection needs nothing else, and the per-satellite spans the lens draws
+ * under a lane are NOT `AccessInterval`s — they carry no `satelliteIds`, being
+ * one satellite's own record. Making the geometry generic is what lets the union
+ * and its decomposition go through exactly the same code.
+ */
+export interface TimeSpan { startMs: number; endMs: number }
+
 /** The coverage ribbon's legibility floor: 0.12 % of the analysis window. */
 export const RIBBON_MIN_SPAN_FRACTION = 0.0012;
 
-export interface PassSpan {
+export interface PassSpan<T extends TimeSpan = AccessInterval> {
     /** Left edge, as a fraction of `[t0, t1]`. Always the interval's TRUE start. */
     x: number;
     /** Width, as a fraction of `[t0, t1]`. At least `minWidth`, never past 1 − x. */
@@ -38,7 +48,7 @@ export interface PassSpan {
     /** True when `width` was widened by the floor rather than measured. */
     floored: boolean;
     /** The interval this span draws. Never a copy — callers may key on identity. */
-    interval: AccessInterval;
+    interval: T;
 }
 
 /**
@@ -58,10 +68,10 @@ export interface PassSpanIndex {
     /** Sorted end times, or null when the input was not sorted and disjoint. */
     ends: Float64Array | null;
     /** The array this index was built from. Guards against a stale index. */
-    source: AccessInterval[];
+    source: readonly TimeSpan[];
 }
 
-export function buildPassSpanIndex(intervals: AccessInterval[]): PassSpanIndex {
+export function buildPassSpanIndex(intervals: readonly TimeSpan[]): PassSpanIndex {
     const ends = new Float64Array(intervals.length);
     let ordered = true;
     for (let i = 0; i < intervals.length; i += 1) {
@@ -97,19 +107,19 @@ function lowerBoundEnd(ends: Float64Array, t: number): number {
  *
  * Degenerate ranges (`t1 <= t0`) return nothing rather than dividing by zero.
  */
-export function passSpans(
-    intervals: AccessInterval[],
+export function passSpans<T extends TimeSpan>(
+    intervals: readonly T[],
     t0: number,
     t1: number,
     minWidth: number,
     index?: PassSpanIndex,
-): PassSpan[] {
+): PassSpan<T>[] {
     const span = t1 - t0;
     if (!(span > 0) || intervals.length === 0) return [];
 
     const floor = Math.max(0, Math.min(1, minWidth));
     const usable = index && index.source === intervals ? index.ends : null;
-    const spans: PassSpan[] = [];
+    const spans: PassSpan<T>[] = [];
 
     for (let i = usable ? lowerBoundEnd(usable, t0) : 0; i < intervals.length; i += 1) {
         const interval = intervals[i];
@@ -180,7 +190,7 @@ export function emptyNeighbourhood(): PassNeighbourhood {
  * reading — the defect `bisectTransition` records in `accessIntervals.ts`.
  */
 export function passNeighbourhood(
-    intervals: AccessInterval[], ms: number, index?: PassSpanIndex,
+    intervals: readonly TimeSpan[], ms: number, index?: PassSpanIndex,
     out: PassNeighbourhood = emptyNeighbourhood(),
 ): PassNeighbourhood {
     out.current = -1;
@@ -223,7 +233,7 @@ export function passNeighbourhood(
 const snapScratch = emptyNeighbourhood();
 
 /** Where a tick is drawn to, given the ribbon's legibility floor. */
-function drawnEndOf(interval: AccessInterval, floorMs: number): number {
+function drawnEndOf(interval: TimeSpan, floorMs: number): number {
     return interval.startMs + Math.max(interval.endMs - interval.startMs, floorMs);
 }
 
@@ -244,10 +254,10 @@ function drawnEndOf(interval: AccessInterval, floorMs: number): number {
  * times the window): the width of the tick on screen, which is the shape the
  * reader is actually aiming at.
  */
-export function drawnPassNear(
-    intervals: AccessInterval[], ms: number, floorMs: number, toleranceMs = 0,
+export function drawnPassNear<T extends TimeSpan>(
+    intervals: readonly T[], ms: number, floorMs: number, toleranceMs = 0,
     index?: PassSpanIndex,
-): AccessInterval | null {
+): T | null {
     const sorted = Boolean(index && index.source === intervals && index.ends);
     const { previous, next } = passNeighbourhood(intervals, ms, index, snapScratch);
     let best = -1;

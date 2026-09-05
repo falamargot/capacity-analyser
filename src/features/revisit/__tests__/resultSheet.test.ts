@@ -73,7 +73,7 @@ describe('REVISIT result sheet', () => {
             // Derived from a real run so the row cannot drift out of shape as
             // `GapStatistics` grows; only the figure under test is overridden.
             statistics: { ...analysis.statistics, maxGapMs, meanGapMs: maxGapMs },
-            intervals: [],
+            intervals: [], perSatellite: [],
             payloadCount: analysis.payloadCount,
             warnings: [],
         }));
@@ -102,7 +102,7 @@ describe('REVISIT result sheet', () => {
                 maxGapMs: 3 * 3600_000,
                 meanGapMs: 3 * 3600_000,
             },
-            intervals: [],
+            intervals: [], perSatellite: [],
             payloadCount: analysis.payloadCount,
             warnings: [],
         }];

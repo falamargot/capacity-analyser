@@ -16,7 +16,9 @@ import type {
 } from '../domain/types';
 import { payloadCount as countPayloads, selectSubConstellation } from '../domain/subConstellation';
 import { generateWalkerConstellation } from '../domain/walker';
-import { computeAccessIntervals } from './accessIntervals';
+import {
+    computeAccessIntervals, contributingSatellites, type SatelliteAccess,
+} from './accessIntervals';
 import { computeGapStatistics } from './gapStatistics';
 import { runPayloadSweep, type PayloadSweepResult } from './payloadSweep';
 import { validateScenario } from './scenarioValidation';
@@ -31,6 +33,16 @@ export interface RevisitAnalysis {
     /** Ids of the payload-carrying satellites, in fleet order. */
     selectedIds: string[];
     intervals: AccessInterval[];
+    /**
+     * The same access, per contributing satellite, un-unioned.
+     *
+     * `intervals` answers "was anything watching"; this answers "which one, and
+     * when". The temporal lens needs the second question to show a merged block
+     * resolving into a handover — `AccessInterval.satelliteIds` names the
+     * contributors but not when each of them started and stopped, so it cannot
+     * be reconstructed downstream.
+     */
+    perSatellite: SatelliteAccess[];
     statistics: GapStatistics;
     /** Present only when the sweep was requested — it costs one run per ladder rung. */
     sweep?: PayloadSweepResult;
@@ -155,6 +167,7 @@ export function runRevisitScenario(
         payloadCount: countPayloads(scenario.reference, scenario.selection),
         selectedIds: selected.map((el) => el.id),
         intervals: access.intervals,
+        perSatellite: contributingSatellites(access.perSatellite),
         statistics,
         sweep,
         warnings: [...new Set([...validation.warnings, ...statistics.warnings])],

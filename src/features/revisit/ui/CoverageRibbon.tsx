@@ -10,6 +10,7 @@ import type { SimulationSpeed } from '../../../time/SimulationClock';
 import type { AreaAnalysis } from '../analysis/areaAnalysis';
 import { computeGaps, formatGap } from '../analysis/gapStatistics';
 import { REFERENCE_POINT_ID, type RevisitAnalysisContext } from '../domain/analysisTargets';
+import type { SatelliteAccess } from '../analysis/accessIntervals';
 import type { AccessInterval, AnalysisWindow, GapStatistics } from '../domain/types';
 import { AnalysisWindowControl } from './AnalysisWindowControl';
 import {
@@ -28,6 +29,14 @@ export interface CoverageRibbonLane {
      * must not carry the "Reference · " / "Compare N · " label prefix. */
     name: string;
     intervals: AccessInterval[];
+    /**
+     * The same access per contributing satellite, when the analysis carries it.
+     *
+     * The lane draws the union — "was anything watching". This is what lets the
+     * lens resolve one of its blocks into a handover between two satellites,
+     * which the union erases and `satelliteIds` cannot reconstruct.
+     */
+    perSatellite?: SatelliteAccess[];
     statistics: GapStatistics | null;
     selected?: boolean;
 }
@@ -298,6 +307,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
         // An Area lane measures its worst cell, never the whole zone. The lens
         // says so, or a hovered Area row reads as "the zone is covered".
         basisLabel: row.kind === 'AREA' ? row.basisLabel : undefined,
+        perSatellite: row.perSatellite,
         /*
          * The SAME rule the result cell uses two columns to the right — see
          * `waiting` below. A lane with no result yet must not be described as a

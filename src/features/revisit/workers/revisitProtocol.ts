@@ -19,6 +19,7 @@
 
 import type { AccessInterval, GapStatistics, PointTarget, RevisitScenario } from '../domain/types';
 import type { RevisitAnalysis } from '../analysis/runScenario';
+import type { SatelliteAccess } from '../analysis/accessIntervals';
 import type { PayloadSweepResult } from '../analysis/payloadSweep';
 import type { AreaAnalysis } from '../analysis/areaAnalysis';
 import type { AreaSizingResult } from '../analysis/areaSizing';
@@ -103,6 +104,10 @@ export interface RevisitTargetComparisonRow {
     statistics: GapStatistics;
     /** Bounded timeline payload: at most three targets and their merged passes. */
     intervals: AccessInterval[];
+    /** The same access per contributing satellite — what the lens resolves a
+     *  merged block into. Contributors only, so this stays the size of the
+     *  union rather than the size of the fleet. */
+    perSatellite: SatelliteAccess[];
     payloadCount: number;
     warnings: string[];
 }

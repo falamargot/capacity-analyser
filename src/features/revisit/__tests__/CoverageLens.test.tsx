@@ -213,7 +213,7 @@ describe('CoverageLens — what it says', () => {
         act(() => { handle.current?.update(passStart - 3 * 60_000); });
         // Within the click radius, so the reading also offers the fix.
         expect(readout())
-            .toBe('Nearest pass starts in 3 min 00 s · 1 min 30 s long · click to seek to it');
+            .toBe('Nearest pass starts in 3 min 00 s · 1 min 30 s long');
     });
 
     it('names the tick/pass discrepancy when the pointer is inside a drawn tick', () => {
@@ -221,7 +221,7 @@ describe('CoverageLens — what it says', () => {
         // Two minutes in: still inside the 5.2 min tick, 30 s past the pass.
         act(() => { handle.current?.update(passStart + 2 * 60_000); });
         expect(readout())
-            .toBe('Tick drawn here · the pass ended 30 s ago · 1 min 30 s long · click to seek to it');
+            .toBe('Tick drawn here · the pass ended 30 s ago · 1 min 30 s long');
     });
 
     it('falls back to the plain distance when no pass is within reach', () => {

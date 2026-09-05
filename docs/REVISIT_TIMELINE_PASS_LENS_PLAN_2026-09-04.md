@@ -11,7 +11,7 @@ Fichiers : `ui/passSpans.ts` (projection commune + `drawnPassNear`),
 `ui/coverageRibbonSnap.ts` (tolérance de clic partagée),
 `ui/CoverageLens.tsx` (composant mémoïsé, poignée impérative, pool de 64 rects,
 portail), et le câblage pointeur + rAF + clic dans `ui/CoverageRibbon.tsx`.
-**790 tests** REVISIT (2348 sur tout le projet), `tsc` et `eslint` propres.
+**797 tests** REVISIT (2353 sur tout le projet), `tsc` et `eslint` propres.
 
 ### Ce que le navigateur a imposé, et que le plan n'avait pas prévu
 
@@ -124,6 +124,72 @@ Vérifié au navigateur avec deux cibles : survol de la ligne Primary →
 en-tête inchangé sur « Singapore · No pass · next in 2 h 00 min » (la sélection).
 Coût mesuré après le changement : **0,126 ms moyenne**, ratio d'échelle **1,09**.
 
+### Sous-lignes par satellite — 2026-09-05
+
+L'union est désormais **décomposée** sous la ligne survolée : une bande fine par
+satellite ayant vu la cible dans l'heure affichée, sur le **même axe** — mêmes
+bornes, même trait central, mêmes 12 s/px. C'est là qu'un bloc de quatre minutes
+se révèle être deux passages de 90 s qui se recouvrent : un relais que l'union
+efface et que le ruban, à 1,1 px le tick, ne pourrait jamais montrer.
+
+**La donnée manquait et a été acheminée.** `AccessInterval.satelliteIds` nomme
+les contributeurs mais ne dit pas *quand chacun* commence et finit — c'est
+irrécupérable en aval. `runScenario` et `compareRevisitTargets` exposent donc
+`perSatellite`, filtré aux **contributeurs seuls** (`contributingSatellites`) :
+sur 48 charges utiles, une poignée croise un point donné, et jeter les autres
+garde ce payload à la taille de l'union plutôt qu'à celle de la flotte.
+
+**Pas d'identifiants sur les bandes.** Un libellé demanderait de la place
+horizontale, et la place horizontale *est* l'axe : la moindre colonne de texte
+décalerait les bandes par rapport à la piste qu'elles décomposent. Les noms vont
+donc dans une ligne de texte sous les bandes, dans l'ordre où elles sont
+empilées — « Handover P02_S05 → P03_S01 » quand elles se recouvrent, la liste
+sinon.
+
+La projection est devenue **générique** (`passSpans<T extends TimeSpan>`) : les
+spans par satellite ne sont pas des `AccessInterval` — ils n'ont pas de
+`satelliteIds` — et c'est ce qui leur permet de passer par exactement le même
+code que l'union, index compris.
+
+**Défaut trouvé par la vérification en direct, pas par les tests.** Le compteur
+« +N more » comptait les contributeurs de la **fenêtre** et non ceux de
+l'**heure affichée** : le panneau annonçait « P06_S16 · +9 more » sous une seule
+bande. Le balayage s'arrêtait au plafond de 4 ; il parcourt maintenant tous les
+contributeurs — avec un index, une absence coûte une recherche binaire — et le
+compte porte sur ce qui est dessiné.
+
+### Le contour sur un tick d'un pixel — 2026-09-05
+
+Un trait de 1,5 px est centré sur les bords : sur un passage ramené au plancher
+d'un pixel, il ne reste rien du tick. En dessous de 4 px de largeur dessinée, le
+contour s'affine à 1 px et les coins s'arrondissent — la marque reste lisible et
+l'ambre dessous reste visible. Le rectangle n'est **pas** élargi : le plancher
+surestime déjà un passage court sur le ruban, et la loupe existe parce que cette
+surestimation trompe.
+
+### La vérification mobile, enfin faite en direct — 2026-09-05
+
+Ce qui n'avait jamais pu aboutir est fait, sur un vrai viewport 375 × 812 :
+
+| vérifié en direct | résultat |
+|---|---|
+| panneau visible et entier dans l'écran | `left: 31px`, 300 px de large, `fitsViewport` vrai |
+| épinglage (piste 114 px < panneau 300 px) | ne suit pas le doigt, reste à 31 px |
+| position verticale | `bottom: 233px`, au-dessus de la carte |
+| glissement au doigt | la plage passe de 09-06 17:32 à 09-08 04:16 |
+| `touch-action` | `pan-y` |
+| sous-lignes et contributeurs sur mobile | 1 bande, « P06_S16 » |
+
+**Méthode, pour la prochaine fois :** le pane ne présente des trames que pendant
+une capture. Dispatcher les événements, prendre une capture, **puis** lire le DOM
+dans trois appels séparés est ce qui rend la lecture fiable — tout faire dans un
+seul appel renvoie l'état d'avant. C'est ce qui a fait échouer les trois
+tentatives précédentes.
+
+Reste au niveau composant seulement : le **verrou de ligne au tactile** entre deux
+lignes (il faut deux cibles, et l'ajout d'une secondaire passe par un contrôle
+absent de la largeur mobile).
+
 ### La destination du clic — 2026-09-05
 
 Troisième repère demandé : montrer, avant de cliquer, **où le clic va**.
@@ -152,8 +218,7 @@ contour de 1,5 px pèse plus que le tick qu'il entoure. Les deux cas sont
 acceptables ; le cas qui a motivé la demande — un passage à 8 minutes en arrière
 — est celui où il est le plus net : le tick contouré est à 50 px du centre.
 
-Vérifié au navigateur sur ce cas exact : « Nearest pass ended 8 min 34 s ago ·
-click to seek to it », un seul tick contouré, à gauche du centre.
+Vérifié au navigateur sur ce cas exact : « Nearest pass ended 8 min 34 s ago », un seul tick contouré, à gauche du centre.
 
 ### Deux instants, deux marqueurs — 2026-09-05
 

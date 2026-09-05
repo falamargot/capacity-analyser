@@ -9,7 +9,8 @@
 
 import type { AccessInterval } from '../domain/types';
 import {
-    drawnPassNear, emptyNeighbourhood, passNeighbourhood, type PassSpanIndex,
+    drawnPassNear, emptyNeighbourhood, passNeighbourhood,
+    type PassSpanIndex, type TimeSpan,
 } from './passSpans';
 
 /**
@@ -130,9 +131,10 @@ function readAt(
  *
  * The middle case is the whole point. When `snapFloorMs` is given and the
  * pointer sits inside a tick the ribbon DREW but outside the pass it stands
- * for, the sentence names the discrepancy and offers the click that fixes it.
- * That band — up to the floor's width — is precisely where the timeline
- * misleads, and it is the only place the offer is made.
+ * for, the sentence names the discrepancy. That band — up to the floor's width
+ * — is precisely where the timeline misleads. The click on offer is not
+ * spelled out in words: it is the outlined tick in the panel, which shows WHERE
+ * the click lands instead of only asserting that one exists.
  */
 /**
  * The pass a click would seek to, or null when the click is a plain seek.
@@ -173,12 +175,12 @@ export function describePassAt(
         if (hoverMs >= drawn.startMs && hoverMs < drawnEnd) {
             return `Tick drawn here · the pass ended ${
                 formatPassDuration(hoverMs - drawn.endMs)} ago`
-                + ` · ${length} · click to seek to it`;
+                + ` · ${length}`;
         }
         const relation = hoverMs < drawn.startMs
             ? `starts in ${formatPassDuration(drawn.startMs - hoverMs)}`
             : `ended ${formatPassDuration(hoverMs - drawn.endMs)} ago`;
-        return `Nearest pass ${relation} · ${length} · click to seek to it`;
+        return `Nearest pass ${relation} · ${length}`;
     }
     if (next) {
         return `No pass · next in ${formatPassDuration(next.startMs - hoverMs)}`
@@ -202,4 +204,95 @@ export function summarisePassAt(
     if (current) return `In view · ${formatPassDuration(current.endMs - current.startMs)}`;
     if (next) return `Next in ${formatPassDuration(next.startMs - hoverMs)}`;
     return 'No pass in view';
+}
+
+/**
+ * One drawn band, as the sentence needs to see it.
+ *
+ * `spans` is exactly what `passSpans` returned for that satellite — the same
+ * array the band is DRAWN from, handed over by reference. Unwrapping it into
+ * bare intervals was allocating one array per band on every pointer move, in
+ * the one code path whose whole design is to allocate nothing at pointer rate.
+ */
+export interface ContributorBand {
+    satelliteId: string;
+    spans: readonly { readonly interval: TimeSpan }[];
+}
+
+/**
+ * Do two bands share any instant?
+ *
+ * Both span lists are in start order — `passSpans` preserves the order of the
+ * intervals it projects, and access intervals are produced sorted — so this is
+ * a merge, not a search: advance whichever band ends first. The pairwise form
+ * it replaces compared every span with every span, which is fine at four bands
+ * of two passes and quadratic in exactly the case the density fill exists for.
+ */
+function bandsOverlap(a: ContributorBand, b: ContributorBand): boolean {
+    let i = 0;
+    let j = 0;
+    while (i < a.spans.length && j < b.spans.length) {
+        const left = a.spans[i].interval;
+        const right = b.spans[j].interval;
+        if (left.startMs < right.endMs && right.startMs < left.endMs) return true;
+        if (left.endMs <= right.startMs) i += 1;
+        else j += 1;
+    }
+    return false;
+}
+
+/**
+ * Which satellites are drawn under the lane, in words.
+ *
+ * The bands answer the SHAPE question — how many, and do they overlap. This
+ * answers the identity question the shape cannot carry without stealing the
+ * horizontal space that keeps every band on the lane's own axis. Order matches
+ * the bands, top to bottom.
+ *
+ * `bands` is a POOL, reused between frames, so `count` says how much of it is
+ * live. It has no default on purpose: `bands.length` is the pool's capacity,
+ * which is the one value that is never right, and stale slots hold plausible
+ * ids rather than empty ones — the wrong sentence would render in silence.
+ * Nothing here is retained past the call.
+ *
+ * `denseCount` is the number of those bands whose passes exceeded the tick pool
+ * and are shown as a density fill instead. The lane above says "too dense to
+ * resolve" in that situation; a band has no room for a sentence, so its
+ * omission is stated here rather than left to be read as a quiet gap.
+ */
+export function summariseContributors(
+    bands: readonly ContributorBand[], count: number,
+    hiddenCount = 0, denseCount = 0,
+): string {
+    if (count <= 0) return '';
+    let overlapping = false;
+    for (let i = 0; i < count && !overlapping; i += 1) {
+        for (let j = i + 1; j < count; j += 1) {
+            if (bandsOverlap(bands[i], bands[j])) { overlapping = true; break; }
+        }
+    }
+    const more = hiddenCount > 0 ? ` · +${hiddenCount} more` : '';
+    /*
+     * A band past the tick pool draws a density fill, not its passes. Saying so
+     * costs four words; not saying it turns "eight passes drawn out of twenty"
+     * into twelve gaps the reader has no way to know are not real.
+     *
+     * It LEADS the sentence, and that placement is the point. This line renders
+     * in a `truncate` div 300 px wide — about 57 characters — and four ids plus
+     * a "+N more" plus this clause is 77. Appended, the clause was clipped away
+     * in precisely the crowded case it exists for, leaving a flat fill with no
+     * explanation; the ids that survived name bands the reader can already see.
+     * Reading it first is also right on its own terms: it changes how the bands
+     * below are to be read, so it belongs before them.
+     */
+    const dense = denseCount > 0
+        ? `${denseCount === 1 ? '1 band' : `${denseCount} bands`} too dense to resolve · `
+        : '';
+    if (count === 1) return `${dense}${bands[0].satelliteId}${more}`;
+    const separator = overlapping ? ' → ' : ' · ';
+    let ids = bands[0].satelliteId;
+    for (let i = 1; i < count; i += 1) ids += separator + bands[i].satelliteId;
+    return overlapping
+        ? `${dense}Handover ${ids}${more}`
+        : `${dense}${ids}${more}`;
 }

@@ -242,6 +242,19 @@ export function unionAccessIntervals(perSatellite: SatelliteAccess[]): AccessInt
     return merged;
 }
 
+/**
+ * The satellites that actually saw the target, with their own spans.
+ *
+ * `perSatellite` holds one entry per propagated satellite, and on any real
+ * scenario most of them are empty — 48 payloads, a handful of which ever cross
+ * the target. Only the contributors are worth carrying to a UI or across a
+ * worker boundary, and dropping the rest is what keeps that payload the size of
+ * the union rather than the size of the fleet.
+ */
+export function contributingSatellites(perSatellite: SatelliteAccess[]): SatelliteAccess[] {
+    return perSatellite.filter((entry) => entry.intervals.length > 0);
+}
+
 export interface AccessComputation {
     intervals: AccessInterval[];
     perSatellite: SatelliteAccess[];

@@ -468,6 +468,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
             // bounded id list instead of cloning satellite state per point.
             selectedIds: analysis?.selectedIds ?? [],
             intervals: selectedComparisonRow.intervals,
+            perSatellite: selectedComparisonRow.perSatellite,
             statistics: selectedComparisonRow.statistics,
             warnings: selectedComparisonRow.warnings,
         };
@@ -1322,6 +1323,11 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
             label: `Primary · ${scenario.target.name}`,
             name: scenario.target.name,
             intervals: analysis?.intervals ?? [],
+            // What the lens decomposes a merged block into. Only the point
+            // paths carry it: an Area lane's worst cell is a different subject,
+            // and its per-satellite record is not what "least-covered cell"
+            // means.
+            perSatellite: analysis?.perSatellite,
             statistics: analysis?.statistics ?? null,
             statusLabel: isComputing && !analysis ? 'Computing…' : null,
             unbounded: analysis?.statistics.coverage === 'NEVER_IN_VIEW',
@@ -1367,6 +1373,7 @@ export const RevisitApp: React.FC<RevisitAppProps> = ({
                 label: `${roleLabel} · ${point?.target.name ?? 'Location required'}`,
                 name: point?.target.name ?? 'Location required',
                 intervals: comparisonRow?.intervals ?? [],
+                perSatellite: comparisonRow?.perSatellite,
                 statistics: comparisonRow?.statistics ?? null,
                 statusLabel: !point
                     ? 'Location required'

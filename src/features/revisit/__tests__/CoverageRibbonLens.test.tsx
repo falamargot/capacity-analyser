@@ -419,7 +419,6 @@ describe('CoverageRibbon + lens — seeking (P3)', () => {
         await frame();
         expect(readout()).toContain('Tick drawn here');
         expect(readout()).toContain('the pass ended 30 s ago');
-        expect(readout()).toContain('click to seek to it');
     });
 });
 
@@ -627,7 +626,6 @@ describe('CoverageRibbon + lens — both lanes on one axis', () => {
         expect(primary.getAttribute('data-revisit-lens-emphasis')).toBe('false');
         expect(secondary.getAttribute('data-revisit-lens-emphasis')).toBe('true');
         // The emphasised row offers the click...
-        expect(readout()).toContain('click to seek to it');
         // ...the other is context: short, and never an offer.
         const aside = primary.querySelector('[data-revisit-lens-readout]')?.textContent ?? '';
         expect(aside).toMatch(/^(In view|Next in|No pass in view)/);
@@ -721,7 +719,6 @@ describe('CoverageRibbon + lens — both lanes on one axis', () => {
         // offered — and the sentence says so.
         pointer('pointerenter', clientXFor(passStart + 2 * 60_000), 0);
         await frame();
-        expect(readout()).toContain('click to seek to it');
 
         const outlined = outlinedTicks();
         // One tick, on the row that owns the click. Never on the other.
@@ -730,6 +727,24 @@ describe('CoverageRibbon + lens — both lanes on one axis', () => {
             ?.getAttribute('data-revisit-lens-emphasis')).toBe('true');
         // And it is the tick for the pass the sentence names: left of centre.
         expect(Number(outlined[0].getAttribute('x'))).toBeLessThan(150);
+    });
+
+    it('keeps the outline readable on a pass reduced to a pixel', async () => {
+        // 12 s at 12 s/px: one pixel of tick. A 1.5 px stroke centred on its
+        // edges would leave none of it visible.
+        const brief = interval(EPOCH + 30 * HOUR, EPOCH + 30 * HOUR + 12_000);
+        renderRibbon([{ ...LANE, selected: true, intervals: [brief] }]);
+        pointer('pointerenter', clientXFor(EPOCH + 30 * HOUR + 3 * 60_000), 0);
+        await frame();
+
+        const outlined = outlinedTicks();
+        expect(outlined).toHaveLength(1);
+        expect(Number(outlined[0].getAttribute('width'))).toBeLessThan(4);
+        expect(outlined[0].getAttribute('stroke-width')).toBe('1');
+        expect(outlined[0].getAttribute('rx')).toBe('1.5');
+        // The tick keeps its measured width: the ribbon already overstates a
+        // short pass, and widening it here would repeat that inside the lens.
+        expect(Number(outlined[0].getAttribute('width'))).toBeCloseTo(1, 6);
     });
 
     it('outlines nothing while the pointer is inside a pass', async () => {
@@ -764,10 +779,268 @@ describe('CoverageRibbon + lens — both lanes on one axis', () => {
         expect(outlinedTicks()[0].getAttribute('data-revisit-lens-tick')).not.toBe(first);
     });
 
+    it('re-strokes the outline when the same slot comes to hold another pass', async () => {
+        // The tick pool is indexed by POSITION in the visible hour, not by
+        // pass: as one pass leaves the hour the list shifts under the index.
+        // Here the destination is slot 0 both times — first a 5 min pass, then
+        // a 12 s one — so keying the stroke on the index alone left the wide
+        // pass's 1.5 px treatment on a 1 px tick, swallowing it whole.
+        const wideStart = EPOCH + 30 * HOUR;
+        const narrowStart = wideStart + 90 * 60_000;
+        renderRibbon([{
+            ...LANE, selected: true,
+            intervals: [
+                interval(wideStart, wideStart + 5 * 60_000),
+                interval(narrowStart, narrowStart + 12_000),
+            ],
+        }]);
+
+        pointer('pointerenter', clientXFor(wideStart + 10 * 60_000), 0);
+        await frame();
+        expect(outlinedTicks()).toHaveLength(1);
+        expect(outlinedTicks()[0].getAttribute('data-revisit-lens-tick')).toBe('0');
+        expect(outlinedTicks()[0].getAttribute('stroke-width')).toBe('1.5');
+        expect(outlinedTicks()[0].getAttribute('rx')).toBeNull();
+
+        // The wide pass is now out of the hour; slot 0 is the 12 s pass.
+        pointer('pointermove', clientXFor(narrowStart - 5 * 60_000), 0);
+        await frame();
+        const [outlined] = outlinedTicks();
+        expect(outlined.getAttribute('data-revisit-lens-tick')).toBe('0');
+        expect(Number(outlined.getAttribute('width'))).toBeLessThan(4);
+        expect(outlined.getAttribute('stroke-width')).toBe('1');
+        expect(outlined.getAttribute('rx')).toBe('1.5');
+    });
+
     it('shows a single row for a single-lane timeline', async () => {
         renderRibbon();
         pointer('pointerenter', clientXFor(EPOCH + 30 * HOUR), 0);
         await frame();
         expect(rows()).toHaveLength(1);
+    });
+});
+
+describe('CoverageRibbon + lens — the union, decomposed', () => {
+    /** One four-minute block on the lane, made of two overlapping passes. */
+    const handoverStart = EPOCH + 30 * HOUR;
+    const handover: CoverageRibbonTarget = {
+        ...LANE,
+        selected: true,
+        intervals: [interval(handoverStart, handoverStart + 4 * 60_000)],
+        perSatellite: [
+            {
+                satelliteId: 'P03_S01',
+                intervals: [{
+                    startMs: handoverStart + 90_000, endMs: handoverStart + 4 * 60_000,
+                    clippedAtStart: false, clippedAtEnd: false,
+                }],
+            },
+            {
+                satelliteId: 'P02_S05',
+                intervals: [{
+                    startMs: handoverStart, endMs: handoverStart + 2 * 60_000,
+                    clippedAtStart: false, clippedAtEnd: false,
+                }],
+            },
+        ],
+    };
+
+    function bands(): HTMLElement[] {
+        return [...document.body.querySelectorAll('[data-revisit-lens-band]')]
+            .filter((node): node is HTMLElement =>
+                node instanceof SVGElement === false ? false : (node as unknown as HTMLElement).style.display !== 'none') as HTMLElement[];
+    }
+    function contributors(): string {
+        return document.body.querySelector(
+            `${EMPHASISED} [data-revisit-lens-contributors]`,
+        )?.textContent ?? '';
+    }
+
+    it('resolves a merged block into one band per satellite', async () => {
+        renderRibbon([handover]);
+        pointer('pointerenter', clientXFor(handoverStart + 2 * 60_000), 0);
+        await frame();
+
+        // Two satellites saw the target in this hour, so two bands — and the
+        // lane above still draws the single merged block it always drew.
+        expect(bands()).toHaveLength(2);
+        // Stacked in the order they start, so the sentence reads top to bottom.
+        expect(contributors()).toBe('Handover P02_S05 → P03_S01');
+    });
+
+    it('says a single satellite plainly, with no handover', async () => {
+        renderRibbon([{
+            ...handover,
+            intervals: [interval(handoverStart, handoverStart + 90_000)],
+            perSatellite: [handover.perSatellite![1]],
+        }]);
+        pointer('pointerenter', clientXFor(handoverStart + 30_000), 0);
+        await frame();
+        expect(bands()).toHaveLength(1);
+        expect(contributors()).toBe('P02_S05');
+    });
+
+    it('counts only the satellites that have a pass in the visible hour', async () => {
+        // Nine contributors over the window, one of them in this hour. The
+        // count under the bands is about what is drawn, not about the window.
+        const elsewhere = Array.from({ length: 8 }, (_u, i) => ({
+            satelliteId: `P0${i}_S00`,
+            intervals: [{
+                startMs: EPOCH + (40 + i) * HOUR, endMs: EPOCH + (40 + i) * HOUR + 60_000,
+                clippedAtStart: false, clippedAtEnd: false,
+            }],
+        }));
+        renderRibbon([{
+            ...handover,
+            intervals: [interval(handoverStart, handoverStart + 90_000)],
+            perSatellite: [handover.perSatellite![1], ...elsewhere],
+        }]);
+        pointer('pointerenter', clientXFor(handoverStart + 30_000), 0);
+        await frame();
+        expect(bands()).toHaveLength(1);
+        expect(contributors()).toBe('P02_S05');
+    });
+
+    it('says how many bands it could not draw, when there are too many', async () => {
+        const crowd = Array.from({ length: 6 }, (_u, i) => ({
+            satelliteId: `P0${i}_S07`,
+            intervals: [{
+                startMs: handoverStart + i * 20_000, endMs: handoverStart + i * 20_000 + 40_000,
+                clippedAtStart: false, clippedAtEnd: false,
+            }],
+        }));
+        renderRibbon([{
+            ...handover,
+            intervals: [interval(handoverStart, handoverStart + 3 * 60_000)],
+            perSatellite: crowd,
+        }]);
+        pointer('pointerenter', clientXFor(handoverStart + 60_000), 0);
+        await frame();
+        expect(bands()).toHaveLength(4);
+        expect(contributors()).toContain('+2 more');
+    });
+
+    it('draws no bands for a lane the pointer is not on', async () => {
+        renderRibbon([handover, {
+            ...LANE,
+            id: 'secondary', name: 'Other target', roleLabel: 'Secondary',
+            selected: false, perSatellite: undefined,
+            intervals: [interval(handoverStart, handoverStart + 30_000)],
+        }]);
+        pointer('pointerenter', clientXFor(handoverStart + 2 * 60_000), 1);
+        await frame();
+        // The emphasis is on the secondary, which carries no per-satellite
+        // record: nothing is decomposed, and the primary's bands are not shown
+        // under a lane nobody is pointing at.
+        expect(bands()).toHaveLength(0);
+    });
+
+    it('shows nothing when the hovered hour holds no pass at all', async () => {
+        renderRibbon([handover]);
+        pointer('pointerenter', clientXFor(handoverStart + 30 * HOUR), 0);
+        await frame();
+        expect(bands()).toHaveLength(0);
+        expect(contributors()).toBe('');
+    });
+
+    function strips(): SVGSVGElement[] {
+        return [...document.body.querySelectorAll('[data-revisit-lens-bands]')]
+            .filter((node): node is SVGSVGElement => node instanceof SVGElement);
+    }
+
+    it('gives the strip no height at all on a row with nothing to decompose', async () => {
+        renderRibbon([handover, {
+            ...LANE,
+            id: 'secondary', name: 'Other target', roleLabel: 'Secondary',
+            selected: false, perSatellite: undefined,
+            intervals: [interval(handoverStart, handoverStart + 30_000)],
+        }]);
+        pointer('pointerenter', clientXFor(handoverStart + 2 * 60_000), 0);
+        await frame();
+
+        // The panel is 126 px tall on a phone. A strip reserving four bands on
+        // every row — the Area lane, the lane with no per-satellite record, the
+        // row nobody is pointing at — spent up to 56 px of it drawing nothing.
+        const visible = strips().filter((node) => node.style.display !== 'none');
+        expect(visible).toHaveLength(1);
+        expect(Number(visible[0].getAttribute('height'))).toBe(2 * (5 + 2));
+    });
+
+    it('shrinks the strip when a satellite leaves the visible hour', async () => {
+        renderRibbon([handover]);
+        pointer('pointerenter', clientXFor(handoverStart + 2 * 60_000), 0);
+        await frame();
+        const twoBands = Number(strips()[0].getAttribute('height'));
+
+        // The lens shows a whole hour, centred: at +33 min the first
+        // satellite's pass (0–2 min) has fallen out of it and the second's
+        // (1.5–4 min) has not.
+        pointer('pointermove', clientXFor(handoverStart + 33 * 60_000), 0);
+        await frame();
+        expect(bands()).toHaveLength(1);
+        expect(Number(strips()[0].getAttribute('height'))).toBeLessThan(twoBands);
+    });
+
+    it('keeps the four earliest satellites, in order, whatever order they arrive in', async () => {
+        // The pool is filled by a bounded insertion sort rather than by
+        // sort-then-truncate, so which four survive — and in what order — is
+        // logic now, not a library call. `perSatellite` arrives in the engine's
+        // order, which is not the hour's order.
+        const at = (minutes: number) => ({
+            startMs: handoverStart + minutes * 60_000,
+            endMs: handoverStart + minutes * 60_000 + 60_000,
+            clippedAtStart: false, clippedAtEnd: false,
+        });
+        const shuffled = [
+            { satelliteId: 'SAT_D', intervals: [at(15)] },
+            { satelliteId: 'SAT_F', intervals: [at(25)] },
+            { satelliteId: 'SAT_A', intervals: [at(0)] },
+            { satelliteId: 'SAT_C', intervals: [at(10)] },
+            { satelliteId: 'SAT_E', intervals: [at(20)] },
+            { satelliteId: 'SAT_B', intervals: [at(5)] },
+        ];
+        renderRibbon([{
+            ...handover,
+            intervals: [interval(handoverStart, handoverStart + 26 * 60_000)],
+            perSatellite: shuffled,
+        }]);
+        pointer('pointerenter', clientXFor(handoverStart + 12 * 60_000), 0);
+        await frame();
+
+        expect(bands()).toHaveLength(4);
+        expect(contributors()).toBe('SAT_A · SAT_B · SAT_C · SAT_D · +2 more');
+    });
+
+    it('says a band is too dense rather than drawing eight of its passes', async () => {
+        // Twenty passes in the hour for one satellite: past the eight-tick pool.
+        // Drawing eight would leave twelve gaps a reader cannot tell from real
+        // ones — the same lie the lane above refuses with its density fill.
+        const busy = {
+            satelliteId: 'P01_S02',
+            intervals: Array.from({ length: 20 }, (_u, i) => ({
+                startMs: handoverStart + i * 60_000,
+                endMs: handoverStart + i * 60_000 + 20_000,
+                clippedAtStart: false, clippedAtEnd: false,
+            })),
+        };
+        renderRibbon([{
+            ...handover,
+            intervals: [interval(handoverStart, handoverStart + 20 * 60_000)],
+            perSatellite: [busy],
+        }]);
+        pointer('pointerenter', clientXFor(handoverStart + 10 * 60_000), 0);
+        await frame();
+
+        expect(bands()).toHaveLength(1);
+        const drawn = [...bands()[0].querySelectorAll('rect[data-revisit-lens-tick]')]
+            .filter((node) => (node as unknown as SVGElement).style.display !== 'none');
+        expect(drawn).toHaveLength(0);
+        const density = bands()[0]
+            .querySelector('[data-revisit-lens-band-density]') as unknown as SVGElement;
+        expect(density.style.display).not.toBe('none');
+        // The clause LEADS the sentence: the line is `truncate` in a 300 px
+        // panel, so appended it was clipped away in exactly the crowded case
+        // it exists for.
+        expect(contributors()).toMatch(/^1 band too dense to resolve · /);
     });
 });

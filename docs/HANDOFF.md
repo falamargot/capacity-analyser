@@ -100,11 +100,80 @@ phrases décrivent), le tireté est le PLAYHEAD (ce que le globe montre). Sans
 lui, « In view » sur une ligne et aucun satellite sur la cible se lisaient comme
 une contradiction, alors que ce sont deux instants différents.
 
-**Reste ouvert :** sous-lignes par satellite dans la loupe
-(`AccessInterval.satelliteIds`) ; le taux de trame présenté — non mesurable ici,
-le pane d'automatisation rapportant `visibilityState === "hidden"` ; et la
-vérification en direct sur viewport mobile, bloquée par la même cause (la preuve
-mobile est au niveau composant, `CoverageLensMobile.test.tsx`).
+**Sous-lignes par satellite (faites) :** `perSatellite` traverse maintenant le
+worker (contributeurs seuls) et la loupe décompose le bloc de l'union en une
+bande par satellite, sur le même axe. Pas d'identifiants sur les bandes — la
+place horizontale est l'axe ; ils vont dans la ligne de texte dessous
+(« Handover A → B »). `passSpans` est devenu générique parce que les spans par
+satellite ne sont pas des `AccessInterval`.
+
+**Vérification mobile : faite en direct** à 375 × 812 (panneau épinglé à 31 px,
+entier dans l'écran, glissement au doigt qui scrube, bandes présentes). La
+méthode compte : le pane ne présente des trames que pendant une capture, donc
+dispatcher / capturer / lire doivent être **trois appels séparés**.
+
+**Reste ouvert :** le taux de trame présenté — non mesurable ici,
+le pane d'automatisation rapportant `visibilityState === "hidden"`  ; et le verrou de ligne au tactile entre deux lignes, qui reste
+couvert au niveau composant seulement (`CoverageLensMobile.test.tsx`).
+
+### Revue finale du lot : les quatre constats corrigés (2026-09-05)
+
+Deux d'entre eux avaient été **introduits par les sous-lignes elles-mêmes**.
+
+1. **Bande de hauteur fixe.** Le `<svg>` des bandes réservait quatre bandes
+   (28 px) sur *chaque* ligne, y compris une ligne AREA, une ligne sans
+   `perSatellite`, et la ligne non emphasée — jusqu'à 56 px des 126 px que
+   donne un écran de 375 px. Sa hauteur est désormais écrite par trame
+   (`bandStripRefs`) et la bande disparaît quand il n'y a rien à décomposer.
+2. **Contour périmé.** `stroke-width`/`rx` n'étaient écrits que si l'INDICE du
+   tick changeait. Or `spans` est reconstruit à chaque trame depuis l'heure
+   visible : le même indice se met à désigner un autre passage dès qu'un
+   passage sort de la fenêtre, et un tick de 1 px héritait du trait de 1,5 px
+   qui l'avale — exactement ce que `OUTLINE_MIN_TICK_PX` venait d'empêcher.
+   L'état suivi inclut maintenant le traitement (`outlinedThinRef`).
+3. **Bande trop dense, silencieuse.** Au-delà de `MAX_SUB_TICKS` (8) une bande
+   dessinait huit passages sur vingt et jetait le reste sans le dire : douze
+   trous impossibles à distinguer de vrais trous. Elle affiche désormais le
+   remplissage de densité, comme la piste au-dessus, et la phrase des
+   contributeurs le nomme (« 1 band too dense to resolve »).
+
+4. **Allocations et O(bandes²×spans²) dans `summariseContributors`.** L'appel
+   déballait les `PassSpan` en intervalles nus — un tableau par bande, plus les
+   tableaux externes, à chaque mouvement de pointeur — dans le seul chemin dont
+   toute la conception est de ne rien allouer au rythme du pointeur. Trois
+   changements : `summariseContributors` accepte désormais les bandes telles
+   qu'elles sont DESSINÉES (`ContributorBand`, `spans` par référence) avec un
+   `count`, puisque le tableau est un pool ; le test de recouvrement est une
+   fusion à deux curseurs (`bandsOverlap`) au lieu de span×span ; et le
+   `push`/`sort`/`truncate` par contributeur est remplacé par un tri par
+   insertion borné dans un pool de quatre créneaux (`bandScratch`), qui conserve
+   les quatre plus précoces en ordre d'empilement tout en comptant *tous* les
+   satellites vus dans l'heure — ce dont « +N more » parle. `EMPTY_CONTRIBUTORS`
+   remplace un `?? []` par trame.
+
+Il reste une allocation par trame dans ce bloc : `passSpans` rend un tableau
+neuf par contributeur. Elle est **inhérente et partagée avec la piste** (un
+appel par ligne et par trame) ; la supprimer demanderait un pool de spans dans
+`passSpans` lui-même, ce que rien ne justifie à 0,13 ms.
+
+**Deux points d'une revue finale, corrigés aussi.** La clause « N bands too
+dense to resolve » **ouvre** désormais la phrase des contributeurs : la ligne
+est `truncate` dans un panneau de 300 px (~57 caractères) et quatre
+identifiants plus « +N more » plus la clause en font 77 — ajoutée à la fin,
+elle était coupée exactement dans le cas encombré pour lequel elle existe, ne
+laissant qu'un aplat sans explication. Et `summariseContributors` n'a plus de
+valeur par défaut pour `count` : le tableau étant un pool, `bands.length` est
+la seule valeur jamais correcte, et des créneaux périmés portent des
+identifiants plausibles — la mauvaise phrase se serait affichée en silence.
+
+**« click to seek to it » retiré de la phrase** (décision utilisateur) : la
+phrase nomme l'écart, le tick contourné montre *où* le clic atterrit. Le
+comportement du snap est inchangé ; deux assertions négatives le gardent.
+
+**État :** 2355 tests verts, `tsc` et `eslint` propres, loupe 0,13 ms moyen. Ces quatre correctifs
+sont couverts au niveau DOM (`CoverageRibbonLens.test.tsx`) ; ils n'ont pas été
+revérifiés dans le pane, la vérification mobile en direct ci-dessus datant
+d'avant.
 
 
 ## 2026-09-04 — S-7 (accessibility) and M-5 (globe↔sidebar hover)

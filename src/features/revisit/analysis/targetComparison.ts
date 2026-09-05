@@ -1,4 +1,4 @@
-import { computeAccessIntervalsForTargets } from './accessIntervals';
+import { computeAccessIntervalsForTargets, contributingSatellites } from './accessIntervals';
 import { computeGapStatistics } from './gapStatistics';
 import { constellationFor, type ConstellationCache } from './runScenario';
 import { validateScenario } from './scenarioValidation';
@@ -28,6 +28,7 @@ export function compareRevisitTargets(
             target,
             statistics,
             intervals: access.intervals,
+            perSatellite: contributingSatellites(access.perSatellite),
             payloadCount: selected.length,
             warnings: [...new Set([...validation.warnings, ...statistics.warnings])],
         };
