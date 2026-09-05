@@ -12,6 +12,13 @@ import { computeGaps, formatGap } from '../analysis/gapStatistics';
 import { REFERENCE_POINT_ID, type RevisitAnalysisContext } from '../domain/analysisTargets';
 import type { AccessInterval, AnalysisWindow, GapStatistics } from '../domain/types';
 import { AnalysisWindowControl } from './AnalysisWindowControl';
+import {
+    CoverageLens, type CoverageLensAnchor, type CoverageLensHandle,
+    type CoverageLensLane,
+} from './CoverageLens';
+import { SNAP_TOLERANCE_PX } from './coverageRibbonSnap';
+import { describePassAt } from './lensReadings';
+import { RIBBON_MIN_SPAN_FRACTION, drawnPassNear, passSpans } from './passSpans';
 import { REVISIT_COLORS, REVISIT_LABEL, REVISIT_OUTCOME, REVISIT_PANEL } from './revisitTheme';
 
 export interface CoverageRibbonLane {
@@ -84,6 +91,13 @@ interface CoverageRibbonProps {
 }
 
 const TRACK_HEIGHT = 18;
+
+/*
+ * The snap tolerance is `SNAP_TOLERANCE_PX`, shared with the lens: the same
+ * three pixels are 9 min on a 72 h window and 3 min on a 24 h one, which is the
+ * right behaviour — the tolerance follows what the reader can see, not the
+ * clock.
+ */
 
 /**
  * The in-view band (R32), isolated behind `React.memo`.
@@ -165,6 +179,77 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
 }) => {
     const seekRef = useRef<HTMLDivElement | null>(null);
     const playheadRef = useRef<HTMLDivElement | null>(null);
+    /*
+     * ── THE LENS'S PLUMBING, AND WHY IT IS THREE REFS ───────────────────────
+     *
+     * The pointer moves far faster than this component may re-render. A
+     * `useState` here would re-render the ribbon and every lane on it at pointer
+     * rate — the cost `InViewBand`'s memo exists to avoid, paid on the one
+     * surface the module presents from.
+     *
+     * So the pointer writes a number into `hoverXRef`, the frame loop below
+     * reads it, and the lens is updated through its imperative handle. Nothing
+     * in this path touches React state.
+     *
+     * `trackBoxRef` caches the seek surface's geometry. Reading
+     * `getBoundingClientRect()` inside the frame loop would force layout every
+     * frame while the pointer is down — the classic hidden cost of a hover
+     * lens, and the one mistake here that would actually drop frames.
+     */
+    const lensRef = useRef<CoverageLensHandle | null>(null);
+    const lanesRef = useRef<HTMLDivElement | null>(null);
+    const hoverXRef = useRef<number | null>(null);
+    const hoverYRef = useRef(0);
+    const hoverLaneRef = useRef(0);
+    /** Whether the live gesture is a finger — see the lane lock in `onMove`. */
+    const hoverIsTouchRef = useRef(false);
+    const trackBoxRef = useRef<CoverageLensAnchor>({ left: 0, width: 0, anchorTop: 0 });
+    /**
+     * Each lane row's vertical band, in viewport coordinates.
+     *
+     * The seek surface spans every lane at once, so only `clientY` says which
+     * lane the pointer is on. Measured beside the track box — at `pointerenter`
+     * and on resize — because reading these rects inside the frame loop would
+     * force layout on every pointer move, once per lane.
+     */
+    const laneBandsRef = useRef<Array<{ top: number; bottom: number }>>([]);
+    /**
+     * The pointer effect's own `measure`, exposed so the frame loop can refresh
+     * the cache at its 2 Hz cadence WHILE HOVERING — never per frame.
+     *
+     * A `ResizeObserver` does not fire for a position change, so a reflow above
+     * the track (a comparison status appearing, the reading wrapping) moves the
+     * rows under a resting pointer and leaves the cache describing where they
+     * used to be: the lens then reads a lane that is no longer under the cursor.
+     * Two refreshes a second bound that staleness without ever putting a layout
+     * read in the frame path.
+     */
+    const measureRef = useRef<(() => void) | null>(null);
+    /** The effect's lane resolver, so a periodic re-measure can re-answer
+     *  "which row is under the pointer" without a pointer event. */
+    const laneAtRef = useRef<((clientY: number) => number) | null>(null);
+    /**
+     * The playhead's own pass reading — the lens's answer for everyone who has
+     * no pointer.
+     *
+     * Hovering is a mouse affordance: it does not exist on touch, and the
+     * keyboard path (arrows step an hour) never produces one. Rather than pin a
+     * floating panel over the globe for those users, the same sentence is
+     * written into the header, imperatively and at the aria cadence — no state,
+     * no panel, no placement problem.
+     */
+    const playheadReadingRef = useRef<HTMLSpanElement | null>(null);
+    /**
+     * The SELECTED lane, which the playhead reading speaks about.
+     *
+     * Deliberately not the hovered one: the reading has no pointer behind it —
+     * it is what the header says when nobody is touching anything — and the
+     * selection is already the module's answer to "which target are we talking
+     * about". The lens is the surface that follows the pointer.
+     */
+    const selectedLaneRef = useRef<CoverageRibbonLane | null>(null);
+    /** The lanes the lens can read, in row order. */
+    const lensLanesRef = useRef<CoverageLensLane[]>([]);
     const [currentHours, setCurrentHours] = useState(0);
     const windowMs = windowHours * 3600_000;
     const windowEndMs = windowStartMs + windowMs;
@@ -188,20 +273,134 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
             longestGap: longestInteriorGap(lane.intervals, lane.statistics, windowStartMs, windowHours),
         }));
     }, [targetLanes, lanes, windowStartMs, windowHours]);
+    /*
+     * The lens reads ONE lane: the selected one, or the primary.
+     *
+     * A lens per lane would multiply the pools and, worse, ask the reader which
+     * of three magnified strips answers their question. The selected lane is
+     * already the module's answer to "which target are we talking about" — the
+     * KPI panel, the sizing evidence and the globe all follow it.
+     */
+    /*
+     * The lens reads the lane UNDER THE POINTER, not the selected one.
+     *
+     * With two or three comparison lanes on screen, hovering the Secondary row
+     * and being shown the Primary's passes is simply unreadable — the panel
+     * answers a question the reader did not ask. So every lane is handed to the
+     * lens and the frame loop names one by index; nothing here is state, so
+     * crossing a lane boundary costs no render.
+     */
+    const lensLanes = useMemo<CoverageLensLane[]>(() => targetRows.map((row, index) => ({
+        id: row.id,
+        name: row.name,
+        intervals: row.intervals,
+        color: row.roleLabel === 'Primary' ? REVISIT_COLORS.target : REVISIT_COLORS.comparison,
+        // An Area lane measures its worst cell, never the whole zone. The lens
+        // says so, or a hovered Area row reads as "the zone is covered".
+        basisLabel: row.kind === 'AREA' ? row.basisLabel : undefined,
+        /*
+         * The SAME rule the result cell uses two columns to the right — see
+         * `waiting` below. A lane with no result yet must not be described as a
+         * lane with no passes: "No pass in view" is a finding, and this lane has
+         * not produced one. Kept as one expression rather than two so the panel
+         * and the cell cannot drift apart.
+         */
+        statusLabel: row.statusLabel
+            ?? (index > 0 && !row.statistics && comparisonIsComputing ? 'Computing…' : null),
+    })), [targetRows, comparisonIsComputing]);
+    lensLanesRef.current = lensLanes;
+    const selectedLane = useMemo(
+        () => targetRows.find((row) => row.selected) ?? targetRows[0] ?? null,
+        [targetRows],
+    );
+    selectedLaneRef.current = selectedLane;
+    /** AREA without an analysis shows a placeholder, not a timeline: nothing to seek on. */
+    const hasSeekableTrack = targetRows.some((row) => row.kind === 'POINT' || row.intervals.length > 0);
     useEffect(() => {
         let frame = 0;
         let lastAriaMs = 0;
+        let lastHoverX: number | null = null;
+        let lastHoverLane = -1;
+        const pushLens = (hoverX: number | null, hoverLane: number) => {
+            lastHoverX = hoverX;
+            lastHoverLane = hoverLane;
+            const box = trackBoxRef.current;
+            if (hoverX === null || box.width === 0) {
+                lensRef.current?.update(null);
+                return;
+            }
+            const fraction = Math.max(0, Math.min(1, (hoverX - box.left) / box.width));
+            lensRef.current?.update(
+                windowStartMs + fraction * windowMs, hoverX, hoverLane,
+            );
+        };
         const tick = () => {
             frame = requestAnimationFrame(tick);
             const nowMs = getTimeMs();
             if (playheadRef.current) {
                 playheadRef.current.style.left = `${fractionOf(nowMs) * 100}%`;
             }
+            /*
+             * The lens rides this frame rather than opening its own.
+             *
+             * Coalescing is free here: however many `pointermove` events the
+             * browser delivered since the last frame, only the latest position
+             * is read, and an unchanged position does no work at all. When the
+             * pointer is away, `hoverXRef` holds null, this branch is a single
+             * comparison, and the loop costs exactly what it cost before the
+             * lens existed.
+             */
+            const hoverX = hoverXRef.current;
+            if (hoverX !== lastHoverX || hoverLaneRef.current !== lastHoverLane) {
+                pushLens(hoverX, hoverLaneRef.current);
+            }
             const wall = performance.now();
             if (wall - lastAriaMs >= 500) {
                 lastAriaMs = wall;
+                /*
+                 * Only while a pointer is on the track: at rest this costs
+                 * nothing, and the profile is the one that existed before the
+                 * lens. Re-measuring alone would leave the panel where it was,
+                 * so the reading is pushed again — the row under a resting
+                 * pointer and the panel's own position both correct themselves
+                 * within half a second of a reflow, with no pointer event.
+                 */
+                if (hoverX !== null) {
+                    measureRef.current?.();
+                    // A finger keeps the row it landed on; a mouse follows what
+                    // is now under it. Same rule as `onMove`.
+                    if (!hoverIsTouchRef.current && laneAtRef.current) {
+                        hoverLaneRef.current = laneAtRef.current(hoverYRef.current);
+                    }
+                    pushLens(hoverX, hoverLaneRef.current);
+                }
                 const hours = (nowMs - windowStartMs) / 3600_000;
                 setCurrentHours((previous) => Math.abs(previous - hours) >= 0.1 ? hours : previous);
+                // Written, not rendered. `setCurrentHours` deliberately ignores
+                // anything under 0.1 h — six minutes, which is longer than most
+                // passes — so the reading cannot ride on that state.
+                const reading = playheadReadingRef.current;
+                const lane = selectedLaneRef.current;
+                if (reading && lane) {
+                    // No tolerance here: the playhead is not a click, so it
+                    // states what IS, never what a click would do.
+                    //
+                    // Named as soon as there is more than one lane. This reading
+                    // follows the SELECTION while the lens follows the POINTER,
+                    // so with two lanes on screen the two can legitimately speak
+                    // about different targets — and an unattributed sentence
+                    // beside "Observation schedule comparison" would be read as
+                    // being about whichever row the eye was last on.
+                    const lensLane = lensLanesRef.current
+                        .find((candidate) => candidate.id === lane.id);
+                    const body = lensLane?.statusLabel
+                        ? `${lensLane.statusLabel} · no result yet`
+                        : describePassAt(lane.intervals, nowMs);
+                    const text = lensLanesRef.current.length > 1
+                        ? `${lane.name} · ${body}`
+                        : body;
+                    if (reading.textContent !== text) reading.textContent = text;
+                }
             }
         };
         frame = requestAnimationFrame(tick);
@@ -210,14 +409,193 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [getTimeMs, windowStartMs, windowMs]);
 
+    /*
+     * ── POINTER PLUMBING ────────────────────────────────────────────────────
+     *
+     * Listeners are attached to the DOM rather than passed as React props, and
+     * `passive` so the browser never has to wait on them to scroll. A React
+     * `onPointerMove` would route every move through the synthetic event system
+     * at pointer rate for handlers that only write a number into a ref.
+     *
+     * The rect is read on enter and on resize — never in the frame loop.
+     * `hasSeekableTrack` is a dependency because the surface itself only exists
+     * when there is a track to seek on, so the effect must re-attach when one
+     * appears.
+     */
+    useEffect(() => {
+        const surface = seekRef.current;
+        if (!surface) return;
+
+        const measure = () => {
+            const rows = lanesRef.current?.querySelectorAll('[data-revisit-timeline-lane]');
+            laneBandsRef.current = rows
+                ? [...rows].map((row) => {
+                    const box = row.getBoundingClientRect();
+                    return { top: box.top, bottom: box.bottom };
+                })
+                : [];
+            const rect = surface.getBoundingClientRect();
+            /*
+             * The lens is placed above the CARD, not above the track. The card
+             * clips its own overflow, and the row directly above the track holds
+             * the transport controls — a panel anchored to the track is either
+             * invisible or sits on top of pause. Falls back to the track's own
+             * box if the card is ever restructured out from under this.
+             */
+            const card = surface.closest('.revisit-panel');
+            const anchorTop = (card ?? surface).getBoundingClientRect().top;
+            trackBoxRef.current = { left: rect.left, width: rect.width, anchorTop };
+        };
+        measureRef.current = measure;
+        /*
+         * Which row is the pointer on?
+         *
+         * The NEAREST band, never "none": the 8 px gutter between two lanes is
+         * 8 px of the same gesture, and a dead zone there would blink the panel
+         * out mid-drag. Distance to a band is zero inside it, so a pointer
+         * inside a row always picks that row.
+         */
+        const laneAt = (clientY: number): number => {
+            const bands = laneBandsRef.current;
+            let best = 0;
+            let bestDistance = Infinity;
+            for (let i = 0; i < bands.length; i += 1) {
+                const band = bands[i];
+                const distance = clientY < band.top ? band.top - clientY
+                    : clientY > band.bottom ? clientY - band.bottom
+                        : 0;
+                if (distance < bestDistance) {
+                    best = i;
+                    bestDistance = distance;
+                }
+            }
+            return best;
+        };
+        laneAtRef.current = laneAt;
+        const onEnter = (event: PointerEvent) => {
+            measure();
+            hoverXRef.current = event.clientX;
+            hoverYRef.current = event.clientY;
+            hoverIsTouchRef.current = event.pointerType === 'touch';
+            hoverLaneRef.current = laneAt(event.clientY);
+        };
+        const onMove = (event: PointerEvent) => {
+            hoverXRef.current = event.clientX;
+            hoverYRef.current = event.clientY;
+            hoverIsTouchRef.current = event.pointerType === 'touch';
+            /*
+             * ── A FINGER DOES NOT CHANGE ITS MIND VERTICALLY ────────────────
+             *
+             * A mouse moving onto another row means "read that one"; a finger
+             * dragging along a 28 px row wanders several pixels vertically
+             * without meaning anything by it, and the rows are 6 px apart. Left
+             * to re-resolve on every move, a horizontal scrub would silently
+             * change the subject halfway through — the panel would keep working
+             * and start describing another target.
+             *
+             * So touch locks the lane it started on, for the length of the
+             * gesture. Lifting and touching the other row is how a finger
+             * changes lane: `pointerenter` resolves again.
+             */
+            if (event.pointerType !== 'touch') {
+                hoverLaneRef.current = laneAt(event.clientY);
+            }
+        };
+        const onLeave = () => {
+            hoverXRef.current = null;
+        };
+
+        surface.addEventListener('pointerenter', onEnter, { passive: true });
+        // The start of a gesture re-measures: a click must be resolved against
+        // the geometry it was aimed at, not against a cache up to half a second
+        // old.
+        surface.addEventListener('pointerdown', onEnter, { passive: true });
+        surface.addEventListener('pointermove', onMove, { passive: true });
+        surface.addEventListener('pointerleave', onLeave, { passive: true });
+        // Touch has no hover, but it has a drag: a finger on the track fires
+        // enter → move → leave exactly like a mouse, so dragging along the
+        // timeline scrubs the lens and lifting the finger seeks. `pointercancel`
+        // is the case a mouse never produces — the gesture taken over by the
+        // browser — and without it the panel would be left standing.
+        surface.addEventListener('pointercancel', onLeave, { passive: true });
+        // A pointer that leaves through a scroll or a window change never fires
+        // `pointerleave`; the lens would then hang over a stale instant.
+        window.addEventListener('blur', onLeave);
+
+        const observer = typeof ResizeObserver === 'undefined'
+            ? null
+            : new ResizeObserver(measure);
+        observer?.observe(surface);
+
+        return () => {
+            surface.removeEventListener('pointerenter', onEnter);
+            surface.removeEventListener('pointerdown', onEnter);
+            surface.removeEventListener('pointermove', onMove);
+            surface.removeEventListener('pointerleave', onLeave);
+            surface.removeEventListener('pointercancel', onLeave);
+            window.removeEventListener('blur', onLeave);
+            observer?.disconnect();
+            measureRef.current = null;
+            laneAtRef.current = null;
+            hoverXRef.current = null;
+        };
+        // The lane count changes the bands this effect measures, so it must
+        // re-run when a comparison lane appears or leaves.
+    }, [hasSeekableTrack, lensLanes.length]);
+
     const seekToHours = (hours: number) => {
         const clamped = Math.max(0, Math.min(windowHours, hours));
         onSeek(windowStartMs + clamped * 3600_000);
     };
+    /*
+     * ── WHY A CLICK MAY SNAP ────────────────────────────────────────────────
+     *
+     * One pixel of this track is ~3 min of a 72 h window, and a pass lasts ~90 s.
+     * Clicking a tick therefore lands NEXT TO the pass it points at, essentially
+     * always — which is how a playhead comes to sit on a tick while the globe
+     * shows no swath on the target.
+     *
+     * So a click inside a DRAWN tick seeks to the middle of the pass that tick
+     * stands for, and pauses: at 1× a 90 s pass would be gone before it could be
+     * looked at. Everywhere else the click is the plain seek it always was, and
+     * does not pause. The snap is offered only where the drawing itself is
+     * misleading, and the lens says so before the click.
+     */
     const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
-        const rect = seekRef.current?.getBoundingClientRect();
-        if (!rect || rect.width === 0) return;
-        onSeek(windowStartMs + Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)) * windowMs);
+        /*
+         * The CACHED box, not a fresh one. The lens made its offer against this
+         * geometry; resolving the click against a different measurement is how
+         * the sentence and the action come to name two different passes.
+         * `pointerdown` refreshes it at the start of every gesture, so "cached"
+         * here means "measured microseconds ago, by the gesture itself".
+         */
+        if (trackBoxRef.current.width === 0) {
+            // No gesture has measured it yet — a click can still arrive without
+            // one (assistive tech, a synthetic event). Measure now rather than
+            // ignoring the click.
+            measureRef.current?.();
+        }
+        const rect = trackBoxRef.current;
+        if (rect.width === 0) return;
+        const fraction = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+        const requestedMs = windowStartMs + fraction * windowMs;
+        // The lane the LENS is reading, not the selected one: the sentence that
+        // offers the snap and the click that performs it must name the same
+        // pass, or the offer is a lie.
+        const lane = lensLanesRef.current[hoverLaneRef.current] ?? null;
+        const pass = lane
+            ? drawnPassNear(
+                lane.intervals, requestedMs,
+                RIBBON_MIN_SPAN_FRACTION * windowMs,
+                (SNAP_TOLERANCE_PX / rect.width) * windowMs,
+            )
+            : null;
+        if (!pass) {
+            onSeek(requestedMs);
+            return;
+        }
+        onSeek((pass.startMs + pass.endMs) / 2);
+        onSetSpeed(0);
     };
     const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
         const current = (getTimeMs() - windowStartMs) / 3600_000;
@@ -267,8 +645,6 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
         .map((lane) => lane.longestGap!.durationMs > (lane.requirementMs ?? requirementMs));
     const hasMissingLongestGap = gapOutcomes.some(Boolean);
     const hasMeetingLongestGap = gapOutcomes.some((misses) => !misses);
-    /** AREA without an analysis shows a placeholder, not a timeline: nothing to seek on. */
-    const hasSeekableTrack = targetRows.some((row) => row.kind === 'POINT' || row.intervals.length > 0);
 
     const accessTrack = (
         laneIntervals: AccessInterval[], longestGap: ReturnType<typeof longestInteriorGap>,
@@ -317,14 +693,21 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
             {inViewProfile && inViewProfile.length > 0 && (
                 <InViewBand profile={inViewProfile} color={color} />
             )}
-            {laneIntervals.map((interval, index) => {
-                const clippedStart = Math.max(interval.startMs, windowStartMs);
-                const clippedEnd = Math.min(interval.endMs, windowEndMs);
-                if (clippedEnd <= clippedStart) return null;
-                return <rect key={`${interval.startMs}-${index}`} x={`${fractionOf(clippedStart) * 100}%`} y={0}
-                    width={`${Math.max((clippedEnd - clippedStart) / windowMs * 100, 0.12)}%`}
-                    height={TRACK_HEIGHT} fill={color} opacity={0.94} />;
-            })}
+            {/*
+              * The floor in `RIBBON_MIN_SPAN_FRACTION` is what makes a pass
+              * visible at all here — at 72 h a 90 s pass is half a pixel — and
+              * it is also what makes a tick read ~3.5× longer than the pass it
+              * draws. The geometry lives in `passSpans` so the temporal lens,
+              * which needs the same projection WITHOUT the floor, cannot drift
+              * away from this track.
+              */}
+            {passSpans(laneIntervals, windowStartMs, windowEndMs, RIBBON_MIN_SPAN_FRACTION)
+                .map((span, index) => (
+                    <rect key={`${span.interval.startMs}-${index}`}
+                        x={`${span.x * 100}%`} y={0}
+                        width={`${span.width * 100}%`}
+                        height={TRACK_HEIGHT} fill={color} opacity={0.94} />
+                ))}
             {longestGap && <rect x={`${fractionOf(longestGap.startMs) * 100}%`} y={1}
                 width={`${longestGap.durationMs / windowMs * 100}%`} height={TRACK_HEIGHT - 2}
                 fill={gapColor} fillOpacity={0.16} stroke={gapColor}
@@ -367,6 +750,33 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                                 <span className="shrink-0 text-[11px] font-bold tabular-nums text-slate-400">
                                     {requirementSummary}
                                 </span>
+                            )}
+                            {/*
+                              * What is happening AT THE PLAYHEAD, in words.
+                              *
+                              * The hover lens is a mouse affordance; this is the
+                              * same sentence for a finger, a keyboard and a
+                              * screen reader, and it is also what a presenter
+                              * reads aloud without moving the mouse. Its text is
+                              * written by the frame loop, never rendered — see
+                              * `playheadReadingRef`.
+                              */}
+                            {hasSeekableTrack && (
+                                <span
+                                    ref={playheadReadingRef}
+                                    data-revisit-playhead-reading
+                                    /*
+                                      * `min-w-[17rem]` rather than `min-w-0`:
+                                      * in a wrapping flex row a shrinkable item
+                                      * is squeezed to a single letter before
+                                      * anything wraps, and "N…" is worse than
+                                      * no reading at all. With a real minimum
+                                      * the row wraps this sentence onto its own
+                                      * line when the toolbar is full, and keeps
+                                      * it inline when there is room.
+                                      */
+                                    className="w-full truncate text-[11px] font-semibold tabular-nums text-slate-400 md:w-auto md:min-w-[17rem] md:flex-1"
+                                />
                             )}
                             {isComparison && comparisonStatus}
                             {targetRows.some((row) => row.kind === 'AREA') && (
@@ -488,7 +898,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                         role={isComparison ? 'region' : undefined}
                         aria-label={isComparison ? 'Target comparison' : undefined}
                     >
-                        <div className="space-y-1.5">
+                        <div ref={lanesRef} className="space-y-1.5">
                             {targetRows.map((lane, index) => {
                                 const maxGapMs = lane.statistics?.maxGapMs ?? null;
                                 const laneRequirementMs = lane.requirementMs ?? requirementMs;
@@ -572,7 +982,20 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                           * middle cell is exactly the track box.
                           */}
                         {hasSeekableTrack && (
-                            <div className={`pointer-events-none absolute inset-0 grid gap-2 ${trackColumns}`}>
+                            /*
+                              * The `border-l-[3px]` mirrors the lane rows'
+                              * selection rail. Without it this overlay's grid
+                              * is 3 px wider than the rows' and starts 3 px
+                              * further left, so the playhead and every click
+                              * were mapped against a box the ticks are NOT
+                              * drawn in: a drift of ~14 min at the window start
+                              * on a 72 h window, decaying to zero at its end.
+                              * Measured in the browser on 2026-09-05, while
+                              * checking the lens against the drawn ticks. Same
+                              * family as the ~100 px offset that made this
+                              * overlay stop wrapping the whole rows block.
+                              */
+                            <div className={`pointer-events-none absolute inset-0 grid gap-2 border-l-[3px] border-transparent ${trackColumns}`}>
                                 <div />
                                 <div
                                     ref={seekRef}
@@ -585,13 +1008,38 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                                     aria-valuemax={windowHours}
                                     aria-valuenow={Number(currentHours.toFixed(2))}
                                     aria-valuetext={`${currentHours.toFixed(1)} hours into the window`}
-                                    className="pointer-events-auto relative cursor-pointer rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300"
+                                    /*
+                                      * `touch-pan-y`: a horizontal drag on the
+                                      * track belongs to this slider — it is how
+                                      * a finger scrubs the lens — while vertical
+                                      * panning still scrolls whatever is behind.
+                                      */
+                                    className="pointer-events-auto relative cursor-pointer touch-pan-y rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300"
                                 >
                                     <div
                                         ref={playheadRef}
                                         aria-hidden="true"
                                         className="pointer-events-none absolute inset-y-0 left-0 w-px bg-white shadow-[0_0_4px_#fff]"
                                     />
+                                    {/*
+                                      * The lens lives INSIDE the seek surface,
+                                      * which is exactly as wide as the track —
+                                      * the same box whose width the playhead
+                                      * and every click are already expressed
+                                      * in. Anchoring it anywhere else would
+                                      * reintroduce the ~100 px offset this
+                                      * surface was extracted to fix.
+                                      */}
+                                    {lensLanes.length > 0 && (
+                                        <CoverageLens
+                                            ref={lensRef}
+                                            anchorRef={trackBoxRef}
+                                            getTimeMs={getTimeMs}
+                                            lanes={lensLanes}
+                                            windowStartMs={windowStartMs}
+                                            windowMs={windowMs}
+                                        />
+                                    )}
                                 </div>
                                 <div />
                             </div>

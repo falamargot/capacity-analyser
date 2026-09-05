@@ -59,7 +59,7 @@ describe('site tooltip throughput layout', () => {
     const section = buildLeoS2SSectionA(leoS2S);
 
     expect(section.lines.map((item) => item.text)).toEqual([
-      '↑ 7 Mbps · ↓ 3 Mbps · 87 ms',
+      '↑ 7 Mbps · ↓ 3 Mbps · 87 ms RTT',
     ]);
   });
 
@@ -67,7 +67,7 @@ describe('site tooltip throughput layout', () => {
     const section = buildLeoS2SSectionB(leoS2S);
 
     expect(section.lines.map((item) => item.text)).toEqual([
-      '↑ 3 Mbps · ↓ 7 Mbps · 87 ms',
+      '↑ 3 Mbps · ↓ 7 Mbps · 87 ms RTT',
     ]);
   });
 

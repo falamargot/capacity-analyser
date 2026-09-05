@@ -149,3 +149,13 @@ describe('MobileAnalysisSummary serving satellite identity', () => {
         expect(markup).not.toContain('Capacity');
     });
 });
+
+it('preserves estimated-ceiling provenance in the compact GEO summary', () => {
+    const truth = makeTruth('GEO');
+    truth.primaryMetrics[0] = { ...truth.primaryMetrics[0], provenance: 'estimated-ceiling' };
+    const markup = renderSummary(<MobileAnalysisSummary selectedSatellite={null}
+        autoSelectedLEOSatellite={null} autoSelectedGEOSatellite={makeSatellite('EUTELSAT 21B', 'GEO')}
+        selectedPoint={{ lat: 48, lng: 2 }} compact satelliteScope="GEO" engineeringTruths={{ GEO: truth }} />);
+    expect(markup).toContain('42 Mbps');
+    expect(markup).toContain('Estimated ceiling');
+});

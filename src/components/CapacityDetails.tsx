@@ -19,7 +19,6 @@ import {
   GEOConnectivitySection,
 } from './capacity';
 import type { TerminalType, WeatherType } from './capacity';
-import { formatNumber } from '../utils/formatters';
 import { ConnectivityDot } from './capacity/shared/ConnectivityDot';
 
 interface CapacityDetailsProps {
@@ -196,6 +195,27 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     exportButtonPayload,
     realTimeData,
   } = useEngineeringAnalysisContext();
+
+  /*
+   * The regulatory notice waits before it accuses anything.
+   *
+   * `useEngineeringAnalysis` now clears the result at the START of every lookup
+   * so a stale verdict cannot survive a new point — which means "no result" is
+   * the normal state for the first few hundred milliseconds of every single
+   * selection. Rendering the warning on that state made it flash on the happy
+   * path, and a warning that appears on every successful click is one nobody
+   * reads. It appears only once the lookup has plainly failed to arrive.
+   */
+  const [regulatoryLookupLooksStuck, setRegulatoryLookupLooksStuck] = useState(false);
+  useEffect(() => {
+    if (!selectedPoint || regulatoryResult) {
+      setRegulatoryLookupLooksStuck(false);
+      return;
+    }
+    setRegulatoryLookupLooksStuck(false);
+    const timer = setTimeout(() => setRegulatoryLookupLooksStuck(true), 2_000);
+    return () => clearTimeout(timer);
+  }, [selectedPoint, regulatoryResult]);
 
   const activePoint = selectedPoint;
 
@@ -501,6 +521,12 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
             </div>
           )}
 
+          {regulatoryLookupLooksStuck && (
+            <p role="status" className="mb-3 text-xs text-amber-700 dark:text-amber-300">
+              Regulatory evidence is unavailable. Check the regulatory service connection before relying on service availability.
+            </p>
+          )}
+
           {/* Export the same canonical result shown above. */}
           {exportButtonPayload && activeEngineeringTruth
             && activeEngineeringTruth.state !== 'incomplete'
@@ -517,9 +543,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
           {selectedPoint && (
             <div className="text-xs text-gray-500 dark:text-gray-400 text-center py-2 space-y-1">
               <div>
-                {realTimeData.leoCapacityIsTerminalPeak
-                  ? `Est. terminal peak: ${(realTimeData.totalCapacity * 1000).toFixed(0)} Mbps (sim.) · `
-                  : `Nominal capacity: ${formatNumber(realTimeData.totalCapacity)} Gbps · `}
                 {realTimeData.coveredSatellites.length} {satelliteScope === 'ALL' ? 'satellites' : satelliteScope.toLowerCase()} in coverage
               </div>
               {analysisSource === 'aircraft' && aircraftCallsign && (

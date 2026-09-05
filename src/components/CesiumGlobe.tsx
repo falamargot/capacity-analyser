@@ -3381,7 +3381,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 // Use site-level throughput; show as "ms Latency" (not RTT).
                 const performanceLine = [
                     commercialViewModel.downloadMbps ? `${Math.round(commercialViewModel.downloadMbps)} Mbps${commercialViewModel.downloadEstimated ? ' (est.)' : ''}` : null,
-                    commercialViewModel.rttMs ? `${Math.round(commercialViewModel.rttMs)} ms Latency` : null,
+                    commercialViewModel.rttMs ? `${Math.round(commercialViewModel.rttMs)} ms RTT` : null,
                 ].filter(Boolean).join(' · ');
                 const narrativeText = accessSegment?.story ?? commercialViewModel.serviceMessage ?? siteALabel;
                 return (
@@ -3458,7 +3458,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 // Show as "ms Latency" (not RTT).
                 const performanceLine = [
                     commercialViewModel.uploadMbps ? `${Math.round(commercialViewModel.uploadMbps)} Mbps${commercialViewModel.uploadEstimated ? ' (est.)' : ''}` : null,
-                    commercialViewModel.rttMs ? `${Math.round(commercialViewModel.rttMs)} ms Latency` : null,
+                    commercialViewModel.rttMs ? `${Math.round(commercialViewModel.rttMs)} ms RTT` : null,
                 ].filter(Boolean).join(' · ');
                 const narrativeText = destinationSegment?.story ?? commercialViewModel.serviceMessage ?? siteBLabel;
                 // Outcome highlight (Part F): brief glow on Site B after the

@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
+import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
 import AircraftSelector from '../AircraftSelector';
 import VesselSelector from '../VesselSelector';
 
@@ -84,4 +85,14 @@ describe('live traffic selectors during time simulation', () => {
     expect(markup).toContain(label);
     expect(markup).toContain(reason);
   });
+});
+
+it('does not infer aircraft type from an airline callsign', () => {
+  const markup = renderToStaticMarkup(<AircraftSelector aircraft={[{ icao24: 'abc123', callsign: 'AF1234' } as Aircraft]} onSelect={() => undefined} liveModeEnabled onToggleLiveMode={() => undefined} />);
+  expect(markup).toContain('AF1234');
+  expect(markup).not.toContain('A320');
+});
+it('explains an empty live aircraft feed', () => {
+  const markup = renderToStaticMarkup(<AircraftSelector aircraft={[]} onSelect={() => undefined} liveModeEnabled onToggleLiveMode={() => undefined} />);
+  expect(markup).toContain('No aircraft data available');
 });

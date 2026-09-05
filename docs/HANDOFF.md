@@ -1,6 +1,111 @@
 # Handoff
 
-_Last updated 2026-09-04._
+_Last updated 2026-09-05._
+
+## 2026-09-05 — La loupe temporelle de la timeline (P0→P4), et deux défauts trouvés en la construisant
+
+**Question d'origine :** pourquoi la cible n'est-elle dans aucun swath alors que
+le curseur de la timeline semble posé sur un passage ?
+
+**Réponse :** aucune incohérence géométrique. Époque, horloge, sous-constellation
+et FOV sont communs au globe et au ruban, et l'empreinte dessinée est une
+intersection rayon/ellipsoïde exacte (R28). Le défaut est de **résolution de
+rendu** : un passage dure ~90 s, le plancher de lisibilité du ruban en dessine
+5,2 min (0,12 % de la fenêtre), soit ~3,5× trop large, et 1 px de piste vaut
+~3 min. « Le curseur est sur un trait » n'est donc vrai qu'à ±3 à 5 min près,
+pendant lesquelles le satellite parcourt 1 000 à 2 000 km — bien au-delà des
+350 km de demi-fauchée.
+
+**Livré :** une loupe temporelle au survol (empan fixe de 1 h, ~12 s/px), la
+lecture du passage sous le pointeur, le **snap au passage** au clic, et la même
+phrase en texte à hauteur du playhead pour qui n'a pas de souris. Plan complet,
+mesures et écarts assumés : `docs/REVISIT_TIMELINE_PASS_LENS_PLAN_2026-09-04.md`.
+
+**Deux défauts préexistants trouvés en vérifiant, tous deux corrigés :**
+
+1. La surface de seek était 3 px plus large et décalée de 3 px à gauche que la
+   piste dessinée (rail `border-l-[3px]` des lignes, non reproduit par la
+   superposition) : playhead et clics mappés dans une boîte où les ticks ne sont
+   pas dessinés, **~14 min de dérive** au début d'une fenêtre de 72 h.
+2. La carte timeline clippe son overflow ET la scène peint sous le canvas
+   Cesium : tout panneau flottant ancré dans cette carte est invisible. D'où le
+   portail vers `document.body` et l'ancrage au bord de la carte.
+
+**Invariants à ne pas casser :**
+
+- `passSpans` est la seule projection intervalle → axe. Le ruban passe
+  `RIBBON_MIN_SPAN_FRACTION`, la loupe `1 / widthPx`. Ne pas dupliquer.
+- La loupe est pilotée par sa **poignée impérative** depuis la rAF existante du
+  ruban. Aucun état React au rythme du pointeur ; le pool de 64 rects n'est
+  jamais recréé ; `getBoundingClientRect` n'est lu qu'à `pointerenter` et sur
+  `ResizeObserver`. `coverageLensPerf.test.tsx` garde les quatre propriétés.
+- Le snap est un **rayon de clic** de 3 px (`SNAP_TOLERANCE_PX`), partagé entre
+  la phrase qui l'offre et le clic qui l'exécute. Exiger de viser le tick
+  reviendrait à viser 1,1 px : la règle ne se déclencherait jamais.
+- **La loupe empile TOUTES les lignes** (au plus deux — `MAX_SECONDARY_TARGETS`
+  vaut 1) sur un axe commun : c'est le seul endroit où l'on voit si les deux
+  cibles sont vues en même temps ou en alternance. Le survol choisit la ligne
+  **mise en avant**, pas la ligne lue ; elle seule porte la phrase complète et
+  l'offre de clic, et c'est elle que le clic snappe.
+- **La lecture d'en-tête suit la SÉLECTION, pas le survol.** La loupe reçoit toutes les lignes et `update()` en nomme une par
+  indice — jamais un état React, sinon traverser une ligne re-rendrait le ruban
+  au rythme du pointeur. Les bandes verticales des lignes sont mesurées avec la
+  boîte de piste, jamais dans la boucle, et la ligne retenue est la plus proche
+  (pas de zone morte dans la gouttière). Comme les deux surfaces peuvent parler
+  de cibles différentes, chacune nomme la sienne dès qu'il y a plus d'une ligne.
+- **Le tactile verrouille la ligne sur laquelle le doigt s'est posé** (la souris
+  continue de suivre le pointeur) : les lignes font 28 px et sont à 6 px l'une
+  de l'autre, un glissement horizontal dévierait sinon de sujet en cours de
+  geste. Et `drawnPassNear` plafonne la tolérance de snap à la moitié de l'écart
+  du côté du pointeur : 3 px valent 9 min sur une piste desktop de 939 px et
+  114 min sur les 114 px d'un téléphone.
+
+**Parité mobile (faite le même jour).** Le ruban est rendu tel quel sur
+téléphone. Trois corrections : `touch-pan-y` + `pointercancel` pour que le
+glissement au doigt scrube la loupe sans voler le défilement vertical ; clamp
+piste **puis** fenêtre, car la colonne de piste (~120 px) est plus étroite que
+le panneau (300 px) et un clamp naïf sortait de l'écran ; lecture playhead en
+pleine largeur sous `md`. `MobileResultStrip` n'est pas touché — c'est la bande
+d'analyse, pas la timeline. Un défaut trouvé au passage : l'en-tête de la loupe
+n'affichait qu'une horloge murale, donc deux instants distants de 48 h sur une
+fenêtre de 72 h donnaient une étiquette identique ; la date est maintenant
+préfixée au-delà de 24 h de fenêtre.
+
+**Revue de code du lot (même jour) :** six constats, tous corrigés — une ligne
+sans résultat qui se décrivait comme une ligne sans passage ; une géométrie en
+cache qui vieillissait sous un pointeur immobile (un `ResizeObserver` ne voit
+pas un déplacement) ; l'hypothèse d'ordre et le parcours linéaire du chemin de
+lecture, unifiés derrière `passNeighbourhood` (×30 et ×177 mesurés) ; la plage
+de la loupe qui ne datait que son début ; et la fixture de perf 24× plus dense
+que son commentaire. La garde de perf est désormais un **ratio** mesuré dans le
+même process, parce qu'une milliseconde absolue vaut 0,13 au repos et 0,24 à
+charge 9,5 sur cette machine.
+
+**Seconde revue (tout l'arbre non commité) :** cinq constats corrigés, dont deux
+hors REVISIT — `z-[calc(var(--z-ui-dialog)+1)]` était du CSS invalide (pas
+d'espaces autour du `+`) et calculait `z-index: auto`, et un échec de trafic
+aérien était mis en cache une minute entière, éteignant la couche sur un hoquet
+d'une seconde. Côté REVISIT : ticks fantômes au retour d'une ligne masquée,
+closure allouée par frame, et un bandeau réglementaire qui clignotait sur le
+chemin nominal.
+
+**La loupe montre trois choses distinctes :** le trait plein est le POINTEUR, le
+tireté est le PLAYHEAD, et le tick **contouré** est la destination du clic (même
+règle `snapTargetAt` que la phrase qui l'offre, jamais sur la ligne non emphasée,
+jamais quand le pointeur est déjà dans un passage). Un chevron séparé a été
+essayé puis écarté : une quatrième glyphe à distinguer des trois autres sur 22 px.
+
+**Les deux premiers marqueurs :** le trait plein est le POINTEUR (ce que ses
+phrases décrivent), le tireté est le PLAYHEAD (ce que le globe montre). Sans
+lui, « In view » sur une ligne et aucun satellite sur la cible se lisaient comme
+une contradiction, alors que ce sont deux instants différents.
+
+**Reste ouvert :** sous-lignes par satellite dans la loupe
+(`AccessInterval.satelliteIds`) ; le taux de trame présenté — non mesurable ici,
+le pane d'automatisation rapportant `visibilityState === "hidden"` ; et la
+vérification en direct sur viewport mobile, bloquée par la même cause (la preuve
+mobile est au niveau composant, `CoverageLensMobile.test.tsx`).
+
 
 ## 2026-09-04 — S-7 (accessibility) and M-5 (globe↔sidebar hover)
 

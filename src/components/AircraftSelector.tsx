@@ -42,46 +42,6 @@ const AircraftSelector: React.FC<AircraftSelectorProps> = ({
     .filter((item) => item.icao24 !== excludedAircraftId)
     .sort((a, b) => a.callsign.localeCompare(b.callsign));
 
-  // Helper function to extract aircraft type from callsign
-  const getAircraftType = (callsign: string): string => {
-    // Extract airline code from callsign (first 2-3 characters)
-    const airlineCode = callsign.substring(0, callsign.match(/^[A-Z]{2}\d+/) ? 2 : 3);
-
-    // Map common airline codes to aircraft types
-    const airlineTypes: Record<string, string> = {
-      'AF': 'A320',      // Air France
-      'LH': 'A320',      // Lufthansa  
-      'BA': 'B777',      // British Airways
-      'DL': 'B737',      // Delta
-      'AA': 'B737',      // American Airlines
-      'UA': 'B737',      // United Airlines
-      'EK': 'A380',      // Emirates
-      'QR': 'B777',      // Qatar Airways
-      'EY': 'B787',      // Etihad
-      'SQ': 'A350',      // Singapore Airlines
-      'CX': 'B777',      // Cathay Pacific
-      'JL': 'B777',      // Japan Airlines
-      'NH': 'B787',      // ANA
-      'CA': 'B737',      // Air China
-      'MU': 'A320',      // China Eastern
-      'CZ': 'B737',      // China Southern
-      'TK': 'A330',      // Turkish Airlines
-      'RY': 'B737',      // Ryanair
-      'EZ': 'A320',      // easyJet
-      'W6': 'A320',      // Wizz Air
-      'FR': 'B737',      // Ryanair alternative
-      'U2': 'A320',      // easyJet alternative
-    };
-
-    return airlineTypes[airlineCode] || '';
-  };
-
-  // Format aircraft display label
-  const formatAircraftLabel = (callsign: string): string => {
-    const aircraftType = getAircraftType(callsign);
-    return aircraftType ? `${callsign} · ${aircraftType}` : callsign;
-  };
-
   const handleAircraftSelect = (aircraftId: string) => {
     if (aircraftId === '') {
       onSelect(null);
@@ -107,11 +67,11 @@ const AircraftSelector: React.FC<AircraftSelectorProps> = ({
           <option value="">
             {disabled
               ? disabledLabel ?? placeholder ?? 'Unavailable'
-              : !liveModeEnabled ? 'Enable live mode' : placeholder ?? 'Select aircraft...'}
+              : !liveModeEnabled ? 'Enable live mode' : sortedAircraft.length === 0 ? 'No aircraft data available' : placeholder ?? 'Select aircraft...'}
           </option>
           {sortedAircraft.map(ac => (
             <option key={ac.icao24} value={ac.icao24}>
-              {formatAircraftLabel(ac.callsign)}
+              {ac.callsign}
             </option>
           ))}
         </select>

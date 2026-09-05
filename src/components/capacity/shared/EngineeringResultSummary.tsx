@@ -460,7 +460,7 @@ const EngineeringInspector = ({
   if (variant === 'desktop') return inspector;
   return (
     <div
-      className="engineering-inspector-mobile-backdrop fixed inset-0 z-[1400] flex items-end justify-center bg-slate-950/35 px-0 backdrop-blur-[2px] sm:px-3"
+      className="engineering-inspector-mobile-backdrop fixed inset-0 z-[calc(var(--z-ui-dialog)_+_1)] flex items-end justify-center bg-slate-950/35 px-0 backdrop-blur-[2px] sm:px-3"
       data-engineering-inspector-state={motionState}
       onPointerDown={(event) => {
         if (event.target === event.currentTarget) onClose();

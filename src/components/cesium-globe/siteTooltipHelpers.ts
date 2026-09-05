@@ -24,8 +24,8 @@ function line(text: string, tone?: SiteLabelTone): SiteLabelLine {
   return { text, tone };
 }
 
-function latencySuffix(ms: number | null | undefined): string {
-  return ms != null && Number.isFinite(ms) && ms > 0 ? ` · ${fmtMs(ms)}` : '';
+function latencySuffix(ms: number | null | undefined, label = ''): string {
+  return ms != null && Number.isFinite(ms) && ms > 0 ? ` · ${fmtMs(ms)}${label ? ` ${label}` : ''}` : '';
 }
 
 function withConnectedSatellite(section: SiteLabelSection, satelliteName?: string | null): SiteLabelSection {
@@ -39,10 +39,11 @@ function siteThroughputLine(
   reverseMbps: number | null | undefined,
   latencyMs?: number | null,
   tone: SiteLabelTone = 'success',
+  latencyLabel = '',
 ): SiteLabelLine {
   const ul = site === 'A' ? forwardMbps : reverseMbps;
   const dl = site === 'A' ? reverseMbps : forwardMbps;
-  return line(`↑ ${fmtMbps(ul)} · ↓ ${fmtMbps(dl)}${latencySuffix(latencyMs)}`, tone);
+  return line(`↑ ${fmtMbps(ul)} · ↓ ${fmtMbps(dl)}${latencySuffix(latencyMs, latencyLabel)}`, tone);
 }
 
 /** GEO STAR Forward / Return section for Site A. */
@@ -187,7 +188,7 @@ function buildLeoS2SSection(
       title: 'LEO',
       accent: 'pink',
       lines: [
-        siteThroughputLine(site, result.finalThroughputAtoBMbps, result.finalThroughputBtoAMbps, result.rttMs),
+        siteThroughputLine(site, result.finalThroughputAtoBMbps, result.finalThroughputBtoAMbps, result.rttMs, 'success', 'RTT'),
       ],
     }, connectedSatelliteName);
   }
@@ -198,7 +199,7 @@ function buildLeoS2SSection(
       title: 'LEO',
       accent: 'pink',
       lines: [
-        siteThroughputLine(site, result.finalThroughputAtoBMbps, result.finalThroughputBtoAMbps, result.rttMs, 'warning'),
+        siteThroughputLine(site, result.finalThroughputAtoBMbps, result.finalThroughputBtoAMbps, result.rttMs, 'warning', 'RTT'),
       ],
     }, connectedSatelliteName);
   }

@@ -54,4 +54,14 @@ describe('IFCNarrativePanel evidence honesty', () => {
     expect(html).not.toContain('~600 ms');
     expect(html).not.toContain('ground-network speeds throughout the flight');
   });
+  it('keeps GEO artwork and continuity claims consistent with its selected route', () => {
+    const geo = { ...viewModel, commercialDisplayTechnology: 'GEO' } as CommercialScenarioViewModel;
+    const html = renderToStaticMarkup(<IFCNarrativePanel aircraft={aircraft} viewModel={geo} isOpen />);
+    expect(html).toContain('>GEO</text>');
+    expect(html).not.toContain('>LEO</text>');
+    expect(html).not.toContain('FL350');
+    expect(html).toContain('does not establish continuous in-flight service');
+    expect(html).toContain('Planning estimate');
+  });
+
 });

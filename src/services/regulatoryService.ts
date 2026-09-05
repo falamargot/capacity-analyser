@@ -57,22 +57,6 @@ export const REGULATORY_OVERLAY_URL = CONFIGURED_API_BASE
   ? `${CONFIGURED_API_BASE}/api/regulatory/overlay`
   : REGULATORY_OVERLAY_STATIC_URL;
 
-// ─── Graceful degradation ──────────────────────────────────────────────────
-
-const OCEAN_RESULT: RegulatoryResult = {
-  isoA2: null,
-  isoA3: null,
-  countryName: null,
-  status: 'ALLOWED_ESTIMATED',
-  reason: 'International waters — no specific regulatory jurisdiction. Service treated as estimated-allowed, subject to flag-state licensing.',
-  confidence: 0.3,
-  emitAllowed: true,
-  serviceAllowed: true,
-  styleFill: '#78909c',
-  styleOpacity: 0.1,
-  isOcean: true,
-};
-
 // ─── Client-side cache (0.5° resolution) ──────────────────────────────────
 // LRU bounded by REGULATORY_CACHE_MAX_ENTRIES — Map preserves insertion order,
 // so re-inserting on hit keeps recently-used keys near the tail and oldest at
@@ -108,21 +92,21 @@ function cacheSet(key: string, value: RegulatoryResult): void {
  * Async regulatory lookup by latitude/longitude.
  *
  * Caches results at 0.5° resolution (≈ 55 km).
- * Falls back to OCEAN_RESULT on network error.
+ * Returns null when evidence is unavailable; never interprets a failed lookup as ocean permission.
  */
-export async function regulatoryLookup(lat: number, lng: number): Promise<RegulatoryResult> {
+export async function regulatoryLookup(lat: number, lng: number): Promise<RegulatoryResult | null> {
   const cacheKey = `${Math.round(lat * 2)}_${Math.round(lng * 2)}`;
   const cached = cacheGet(cacheKey);
   if (cached) return cached;
 
   try {
-    const res = await fetch(`${API_BASE}/api/regulatory?lat=${lat}&lng=${lng}`);
-    if (!res.ok) return OCEAN_RESULT;
+    const res = await fetch(`${API_BASE}/api/regulatory?lat=${lat}&lng=${lng}`, { signal: AbortSignal.timeout(10_000) });
+    if (!res.ok) return null;
     const result = (await res.json()) as RegulatoryResult;
     cacheSet(cacheKey, result);
     return result;
   } catch {
-    return OCEAN_RESULT;
+    return null;
   }
 }
 

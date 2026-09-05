@@ -76,6 +76,11 @@ export function activeCanonicalDirection(
 export function canonicalHeaderMetrics(
   metrics: CanonicalTechnologyRouteMetrics,
 ): CanonicalHeaderMetrics {
+  // Diagnostic route evidence may exist before service gates resolve or after
+  // they block service. Headline KPIs must obey the same verdict as Summary.
+  if (!canonicalRouteStateIsAvailable(metrics.state)) {
+    return { downloadMbps: null, uploadMbps: null, oneWayLatencyMs: null };
+  }
   return {
     downloadMbps: metrics.forward.throughputMbps,
     uploadMbps: metrics.reverse.throughputMbps,

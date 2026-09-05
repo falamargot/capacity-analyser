@@ -26,7 +26,7 @@ export interface ServerAircraft {
 export interface AirTrafficSnapshot {
   aircraft: ServerAircraft[];
   meta: {
-    source: 'opensky' | 'mock';
+    source: 'opensky' | 'unavailable';
     authenticated: boolean;
     bbox: {
       lamin: number;
@@ -67,47 +67,6 @@ const GLOBAL_BBOX: BoundingBox = { lamin: -80, lamax: 80, lomin: -180, lomax: 18
 // long-haul aircraft are kept, giving good global geographic spread.
 const SERVER_MAX_AIRCRAFT = 600;
 
-const getMockAircraftData = (): ServerAircraft[] => ([
-  {
-    icao24: 'a80897',
-    callsign: 'AF1234',
-    latitude: 48.8566,
-    longitude: 2.3522,
-    baro_altitude: 10668,
-    velocity: 250,
-    heading: 270,
-    on_ground: false,
-    last_contact: Math.floor(Date.now() / 1000),
-    altitude_km: 10.668,
-    speed_kmh: 900,
-  },
-  {
-    icao24: 'a1b2c3',
-    callsign: 'LH5678',
-    latitude: 50.1109,
-    longitude: 8.6821,
-    baro_altitude: 11277,
-    velocity: 240,
-    heading: 90,
-    on_ground: false,
-    last_contact: Math.floor(Date.now() / 1000),
-    altitude_km: 11.277,
-    speed_kmh: 864,
-  },
-  {
-    icao24: 'd4e5f6',
-    callsign: 'BA9012',
-    latitude: 51.4700,
-    longitude: -0.4543,
-    baro_altitude: 11887,
-    velocity: 260,
-    heading: 45,
-    on_ground: false,
-    last_contact: Math.floor(Date.now() / 1000),
-    altitude_km: 11.887,
-    speed_kmh: 936,
-  },
-]);
 
 const parseAircraft = (states: OpenSkyState[] | null): ServerAircraft[] => (
   (states ?? [])
@@ -206,9 +165,9 @@ async function fetchAirTrafficSnapshotUncached(): Promise<AirTrafficSnapshot> {
     const allAircraft = parseAircraft(data.states);
     if (allAircraft.length === 0) {
       return {
-        aircraft: getMockAircraftData(),
+        aircraft: [],
         meta: {
-          source: 'mock',
+          source: 'unavailable',
           authenticated,
           bbox,
           note: 'OpenSky returned no usable aircraft for the requested area.',
@@ -228,9 +187,9 @@ async function fetchAirTrafficSnapshotUncached(): Promise<AirTrafficSnapshot> {
     };
   } catch (error) {
     return {
-      aircraft: getMockAircraftData(),
+      aircraft: [],
       meta: {
-        source: 'mock',
+        source: 'unavailable',
         authenticated,
         bbox,
         note: error instanceof Error ? error.message : 'Unknown OpenSky error',

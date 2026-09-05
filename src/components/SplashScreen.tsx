@@ -56,7 +56,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({
                     <h1 className="text-2xl font-bold tracking-tight text-white">
                         ETL Capacity Analyzer
                     </h1>
-                    <p className="mt-1 text-sm text-slate-400">Satellite Link Performance Tool</p>
+                    <p className="mt-1 text-sm text-slate-400">LEO / GEO connectivity decision support</p>
                 </div>
 
                 <div className="w-full">

@@ -22,7 +22,7 @@ import {
 
 // ── Hero SVG ─────────────────────────────────────────────────────────────────
 
-function IFCHeroDiagram({ connected }: { connected: boolean }) {
+function IFCHeroDiagram({ connected, technology }: { connected: boolean; technology: string }) {
   const arcColor = connected ? 'rgb(251,191,36)' : 'rgb(100,116,139)';
   const satColor = connected ? 'rgb(251,191,36)' : 'rgb(100,116,139)';
 
@@ -90,9 +90,9 @@ function IFCHeroDiagram({ connected }: { connected: boolean }) {
 
       {/* Labels */}
       <text x="56" y="78" fontSize="7.5" fontFamily="ui-monospace,monospace"
-        fill="rgb(148,163,184)" opacity="0.55">FL350</text>
+        fill="rgb(148,163,184)" opacity="0.55">Aircraft</text>
       <text x="248" y="34" fontSize="7" fontFamily="ui-monospace,monospace"
-        fill={connected ? 'rgb(251,191,36)' : 'rgb(100,116,139)'} opacity="0.75">LEO</text>
+        fill={connected ? 'rgb(251,191,36)' : 'rgb(100,116,139)'} opacity="0.75">{technology}</text>
     </svg>
   );
 }
@@ -183,7 +183,7 @@ const IFCNarrativePanel = memo(function IFCNarrativePanel({
             <div className="flex items-center gap-1.5">
               <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
               <span className="text-[9px] font-semibold uppercase tracking-widest text-emerald-400/70">
-                Live
+                Planning estimate
               </span>
             </div>
           </div>
@@ -222,7 +222,7 @@ const IFCNarrativePanel = memo(function IFCNarrativePanel({
 
         {/* ── Hero diagram ── */}
         <div className="flex-shrink-0 border-b border-slate-800/50 bg-slate-950/50 px-3 pb-1 pt-2">
-          <IFCHeroDiagram connected={isConnected} />
+          <IFCHeroDiagram connected={isConnected} technology={viewModel.commercialDisplayTechnology} />
         </div>
 
         {/* ── Scrollable content ── */}
@@ -292,15 +292,13 @@ const IFCNarrativePanel = memo(function IFCNarrativePanel({
                 />
               </div>
             </div>
-            {isLeo && (
-              <div className="mt-2 rounded-lg border border-emerald-500/18 bg-emerald-950/25 px-3 py-2">
+            <div className="mt-2 rounded-lg border border-emerald-500/18 bg-emerald-950/25 px-3 py-2">
                 <p className="text-[10px] leading-[1.6] text-emerald-300/80">
                   This point-in-time planning result does not establish continuous in-flight service.
                   Terminal certification, beam handover, regulatory approval, gateway reachability and
                   operator capacity must be confirmed for the complete route.
                 </p>
-              </div>
-            )}
+            </div>
           </div>
 
           {/* Mobility evidence — no passenger/revenue claims are inferred from a callsign. */}

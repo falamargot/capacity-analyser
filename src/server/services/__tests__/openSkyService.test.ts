@@ -62,4 +62,15 @@ describe('fetchAirTrafficSnapshot — snapshot cache + in-flight coalescing', ()
     await fetchAirTrafficSnapshot();
     expect(fetch).toHaveBeenCalledTimes(2);
   });
+  it('returns unavailable evidence rather than invented flights on an upstream error', async () => {
+    vi.mocked(fetch).mockRejectedValue(new Error('offline'));
+    const result = await fetchAirTrafficSnapshot();
+    expect(result.aircraft).toEqual([]);
+    expect(result.meta.source).toBe('unavailable');
+  });
+  it('preserves an empty upstream snapshot without fabricated flights', async () => {
+    vi.mocked(fetch).mockResolvedValue({ ok: true, json: async () => ({ states: [] }) } as Response);
+    expect((await fetchAirTrafficSnapshot()).aircraft).toEqual([]);
+  });
+
 });

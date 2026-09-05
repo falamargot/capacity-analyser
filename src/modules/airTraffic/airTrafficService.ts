@@ -17,7 +17,7 @@ export interface Aircraft {
 interface AirTrafficBackendResponse {
   aircraft: Aircraft[];
   meta?: {
-    source: 'opensky' | 'mock';
+    source: 'opensky' | 'unavailable' | 'mock';
     authenticated: boolean;
     note?: string;
   };
@@ -66,53 +66,12 @@ const aircraftCacheSet = (key: string, value: CacheEntry): void => {
   }
 };
 
-const getMockAircraftData = (): Aircraft[] => ([
-  {
-    icao24: 'a80897',
-    callsign: 'AF1234',
-    latitude: 48.8566,
-    longitude: 2.3522,
-    baro_altitude: 10668,
-    velocity: 250,
-    heading: 270,
-    on_ground: false,
-    last_contact: Math.floor(Date.now() / 1000),
-    altitude_km: 10.668,
-    speed_kmh: 900,
-  },
-  {
-    icao24: 'a1b2c3',
-    callsign: 'LH5678',
-    latitude: 50.1109,
-    longitude: 8.6821,
-    baro_altitude: 11277,
-    velocity: 240,
-    heading: 90,
-    on_ground: false,
-    last_contact: Math.floor(Date.now() / 1000),
-    altitude_km: 11.277,
-    speed_kmh: 864,
-  },
-  {
-    icao24: 'd4e5f6',
-    callsign: 'BA9012',
-    latitude: 51.4700,
-    longitude: -0.4543,
-    baro_altitude: 11887,
-    velocity: 260,
-    heading: 45,
-    on_ground: false,
-    last_contact: Math.floor(Date.now() / 1000),
-    altitude_km: 11.887,
-    speed_kmh: 936,
-  },
-]);
 
 export function clearAircraftCache(): void {
   aircraftCache.clear();
 }
 
-export async function fetchAircraftData(_focusPoint?: FocusPoint | null): Promise<Aircraft[] | null> {
+export async function fetchAircraftData(_focusPoint?: FocusPoint | null): Promise<Aircraft[]> {
   try {
     log('🛩️ Fetching aircraft data from local OpenSky proxy...');
     const url = new URL(`${API_BASE}/api/air-traffic`);
@@ -125,26 +84,27 @@ export async function fetchAircraftData(_focusPoint?: FocusPoint | null): Promis
     });
 
     if (!response.ok) {
-      console.warn(`🛩️ Air traffic proxy returned HTTP ${response.status}, using mock data`);
-      return getMockAircraftData();
+      console.warn(`🛩️ Air traffic proxy returned HTTP ${response.status}, no aircraft data available`);
+      return [];
     }
 
     const data = await response.json() as AirTrafficBackendResponse;
 
-    if (data.meta?.source === 'mock') {
-      console.warn(`🛩️ Air traffic proxy is serving mock data${data.meta.note ? `: ${data.meta.note}` : ''}`);
+    if (data.meta?.source === 'mock' || data.meta?.source === 'unavailable') {
+      console.warn(`🛩️ Air traffic proxy has no live data${data.meta.note ? `: ${data.meta.note}` : ''}`);
+      return [];
     }
 
     if (!Array.isArray(data.aircraft) || data.aircraft.length === 0) {
-      console.warn('🛩️ Air traffic proxy returned no aircraft, using mock data');
-      return getMockAircraftData();
+      console.warn('🛩️ Air traffic proxy returned no aircraft, no aircraft data available');
+      return [];
     }
 
     log(`🛩️ Received ${data.aircraft.length} aircraft from local OpenSky proxy`);
     return data.aircraft;
   } catch (error) {
-    console.warn('🛩️ Failed to fetch aircraft data from local proxy, using mock data:', error);
-    return getMockAircraftData();
+    console.warn('🛩️ Failed to fetch aircraft data from local proxy, no aircraft data available:', error);
+    return [];
   }
 }
 
@@ -158,14 +118,23 @@ export async function getAircraftData(focusPoint: FocusPoint | null = null): Pro
   }
 
   const freshData = await fetchAircraftData(focusPoint);
-  if (freshData && freshData.length > 0) {
+  /*
+   * An empty result is never cached.
+   *
+   * `fetchAircraftData` returns `[]` for every failure — a proxy 502, a dropped
+   * connection, OpenSky with nothing usable — which is right: inventing mock
+   * aircraft was worse. But writing that emptiness into the cache with a fresh
+   * timestamp blanks the layer for the whole `CACHE_DURATION`, so a one-second
+   * outage costs a minute of aircraft. The last good positions are served
+   * instead, and the next poll re-tries immediately rather than in a minute.
+   */
+  if (freshData.length > 0) {
     aircraftCacheSet(cacheKey, {
       aircraft: freshData,
       lastFetchTime: now,
     });
     return freshData;
   }
-
   return cached?.aircraft ?? [];
 }
 

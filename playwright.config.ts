@@ -24,6 +24,9 @@ const port = 4173;
  */
 const DESKTOP_AND_TABLET_ONLY = ['**/standalone-mode.spec.ts'];
 
+/** Telecom inspector regression exercises the mobile result sheet only. */
+const MOBILE_ONLY = ['**/telecom-demo.spec.ts'];
+
 /** Runs on `desktop-chromium` alone; the other three projects run nothing. */
 const DESKTOP_ONLY = [
   // Both drive their own viewport matrix from inside the test.
@@ -41,11 +44,11 @@ const COMPACT_AND_DESKTOP_ONLY = [
 ];
 
 export const PROJECT_TEST_IGNORE: Record<string, string[]> = {
-  'desktop-chromium': [],
+  'desktop-chromium': [...MOBILE_ONLY],
   'short-wide-chromium': [
-    ...DESKTOP_ONLY, ...COMPACT_AND_DESKTOP_ONLY, ...DESKTOP_AND_TABLET_ONLY,
+    ...DESKTOP_ONLY, ...COMPACT_AND_DESKTOP_ONLY, ...DESKTOP_AND_TABLET_ONLY, ...MOBILE_ONLY,
   ],
-  'tablet-chromium': [...DESKTOP_ONLY, ...COMPACT_AND_DESKTOP_ONLY],
+  'tablet-chromium': [...DESKTOP_ONLY, ...COMPACT_AND_DESKTOP_ONLY, ...MOBILE_ONLY],
   'mobile-chromium': [...DESKTOP_ONLY, ...DESKTOP_AND_TABLET_ONLY],
 };
 
@@ -71,6 +74,7 @@ export default defineConfig({
   projects: [
     {
       name: 'desktop-chromium',
+      testIgnore: PROJECT_TEST_IGNORE['desktop-chromium'],
       use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } },
     },
     {

@@ -13,3 +13,14 @@ describe('normalizeLocationSearchResults', () => {
     ]);
   });
 });
+
+it('rejects malformed responses and invalid geographical coordinates', () => {
+  expect(normalizeLocationSearchResults(null)).toEqual([]);
+  expect(normalizeLocationSearchResults([null, {},
+    { display_name: 'Invalid', lat: 'NaN', lon: '2' },
+    { display_name: 'Invalid', lat: '91', lon: '2' },
+    { display_name: 'Invalid', lat: '48oops', lon: '2' },
+    { display_name: 'Invalid', lat: '48', lon: '181' },
+    { display_name: 'Origin', lat: '0', lon: '0' },
+  ])).toEqual([{ name: 'Origin', lat: 0, lng: 0 }]);
+});

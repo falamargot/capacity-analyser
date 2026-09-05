@@ -27,6 +27,7 @@ export function useLeoRegulatoryLookup({
       return;
     }
     let cancelled = false;
+    setLeoRegulatoryResult(null);
     regulatoryLookup(activeAnalysisPoint.lat, activeAnalysisPoint.lng).then((result) => {
       if (!cancelled) setLeoRegulatoryResult(result);
     });
@@ -39,6 +40,7 @@ export function useLeoRegulatoryLookup({
       return;
     }
     let cancelled = false;
+    setLeoRegulatoryResultB(null);
     regulatoryLookup(pointBLeo.lat, pointBLeo.lng).then((result) => {
       if (!cancelled) setLeoRegulatoryResultB(result);
     });

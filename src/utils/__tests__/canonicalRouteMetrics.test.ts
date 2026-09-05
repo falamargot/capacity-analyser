@@ -57,3 +57,18 @@ describe('canonical route metrics', () => {
     expect(canonicalRouteStateIsAvailable('blocked')).toBe(false);
   });
 });
+
+describe.each(['LEO', 'GEO'] as const)('%s headline service eligibility', technology => {
+  it.each(['blocked', 'path-unavailable', 'budget-unavailable', 'incomplete'] as const)(
+    'withholds diagnostic values when the engineering verdict is %s', state => {
+      const metrics: CanonicalTechnologyRouteMetrics = {
+        technology, topology: 'Single Site', activeDirection: 'forward', state, stateReason: null,
+        forward: canonicalDirectionalMetric({ throughputMbps: 195, oneWayLatencyMs: 34 }),
+        reverse: canonicalDirectionalMetric({ throughputMbps: 32, oneWayLatencyMs: 34 }), rttMs: 68,
+      };
+      expect(canonicalHeaderMetrics(metrics)).toEqual({ downloadMbps: null, uploadMbps: null, oneWayLatencyMs: null });
+      expect(metrics.forward.throughputMbps).toBe(195); // retain diagnostic evidence
+      expect(canonicalHeaderMetrics({ ...metrics, state: 'constrained' })).toEqual({ downloadMbps: 195, uploadMbps: 32, oneWayLatencyMs: 34 });
+    },
+  );
+});

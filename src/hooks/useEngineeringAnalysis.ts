@@ -495,6 +495,7 @@ export function useEngineeringAnalysis({
   useEffect(() => {
     if (!activePoint) { setComputedRegulatoryResult(null); return; }
     let cancelled = false;
+    setComputedRegulatoryResult(null);
     regulatoryLookup(activePoint.lat, activePoint.lng).then((result) => {
       if (!cancelled) setComputedRegulatoryResult(result);
     });
@@ -511,6 +512,7 @@ export function useEngineeringAnalysis({
   useEffect(() => {
     if (!pointB) { setComputedRegulatoryResultB(null); return; }
     let cancelled = false;
+    setComputedRegulatoryResultB(null);
     regulatoryLookup(pointB.lat, pointB.lng).then((result) => {
       if (!cancelled) setComputedRegulatoryResultB(result);
     });

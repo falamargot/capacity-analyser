@@ -1176,6 +1176,7 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                                 key={metric.label}
                                 label={metric.label}
                                 value={metric.display}
+                                hint={metric.provenance === 'estimated-ceiling' ? 'Estimated ceiling' : metric.detail}
                                 accentClassName={activeEngineeringTruth.technology === 'LEO' ? 'text-fuchsia-700 dark:text-fuchsia-200' : 'text-blue-700 dark:text-blue-200'}
                                 compact={compact}
                             />
@@ -1188,7 +1189,7 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                 </div>
             ) : compact ? (
                 <div className="mt-2 rounded-[18px] border border-slate-200/80 bg-white/82 px-3 py-2 text-[12px] leading-[1.4] text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900/72 dark:text-slate-300">
-                    Engineering Truth has not been published for this scenario yet.
+                    Analysis is not yet available for this scenario. Select a site and review its configuration.
                 </div>
             ) : shouldShowMetrics ? (
                 <div className={compact ? 'mt-2' : 'mt-3'}>
