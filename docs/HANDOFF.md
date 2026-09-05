@@ -2,6 +2,79 @@
 
 _Last updated 2026-09-04._
 
+## 2026-09-04 — S-7 (accessibility) and M-5 (globe↔sidebar hover)
+
+### S-7 — two real failures, and one thing that was already right
+
+**Focus rings.** Six interactive controls used `outline-none` with no
+replacement — two REVISIT selects, two header selects, the command palette input
+and the inline location search. That is WCAG 2.4.7, and **axe cannot see it**:
+a missing focus ring is invisible to automated checking, which is exactly why
+the gate was green. All six now carry `focus-visible:ring-2`, and
+`src/__tests__/focusVisibility.test.ts` scans the source so the regression is
+caught when it is written rather than when someone tabs into it.
+
+**Colour-only status.** The LEO/GEO technology tabs carried connectivity in hue
+alone — green resolved, amber partial, grey none — on the most-used control in
+ENG and COMM. `ConnectivityDot` keeps the colour and adds two channels that do
+not depend on it: SHAPE (filled disc / ring / hollow dot, legible in greyscale)
+and an accessible name. Three tests.
+
+**Checked and left alone:** `prefers-reduced-motion`. Every animation class in
+`index.css` is in the exemption block; the mobile inspector looked missing until
+I read the JSX and found it carries both `engineering-inspector` and
+`engineering-inspector-mobile`, so the exemption already reaches it. No defect,
+so no change — recorded because "looks missing" is how a phantom fix starts.
+
+### M-5 — the link that was half-built all along
+
+The globe has published `hoveredSatelliteId` for a long time and fed it straight
+back to itself: the point scales, its coverage previews. **The sidebar was never
+told.** Hovering a satellite on the globe left the row naming that same
+satellite inert, and hovering the row did nothing.
+
+`contexts/HoveredEntityContext.tsx` — the `useHoveredEntity` the audit line
+literally said was missing. **A context, not props, and that is the point:**
+`CapacityDetails` already takes ~70 props and the same audit calls that out
+(S-3), so threading a hover id and a setter through it and both connectivity
+sections to reach one row would have made the criticised thing worse.
+
+Route-diagram satellite rows now highlight when the globe hovers them and tell
+the globe when the pointer — **or the keyboard**, via focus — reaches them.
+Rows without a `globeId` (sites, SNPs, PoPs) stay completely inert, which a test
+pins: without that, crossing the diagram would clear the globe's highlight.
+
+Gates: `npm run typecheck`, lint at zero (the context uses the same scoped
+Fast-Refresh exemption as `EngineeringAnalysisContext`), **2 217 unit tests**
+(+10), build, e2e `revisit-p0` + `mode-smoke` + `accessibility` +
+`standalone-mode` — **58 passed, 37 skipped, 1 failed**.
+
+**That failure was mine, not the suite's — and so were the two before it.**
+`accessibility.spec.ts:55` failed a third time, and I filed a root cause
+(REVISIT's URL sync racing the click) that a single reading of
+`useAppModeState.ts:102-111` falsifies: `pushModeToHistory` runs synchronously on
+a mode-button click, so a spec that navigates straight to `?mode=revisit` never
+enters that window. What the log showed was a navigation to the URL the page was
+already on — **a full reload**, which is what Vite does when a watched file
+changes. I had been editing docs while the suite ran.
+
+Same 96-test batch, same machine: **23.2 min and 1 failure while editing;
+14.6 min and 0 failures touching nothing.**
+
+Items 5 and 6 were filed against failures of the same kind. Their fixes stay —
+they are defensible on their own terms — but they did not fix a suite defect,
+because there was not one. Corrected in the backlog rather than left standing.
+
+**Guard added**, since a rule already written in this file did not stop me
+breaking it three times in one day: `e2e/detectSourceEdits.ts` compares the
+newest mtime under `src/` and `e2e/` between global setup and teardown, and a
+run whose tree moved underneath it now says so in the report. Verified silent on
+a clean run and loud on a touched one.
+
+Not caused by this work: REVISIT unmounts `App.tsx`, so neither the hover
+context nor the technology-tab dot exists there, and the two REVISIT files
+touched gained only `focus-visible:ring-*` classes, which cannot block a click.
+
 ## 2026-09-04 (late) — item 6: REVISIT's Back button, clicked mid-mount
 
 `mode-smoke:31` timed out at 90 s inside `.click()` with the locator already

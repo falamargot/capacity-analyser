@@ -81,6 +81,7 @@ import { useEngineeringModeSnapshot } from './hooks/useEngineeringModeSnapshot';
 import { useSelectionState } from './hooks/useSelectionState';
 import { useOverlayState } from './hooks/useOverlayState';
 import { useInspectionState } from './hooks/useInspectionState';
+import { HoveredEntityProvider } from './contexts/HoveredEntityContext';
 import { useLeoServingResolution } from './hooks/useLeoServingResolution';
 import { useLeoRegulatoryLookup } from './hooks/useLeoRegulatoryLookup';
 import { useEndpointNearestLocationState, useEndpointNearestLocationSync } from './hooks/useEndpointNearestLocations';
@@ -4166,6 +4167,9 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
   return (
     <EngineeringFocusProvider controller={engineeringFocusController} truths={engineeringTruths}>
     <EngineeringAnalysisProvider value={engineeringAnalysis}>
+    {/* M-5: the globe already publishes the hovered satellite; this is what
+        finally carries it to the sidebar, and the sidebar's hover back. */}
+    <HoveredEntityProvider satelliteId={hoveredSatelliteId} setHoveredSatelliteId={setHoveredSatelliteId}>
     <div
       className={[
         'capacity-app bg-white transition-colors duration-300 dark:bg-slate-950',
@@ -5458,6 +5462,7 @@ const App: React.FC<AppProps> = ({ appMode, onAppModeChange, modeSwitchingAvaila
       )}
       <MemoryMonitorHud />
     </div>
+    </HoveredEntityProvider>
     </EngineeringAnalysisProvider>
     </EngineeringFocusProvider>
   );

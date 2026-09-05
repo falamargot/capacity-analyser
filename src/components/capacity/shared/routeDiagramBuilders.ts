@@ -65,6 +65,8 @@ export function buildLeoRouteDiagram(args: BuildLeoRouteDiagramArgs): { nodes: R
         kind: 'satellite',
         sub: s.beamIndex != null ? `Beam ${s.beamIndex}` : undefined,
         onClick: s.satellite && onSatelliteClick ? () => onSatelliteClick(s.satellite) : undefined,
+        // M-5: the id the globe hovers this satellite by.
+        globeId: s.satellite?.id,
       },
       { id: 'snp', label: s.snpName ?? 'Unresolved SNP', kind: 'snp' },
     ];
@@ -102,6 +104,7 @@ export function buildLeoRouteDiagram(args: BuildLeoRouteDiagramArgs): { nodes: R
       label: sourceSat?.name ?? 'Unresolved satellite',
       kind: 'satellite',
       onClick: sourceSat && onSatelliteClick ? () => onSatelliteClick(sourceSat) : undefined,
+      globeId: sourceSat?.id,
     },
     { id: 'snp-source', label: sourceSnpName, kind: 'snp' },
     ...(s.sameSNP ? [] : [{ id: 'pop', label: s.popName, kind: 'pop' as const, sub: 'Backbone PoP' }]),
@@ -111,6 +114,7 @@ export function buildLeoRouteDiagram(args: BuildLeoRouteDiagramArgs): { nodes: R
       label: destSat?.name ?? 'Unresolved satellite',
       kind: 'satellite',
       onClick: destSat && onSatelliteClick ? () => onSatelliteClick(destSat) : undefined,
+      globeId: destSat?.id,
     },
     { id: 'site-dest', label: destSite, kind: 'site' },
   ];
@@ -183,6 +187,8 @@ export function buildGeoRouteDiagram(args: BuildGeoRouteDiagramArgs): { nodes: R
     label: satellite?.name ?? args.satelliteDisplayName ?? 'GEO satellite',
     kind: 'satellite',
     onClick: satellite && onSatelliteClick ? () => onSatelliteClick(satellite) : undefined,
+    // M-5: the id the globe hovers this satellite by.
+    globeId: satellite?.id,
   };
 
   if (!args.isMeshOrP2P) {

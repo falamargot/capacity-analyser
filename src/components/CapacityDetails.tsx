@@ -20,6 +20,7 @@ import {
 } from './capacity';
 import type { TerminalType, WeatherType } from './capacity';
 import { formatNumber } from '../utils/formatters';
+import { ConnectivityDot } from './capacity/shared/ConnectivityDot';
 
 interface CapacityDetailsProps {
   satellites: SatelliteData[];
@@ -327,7 +328,10 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                       onKeyDown={handleTechnologyTabKeyDown}
                       className={`flex flex-1 items-center justify-center gap-2 rounded-t-lg border border-b-0 font-semibold transition-all duration-200 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-300 ${compactDesktop ? 'px-2.5 py-1.5 text-[13px]' : 'px-3 py-2 text-sm'} ${activeConnTab === 'LEO' ? 'relative -mb-px border-pink-500 bg-pink-500 text-white' : 'border-slate-200 bg-slate-50 text-slate-500 hover:bg-white hover:text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white'}`}
                     >
-                      <span className={`h-2 w-2 flex-shrink-0 rounded-full ${resolvedLEOConnectivity?.snp ? 'bg-green-400' : resolvedLEOConnectivity ? 'bg-yellow-400' : 'bg-gray-300 dark:bg-slate-600'}`} />
+                      <ConnectivityDot
+                        state={resolvedLEOConnectivity?.snp ? 'ready' : resolvedLEOConnectivity ? 'partial' : 'none'}
+                        technology="LEO"
+                      />
                       <span>LEO</span>
                     </button>
                     <button
@@ -338,7 +342,10 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                       onKeyDown={handleTechnologyTabKeyDown}
                       className={`flex flex-1 items-center justify-center gap-2 rounded-t-lg border border-b-0 font-semibold transition-all duration-200 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 ${compactDesktop ? 'px-2.5 py-1.5 text-[13px]' : 'px-3 py-2 text-sm'} ${activeConnTab === 'GEO' ? 'relative -mb-px border-blue-600 bg-blue-600 text-white' : 'border-slate-200 bg-slate-50 text-slate-500 hover:bg-white hover:text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white'}`}
                     >
-                      <span className={`h-2 w-2 flex-shrink-0 rounded-full ${resolvedGEOConnectivity ? 'bg-green-400' : 'bg-gray-300 dark:bg-slate-600'}`} />
+                      <ConnectivityDot
+                        state={resolvedGEOConnectivity ? 'ready' : 'none'}
+                        technology="GEO"
+                      />
                       <span>GEO</span>
                     </button>
                   </div>

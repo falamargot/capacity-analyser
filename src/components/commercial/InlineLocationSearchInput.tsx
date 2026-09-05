@@ -31,7 +31,7 @@ const InlineLocationSearchInput = forwardRef<HTMLInputElement, InlineLocationSea
         value={value}
         onChange={(event) => onChange(event.target.value)}
         onKeyDown={onKeyDown}
-        className="min-w-0 flex-1 bg-transparent text-[13px] font-semibold leading-none text-slate-100 outline-none placeholder:text-slate-600"
+        className="min-w-0 flex-1 rounded bg-transparent text-[13px] font-semibold leading-none text-slate-100 outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70 placeholder:text-slate-600"
         placeholder={placeholder}
         autoComplete="off"
         aria-label={`Search ${roleLabel.toLowerCase()} location`}

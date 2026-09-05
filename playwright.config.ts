@@ -51,6 +51,9 @@ export const PROJECT_TEST_IGNORE: Record<string, string[]> = {
 
 export default defineConfig({
   testDir: './e2e',
+  // Warns when the tree was edited mid-run — see e2e/detectSourceEdits.ts.
+  globalSetup: './e2e/detectSourceEdits.ts',
+  globalTeardown: './e2e/detectSourceEditsTeardown.ts',
   outputDir: 'test-results/playwright',
   fullyParallel: false,
   workers: 1,

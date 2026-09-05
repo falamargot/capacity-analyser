@@ -319,7 +319,7 @@ const CommandPalette = memo<CommandPaletteProps>(({
               ref={inputRef}
               type="text"
               placeholder={searchPlaceholder}
-              className="flex-1 bg-transparent text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 outline-none"
+              className="flex-1 rounded bg-transparent text-sm text-gray-900 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-gray-100 placeholder-gray-400"
               value={query}
               onChange={(e) => { onQueryChange(e.target.value); setActiveIndex(0); }}
               onKeyDown={handleKeyDown}

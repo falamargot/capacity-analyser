@@ -452,7 +452,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                                 <span className="text-[11px] font-black uppercase tracking-[0.08em] text-slate-500">Speed</span>
                                 <select aria-label="Simulation speed" value={speed === 0 ? 1 : speed}
                                     onChange={(event) => onSetSpeed(Number(event.target.value))}
-                                    className="min-h-11 bg-transparent text-[12px] font-bold text-slate-200 outline-none md:min-h-0">
+                                    className="min-h-11 rounded bg-transparent text-[12px] font-bold text-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70 md:min-h-0">
                                     <option value={1}>1×</option><option value={10}>10×</option><option value={100}>100×</option>
                                 </select>
                             </label>
@@ -474,7 +474,7 @@ export const CoverageRibbon: React.FC<CoverageRibbonProps> = ({
                                     value={utcDateTimeInputValue(timestampMs)}
                                     onChange={(event) => handleDateTimeChange(event.target.value)}
                                     aria-label="Simulation date and time UTC"
-                                    className="min-h-9 min-w-0 flex-1 bg-transparent text-[12px] font-bold tabular-nums text-slate-100 outline-none [color-scheme:dark] md:min-h-0 md:flex-none"
+                                    className="min-h-9 min-w-0 flex-1 rounded bg-transparent text-[12px] font-bold tabular-nums text-slate-100 outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70 [color-scheme:dark] md:min-h-0 md:flex-none"
                                 />
                             </label>
                         </div>

@@ -1007,7 +1007,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                 </button>
                                 <div className="relative min-w-0 flex-1">
                                     <select
-                                        className="min-h-11 w-full appearance-none truncate bg-transparent py-0.5 pl-0 pr-5 text-[12px] font-bold text-slate-300 outline-none md:min-h-0"
+                                        className="min-h-11 w-full appearance-none truncate rounded bg-transparent py-0.5 pl-0 pr-5 text-[12px] font-bold text-slate-300 outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70 md:min-h-0"
                                         value={target.name}
                                         onChange={(event) => onTargetChange(event.target.value)}
                                         aria-label="Target"
@@ -1172,7 +1172,7 @@ export const RevisitHeader: React.FC<RevisitHeaderProps> = ({
                                 </button>
                                 <div className="relative min-w-0 flex-1">
                                     <select
-                                        className="min-h-11 w-full appearance-none truncate bg-transparent py-0.5 pl-0 pr-5 text-[12px] font-bold text-slate-300 outline-none md:min-h-0"
+                                        className="min-h-11 w-full appearance-none truncate rounded bg-transparent py-0.5 pl-0 pr-5 text-[12px] font-bold text-slate-300 outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70 md:min-h-0"
                                         value={targetName}
                                         onChange={(event) => onSecondaryPointTargetChange(point.id, event.target.value)}
                                         aria-label="Secondary target"

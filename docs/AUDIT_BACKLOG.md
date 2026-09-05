@@ -166,7 +166,7 @@ named as such rather than assumed.
 | M-2 constraint summary block | **SUPERSEDED** | the cause chain does this — `EngineeringCauseStage`, service gates |
 | M-3 generalise the path strip to GEO | **NOT DONE** | `LeoS2SPathStrip.tsx` contains no GEO branch |
 | M-4 left rail of map layers | **NOT CHECKED** | |
-| M-5 globe↔sidebar hover linking | **NOT DONE** | no `useHoveredEntity` |
+| M-5 globe↔sidebar hover linking | **DONE for satellites 2026-09-04** | `contexts/HoveredEntityContext.tsx` — the `useHoveredEntity` this line said was missing |
 | M-6 diagnostics drawer | **NOT DONE** | |
 | M-7 keyboard 1-5 section jumps | **NOT DONE** | `useKeyboardShortcuts` handles `escape`, `k`, `s` only |
 | M-8 PDF export redesign | **NOT CHECKED** | |
@@ -176,7 +176,7 @@ named as such rather than assumed.
 | S-4 narration engine | **NOT DONE** | |
 | S-5 side-by-side comparison | **NOT DONE** | |
 | S-6 semantic theme tokens | **PARTIAL** | as QW-7 |
-| S-7 accessibility pass | **PARTIAL** | axe gate in `e2e/accessibility.spec.ts`; keyboard work landed in REVISIT (R23), not app-wide |
+| S-7 accessibility pass | **ADVANCED 2026-09-04** | axe gate + REVISIT keyboard work as before, plus focus rings restored on 6 controls and the technology tabs' colour-only status fixed. What a full pass still owes is listed in "What is left" §7 |
 
 **Reading (revised 2026-09-04):** the quick wins split roughly half done / half
 abandoned; of the strategic items, S-3 landed, **S-2 is now done too**, and the
@@ -398,5 +398,66 @@ comes with each extraction, not a one-off.
    fix is justified by the mechanism and by matching the suite's own convention,
    not by a failure I could summon on demand.
 
-7. The rest of both audits is done, deliberately rejected, or needs a UX pass
-   with the app running — a different kind of work from this backlog.
+7. **S-7 — what a full accessibility pass still owes.** Done 2026-09-04: the six
+   controls that removed the focus ring with no replacement (WCAG 2.4.7, and
+   axe cannot see it — a source-level test now guards it), and the LEO/GEO
+   technology tabs, whose connectivity state was carried by hue alone
+   (WCAG 1.4.1) and is now also carried by SHAPE — filled disc / ring / hollow —
+   and by an accessible name.
+
+   Checked and found already correct, so not touched: `prefers-reduced-motion`
+   covers every animation class in `index.css` (the mobile inspector carries
+   both `engineering-inspector` and `engineering-inspector-mobile`, so the
+   exemption reaches it).
+
+   Still open, and each is a design decision rather than a defect: ~30 other
+   status dots across the sidebar carry meaning by hue, most of them beside
+   their own text label — a legend dot is not the same failure as a control
+   dot, and deciding which are which is a pass with the app open, not a grep.
+   The axe gate also covers one viewport only.
+
+8. **M-5 — what the hover link covers, and what it does not.** Done 2026-09-04
+   for the SATELLITE, both directions, via `contexts/HoveredEntityContext.tsx`.
+   Sites, SNPs, gateways and PoPs appear in the same route diagram and carry no
+   `globeId` yet: they are inert by design, and a test pins that so adding one
+   later cannot silently start clearing the globe's highlight. Widening it means
+   publishing those ids from the globe the way `hoveredSatelliteId` already is.
+
+9. ~~**REVISIT e2e clicks stall in long batches.**~~ **NOT A SUITE DEFECT —
+   I was the cause. Closed 2026-09-04.**
+
+   I filed this item with a confident root cause (REVISIT's URL sync racing the
+   click) and a fix to match. **Both were wrong.** `pushModeToHistory` runs
+   synchronously on a mode-button click, not after mount, so a spec that does
+   `goto('/?mode=revisit')` never enters that window at all — one look at
+   `useAppModeState.ts:102-111` says so.
+
+   What the Playwright log actually showed was a navigation to the URL the page
+   was already on: **a full reload**. Vite does that when a watched file
+   changes. And I had been editing documentation while the suite ran, three
+   times in one day.
+
+   **The measurement, same batch of 96 tests, same machine:**
+
+   | run | wall time | result |
+   |---|---|---|
+   | edited files mid-run | 23.2 min | 1 failed |
+   | touched nothing | **14.6 min** | **0 failed** |
+
+   Items 5 and 6 above were filed against failures of the same kind, and their
+   fixes were reasoned from mechanisms I inferred rather than reproduced. Those
+   changes are kept — wider readiness waits and entering REVISIT through
+   `waitForRevisitReady` are correct on their own terms, and the second matches
+   what every other REVISIT spec already does — but **they should not be read as
+   having fixed a suite defect.** The suite was fine; the harness was being
+   disturbed.
+
+   **Guard, because a rule I had already written down did not stop me breaking
+   it three times:** `e2e/detectSourceEdits.ts` snapshots the newest mtime under
+   `src/` and `e2e/` at global setup and compares at teardown. A run whose tree
+   changed underneath it now says so in the report, next to the failure it
+   probably caused. Verified both ways: silent on a clean run, warns on a
+   touched one.
+
+10. The rest of both audits is done, deliberately rejected, or needs a UX pass
+    with the app running — a different kind of work from this backlog.

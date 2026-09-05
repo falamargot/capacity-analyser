@@ -1,4 +1,5 @@
 import { Globe2, MapPin, Radio, Satellite, Waypoints } from 'lucide-react';
+import { useHoveredEntity } from '../../../contexts/HoveredEntityContext';
 
 /**
  * Path-stage route diagram — a vertical node/connector chain modeled on
@@ -29,6 +30,12 @@ export interface RouteDiagramNode {
   sub?: string;
   tone?: RouteDiagramTone;
   onClick?: () => void;
+  /**
+   * The id the GLOBE knows this hop by (M-5). Present, this row highlights when
+   * the globe hovers that entity and tells the globe when the pointer — or the
+   * keyboard — reaches it. Absent, the row behaves exactly as before.
+   */
+  globeId?: string;
 }
 
 export interface RouteDiagramConnector {
@@ -100,10 +107,29 @@ const RouteDiagramNodeRow = ({
   const isRelay = node.kind === 'satellite' || node.kind === 'gateway';
   const Wrapper = node.onClick ? 'button' : 'div';
 
+  // M-5. Pointer AND focus both drive it: a keyboard user reaching this row
+  // deserves the same globe highlight a mouse user gets, and the row is already
+  // focusable whenever it has an onClick.
+  const { satelliteId: hoveredGlobeId, setHoveredSatelliteId } = useHoveredEntity();
+  const linked = node.globeId != null;
+  const isHovered = linked && hoveredGlobeId === node.globeId;
+  const link = linked
+    ? {
+      onMouseEnter: () => setHoveredSatelliteId(node.globeId ?? null),
+      onMouseLeave: () => setHoveredSatelliteId(null),
+      onFocus: () => setHoveredSatelliteId(node.globeId ?? null),
+      onBlur: () => setHoveredSatelliteId(null),
+    }
+    : {};
+
   return (
     <div
       data-route-diagram-node=""
-      className={`grid min-w-0 grid-cols-[2rem_minmax(0,1fr)] items-center gap-3 rounded-r-lg border-l-2 bg-white px-3 py-2 dark:bg-slate-950/40 ${toneBorderClass[tone]}`}
+      data-route-diagram-hovered={isHovered ? '' : undefined}
+      {...link}
+      className={`grid min-w-0 grid-cols-[2rem_minmax(0,1fr)] items-center gap-3 rounded-r-lg px-3 py-2 border-l-2 ${toneBorderClass[tone]} ${isHovered
+        ? 'bg-sky-50 ring-1 ring-inset ring-sky-300 dark:bg-sky-500/10 dark:ring-sky-400/50'
+        : 'bg-white dark:bg-slate-950/40'}`}
     >
       <span
         className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${isRelay ? accent.ring : 'border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400'}`}
